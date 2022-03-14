@@ -1,0 +1,4 @@
+namespace immvision
+{
+    void foo();
+}
