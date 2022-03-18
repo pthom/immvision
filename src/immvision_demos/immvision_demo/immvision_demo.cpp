@@ -1,25 +1,23 @@
 #include "immvision_simple_runner/immvision_simple_runner.h"
 #include "mandelbrot.h"
-#include "immvision/image_cv.h"
+#include "immvision/internal/gl_texture.h"
+
+#include <memory>
 
 struct AppState
 {
     AppState() { updateImage(); }
     void updateImage()
     {
-        _mat = MakeMandelbrotImage(_mandelbrotOptions);
-        _imgcv = ImmVision::ImageCv(_mat);
+        cv::Mat mat = MakeMandelbrotImage(mMandelbrotOptions);
+        mGlTextureCv.BlitMat(mat);
     }
-    ImmVision::ImageCv& getImageCv() { return _imgcv; }
 
-    MandelbrotOptions _mandelbrotOptions = MandelbrotOptions();
-
-private:
-    cv::Mat _mat;
-    ImmVision::ImageCv _imgcv;
+    MandelbrotOptions      mMandelbrotOptions = MandelbrotOptions();
+    ImmVision::GlTextureCv mGlTextureCv;
 };
 
-AppState gAppState;
+std::unique_ptr<AppState> gAppState;
 
 namespace ImGuiExt
 {
@@ -35,38 +33,41 @@ namespace ImGuiExt
 
 void guiFunction()
 {
+    if (!gAppState)
+        gAppState = std::make_unique<AppState>();
+
     bool changed  = false;
     if (ImGuiExt::SliderDouble(
         "x",
-        &gAppState._mandelbrotOptions.StartPoint.x,
+        &gAppState->mMandelbrotOptions.StartPoint.x,
         -2.,
         2.,
-        "%.1lf",
+        "%.3lf",
         1
     ))
         changed = true;
     if (ImGuiExt::SliderDouble(
         "y",
-        &gAppState._mandelbrotOptions.StartPoint.y,
+        &gAppState->mMandelbrotOptions.StartPoint.y,
         -2.,
         2.,
-        "%.1lf",
+        "%.3lf",
         1
     ))
         changed = true;
     if (ImGuiExt::SliderDouble(
         "zoom",
-        &gAppState._mandelbrotOptions.Zoom,
+        &gAppState->mMandelbrotOptions.Zoom,
         0.001,
         10.,
-        "%.1lf",
+        "%.3lf",
         1
     ))
         changed = true;
 
-    gAppState.getImageCv().Draw();
+    gAppState->mGlTextureCv.Draw();
     if (changed)
-        gAppState.updateImage();
+        gAppState->updateImage();
 
 }
 

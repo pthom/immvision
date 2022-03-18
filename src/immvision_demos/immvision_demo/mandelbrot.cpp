@@ -34,7 +34,6 @@ cv::Mat_<cv::Vec3b> MakeMandelbrotImage(const MandelbrotOptions& options)
 {
     cv::Mat_<cv::Vec3b> r(options.Size);
 
-    // Pour chaque pixel en Y
     for (unsigned int y = 0; y < options.Size.height; ++y)
     {
         double p_i = (y - options.Size.height / 2.0) / (0.5 * options.Zoom * options.Size.height) + options.StartPoint.y;
@@ -54,7 +53,6 @@ cv::Mat_<cv::Vec3b> MakeMandelbrotImage(const MandelbrotOptions& options)
                 ++i;
             }
 
-            // Dessine le pixel (avec conversion RGB565 -> RGB888)
             cv::Vec3b color = ColorFromNbIterations(i);
             r(y, x) = color;
         }
