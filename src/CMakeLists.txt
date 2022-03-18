@@ -1,3 +1,4 @@
+add_subdirectory(immvision_gl_loader)
 add_subdirectory(immvision)
 if (IMMVISION_BUILD_DEMOS)
     add_subdirectory(immvision_demos)
