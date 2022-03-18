@@ -3,7 +3,7 @@
 #include "imgui.h"
 #include <memory>
 
-namespace immvision
+namespace ImmVision
 {
 struct ImageGl;
 using ImageGlPtr = std::unique_ptr<ImageGl>;
@@ -35,4 +35,4 @@ public:
 };
 
 
-}
+} // namespace ImmVision

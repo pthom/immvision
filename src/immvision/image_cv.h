@@ -5,11 +5,11 @@
 // ImCv : Immediate Computer Vision
 
 
-namespace immvision
+namespace ImmVision
 {
 struct ImageCv
 {
-    ImageCv(const cv::Mat& image);
+    ImageCv(const cv::Mat& image = cv::Mat());
     void updateTexture();
     void updateTexture(const cv::Mat& newImage);
 
@@ -22,6 +22,6 @@ private:
     ImageGlPtr m_imageGl = nullptr;
     const cv::Mat *  m_imageMat = nullptr;
 };
-} // namespace immvision
+} // namespace ImmVision
 
 

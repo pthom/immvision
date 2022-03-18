@@ -1,7 +1,10 @@
 #include "immvision/image_gl.h"
 #include "immvision_gl_loader.h"
 
-namespace immvision
+#include <iostream>
+#define LOG(msg) std::cout << msg << std::endl;
+
+namespace ImmVision
 {
 ImageGl::ImageGl()
 : imageSize(0, 0)
@@ -13,6 +16,7 @@ ImageGl::~ImageGl()
 {
     GLuint textureId_Gl = (GLuint)(intptr_t)imTextureId;
     glDeleteTextures(1, &textureId_Gl);
+    LOG("glDeleteTextures");
 }
 
 void ImageGl::Draw(
@@ -50,6 +54,8 @@ ImageGlPtr ImageGl::FactorImage_From_Buffer(
         bool flip_RedBlue
         )
 {
+    LOG("glGenTextures");
+
     ImageGlPtr r (new ImageGl());
 
     GLuint textureId_Gl;

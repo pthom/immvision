@@ -1,6 +1,6 @@
 #include "immvision/image_cv.h"
 
-namespace immvision
+namespace ImmVision
 {
 
 ImageCv::ImageCv(const cv::Mat& image)
@@ -45,4 +45,4 @@ bool ImageCv::DrawButton(const ImVec2& size, const ImVec2& uv0,  const ImVec2& u
 }
 
 
-} // namespace HelloImGui
+} // namespace ImmVision
