@@ -17,5 +17,4 @@ target_include_directories(imgui_sdl_opengl3
 target_link_libraries(imgui_sdl_opengl3 PUBLIC SDL2::SDL2 SDL2::SDL2main SDL2::SDL2-static)
 target_link_libraries(imgui_sdl_opengl3 PUBLIC imgui)
 
-find_package(OpenGL REQUIRED)
-target_link_libraries(imgui_sdl_opengl3 PUBLIC OpenGL::GL)
+target_link_libraries(imgui_sdl_opengl3 PUBLIC immvision_gl_loader)

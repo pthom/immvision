@@ -1,5 +1,5 @@
 #include "immvision/image_gl.h"
-#include "immvision_include_opengl.h"
+#include "immvision_gl_loader.h"
 
 namespace immvision
 {

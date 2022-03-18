@@ -3,6 +3,8 @@
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 
+#include "immvision_gl_loader.h"
+
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
@@ -15,7 +17,6 @@
 #endif
 
 #include "imgui_sdl_opengl3_runner.h"
-
 // Main code
 
 
@@ -63,6 +64,10 @@ int imgui_sdl_opengl3_run(GuiFunctionPtr guiFunction, const AppParams& appParams
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
+
+#if defined(IMMVISION_USE_GLAD)
+    gladLoadGLLoader(SDL_GL_GetProcAddress);
+#endif
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
