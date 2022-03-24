@@ -1,10 +1,10 @@
 * [X] Recup code blit Activisu + imgui_datascience
 * [X] Solve issue / mouse precision
 * [X] Track init/delete/blits
-* [ ] Skeleton doc
+* [X] Variant API / Still & animated
+* [N] Variant API Fixed height, width. + doc
+* [X] Skeleton doc
 * [ ] Handle (& test) CV_64FC3 & 4
-* [ ] Variant & API / Fixed height, width. + doc
-* [ ] Improve Cache (TTL & Co)
 * [ ] simplify gl_texture
 * [ ] Reduce energy branch
 

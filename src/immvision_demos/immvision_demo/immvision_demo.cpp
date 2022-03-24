@@ -2,30 +2,49 @@
 #include "mandelbrot.h"
 #include "immvision/image.h"
 
-#include <memory>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
+struct CannyParams
+{
+    double  	threshold1 = 1.;
+    double  	threshold2 = 2.;
+    int  	apertureSize = 3;
+    bool  	L2gradient = false;
+};
 
 struct AppState
 {
-    AppState() { updateImage(); }
-    void updateImage()
+    AppState() {}
+    void LoadImages()
     {
-        mMat = MakeMandelbrotImage(mMandelbrotOptions);
+        mImage = cv::imread("resources/tennis.jpg");
+    }
+    void UpdateImages()
+    {
+        cv::Mat grey;
+        cv::cvtColor(mImage, grey, cv::COLOR_BGR2GRAY);
+        cv::Canny(grey, mImageFiltered,
+            mCannyParams.threshold1, mCannyParams.threshold2,
+            mCannyParams.apertureSize,
+            mCannyParams.L2gradient
+            );
+        int  k = 6;
     }
 
-    MandelbrotOptions      mMandelbrotOptions = MandelbrotOptions();
-    cv::Mat mMat;
+    cv::Mat mImage, mImageFiltered;
     int mDisplayWidth = 0, mDisplayHeight = 0;
-    bool mShow = true;
+    CannyParams mCannyParams;
 };
 
 AppState gAppState;
 
 namespace ImGuiExt
 {
-    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, double power)
+    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format)
     {
         float vf = *v;
-        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, format, (float)power);
+        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, format);
         if (changed)
             *v = vf;
         return changed;
@@ -34,38 +53,29 @@ namespace ImGuiExt
 
 void guiFunction()
 {
+    if (gAppState.mImage.empty())
+        gAppState.LoadImages();
+
     bool changed  = false;
     ImGui::SetNextItemWidth(200.f);
-    if (ImGuiExt::SliderDouble(
-        "x",
-        &gAppState.mMandelbrotOptions.StartPoint.x,
-        -2.,
-        2.,
-        "%.3lf",
-        1
-    ))
+    if (ImGuiExt::SliderDouble("thr1", &gAppState.mCannyParams.threshold1, 0., 40550., "%.3lf"))
         changed = true;
     ImGui::SameLine();
     ImGui::SetNextItemWidth(200.f);
-    if (ImGuiExt::SliderDouble(
-        "y",
-        &gAppState.mMandelbrotOptions.StartPoint.y,
-        -2.,
-        2.,
-        "%.3lf",
-        1
-    ))
+    if (ImGuiExt::SliderDouble("thr2", &gAppState.mCannyParams.threshold2, 0., 40550., "%.3lf"))
+        changed = true;
+    ImGui::Text("Aperture size"); ImGui::SameLine();
+    if (ImGui::RadioButton("3", &gAppState.mCannyParams.apertureSize, 3))
+        changed = true;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("5", &gAppState.mCannyParams.apertureSize, 5))
+        changed = true;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("7", &gAppState.mCannyParams.apertureSize, 7))
         changed = true;
     ImGui::SameLine();
     ImGui::SetNextItemWidth(200.f);
-    if (ImGuiExt::SliderDouble(
-        "zoom",
-        &gAppState.mMandelbrotOptions.Zoom,
-        0.001,
-        10.,
-        "%.3lf",
-        1
-    ))
+    if (ImGui::Checkbox("L2gradient", &gAppState.mCannyParams.L2gradient))
         changed = true;
 
     ImGui::SetNextItemWidth(200.f);
@@ -74,21 +84,18 @@ void guiFunction()
     ImGui::SetNextItemWidth(200.f);
     ImGui::SliderInt("Display Height", &gAppState.mDisplayHeight, 0, 1000);
 
-    ImGui::Checkbox("Show", &gAppState.mShow);
-
     if (changed)
-        gAppState.updateImage();
-    if (gAppState.mShow)
-    {
-        ImmVision::Image(gAppState.mMat, changed, cv::Size(gAppState.mDisplayWidth, gAppState.mDisplayHeight));
+        gAppState.UpdateImages();
+    ImGui::BeginGroup();
+        ImmVision::Image(gAppState.mImage, changed, cv::Size(gAppState.mDisplayWidth, gAppState.mDisplayHeight));
         auto pos = ImmVision::GetImageMousePos();
         ImGui::Text("mouse %.1f %.1f hovered:%i", pos.x, pos.y, (int)ImGui::IsItemHovered());
-    }
+    ImGui::EndGroup();
+    ImGui::SameLine();
+    ImmVision::Image(gAppState.mImageFiltered, changed, cv::Size(gAppState.mDisplayWidth, gAppState.mDisplayHeight));
 
-    static cv::Mat red(cv::Size(100, 100), CV_8UC3);
-    ImmVision::Image(red, false);
-
-    ImGui::ShowDemoWindow(NULL);
+    ImGui::ShowMetricsWindow(NULL);
+    //ImGui::ShowDemoWindow(NULL);
 }
 
 int main()
