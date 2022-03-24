@@ -4,7 +4,7 @@
 struct MandelbrotOptions
 {
     const unsigned int MaxIteration = 142;
-    cv::Size Size = cv::Size(800, 600);
+    cv::Size Size = cv::Size(140, 80);
     cv::Point2d StartPoint = cv::Point2d(-0.75, 0.0);
     double Zoom = 0.8;
 };

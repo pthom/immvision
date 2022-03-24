@@ -1,5 +1,12 @@
-* [ ] Recup code blit Activisu + imgui_datascience
-
+* [X] Recup code blit Activisu + imgui_datascience
+* [X] Solve issue / mouse precision
+* [X] Track init/delete/blits
+* [ ] Skeleton doc
+* [ ] Handle (& test) CV_64FC3 & 4
+* [ ] Variant & API / Fixed height, width. + doc
+* [ ] Improve Cache (TTL & Co)
+* [ ] simplify gl_texture
+* [ ] Reduce energy branch
 
         Resumé du problème:
             - ImageTexture ne peut pas être construit avant init OpenGL
