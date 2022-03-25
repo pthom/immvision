@@ -21,8 +21,8 @@
   * [X] Check if MakeUniqueLabel needed
     * [X] Check handle several images
   * [X] Align PixelInfo CV8U_C1 & display value
-  * [ ] Mise en page button Save (& others)
-  * [ ] Child window with borders
+  * [X] Child window with borders
+  * [ ] Mise en page button Save (& others) / Use menus & dialogs
   * [ ] Way to handle nice icons
   * [ ] Clean imgui_ext mess
   * [ ] Display FPS

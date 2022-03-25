@@ -91,15 +91,9 @@ void guiFunction()
     if (changed)
         gAppState.UpdateImages();
     ImGui::BeginGroup();
-        if (false)
-        {
-            ImmVision::Image(gAppState.mImage, changed, cv::Size(gAppState.mDisplayWidth, gAppState.mDisplayHeight));
-            auto pos = ImmVision::GetImageMousePos();
-            ImGui::Text("mouse %.1f %.1f hovered:%i", pos.x, pos.y, (int)ImGui::IsItemHovered());
-        }
-        if (true)
         {
             static ImmVision::ImageNavigatorParams imageNavigatorParams;
+            imageNavigatorParams.Legend = "Original";
             imageNavigatorParams.ImageSize = cv::Size(400, 0);
             cv::Point2d mousePosition = ImmVision::ImageNavigator(gAppState.mImage, imageNavigatorParams);
             ImGui::Text("mouse %.1lf %.1lf", mousePosition.x, mousePosition.y);
@@ -109,6 +103,7 @@ void guiFunction()
     ImGui::SameLine();
 
     static ImmVision::ImageNavigatorParams imageNavigatorParams;
+    imageNavigatorParams.Legend = "Filtered";
     imageNavigatorParams.ImageSize = cv::Size(400, 0);
     cv::Point2d mousePosition = ImmVision::ImageNavigator(
         gAppState.mImageFiltered,

@@ -423,10 +423,6 @@ namespace ImmVision
             return ImGuiExt::LinkedLabel(label, &image);
         };
 
-        ImGui::BeginGroup();
-        if ( ! params.Legend.empty())
-            ImGui::Text("%s", params.Legend.c_str());
-
         if (image.empty())
         {
             ImGui::Text("empty image !");
@@ -436,8 +432,39 @@ namespace ImmVision
 
         auto& texture =
             ImageNavigatorUtils::gImageNavigatorTextureCache.GetTexture(image, params, refresh);
-        ImVec2 imageSize(params.ImageSize.width, params.ImageSize.height);
 
+
+        auto WidgetSize = [&params]() -> ImVec2 {
+            ImVec2 r((float)params.ImageSize.width, (float)params.ImageSize.height);
+            r.y += 80.f;
+            if (params.ShowColorAdjustments)
+                r.y += 40.;
+            if (!params.Legend.empty())
+                r.y += 20.;
+            return r;
+        };
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+        int windowFlags = ImGuiWindowFlags_MenuBar;
+        ImGui::BeginChild(UniqueLabel("ImageNavigator"), WidgetSize(), true, windowFlags);
+        ImGui::PopStyleVar();
+
+        /*
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("Menu"))
+            {
+                ImGui::MenuItem("Test");
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+         */
+
+        if ( ! params.Legend.empty())
+            ImGui::Text("%s", params.Legend.c_str());
+        
+        ImVec2 imageSize(params.ImageSize.width, params.ImageSize.height);
         cv::Point2d mouseLocation = ImGuiExt::DisplayTexture_TrackMouse(texture, imageSize);
 
         int mouseDragButton = 0;
@@ -551,7 +578,9 @@ namespace ImmVision
 
             }
         }
-        ImGui::EndGroup();
+
+        ImGui::EndChild();
+
         return mouseLocation_originalImage;
     }
 
