@@ -1,6 +1,7 @@
 #include "immvision/image.h"
 
 #include "immvision/internal/gl_texture.h"
+#include "immvision/internal/imgui_ext.h"
 
 #include <map>
 #include <chrono>
@@ -68,20 +69,6 @@ namespace ImmVision
         };
         TextureCache gTextureCache;
 
-        ImVec2 ComputeFinalDisplayImageSize(
-            ImVec2 askedImageSize,
-            ImVec2 realImageSize
-            )
-        {
-            if ((askedImageSize.x == 0.f) && (askedImageSize.y == 0.f))
-                return realImageSize;
-            else if (askedImageSize.x == 0.f)
-                return ImVec2(askedImageSize.y * realImageSize.x / realImageSize.y, askedImageSize.y);
-            else if (askedImageSize.y == 0.f)
-                return ImVec2(askedImageSize.x, askedImageSize.x * realImageSize.y / realImageSize.x);
-            else
-                return askedImageSize;
-        }
 
         struct
         {
@@ -109,7 +96,7 @@ namespace ImmVision
             glTextureCv->BlitMat(mat);
 
         ImVec2 sizeImVec2((float)size.width, (float)size.height);
-        ImVec2 displaySize = internal::ComputeFinalDisplayImageSize(sizeImVec2, glTextureCv->mImageSize);
+        ImVec2 displaySize = immvision_ImGuiExt::ComputeDisplayImageSize(sizeImVec2, glTextureCv->mImageSize);
 
         internal::gLastImageInfo.lastDisplayRatio = cv::Point2d(
             (double)(glTextureCv->mImageSize.x / displaySize.x),
@@ -117,7 +104,7 @@ namespace ImmVision
         );
         internal::gLastImageInfo.lastImageCursorPos = ImGui::GetCursorScreenPos();
 
-        ImGui::Image(glTextureCv->mImTextureId, displaySize);
+        glTextureCv->Draw_DisableDragWindow(displaySize);
     }
 
     ImVec2 GetImageMousePos_OnScreen()

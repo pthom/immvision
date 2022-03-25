@@ -1,6 +1,7 @@
 #include "immvision_simple_runner/immvision_simple_runner.h"
 #include "mandelbrot.h"
 #include "immvision/image.h"
+#include "immvision/image_navigator.h"
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -54,7 +55,10 @@ namespace ImGuiExt
 void guiFunction()
 {
     if (gAppState.mImage.empty())
+    {
         gAppState.LoadImages();
+        gAppState.UpdateImages();
+    }
 
     bool changed  = false;
     ImGui::SetNextItemWidth(200.f);
@@ -87,14 +91,31 @@ void guiFunction()
     if (changed)
         gAppState.UpdateImages();
     ImGui::BeginGroup();
-        ImmVision::Image(gAppState.mImage, changed, cv::Size(gAppState.mDisplayWidth, gAppState.mDisplayHeight));
-        auto pos = ImmVision::GetImageMousePos();
-        ImGui::Text("mouse %.1f %.1f hovered:%i", pos.x, pos.y, (int)ImGui::IsItemHovered());
+        if (false)
+        {
+            ImmVision::Image(gAppState.mImage, changed, cv::Size(gAppState.mDisplayWidth, gAppState.mDisplayHeight));
+            auto pos = ImmVision::GetImageMousePos();
+            ImGui::Text("mouse %.1f %.1f hovered:%i", pos.x, pos.y, (int)ImGui::IsItemHovered());
+        }
+        if (true)
+        {
+            static ImmVision::ImageNavigatorParams imageNavigatorParams;
+            imageNavigatorParams.ImageSize = cv::Size(400, 0);
+            cv::Point2d mousePosition = ImmVision::ImageNavigator(gAppState.mImage, imageNavigatorParams);
+            ImGui::Text("mouse %.1lf %.1lf", mousePosition.x, mousePosition.y);
+        }
+
     ImGui::EndGroup();
     ImGui::SameLine();
-    ImmVision::Image(gAppState.mImageFiltered, changed, cv::Size(gAppState.mDisplayWidth, gAppState.mDisplayHeight));
 
-    ImGui::ShowMetricsWindow(NULL);
+    static ImmVision::ImageNavigatorParams imageNavigatorParams;
+    imageNavigatorParams.ImageSize = cv::Size(400, 0);
+    cv::Point2d mousePosition = ImmVision::ImageNavigator(
+        gAppState.mImageFiltered,
+        imageNavigatorParams,
+        changed);
+
+    //ImGui::ShowMetricsWindow(NULL);
     //ImGui::ShowDemoWindow(NULL);
 }
 

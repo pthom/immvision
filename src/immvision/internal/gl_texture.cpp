@@ -7,6 +7,8 @@
 #endif
 
 #include <opencv2/imgproc.hpp>
+#include <sstream>
+#include <iostream>
 
 namespace
 {
@@ -24,6 +26,7 @@ namespace ImmVision
 {
     GlTexture::GlTexture()
     {
+        std::cout << "GlTexture::GlTexture() \n";
         GLuint textureId_Gl;
         glGenTextures(1, &textureId_Gl);
         this->mImTextureId = toImTextureID(textureId_Gl);
@@ -31,11 +34,12 @@ namespace ImmVision
 
     GlTexture::~GlTexture()
     {
+        std::cout << "GlTexture::~GlTexture() \n";
         GLuint textureId_Gl = toGLuint(this->mImTextureId);
         glDeleteTextures(1, &textureId_Gl);
     }
 
-    void GlTexture::Draw(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+    void GlTexture::Draw(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) const
     {
         ImVec2 size_(size);
         if (size.x == 0.f)
@@ -43,12 +47,26 @@ namespace ImmVision
         ImGui::Image(this->mImTextureId, size_, uv0, uv1, tint_col, border_col);
     }
 
-    bool GlTexture::DrawButton(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)    // <0 frame_padding uses default frame padding settings. 0 for no padding
+    bool GlTexture::DrawButton(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) const
     {
         ImVec2 size_(size);
         if (size.x == 0.f)
             size_ = this->mImageSize;
         return ImGui::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
+    }
+
+    void GlTexture::Draw_DisableDragWindow(const ImVec2 &size) const
+    {
+        ImVec2 size_(size);
+        if (size.x == 0.f)
+            size_ = this->mImageSize;
+
+        ImVec2 imageTl = ImGui::GetCursorScreenPos();
+        ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
+        std::stringstream id;
+        id << "##" << (GLuint)(intptr_t)mImTextureId;
+        ImGui::InvisibleButton(id.str().c_str(), size);
+        ImGui::GetWindowDrawList()->AddImage(mImTextureId, imageTl, imageBr);
     }
 
     void GlTexture::Blit_Buffer(
@@ -59,6 +77,8 @@ namespace ImmVision
         bool flip_RedBlue
     )
     {
+        std::cout << "GlTexture::Blit_Buffer() \n";
+
         // GL_UNPACK_ALIGNMENT needs to be changed if the amount of data per row is not a multiple of 4.
         // For example, if you have RGB data, with 3 bytes per pixel
         if ( (nb_channels != 4) && (image_width %4 != 0) )
