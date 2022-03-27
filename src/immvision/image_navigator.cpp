@@ -8,6 +8,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <map>
 #include <vector>
+#include <iostream>
 
 namespace ImmVision
 {
@@ -172,7 +173,7 @@ namespace ImmVision
         {
             if (v1.ImageSize != v2.ImageSize)
                 return true;
-            if (v1.ZoomMatrix != v2.ZoomMatrix)
+            if (! ZoomMatrix::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
                 return true;
             if (! (v1.ColorAdjustments == v2.ColorAdjustments))
                 return true;
@@ -187,24 +188,29 @@ namespace ImmVision
             {
                 params.ImageSize = immvision_ImGuiExt::ComputeDisplayImageSize(params.ImageSize, image.size());
 
-                bool needsRefresh = refresh;
+                bool needsRefreshTexture = refresh;
+
                 if (mCache.find(&image) == mCache.end())
                 {
                     params = InitializeMissingParams(params, image);
-                    mCache[&image].ImageNavigatorParams = params;
-                    needsRefresh = true;
+                    needsRefreshTexture = true;
                 }
+                mCache[&image].ImageNavigatorParams = &params;
 
                 auto& cachedData = mCache.at(&image);
 
-                ImageNavigatorParams oldParams = cachedData.ImageNavigatorParams;
-                cachedData.ImageNavigatorParams = params;
-                if (ShallRefreshTexture(oldParams, params))
-                    needsRefresh = true;
+                ImageNavigatorParams oldParams = cachedData.OldParams;
+                *cachedData.ImageNavigatorParams = params;
 
-                if (needsRefresh)
+                if (ShallRefreshTexture(oldParams, params))
+                    needsRefreshTexture = true;
+                if (needsRefreshTexture)
                     BlitImageNavigatorTexture(params, image, &cachedData.GlTextureCv);
 
+                if (! ZoomMatrix::IsEqual(oldParams.ZoomMatrix, params.ZoomMatrix))
+                    UpdateLinkedZooms(image);
+
+                cachedData.OldParams = params;
                 return cachedData.GlTextureCv;
             }
 
@@ -220,10 +226,24 @@ namespace ImmVision
             }
 
         private:
+            // Methods
+            void UpdateLinkedZooms(const cv::Mat& image)
+            {
+                assert(mCache.find(&image) != mCache.end());
+                std::string zoomKey = mCache[&image].ImageNavigatorParams->ZoomKey;
+                if (zoomKey.empty())
+                    return;
+                ZoomMatrix::ZoomMatrixType newZoom = mCache[&image].ImageNavigatorParams->ZoomMatrix;
+                for (auto& kv : mCache)
+                    if ( (kv.second.ImageNavigatorParams->ZoomKey == zoomKey) && (kv.first != &image))
+                        kv.second.ImageNavigatorParams->ZoomMatrix = newZoom;
+            }
+
             // members
             struct CachedData
             {
-                ImageNavigatorParams ImageNavigatorParams;
+                ImageNavigatorParams* ImageNavigatorParams = nullptr;
+                struct ImageNavigatorParams  OldParams;
                 GlTextureCv GlTextureCv;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
@@ -342,7 +362,6 @@ namespace ImmVision
             return info;
         }
     } // namespace MatrixInfoUtils
-
 
 
     namespace ImGuiExt
@@ -471,14 +490,15 @@ namespace ImmVision
         bool isItemHovered = ImGui::IsItemHovered();
         bool isMouseDragging = ImGui::IsMouseDragging(mouseDragButton) && isItemHovered;
 
+        ZoomMatrix::ZoomMatrixType& zoomMatrix = params.ZoomMatrix;
         cv::Point2d mouseLocation_originalImage =
             isItemHovered   ?
-                ZoomMatrix::Apply(params.ZoomMatrix.inv(), mouseLocation)
+                ZoomMatrix::Apply(zoomMatrix.inv(), mouseLocation)
             :
                 cv::Point2d(-1., -1.);
 
         cv::Point2d viewportCenter_originalImage = ZoomMatrix::Apply(
-            params.ZoomMatrix.inv(),
+            zoomMatrix.inv(),
             cv::Point2d (
                 (double)(ImGui::GetItemRectSize().x / 2.f),
                 (double)(ImGui::GetItemRectSize().y / 2.f))
@@ -492,9 +512,9 @@ namespace ImmVision
         {
             ImVec2 dragDelta = ImGui::GetMouseDragDelta(mouseDragButton);
             ImVec2 dragDeltaDelta(dragDelta.x - lastDelta.x, dragDelta.y - lastDelta.y);
-            params.ZoomMatrix =
-                  params.ZoomMatrix
-                * ZoomMatrix::ComputePanMatrix(dragDeltaDelta, params.ZoomMatrix(0, 0));
+            zoomMatrix =
+                zoomMatrix
+                * ZoomMatrix::ComputePanMatrix(dragDeltaDelta, zoomMatrix(0, 0));
             lastDelta = dragDelta;
         }
 
@@ -505,13 +525,13 @@ namespace ImmVision
         {
             ImGui::PushButtonRepeat(true);
             if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_PLUS " Zoom +")))
-                params.ZoomMatrix = params.ZoomMatrix * ZoomMatrix::ComputeZoomMatrix(
+                zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(
                     viewportCenter_originalImage, 1.1);
 
             ImGui::SameLine();
 
             if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_MINUS " Zoom -")))
-                params.ZoomMatrix = params.ZoomMatrix * ZoomMatrix::ComputeZoomMatrix(
+                zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(
                     viewportCenter_originalImage, 1. / 1.1);
 
             ImGui::PopButtonRepeat();
@@ -521,17 +541,18 @@ namespace ImmVision
         {
             auto scaleOneZoomInfo = ZoomMatrix::MakeScaleOne(image.size(), params.ImageSize);
             auto fullViewZoomInfo = ZoomMatrix::MakeFullView(image.size(), params.ImageSize);
-            if (! ZoomMatrix::IsEqual(params.ZoomMatrix, scaleOneZoomInfo))
+            if (! ZoomMatrix::IsEqual(zoomMatrix, scaleOneZoomInfo))
                 if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_SCALE_1 " Scale 1")))
-                    params.ZoomMatrix = scaleOneZoomInfo;
+                    zoomMatrix = scaleOneZoomInfo;
 
             ImGui::SameLine();
 
-            if (! ZoomMatrix::IsEqual(params.ZoomMatrix,fullViewZoomInfo))
+            if (! ZoomMatrix::IsEqual(zoomMatrix,fullViewZoomInfo))
                 if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_FULLVIEW " Full")))
-                    params.ZoomMatrix = fullViewZoomInfo;
+                    zoomMatrix = fullViewZoomInfo;
 
             ImGui::SameLine();
+
         }
 
         // Color Adjustments

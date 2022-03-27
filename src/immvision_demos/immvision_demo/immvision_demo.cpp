@@ -5,6 +5,7 @@
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#include <iostream>
 
 struct CannyParams
 {
@@ -94,6 +95,7 @@ void guiFunction()
         {
             static ImmVision::ImageNavigatorParams imageNavigatorParams;
             imageNavigatorParams.Legend = "Original";
+            imageNavigatorParams.ZoomKey = "i";
             imageNavigatorParams.ImageSize = cv::Size(400, 0);
             cv::Point2d mousePosition = ImmVision::ImageNavigator(gAppState.mImage, imageNavigatorParams);
             ImGui::Text("mouse %.1lf %.1lf", mousePosition.x, mousePosition.y);
@@ -102,12 +104,13 @@ void guiFunction()
     ImGui::EndGroup();
     ImGui::SameLine();
 
-    static ImmVision::ImageNavigatorParams imageNavigatorParams;
-    imageNavigatorParams.Legend = "Filtered";
-    imageNavigatorParams.ImageSize = cv::Size(400, 0);
+    static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter;
+    imageNavigatorParamsFilter.Legend = "Filtered";
+    imageNavigatorParamsFilter.ImageSize = cv::Size(400, 0);
+    imageNavigatorParamsFilter.ZoomKey = "i";
     cv::Point2d mousePosition = ImmVision::ImageNavigator(
         gAppState.mImageFiltered,
-        imageNavigatorParams,
+        imageNavigatorParamsFilter,
         changed);
 
     //ImGui::ShowMetricsWindow(NULL);
