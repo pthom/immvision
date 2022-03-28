@@ -7,6 +7,7 @@
     * [ ] Handle zoom_key & adjustments_key
       * [ ] Pass ImageNavigatorParams by pointer (do not lie about lifetime)
         * [ ] Add simpler API
+    * [X] Drag stops when exiting boundaries
     * [ ] Mise en page button Save (& others) / Use menus & dialogs
     * [ ] Way to handle nice icons
     * [ ] Clean imgui_ext mess

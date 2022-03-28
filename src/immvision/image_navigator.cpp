@@ -184,7 +184,18 @@ namespace ImmVision
         class ImageNavigatorTextureCache
         {
         public:
-            const GlTextureCv & GetTexture(const cv::Mat& image, ImageNavigatorParams& params, bool refresh)
+            // members
+            struct CachedData
+            {
+                ImageNavigatorParams* ImageNavigatorParams = nullptr;
+                GlTextureCv GlTextureCv;
+                ImVec2 LastDragDelta;
+                std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
+                bool   IsMouseDragging = false;
+                struct ImageNavigatorParams  PreviousParams;
+            };
+
+            void UpdateCache(const cv::Mat& image, ImageNavigatorParams& params, bool refresh)
             {
                 params.ImageSize = immvision_ImGuiExt::ComputeDisplayImageSize(params.ImageSize, image.size());
 
@@ -199,7 +210,7 @@ namespace ImmVision
 
                 auto& cachedData = mCache.at(&image);
 
-                ImageNavigatorParams oldParams = cachedData.OldParams;
+                ImageNavigatorParams oldParams = cachedData.PreviousParams;
                 *cachedData.ImageNavigatorParams = params;
 
                 if (ShallRefreshTexture(oldParams, params))
@@ -210,19 +221,13 @@ namespace ImmVision
                 if (! ZoomMatrix::IsEqual(oldParams.ZoomMatrix, params.ZoomMatrix))
                     UpdateLinkedZooms(image);
 
-                cachedData.OldParams = params;
-                return cachedData.GlTextureCv;
+                cachedData.PreviousParams = params;
             }
 
-            ImVec2& LastDragDelta(const cv::Mat& image)
+            CachedData& GetCache(const cv::Mat& image)
             {
                 assert(mCache.find(&image) != mCache.end());
-                return mCache.at(&image).LastDragDelta;
-            }
-
-            char *FilenameEditBuffer(const cv::Mat& image)
-            {
-                return mCache.at(&image).FilenameEditBuffer.data();
+                return mCache.at(&image);
             }
 
         private:
@@ -239,15 +244,6 @@ namespace ImmVision
                         kv.second.ImageNavigatorParams->ZoomMatrix = newZoom;
             }
 
-            // members
-            struct CachedData
-            {
-                ImageNavigatorParams* ImageNavigatorParams = nullptr;
-                struct ImageNavigatorParams  OldParams;
-                GlTextureCv GlTextureCv;
-                ImVec2 LastDragDelta;
-                std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
-            };
             std::map<const cv::Mat*, CachedData> mCache;
         };
         ImageNavigatorTextureCache gImageNavigatorTextureCache;
@@ -449,8 +445,8 @@ namespace ImmVision
             return cv::Point2d();
         }
 
-        auto& texture =
-            ImageNavigatorUtils::gImageNavigatorTextureCache.GetTexture(image, params, refresh);
+        ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
+        auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
 
 
         auto WidgetSize = [&params]() -> ImVec2 {
@@ -484,11 +480,10 @@ namespace ImmVision
             ImGui::Text("%s", params.Legend.c_str());
         
         ImVec2 imageSize(params.ImageSize.width, params.ImageSize.height);
-        cv::Point2d mouseLocation = ImGuiExt::DisplayTexture_TrackMouse(texture, imageSize);
+        cv::Point2d mouseLocation = ImGuiExt::DisplayTexture_TrackMouse(cache.GlTextureCv, imageSize);
 
         int mouseDragButton = 0;
         bool isItemHovered = ImGui::IsItemHovered();
-        bool isMouseDragging = ImGui::IsMouseDragging(mouseDragButton) && isItemHovered;
 
         ZoomMatrix::ZoomMatrixType& zoomMatrix = params.ZoomMatrix;
         cv::Point2d mouseLocation_originalImage =
@@ -504,18 +499,21 @@ namespace ImmVision
                 (double)(ImGui::GetItemRectSize().y / 2.f))
         );
 
-        ImVec2 &lastDelta = ImageNavigatorUtils::gImageNavigatorTextureCache.LastDragDelta(image);
-        if (!isMouseDragging)
-            lastDelta = ImVec2(0.f, 0.f);
-
-        if (isMouseDragging)
+        // Mouse dragging
+        bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && isItemHovered;
+        if (isMouseDraggingInside)
+            cache.IsMouseDragging = true;
+        if (! ImGui::IsMouseDown(mouseDragButton))
+        {
+            cache.IsMouseDragging = false;
+            cache.LastDragDelta = ImVec2(0.f, 0.f);
+        }
+        if (cache.IsMouseDragging)
         {
             ImVec2 dragDelta = ImGui::GetMouseDragDelta(mouseDragButton);
-            ImVec2 dragDeltaDelta(dragDelta.x - lastDelta.x, dragDelta.y - lastDelta.y);
-            zoomMatrix =
-                zoomMatrix
-                * ZoomMatrix::ComputePanMatrix(dragDeltaDelta, zoomMatrix(0, 0));
-            lastDelta = dragDelta;
+            ImVec2 dragDeltaDelta(dragDelta.x - cache.LastDragDelta.x, dragDelta.y - cache.LastDragDelta.y);
+            zoomMatrix = zoomMatrix * ZoomMatrix::ComputePanMatrix(dragDeltaDelta, zoomMatrix(0, 0));
+            cache.LastDragDelta = dragDelta;
         }
 
         // Pixel color info
@@ -525,14 +523,12 @@ namespace ImmVision
         {
             ImGui::PushButtonRepeat(true);
             if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_PLUS " Zoom +")))
-                zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(
-                    viewportCenter_originalImage, 1.1);
+                zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1.1);
 
             ImGui::SameLine();
 
             if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_MINUS " Zoom -")))
-                zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(
-                    viewportCenter_originalImage, 1. / 1.1);
+                zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1. / 1.1);
 
             ImGui::PopButtonRepeat();
         }
@@ -567,14 +563,12 @@ namespace ImmVision
                 ImGui::Text("Adjust");
                 ImGui::PushItemWidth(80.);
                 immvision_ImGuiExt::SliderDouble(
-                    UniqueLabel("k"),
-                    &params.ColorAdjustments.Factor,
+                    UniqueLabel("k"), &params.ColorAdjustments.Factor,
                     0., 32., "%.3f", ImGuiSliderFlags_Logarithmic);
                 ImGui::SameLine();
                 ImGui::PushItemWidth(80.);
                 immvision_ImGuiExt::SliderDouble(
-                    UniqueLabel("Delta"),
-                    &params.ColorAdjustments.Delta,
+                    UniqueLabel("Delta"), &params.ColorAdjustments.Delta,
                     0., 255., "%.3f", ImGuiSliderFlags_Logarithmic);
                 if (! ColorAdjustmentsUtils::IsNone(params.ColorAdjustments))
                 {
@@ -586,7 +580,7 @@ namespace ImmVision
 
                 // Save Image
                 {
-                    char *filename = ImageNavigatorUtils::gImageNavigatorTextureCache.FilenameEditBuffer(image);
+                    char *filename = cache.FilenameEditBuffer.data();
                     ImGui::InputText(UniqueLabel("Filename"), filename, 1000);
                     ImGui::SameLine();
                     if (ImGui::SmallButton(UniqueLabel("save")))
