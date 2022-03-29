@@ -300,7 +300,7 @@ namespace ImmVision
         }
 
 
-        std::string _MatPixelColorInfo(const cv::Mat & m, int x, int y)
+        std::string _MatPixelColorInfo(const cv::Mat & m, int x, int y, bool showColorAsRGB)
         {
             if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
                 return "";
@@ -348,11 +348,17 @@ namespace ImmVision
             else if (m.type() == CV_8UC4)
             {
                 auto v = m.at<cv::Vec3b>(y, x);
+                if (showColorAsRGB)
+                    sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0], (unsigned int)v[3]);
+                else
                 sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2], (unsigned int)v[3]);
             }
             else if (m.type() == CV_8UC3)
             {
                 auto v = m.at<cv::Vec3b>(y, x);
+                if (showColorAsRGB)
+                    sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0]);
+                else
                 sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2]);
             }
             else if (m.type() == CV_8UC2)
@@ -405,13 +411,13 @@ namespace ImmVision
     } // namespace ImGuiExt
 
 
-    void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt, double zoomFactor)
+    void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt, double zoomFactor, bool showColorAsRGB)
     {
         std::string info = MatrixInfoUtils::_MatInfo(image);
         ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
         if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
         {
-            info = MatrixInfoUtils::_MatPixelColorInfo(image, pt.x, pt.y);
+            info = MatrixInfoUtils::_MatPixelColorInfo(image, pt.x, pt.y, showColorAsRGB);
             ImGui::Text("%s", info.c_str());
         }
         else
@@ -533,7 +539,7 @@ namespace ImmVision
         }
 
         // Pixel color info
-        ShowPixelColorInfo(image, mouseLocation_originalImage, params.ZoomMatrix(0, 0));
+        ShowPixelColorInfo(image, mouseLocation_originalImage, params.ZoomMatrix(0, 0), params.ShowColorAsRGB);
 
         // Zoom+ / Zoom- buttons
         {
@@ -577,6 +583,7 @@ namespace ImmVision
                 ImGui::OpenPopup("Adjustments");
             if (ImGui::BeginPopup("Adjustments"))
             {
+                // Adjust colors
                 ImGui::Text("Adjust");
                 ImGui::PushItemWidth(80.);
                 immvision_ImGuiExt::SliderDouble(
@@ -594,11 +601,13 @@ namespace ImmVision
                         params.ColorAdjustments = ColorAdjustments();
                 }
 
-                if (params.ZoomMatrix(0,0) < ImageNavigatorUtils::gGridMinZoomFactor)
-                    immvision_ImGuiExt::PushDisabled();
-                ImGui::Checkbox("Grid", &params.ShowGrid);
-                if (params.ZoomMatrix(0,0) < ImageNavigatorUtils::gGridMinZoomFactor)
-                    immvision_ImGuiExt::PopDisabled();
+                // Options
+                if (params.ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
+                    ImGui::Checkbox("Grid", &params.ShowGrid);
+                if (image.type() == CV_8UC3)
+                    ImGui::Checkbox("Show color values as RGB", &params.ShowColorAsRGB);
+                if (image.type() == CV_8UC4)
+                    ImGui::Checkbox("Show color values as RGBA", &params.ShowColorAsRGB); // Not a typo!
 
                 // Save Image
                 {
