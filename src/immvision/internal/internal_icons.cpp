@@ -1,5 +1,275 @@
-//
-// Created by Pascal Thomet on 29/03/2022.
-//
+#include "immvision/internal/internal_icons.h"
+#include "immvision/internal/cv_drawing_utils.h"
+#include "immvision/internal/gl_texture.h"
+#include "immvision/image_navigator.h"
+#include <opencv2/core/core.hpp>
+#include "imgui_internal.h"
+#include <map>
 
-#include "icons.h"
+
+namespace ImmVision
+{
+    namespace Icons
+    {
+        cv::Size iconsSizeDraw(200, 200);
+
+        auto ImVec4ToScalarColorBGRA = [](ImVec4 col) {
+            return cv::Scalar((int) (col.z * 255.f), (int) (col.y * 255.f), (int) (col.y * 255.f),
+                              (int) (col.w * 255.f));
+        };
+
+        auto ScaleXY = [](double x, double y) {
+            return cv::Point2d(x * (double) iconsSizeDraw.width, y * (double) iconsSizeDraw.height);
+        };
+        auto ScalePoint = [](cv::Point2d p) {
+            return cv::Point2d(p.x * (double) iconsSizeDraw.width, p.y * (double) iconsSizeDraw.height);
+        };
+        auto ScaleDouble = [](double v) {
+            return v * (double) iconsSizeDraw.width;
+        };
+        auto ScaleInt = [](double v) {
+            return (int) (v * (double) iconsSizeDraw.width + 0.5);
+        };
+
+        auto PointFromOther = [](cv::Point2d o, double angleDegree, double distance) {
+            double m_pi = 3.14159265358979323846;
+            double angleRadian = -angleDegree / 180. * m_pi;
+            cv::Point2d r(o.x + cos(angleRadian) * distance, o.y + sin(angleRadian) * distance);
+            return r;
+        };
+
+
+        cv::Mat MakeMagnifierImage(IconType iconType)
+        {
+            using namespace ImmVision;
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+
+
+            // Transparent background
+            m = cv::Scalar(0, 0, 0, 0);
+
+            cv::Scalar color(255, 255, 255, 255);
+            double radius = 0.3;
+            cv::Point2d center(1. - radius * 1.3, radius * 1.2);
+            // Draw shadow
+            {
+                cv::Point2d decal(radius * 0.1, radius * 0.1);
+                cv::Scalar color_shadow(127, 127, 127, 255);
+
+                CvDrawingUtils::circle(
+                    m, //image,
+                    ScalePoint(center + decal),
+                    ScaleDouble(radius), //radius
+                    color_shadow,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 1.7) + decal),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.03) + decal),
+                    color_shadow,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 2.3) + decal),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.5) + decal),
+                    color_shadow,
+                    ScaleInt(0.14)
+                );
+            }
+            // Draw magnifier
+            {
+                CvDrawingUtils::circle(
+                    m, //image,
+                    ScalePoint(center),
+                    ScaleDouble(radius), //radius
+                    color,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 1.7)),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.03)),
+                    color,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 2.3)),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.5)),
+                    color,
+                    ScaleInt(0.14)
+                );
+            }
+
+            if (iconType == IconType::ZoomPlus)
+            {
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 90., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 270., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+            if (iconType == IconType::ZoomMinus)
+            {
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+            if (iconType == IconType::ZoomScaleOne)
+            {
+                cv::Point2d a = PointFromOther(center, -90., radius * 0.45);
+                cv::Point2d b = PointFromOther(center, 90., radius * 0.45);
+                a.x += radius * 0.05;
+                b.x += radius * 0.05;
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(a),
+                    ScalePoint(b),
+                    color,
+                    ScaleInt(0.06)
+                );
+                cv::Point2d c(b.x - radius * 0.2, b.y + radius * 0.2);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(b),
+                    ScalePoint(c),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+
+            return m;
+        }
+
+
+        cv::Mat MakeFullViewImage()
+        {
+            using namespace ImmVision;
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+
+
+            // Transparent background
+            m = cv::Scalar(0, 0, 0, 0);
+
+            cv::Scalar color(255, 255, 255, 255);
+            double decal = 0.1;
+            double length_x = 0.3, length_y = 0.3;
+            for (int y = 0; y <= 1; ++y)
+            {
+                for (int x = 0; x <= 1; ++x)
+                {
+                    cv::Point2d corner;
+
+                    corner.x = (x == 0) ? decal : 1. - decal;
+                    corner.y = (y == 0) ? decal : 1. - decal;
+                    double moveX = (x == 0) ? length_x : -length_x;
+                    double moveY = (y == 0) ? length_y : -length_y;
+                    cv::Point2d a = corner;
+                    cv::Point2d b(a.x + moveX, a.y);
+                    cv::Point2d c(a.x, a.y + moveY);
+                    CvDrawingUtils::line(
+                        m, //image,
+                        ScalePoint(a),
+                        ScalePoint(b),
+                        color,
+                        ScaleInt(0.06)
+                    );
+                    CvDrawingUtils::line(
+                        m, //image,
+                        ScalePoint(a),
+                        ScalePoint(c),
+                        color,
+                        ScaleInt(0.06)
+                    );
+
+                }
+            }
+            return m;
+        }
+
+
+        ImTextureID GetIcon(IconType iconType)
+        {
+            static std::map<IconType, std::unique_ptr<GlTextureCv>> textureCache;
+            if (textureCache.find(iconType) == textureCache.end())
+            {
+                cv::Mat m;
+                if (iconType == IconType::ZoomFullView)
+                    m = MakeFullViewImage();
+                else
+                    m = MakeMagnifierImage(iconType);
+                auto texture = std::make_unique<GlTextureCv>(m);
+                textureCache[iconType] = std::move(texture);
+            }
+            return textureCache[iconType]->mImTextureId;
+        }
+
+        bool IconButton(IconType iconType, bool disabled, ImVec2 size)
+        {
+            ImGui::PushID((int)iconType);
+            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+            ImU32 backColorEnabled = ImGui::ColorConvertFloat4ToU32(ImVec4 (1.f, 1.f, 1.f, 1.f));
+            ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
+            ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
+            if (disabled)
+            {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.7f);
+            }
+            bool clicked = ImGui::Button("  ");
+
+            ImGui::GetWindowDrawList()->AddImage(
+                GetIcon(iconType), cursorPos, {cursorPos.x + size.x, cursorPos.y + size.y},
+                ImVec2(0.f, 0.f),
+                ImVec2(1.f, 1.f),
+                backColor
+                );
+            if (disabled)
+            {
+                ImGui::PopItemFlag();
+                ImGui::PopStyleVar();
+            }
+            ImGui::PopID();
+            return disabled ? false : clicked;
+        }
+
+
+        void DevelPlaygroundGui()
+        {
+            static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
+            static cv::Mat fullView = MakeFullViewImage();
+
+            static ImmVision::ImageNavigatorParams imageNavigatorParams1;
+            imageNavigatorParams1.ImageSize = {400, 400};
+            ImmVision::ImageNavigator(mag, imageNavigatorParams1);
+
+            ImGui::SameLine();
+
+            static ImmVision::ImageNavigatorParams imageNavigatorParams2;
+            imageNavigatorParams2.ImageSize = {400, 400};
+            ImmVision::ImageNavigator(fullView, imageNavigatorParams2);
+
+            ImVec2 iconSize(15.f, 15.f);
+            ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
+        }
+
+    } // namespace Icons
+} // namespace ImmVision

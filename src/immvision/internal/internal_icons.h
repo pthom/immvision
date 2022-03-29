@@ -1,16 +1,22 @@
-//
-// Created by Pascal Thomet on 29/03/2022.
-//
+#pragma once
+#include "imgui.h"
 
-#ifndef IMMVISION_ICONS_H
-#define IMMVISION_ICONS_H
+namespace ImmVision
+{
+    namespace Icons
+    {
+        enum class IconType
+        {
+            ZoomPlus,
+            ZoomMinus,
+            ZoomScaleOne,
+            ZoomFullView
+        };
+        ImTextureID GetIcon(IconType iconType);
 
+        bool IconButton(IconType iconType, bool disabled = false, ImVec2 size = ImVec2(20.,  20.));
 
+        void DevelPlaygroundGui();
 
-class icons {
-
-};
-
-
-
-#endif //IMMVISION_ICONS_H
+    } // namespace Icons
+} // namespace ImmVision
