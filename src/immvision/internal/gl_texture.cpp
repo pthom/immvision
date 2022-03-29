@@ -163,15 +163,29 @@ namespace ImmVision
         {
             if (mat.type() == CV_8UC3)
                 cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2BGRA);
+            else if ((mat.type() == CV_32FC3) || (mat.type() == CV_64FC3))
+            {
+                cv::Mat grey_uchar;
+                cv::Mat float_times_255 = mat * 255.;
+                float_times_255.convertTo(grey_uchar, CV_8UC3);
+                cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
+            }
             else
-                throw std::runtime_error("with 3 channels, _internal_to_rgba_image only supports CV_8UC3");
+                throw std::runtime_error("unsupported image format");
         }
         else if (nbChannels == 4)
         {
             if (mat.type() == CV_8UC4)
                 mat_rgba = mat;
+            else if ((mat.type() == CV_32FC3) || (mat.type() == CV_64FC3))
+            {
+                cv::Mat grey_uchar;
+                cv::Mat float_times_255 = mat * 255.;
+                float_times_255.convertTo(grey_uchar, CV_8UC4);
+                grey_uchar.copyTo(mat_rgba);
+            }
             else
-                throw std::runtime_error("with 4 channels, _internal_to_rgba_image only supports CV_8UC4");
+                throw std::runtime_error("unsupported image format");
         }
         return mat_rgba;
     }
