@@ -145,5 +145,6 @@ namespace ImmVision
 
         cv::Mat converted_to_rgba_image(const cv::Mat &inputMat);
 
+        Image_RGB make_checkerboard_image(const cv::Size& size, int squareSize = 30);
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision

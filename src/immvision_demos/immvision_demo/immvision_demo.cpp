@@ -109,6 +109,7 @@ struct AppState
         // Image = cv::imread("resources/rainbow-lorikeet-1188535.jpg");
         // Image = cv::imread("resources/winter-in-holland-1396288.jpg");
         Image = cv::imread("resources/house.jpg");
+        ImageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
     }
     void UpdateImages()
     {
@@ -116,6 +117,7 @@ struct AppState
     }
 
     cv::Mat Image;
+    cv::Mat ImageTransparent;
     std::array<cv::Mat, 2> ImageFiltered;
     cv::Size DisplaySize = cv::Size(0, 220);
     SobelParams SobelParams;
@@ -156,7 +158,6 @@ void guiFunction()
     for (size_t i = 0; i < 2; ++i)
     {
         static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter;
-        imageNavigatorParamsFilter.Legend = "Filtered";
         imageNavigatorParamsFilter.ImageSize = gAppState.DisplaySize;
         imageNavigatorParamsFilter.ZoomKey = "i";
         imageNavigatorParamsFilter.Legend = (i == 0) ? "X Gradient" : "Y Gradient";
@@ -165,6 +166,17 @@ void guiFunction()
             imageNavigatorParamsFilter,
             changed);
         ImGui::SameLine();
+    }
+    ImGui::NewLine();
+
+    {
+        static ImmVision::ImageNavigatorParams imageNavigatorParamsTransparent;
+        imageNavigatorParamsTransparent.Legend = "Transparent image";
+        imageNavigatorParamsTransparent.ImageSize = gAppState.DisplaySize;
+        cv::Point2d mousePosition = ImmVision::ImageNavigator(
+            gAppState.ImageTransparent,
+            imageNavigatorParamsTransparent,
+            changed);
     }
 
     //ImGui::ShowMetricsWindow(NULL);

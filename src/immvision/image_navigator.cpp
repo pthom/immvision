@@ -154,9 +154,23 @@ namespace ImmVision
             GlTextureCv* outTexture
             )
         {
-            cv::Mat imageAdjustedColor = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, image);
-            cv::Mat imageZoomed;
+            cv::Mat imageWithWantedChannels = image;
+            if (image.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < image.channels()))
+            {
+                std::vector<cv::Mat> channels;
+                cv::split(image, channels);
+                imageWithWantedChannels = channels[params.SelectedChannel];
+            }
 
+            if (imageWithWantedChannels.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
+            {
+                cv::Mat background = CvDrawingUtils::make_checkerboard_image(image.size());
+                imageWithWantedChannels = CvDrawingUtils::overlay_alpha_image_precise(background, imageWithWantedChannels, 1.);
+            }
+
+            cv::Mat imageAdjustedColor = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, imageWithWantedChannels);
+
+            cv::Mat imageZoomed;
             cv::warpAffine(imageAdjustedColor, imageZoomed,
                            ZoomMatrix::ZoomMatrixToM23(params.ZoomMatrix), params.ImageSize, cv::INTER_NEAREST);
 
@@ -201,7 +215,11 @@ namespace ImmVision
                 return true;
             if (! (v1.ColorAdjustments == v2.ColorAdjustments))
                 return true;
-            if (!v1.ShowGrid == v2.ShowGrid)
+            if (v1.ShowGrid != v2.ShowGrid)
+                return true;
+            if (v1.SelectedChannel != v2.SelectedChannel)
+                return true;
+            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
                 return true;
             return false;
         }
@@ -347,7 +365,7 @@ namespace ImmVision
             }
             else if (m.type() == CV_8UC4)
             {
-                auto v = m.at<cv::Vec3b>(y, x);
+                auto v = m.at<cv::Vec4b>(y, x);
                 if (showColorAsRGB)
                     sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0], (unsigned int)v[3]);
                 else
@@ -474,7 +492,7 @@ namespace ImmVision
 
 
         auto WidgetSize = [&params]() -> ImVec2 {
-            ImVec2 r((float)params.ImageSize.width, (float)params.ImageSize.height);
+            ImVec2 r((float)params.ImageSize.width + 15.f, (float)params.ImageSize.height);
             r.y += 90.f;
             if (!params.Legend.empty())
                 r.y += 20.f;
@@ -608,6 +626,19 @@ namespace ImmVision
                     ImGui::Checkbox("Show color values as RGB", &params.ShowColorAsRGB);
                 if (image.type() == CV_8UC4)
                     ImGui::Checkbox("Show color values as RGBA", &params.ShowColorAsRGB); // Not a typo!
+                if (image.type() == CV_8UC4)
+                    ImGui::Checkbox("Show alpha channel checkerboard", &params.ShowAlphaChannelCheckerboard);
+                if (image.channels() > 1)
+                {
+                    ImGui::Text("Channels: ");
+                    ImGui::RadioButton("All", &params.SelectedChannel, -1); ImGui::SameLine();
+                    for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
+                    {
+                        ImGui::RadioButton(std::to_string(channel_id).c_str(), &params.SelectedChannel, channel_id);
+                        ImGui::SameLine();
+                    }
+                    ImGui::NewLine();
+                }
 
                 // Save Image
                 {

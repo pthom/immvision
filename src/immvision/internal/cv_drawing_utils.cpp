@@ -659,6 +659,20 @@ namespace ImmVision
             return mat_rgba;
         }
 
+        Image_RGB make_checkerboard_image(const cv::Size& size, int squareSize)
+        {
+            cv::Mat r(size, CV_8UC3);
+            for (int x = 0; x < size.width; x++)
+            {
+                for (int y = 0; y < size.height; y++)
+                {
+                    int colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
+                    r.at<cv::Vec3b>(y, x) = cv::Vec3b(colorValue, colorValue, colorValue);
+                }
+            }
+            return r;
+        }
+
 
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision

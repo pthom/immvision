@@ -23,6 +23,8 @@ namespace ImmVision
 
         bool ShowGrid = true;
         bool ShowColorAsRGB = false;
+        int  SelectedChannel = -1;
+        bool ShowAlphaChannelCheckerboard = true;
     };
 
     cv::Point2d ImageNavigator(
