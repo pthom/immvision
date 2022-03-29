@@ -159,11 +159,7 @@ namespace ImmVision
 
         cv::Mat MakeFullViewImage()
         {
-            using namespace ImmVision;
             cv::Mat m(iconsSizeDraw, CV_8UC4);
-
-
-            // Transparent background
             m = cv::Scalar(0, 0, 0, 0);
 
             cv::Scalar color(255, 255, 255, 255);
@@ -202,6 +198,43 @@ namespace ImmVision
             return m;
         }
 
+        cv::Mat MakeAdjustLevelsImage()
+        {
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+            m = cv::Scalar(0, 0, 0, 0);
+            cv::Scalar color(255, 255, 255, 255);
+
+            double yMin = 0.15, yMax = 0.8;
+            int nbBars = 3;
+            for (int bar = 0; bar < nbBars; ++bar)
+            {
+                double xBar = (double)bar / ((double)(nbBars) + 0.17) + 0.2;
+                cv::Point2d a(xBar, yMin);
+                cv::Point2d b(xBar, yMax);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(a),
+                    ScalePoint(b),
+                    color,
+                    ScaleInt(0.08)
+                );
+
+                double barWidth = 0.1;
+                double yBar = 0.7 - 0.2 * (double)bar;
+                cv::Point2d c(a.x - barWidth / 2., yBar);
+                cv::Point2d d(a.x + barWidth / 2., yBar);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(c),
+                    ScalePoint(d),
+                    color,
+                    ScaleInt(0.16)
+                );
+            }
+
+            return m;
+        }
+
 
         ImTextureID GetIcon(IconType iconType)
         {
@@ -211,6 +244,8 @@ namespace ImmVision
                 cv::Mat m;
                 if (iconType == IconType::ZoomFullView)
                     m = MakeFullViewImage();
+                else if (iconType == IconType::AdjustLevels)
+                    m = MakeAdjustLevelsImage();
                 else
                     m = MakeMagnifierImage(iconType);
                 auto texture = std::make_unique<GlTextureCv>(m);
@@ -252,7 +287,7 @@ namespace ImmVision
         void DevelPlaygroundGui()
         {
             static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
-            static cv::Mat fullView = MakeFullViewImage();
+            static cv::Mat img = MakeAdjustLevelsImage();
 
             static ImmVision::ImageNavigatorParams imageNavigatorParams1;
             imageNavigatorParams1.ImageSize = {400, 400};
@@ -262,13 +297,14 @@ namespace ImmVision
 
             static ImmVision::ImageNavigatorParams imageNavigatorParams2;
             imageNavigatorParams2.ImageSize = {400, 400};
-            ImmVision::ImageNavigator(fullView, imageNavigatorParams2);
+            ImmVision::ImageNavigator(img, imageNavigatorParams2);
 
             ImVec2 iconSize(15.f, 15.f);
             ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
             ImGui::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
             ImGui::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
             ImGui::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
         }
 
     } // namespace Icons

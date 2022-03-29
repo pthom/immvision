@@ -20,8 +20,6 @@ namespace ImmVision
 
         ColorAdjustments ColorAdjustments = {};
         std::string ColorAdjustmentsKey = "";
-
-        bool ShowColorAdjustments = false;
     };
 
     cv::Point2d ImageNavigator(

@@ -444,8 +444,6 @@ namespace ImmVision
         auto WidgetSize = [&params]() -> ImVec2 {
             ImVec2 r((float)params.ImageSize.width, (float)params.ImageSize.height);
             r.y += 80.f;
-            if (params.ShowColorAdjustments)
-                r.y += 45.f;
             if (!params.Legend.empty())
                 r.y += 20.f;
             return r;
@@ -549,12 +547,9 @@ namespace ImmVision
 
         // Color Adjustments
         {
-            if (!params.ShowColorAdjustments)
-            {
-                if (ImGui::SmallButton("Adjust"))
-                    params.ShowColorAdjustments = true;
-            }
-            else
+            if (Icons::IconButton(Icons::IconType::AdjustLevels))
+                ImGui::OpenPopup("Adjustments");
+            if (ImGui::BeginPopup("Adjustments"))
             {
                 ImGui::Text("Adjust");
                 ImGui::PushItemWidth(80.);
@@ -583,10 +578,7 @@ namespace ImmVision
                         cv::imwrite(filename, image);
                 }
 
-                ImGui::SameLine();
-                if (ImGui::SmallButton("hide adjust"))
-                    params.ShowColorAdjustments = false;
-
+                ImGui::EndPopup();
             }
         }
 

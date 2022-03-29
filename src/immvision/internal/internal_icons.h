@@ -10,7 +10,8 @@ namespace ImmVision
             ZoomPlus,
             ZoomMinus,
             ZoomScaleOne,
-            ZoomFullView
+            ZoomFullView,
+            AdjustLevels,
         };
         ImTextureID GetIcon(IconType iconType);
 
