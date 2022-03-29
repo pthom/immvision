@@ -108,7 +108,7 @@ struct AppState
         // Image = cv::imread("resources/tennis.jpg");
         // Image = cv::imread("resources/rainbow-lorikeet-1188535.jpg");
         // Image = cv::imread("resources/winter-in-holland-1396288.jpg");
-        Image = cv::imread("resources/house-2-1232910.jpg");
+        Image = cv::imread("resources/house.jpg");
     }
     void UpdateImages()
     {
