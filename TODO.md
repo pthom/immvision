@@ -4,11 +4,17 @@
   * [ ] cleanup & doc
 
   * [ ] ImageNavigator
+    * [ ] Layout Zoom buttons & adjust (esp if small width)
+    * [ ] Text margin when big (?)
     * [ ] Handle zoom_key & adjustments_key
       * [ ] Pass ImageNavigatorParams by pointer (do not lie about lifetime)
         * [ ] Add simpler API
     * [X] Drag stops when exiting boundaries
     * [ ] Mise en page button Save (& others) / Use menus & dialogs
+    * [ ] Other feature: 
+      * [ ] Show channels / Grid / Display zoom level / Show alpha(?) / Copy to clipboard
+      * [ ] Pixel watch  The ability to click on one or more pixels of an image and have those values appear in a list
+      * [ ] Swizzling (exchange channels) / Some filters ?
     * [ ] Way to handle nice icons
     * [ ] Clean imgui_ext mess
     * [ ] Display FPS

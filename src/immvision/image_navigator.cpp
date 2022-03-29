@@ -1,6 +1,6 @@
 #include "immvision/image_navigator.h"
 #include "immvision/internal/gl_texture.h"
-#include "immvision/internal/gl_texture.h"
+#include "immvision/internal/internal_icons.h"
 #include "immvision/internal/imgui_ext.h"
 #include "imgui.h"
 
@@ -123,7 +123,7 @@ namespace ImmVision
                 double min, max;
                 cv::minMaxLoc(displayedImage, &min, &max);
                 r.Factor = 1. / (max - min);
-                r.Delta = -min;
+                r.Delta = -min * r.Factor;
             }
             return r;
         }
@@ -424,26 +424,18 @@ namespace ImmVision
 
 
 
-#define    ICON_ZOOM_PLUS "(+)"
-#define    ICON_ZOOM_MINUS "(-)"
-#define    ICON_ZOOM_SCALE_1      "(1)"
-#define    ICON_ZOOM_FULLVIEW  "(F)"
-
     cv::Point2d ImageNavigator(
         const cv::Mat& image,
         ImageNavigatorParams& params,
         bool refresh)
     {
-        auto UniqueLabel = [&image](const char* label) {
-            return ImGuiExt::LinkedLabel(label, &image);
-        };
-
         if (image.empty())
         {
             ImGui::Text("empty image !");
-            ImGui::EndGroup();
             return cv::Point2d();
         }
+
+        ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
 
         ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
         auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
@@ -453,15 +445,15 @@ namespace ImmVision
             ImVec2 r((float)params.ImageSize.width, (float)params.ImageSize.height);
             r.y += 80.f;
             if (params.ShowColorAdjustments)
-                r.y += 40.;
+                r.y += 45.f;
             if (!params.Legend.empty())
-                r.y += 20.;
+                r.y += 20.f;
             return r;
         };
 
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
         int windowFlags = ImGuiWindowFlags_MenuBar;
-        ImGui::BeginChild(UniqueLabel("ImageNavigator"), WidgetSize(), true, windowFlags);
+        ImGui::BeginChild("ImageNavigator", WidgetSize(), true, windowFlags);
         ImGui::PopStyleVar();
 
         /*
@@ -522,12 +514,12 @@ namespace ImmVision
         // Zoom+ / Zoom- buttons
         {
             ImGui::PushButtonRepeat(true);
-            if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_PLUS " Zoom +")))
+            if (Icons::IconButton(Icons::IconType::ZoomPlus))
                 zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1.1);
 
             ImGui::SameLine();
 
-            if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_MINUS " Zoom -")))
+            if (Icons::IconButton(Icons::IconType::ZoomMinus))
                 zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1. / 1.1);
 
             ImGui::PopButtonRepeat();
@@ -537,15 +529,19 @@ namespace ImmVision
         {
             auto scaleOneZoomInfo = ZoomMatrix::MakeScaleOne(image.size(), params.ImageSize);
             auto fullViewZoomInfo = ZoomMatrix::MakeFullView(image.size(), params.ImageSize);
-            if (! ZoomMatrix::IsEqual(zoomMatrix, scaleOneZoomInfo))
-                if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_SCALE_1 " Scale 1")))
+                if (Icons::IconButton(
+                        Icons::IconType::ZoomScaleOne,
+                        ZoomMatrix::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
+                    )
                     zoomMatrix = scaleOneZoomInfo;
 
             ImGui::SameLine();
 
-            if (! ZoomMatrix::IsEqual(zoomMatrix,fullViewZoomInfo))
-                if (ImGui::SmallButton(UniqueLabel(ICON_ZOOM_FULLVIEW " Full")))
-                    zoomMatrix = fullViewZoomInfo;
+            if (Icons::IconButton(
+                    Icons::IconType::ZoomFullView,
+                    ZoomMatrix::IsEqual(zoomMatrix,fullViewZoomInfo)) // disabled flag
+                )
+                zoomMatrix = fullViewZoomInfo;
 
             ImGui::SameLine();
 
@@ -555,7 +551,7 @@ namespace ImmVision
         {
             if (!params.ShowColorAdjustments)
             {
-                if (ImGui::SmallButton(UniqueLabel("Adjust")))
+                if (ImGui::SmallButton("Adjust"))
                     params.ShowColorAdjustments = true;
             }
             else
@@ -563,17 +559,17 @@ namespace ImmVision
                 ImGui::Text("Adjust");
                 ImGui::PushItemWidth(80.);
                 immvision_ImGuiExt::SliderDouble(
-                    UniqueLabel("k"), &params.ColorAdjustments.Factor,
+                    "k", &params.ColorAdjustments.Factor,
                     0., 32., "%.3f", ImGuiSliderFlags_Logarithmic);
                 ImGui::SameLine();
                 ImGui::PushItemWidth(80.);
                 immvision_ImGuiExt::SliderDouble(
-                    UniqueLabel("Delta"), &params.ColorAdjustments.Delta,
-                    0., 255., "%.3f", ImGuiSliderFlags_Logarithmic);
+                    "Delta", &params.ColorAdjustments.Delta,
+                    -255., 255., "%.3f", ImGuiSliderFlags_Logarithmic);
                 if (! ColorAdjustmentsUtils::IsNone(params.ColorAdjustments))
                 {
                     ImGui::SameLine();
-                    if (ImGui::SmallButton(UniqueLabel("reset")))
+                    if (ImGui::SmallButton("reset"))
                         params.ColorAdjustments = ColorAdjustments();
                 }
 
@@ -581,20 +577,22 @@ namespace ImmVision
                 // Save Image
                 {
                     char *filename = cache.FilenameEditBuffer.data();
-                    ImGui::InputText(UniqueLabel("Filename"), filename, 1000);
+                    ImGui::InputText("Filename", filename, 1000);
                     ImGui::SameLine();
-                    if (ImGui::SmallButton(UniqueLabel("save")))
+                    if (ImGui::SmallButton("save"))
                         cv::imwrite(filename, image);
                 }
 
                 ImGui::SameLine();
-                if (ImGui::SmallButton(UniqueLabel("hide adjust")))
+                if (ImGui::SmallButton("hide adjust"))
                     params.ShowColorAdjustments = false;
 
             }
         }
 
         ImGui::EndChild();
+
+        ImGui::PopID(); ImGui::PopID();
 
         return mouseLocation_originalImage;
     }
