@@ -9,5 +9,8 @@ namespace immvision_ImGuiExt
 
     ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);
     cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize);
+
+    void PushDisabled();
+    void PopDisabled();
 }
 

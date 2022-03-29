@@ -2,6 +2,7 @@
 #include "immvision/internal/gl_texture.h"
 #include "immvision/internal/internal_icons.h"
 #include "immvision/internal/imgui_ext.h"
+#include "immvision/internal/cv_drawing_utils.h"
 #include "imgui.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
@@ -133,6 +134,8 @@ namespace ImmVision
 
     namespace ImageNavigatorUtils
     {
+        double gGridMinZoomFactor = 7.;
+
         ImageNavigatorParams InitializeMissingParams(
             const ImageNavigatorParams& params,
             const cv::Mat& image)
@@ -157,7 +160,28 @@ namespace ImmVision
             cv::warpAffine(imageAdjustedColor, imageZoomed,
                            ZoomMatrix::ZoomMatrixToM23(params.ZoomMatrix), params.ImageSize, cv::INTER_NEAREST);
 
-            outTexture->BlitMat(imageZoomed);
+            cv::Mat imageZoomedRgba = CvDrawingUtils::converted_to_rgba_image(imageZoomed);
+
+            double zoomFactor = (double)params.ZoomMatrix(0, 0);
+            if (params.ShowGrid && zoomFactor >= gGridMinZoomFactor)
+            {
+                double alpha = 0.15;
+                cv::Scalar gridColor(0, 255, 255, 255);
+                double x_spacing = (double)params.ZoomMatrix(0, 0);
+                double y_spacing = (double)params.ZoomMatrix(1, 1);
+                double x_start = (double)params.ZoomMatrix(0, 2) - 0.5 * x_spacing;
+                double y_start = (double)params.ZoomMatrix(1, 2) - 0.5 * y_spacing;
+                cv::Mat imageWithGrid = CvDrawingUtils::add_grid_to_image(
+                    imageZoomedRgba,
+                    x_start, y_start,
+                    x_spacing, y_spacing,
+                    gridColor,
+                    alpha);
+
+                outTexture->BlitMat(imageWithGrid);
+            }
+            else
+                outTexture->BlitMat(imageZoomed);
         }
 
         bool operator==(const ColorAdjustments& v1, const ColorAdjustments& v2)
@@ -176,6 +200,8 @@ namespace ImmVision
             if (! ZoomMatrix::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
                 return true;
             if (! (v1.ColorAdjustments == v2.ColorAdjustments))
+                return true;
+            if (!v1.ShowGrid == v2.ShowGrid)
                 return true;
             return false;
         }
@@ -278,22 +304,21 @@ namespace ImmVision
         {
             if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
                 return "";
-            std::stringstream msg;
             char buffer_color[300];
             if (m.type() == CV_64FC4)
             {
                 auto v = m.at<cv::Vec4d>(y, x);
-                sprintf(buffer_color, "(%.5G, %.5G, %.5G, %.5G)", v[0], v[1], v[2], v[3]);
+                sprintf(buffer_color, "(%.5G,%.5G,%.5G,%.5G)", v[0], v[1], v[2], v[3]);
             }
             else if (m.type() == CV_64FC3)
             {
                 auto v = m.at<cv::Vec3d>(y, x);
-                sprintf(buffer_color, "(%.5G, %.5G, %.5G)", v[0], v[1], v[2]);
+                sprintf(buffer_color, "(%.5G,%.5G,%.5G)", v[0], v[1], v[2]);
             }
             else if (m.type() == CV_64FC2)
             {
                 auto v = m.at<cv::Vec2d>(y, x);
-                sprintf(buffer_color, "(%.5G, %.5G)", v[0], v[1]);
+                sprintf(buffer_color, "(%.5G,%.5G)", v[0], v[1]);
             }
             else if (m.type() == CV_64FC1)
             {
@@ -303,17 +328,17 @@ namespace ImmVision
             else if (m.type() == CV_32FC4)
             {
                 auto v = m.at<cv::Vec4f>(y, x);
-                sprintf(buffer_color, "(%.5G, %.5G, %.5G, %.5G)", v[0], v[1], v[2], v[3]);
+                sprintf(buffer_color, "(%.5G,%.5G,%.5G,%.5G)", v[0], v[1], v[2], v[3]);
             }
             else if (m.type() == CV_32FC3)
             {
                 auto v = m.at<cv::Vec3f>(y, x);
-                sprintf(buffer_color, "(%.5G, %.5G, %.5G)", v[0], v[1], v[2]);
+                sprintf(buffer_color, "(%.5G,%.5G,%.5G)", v[0], v[1], v[2]);
             }
             else if (m.type() == CV_32FC2)
             {
                 auto v = m.at<cv::Vec2f>(y, x);
-                sprintf(buffer_color, "(%.5G, %.5G)", v[0], v[1]);
+                sprintf(buffer_color, "(%.5G,%.5G)", v[0], v[1]);
             }
             else if (m.type() == CV_32FC1)
             {
@@ -323,17 +348,17 @@ namespace ImmVision
             else if (m.type() == CV_8UC4)
             {
                 auto v = m.at<cv::Vec3b>(y, x);
-                sprintf(buffer_color, "(%03u, %03u, %03u, %03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2], (unsigned int)v[3]);
+                sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2], (unsigned int)v[3]);
             }
             else if (m.type() == CV_8UC3)
             {
                 auto v = m.at<cv::Vec3b>(y, x);
-                sprintf(buffer_color, "(%03u, %03u, %03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2]);
+                sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2]);
             }
             else if (m.type() == CV_8UC2)
             {
                 auto v = m.at<cv::Vec2b>(y, x);
-                sprintf(buffer_color, "(%03u, %03u)", (unsigned int)v[0], (unsigned int)v[1]);
+                sprintf(buffer_color, "(%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1]);
             }
             else if (m.type() == CV_8UC1)
             {
@@ -343,20 +368,12 @@ namespace ImmVision
             else
                 buffer_color[0] = '\0';
 
+            std::stringstream msg;
+            msg << "X:" << x << " Y:" << y << " ";
             msg << " " << buffer_color;
             return msg.str();
         }
 
-        std::string MatPixelInfo(const cv::Mat &image, cv::Point pt)
-        {
-            std::string info = _MatInfo(image);
-            if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
-            {
-                info = info + " X:" + std::to_string(pt.x) + " Y:" + std::to_string(pt.y);
-                info = info + " " + _MatPixelColorInfo(image, pt.x, pt.y);
-            }
-            return info;
-        }
     } // namespace MatrixInfoUtils
 
 
@@ -388,10 +405,19 @@ namespace ImmVision
     } // namespace ImGuiExt
 
 
-    void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt)
+    void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt, double zoomFactor)
     {
-        ImGui::Text("%s", MatrixInfoUtils::MatPixelInfo(image, pt).c_str());
+        std::string info = MatrixInfoUtils::_MatInfo(image);
+        ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
+        if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
+        {
+            info = MatrixInfoUtils::_MatPixelColorInfo(image, pt.x, pt.y);
+            ImGui::Text("%s", info.c_str());
+        }
+        else
+            ImGui::Text("");
 
+        // Color button
         if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
         {
             ImGui::SameLine();
@@ -443,7 +469,7 @@ namespace ImmVision
 
         auto WidgetSize = [&params]() -> ImVec2 {
             ImVec2 r((float)params.ImageSize.width, (float)params.ImageSize.height);
-            r.y += 80.f;
+            r.y += 90.f;
             if (!params.Legend.empty())
                 r.y += 20.f;
             return r;
@@ -507,7 +533,7 @@ namespace ImmVision
         }
 
         // Pixel color info
-        ShowPixelColorInfo(image, mouseLocation_originalImage);
+        ShowPixelColorInfo(image, mouseLocation_originalImage, params.ZoomMatrix(0, 0));
 
         // Zoom+ / Zoom- buttons
         {
@@ -568,6 +594,11 @@ namespace ImmVision
                         params.ColorAdjustments = ColorAdjustments();
                 }
 
+                if (params.ZoomMatrix(0,0) < ImageNavigatorUtils::gGridMinZoomFactor)
+                    immvision_ImGuiExt::PushDisabled();
+                ImGui::Checkbox("Grid", &params.ShowGrid);
+                if (params.ZoomMatrix(0,0) < ImageNavigatorUtils::gGridMinZoomFactor)
+                    immvision_ImGuiExt::PopDisabled();
 
                 // Save Image
                 {

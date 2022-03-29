@@ -2,6 +2,7 @@
 #include "immvision/internal/cv_drawing_utils.h"
 #include "immvision/internal/gl_texture.h"
 #include "immvision/image_navigator.h"
+#include "immvision/internal/imgui_ext.h"
 #include <opencv2/core/core.hpp>
 #include "imgui_internal.h"
 #include <map>
@@ -262,10 +263,7 @@ namespace ImmVision
             ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
             ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
             if (disabled)
-            {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.7f);
-            }
+                immvision_ImGuiExt::PushDisabled();
             bool clicked = ImGui::Button("  ");
 
             ImGui::GetWindowDrawList()->AddImage(
@@ -275,10 +273,7 @@ namespace ImmVision
                 backColor
                 );
             if (disabled)
-            {
-                ImGui::PopItemFlag();
-                ImGui::PopStyleVar();
-            }
+                immvision_ImGuiExt::PopDisabled();
             ImGui::PopID();
             return disabled ? false : clicked;
         }

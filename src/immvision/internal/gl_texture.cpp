@@ -1,6 +1,7 @@
 #include "gl_texture.h"
 
 #include "immvision_gl_loader.h"
+#include "immvision/internal/cv_drawing_utils.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
@@ -139,62 +140,11 @@ namespace ImmVision
         BlitMat(mat);
     }
 
-    cv::Mat _internal_to_rgba_image(const cv::Mat &inputMat)
-    {
-        cv::Mat mat = inputMat;
-        if (!inputMat.isContinuous())
-            mat = inputMat.clone();
-
-        cv::Mat mat_rgba;
-        int nbChannels = mat.channels();
-        if (nbChannels == 1)
-        {
-            if (mat.type() == CV_8UC1)
-                cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
-            else if ((mat.type() == CV_32FC1) || (mat.type() == CV_64FC1))
-            {
-                cv::Mat grey_uchar;
-                cv::Mat float_times_255 = mat * 255.;
-                float_times_255.convertTo(grey_uchar, CV_8UC1);
-                cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_GRAY2BGRA);
-            }
-        }
-        else if (nbChannels == 3)
-        {
-            if (mat.type() == CV_8UC3)
-                cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2BGRA);
-            else if ((mat.type() == CV_32FC3) || (mat.type() == CV_64FC3))
-            {
-                cv::Mat grey_uchar;
-                cv::Mat float_times_255 = mat * 255.;
-                float_times_255.convertTo(grey_uchar, CV_8UC3);
-                cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
-            }
-            else
-                throw std::runtime_error("unsupported image format");
-        }
-        else if (nbChannels == 4)
-        {
-            if (mat.type() == CV_8UC4)
-                mat_rgba = mat;
-            else if ((mat.type() == CV_32FC3) || (mat.type() == CV_64FC3))
-            {
-                cv::Mat grey_uchar;
-                cv::Mat float_times_255 = mat * 255.;
-                float_times_255.convertTo(grey_uchar, CV_8UC4);
-                grey_uchar.copyTo(mat_rgba);
-            }
-            else
-                throw std::runtime_error("unsupported image format");
-        }
-        return mat_rgba;
-    }
-
     void GlTextureCv::BlitMat(const cv::Mat& mat)
     {
         if (mat.empty())
             return;
-        cv::Mat mat_rgba = _internal_to_rgba_image(mat);
+        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat);
 
         Blit_BGRA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows);
     }

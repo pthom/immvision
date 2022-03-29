@@ -179,7 +179,7 @@ namespace ImmVision
         //     return (shape[0], shape[1], 4)
 
         Image_RGB
-        overlay_alpha_image_precise(const Image_RGB &background_rgb, const Image_RGBA &overlay_rgba, double alpha)
+        overlay_alpha_image_precise(const Image_RGB &background_rgb_34, const Image_RGBA &overlay_rgba, double alpha)
         {
             /*
             cf minute physics brilliant clip "Computer color is broken" :
@@ -187,6 +187,16 @@ namespace ImmVision
             order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
             results that are nicer than photoshop itself !
             */
+            cv::Mat background_rgb;
+            assert(background_rgb.depth() == CV_8U);
+            assert(overlay_rgba.type() == CV_8UC4);
+            if (background_rgb_34.channels() == 4)
+                cv::cvtColor(background_rgb_34, background_rgb, cv::COLOR_BGRA2BGR);
+            else if (background_rgb_34.channels() == 3)
+                background_rgb = background_rgb_34;
+            else
+                assert("Only CV_8UC3 or CV_8UC4 background are supported!");
+
 
             std::vector<cv::Mat> overlay_rgb_channels;
             cv::split(overlay_rgba, overlay_rgb_channels);
@@ -575,25 +585,80 @@ namespace ImmVision
         }
 
 
-        Image_RGB add_grid_to_image(const Image_RGB &image,
-                                    double x_spacing /*= -1.*/,
-                                    double y_spacing /*= -1.*/,
-                                    cv::Scalar color /*= Yellow()*/,
-                                    double alpha /*= 0.4*/)
+        Image_RGB add_grid_to_image(
+            const Image_RGB &image,
+            double x_start, double y_start,
+            double x_spacing, double y_spacing,
+            cv::Scalar color,
+            double alpha
+        )
         {
             cv::Mat lines_images_alpha(image.size(), CV_8UC4);
             lines_images_alpha = cv::Scalar(0, 0, 0, 0);
             double h = (double) image.rows;
             double w = (double) image.cols;
             if (x_spacing > 0.)
-                for (double x: MathUtils::arange(0., w, x_spacing))
+                for (double x  = x_start; x < w; x += x_spacing)
                     line(lines_images_alpha, cv::Point2d{x, 0.}, cv::Point2d{x, h}, color);
             if (y_spacing > 0.)
-                for (double y: MathUtils::arange(0., h, y_spacing))
+                for (double y  = y_start; y < h; y += y_spacing)
                     line(lines_images_alpha, cv::Point2d{0., y}, cv::Point2d{w, y}, color);
             auto image_with_lines = overlay_alpha_image_precise(image, lines_images_alpha, alpha);
             return image_with_lines;
         }
+
+
+        cv::Mat converted_to_rgba_image(const cv::Mat &inputMat)
+        {
+            cv::Mat mat = inputMat;
+            if (!inputMat.isContinuous())
+                mat = inputMat.clone();
+
+            cv::Mat mat_rgba;
+            int nbChannels = mat.channels();
+            if (nbChannels == 1)
+            {
+                if (mat.type() == CV_8UC1)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
+                else if ((mat.type() == CV_32FC1) || (mat.type() == CV_64FC1))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC1);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_GRAY2BGRA);
+                }
+            }
+            else if (nbChannels == 3)
+            {
+                if (mat.type() == CV_8UC3)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2BGRA);
+                else if ((mat.type() == CV_32FC3) || (mat.type() == CV_64FC3))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC3);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
+                }
+                else
+                    throw std::runtime_error("unsupported image format");
+            }
+            else if (nbChannels == 4)
+            {
+                if (mat.type() == CV_8UC4)
+                    mat_rgba = mat;
+                else if ((mat.type() == CV_32FC3) || (mat.type() == CV_64FC3))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC4);
+                    grey_uchar.copyTo(mat_rgba);
+                }
+                else
+                    throw std::runtime_error("unsupported image format");
+            }
+            return mat_rgba;
+        }
+
 
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision

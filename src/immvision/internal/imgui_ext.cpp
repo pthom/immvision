@@ -1,5 +1,6 @@
 #include "immvision/internal/imgui_ext.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include <sstream>
 #include <vector>
@@ -34,6 +35,18 @@ namespace immvision_ImGuiExt
         auto toSize = [](ImVec2 v) { return cv::Size((int)(v.x + 0.5), (int)(v.y + 0.5)); };
         auto toImVec2 = [](cv::Size v) { return ImVec2((float)v.width, (float)v.height); };
         return toSize( ComputeDisplayImageSize(toImVec2(askedImageSize), toImVec2(realImageSize)) );
+    }
+
+    void PushDisabled()
+    {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.7f);
+
+    }
+    void PopDisabled()
+    {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleVar();
     }
 
 }

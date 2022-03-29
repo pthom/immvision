@@ -137,9 +137,13 @@ namespace ImmVision
 
         Image_RGB add_grid_to_image(
             const Image_RGB &image,
+            double x_start = 0., double y_start = 0.,
             double x_spacing = -1., double y_spacing = -1.,
-            cv::Scalar color = Yellow(), double alpha = 0.4);
+            cv::Scalar color = Yellow(),
+            double alpha = 0.4
+        );
 
+        cv::Mat converted_to_rgba_image(const cv::Mat &inputMat);
 
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision
