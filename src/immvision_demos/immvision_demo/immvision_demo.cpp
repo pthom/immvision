@@ -152,11 +152,16 @@ void guiFunction()
     changed |= GuiDisplaySize(gAppState.DisplaySize);
 
     {
-        static ImmVision::ImageNavigatorParams imageNavigatorParams;
-        imageNavigatorParams.Legend = "Original";
-        imageNavigatorParams.ZoomKey = "i";
-        imageNavigatorParams.ImageSize = gAppState.DisplaySize;
-        ImmVision::ImageNavigator(gAppState.Image, &imageNavigatorParams);
+        ImmVision::ImageNavigator(
+            gAppState.Image,
+            gAppState.DisplaySize,
+            "Original",
+            false, //bool refreshImage = false,
+            true, //bool showOptionsWhenAppearing = false,
+            "i", //const std::string& zoomKey = "",
+            "" //const std::string& colorAdjustmentsKey = ""
+        );
+
     }
     ImGui::SameLine();
 
@@ -165,7 +170,7 @@ void guiFunction()
     {
         if (i > 0)
             ImGui::SameLine();
-        imageNavigatorParamsFilter[i].ImageSize = gAppState.DisplaySize;
+        imageNavigatorParamsFilter[i].ImageDisplaySize = gAppState.DisplaySize;
         imageNavigatorParamsFilter[i].ZoomKey = "i";
         imageNavigatorParamsFilter[i].ColorAdjustmentsKey = "c";
         imageNavigatorParamsFilter[i].Legend = (i == 0) ? "X Gradient" : "Y Gradient";
@@ -182,7 +187,7 @@ void guiFunction()
     {
         static ImmVision::ImageNavigatorParams imageNavigatorParamsTransparent;
         imageNavigatorParamsTransparent.Legend = "Transparent image";
-        imageNavigatorParamsTransparent.ImageSize = gAppState.DisplaySize;
+        imageNavigatorParamsTransparent.ImageDisplaySize = gAppState.DisplaySize;
         cv::Point2d mousePosition = ImmVision::ImageNavigator(
             gAppState.ImageTransparent,
             &imageNavigatorParamsTransparent,

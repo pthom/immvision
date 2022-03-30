@@ -15,11 +15,7 @@
 
 * [ ] ImageNavigator
   * [X] Pass ImageNavigatorParams by pointer (do not lie about lifetime)
-    * [ ] Add simpler API
-  * [ ] Options 
-    * [ ] Arghhh clic option -> unwanted scroll
-    * [ ] Edit Keys
-    * [X] Layout suboptions
+    * [X] Add simpler API
   * [ ] Other feature: 
     * [ ] Copy color info / various formats
     * [ ] Copy image to clipboard => voir https://github.com/dacap/clip

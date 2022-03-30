@@ -285,13 +285,13 @@ namespace ImmVision
             static cv::Mat img = MakeAdjustLevelsImage();
 
             static ImmVision::ImageNavigatorParams imageNavigatorParams1;
-            imageNavigatorParams1.ImageSize = {400, 400};
+            imageNavigatorParams1.ImageDisplaySize = {400, 400};
             ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
 
             ImGui::SameLine();
 
             static ImmVision::ImageNavigatorParams imageNavigatorParams2;
-            imageNavigatorParams2.ImageSize = {400, 400};
+            imageNavigatorParams2.ImageDisplaySize = {400, 400};
             ImmVision::ImageNavigator(img, &imageNavigatorParams2);
 
             ImVec2 iconSize(15.f, 15.f);

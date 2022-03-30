@@ -252,7 +252,7 @@ namespace ImmVision
             if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
                 params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
             if (params->ZoomMatrix == cv::Matx33d::eye())
-                params->ZoomMatrix = ZoomMatrix::MakeFullView(image.size(), params->ImageSize);
+                params->ZoomMatrix = ZoomMatrix::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
         void BlitImageNavigatorTexture(
@@ -281,7 +281,7 @@ namespace ImmVision
 
             cv::Mat imageZoomed;
             cv::warpAffine(imageAdjustedColor, imageZoomed,
-                           ZoomMatrix::ZoomMatrixToM23(params.ZoomMatrix), params.ImageSize, cv::INTER_NEAREST);
+                           ZoomMatrix::ZoomMatrixToM23(params.ZoomMatrix), params.ImageDisplaySize, cv::INTER_NEAREST);
 
             cv::Mat imageZoomedRgba = CvDrawingUtils::converted_to_rgba_image(imageZoomed);
 
@@ -318,7 +318,7 @@ namespace ImmVision
 
         bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
         {
-            if (v1.ImageSize != v2.ImageSize)
+            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
             if (! ZoomMatrix::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
                 return true;
@@ -409,7 +409,7 @@ namespace ImmVision
 
             void UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
             {
-                params->ImageSize = ImGuiImm::ComputeDisplayImageSize(params->ImageSize, image.size());
+                params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
                 bool needsRefreshTexture = refresh;
 
@@ -520,7 +520,7 @@ namespace ImmVision
                 || (image.type() == CV_8UC3) || (image.type() == CV_8UC4)
                 || (image.channels() > 1)
             ;
-            if (hasImageDisplayOptions && ImGui::CollapsingHeader("Display"))
+            if (hasImageDisplayOptions && ImGui::CollapsingHeader("Image Display"))
             {
                 if (params->ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
                     ImGui::Checkbox("Grid", &params->ShowGrid);
@@ -636,8 +636,8 @@ namespace ImmVision
                 cv::Point2d viewportCenter_originalImage = ZoomMatrix::Apply(
                     zoomMatrix.inv(),
                     cv::Point2d (
-                        (double)params->ImageSize.width / 2.f,
-                        (double)params->ImageSize.height / 2.f)
+                        (double)params->ImageDisplaySize.width / 2.f,
+                        (double)params->ImageDisplaySize.height / 2.f)
                 );
 
                 {
@@ -655,8 +655,8 @@ namespace ImmVision
                 ImGui::SameLine();
                 // Scale1 & Full View Zoom  buttons
                 {
-                    auto scaleOneZoomInfo = ZoomMatrix::MakeScaleOne(image.size(), params->ImageSize);
-                    auto fullViewZoomInfo = ZoomMatrix::MakeFullView(image.size(), params->ImageSize);
+                    auto scaleOneZoomInfo = ZoomMatrix::MakeScaleOne(image.size(), params->ImageDisplaySize);
+                    auto fullViewZoomInfo = ZoomMatrix::MakeFullView(image.size(), params->ImageDisplaySize);
                     if (Icons::IconButton(
                         Icons::IconType::ZoomScaleOne,
                         ZoomMatrix::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
@@ -680,7 +680,7 @@ namespace ImmVision
         //
         auto fnShowImage = [&params, &cache]()
         {
-            cv::Point2d mouseLocation = ImageNavigatorUtils::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params->ImageSize.width, (float)params->ImageSize.height));
+            cv::Point2d mouseLocation = ImageNavigatorUtils::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
             cv::Point2d mouseLocation_originalImage =
                 ImGui::IsItemHovered() ? ZoomMatrix::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
             return mouseLocation_originalImage;
@@ -716,23 +716,22 @@ namespace ImmVision
             // Handle Mouse
             fnHandleMouseDragging();
 
+            // Zoom+ / Zoom- buttons
+            fnShowZoomButtons();
+            // adjust button
+            {
+                if (!params->ShowZoomButtons)
+                    ImGui::NewLine();
+                ImGuiImm::SameLineAlignRight(20.f, (float)params->ImageDisplaySize.width);
+                if (Icons::IconButton(Icons::IconType::AdjustLevels))
+                    fnToggleShowOptions();
+            }
+
             // Show infos
             if (params->ShowImageInfo)
                 ImageNavigatorUtils::ShowImageInfo(image, params->ZoomMatrix(0, 0));
             if (params->ShowPixelInfo)
                 ImageNavigatorUtils::ShowPixelColorInfo(image, mouseLocation_originalImage, params->ShowColorAsRGB);
-
-            // Zoom+ / Zoom- buttons
-            fnShowZoomButtons();
-
-            // adjust button
-            {
-                if (!params->ShowZoomButtons)
-                    ImGui::NewLine();
-                ImGuiImm::SameLineAlignRight(20.f, (float)params->ImageSize.width);
-                if (Icons::IconButton(Icons::IconType::AdjustLevels))
-                    fnToggleShowOptions();
-            }
 
             // Show Options
             fnOptionGui();
@@ -741,6 +740,34 @@ namespace ImmVision
         ImGui::PopID(); ImGui::PopID();
 
         return mouseLocation_originalImage;
+    }
+
+
+    cv::Point2d ImageNavigator(
+        const cv::Mat& image,
+        const cv::Size& imageDisplaySize,
+        const std::string& legend,
+        bool refreshImage,
+        bool showOptionsWhenAppearing,
+        const std::string& zoomKey,
+        const std::string& colorAdjustmentsKey
+    )
+    {
+        static std::map<const cv::Mat *, ImageNavigatorParams> s_Params;
+        if (s_Params.find(&image) == s_Params.end())
+        {
+            ImageNavigatorParams params;
+            params.ImageDisplaySize = imageDisplaySize;
+            params.Legend = legend;
+            params.ShowOptions = showOptionsWhenAppearing;
+            params.ZoomKey = zoomKey;
+            params.ColorAdjustmentsKey = colorAdjustmentsKey;
+            s_Params[&image] = params;
+        }
+
+        ImageNavigatorParams* params = & s_Params.at(&image);
+
+        return ImageNavigator(image, params, refreshImage);
     }
 
 

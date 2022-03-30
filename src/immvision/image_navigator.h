@@ -12,7 +12,7 @@ namespace ImmVision
 
     struct ImageNavigatorParams
     {
-        cv::Size ImageSize = cv::Size();
+        cv::Size ImageDisplaySize = cv::Size();
         std::string Legend = "Image Navigator";
 
         cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
@@ -43,7 +43,17 @@ namespace ImmVision
     cv::Point2d ImageNavigator(
         const cv::Mat& image,
         ImageNavigatorParams* params,
-        bool refresh = false
+        bool refreshImage = false
         );
+
+    cv::Point2d ImageNavigator(
+        const cv::Mat& image,
+        const cv::Size& imageDisplaySize = cv::Size(),
+        const std::string& legend = "Image Navigator",
+        bool refreshImage = false,
+        bool showOptionsWhenAppearing = false,
+        const std::string& zoomKey = "",
+        const std::string& colorAdjustmentsKey = ""
+    );
 
 } // namespace ImmVision
