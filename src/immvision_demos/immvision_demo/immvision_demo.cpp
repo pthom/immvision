@@ -2,6 +2,7 @@
 #include "mandelbrot.h"
 #include "immvision/image.h"
 #include "immvision/image_navigator.h"
+#include "immvision/internal/imgui_ext.h"
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -26,7 +27,6 @@ struct SobelParams
     double GaussianBlurSize = 1.25;
     int  	DerivativeOrder = 1; // order of the derivative
     int  	KSize = 5; // size of the extended Sobel kernel; it must be 1, 3, 5, or 7 (or -1 for Scharr)
-    double Scale = 1.;
 };
 
 std::array<cv::Mat, 2> ComputeSobelDerivatives(const cv::Mat&image, const SobelParams& params)
@@ -53,50 +53,59 @@ std::array<cv::Mat, 2> ComputeSobelDerivatives(const cv::Mat&image, const SobelP
 
 bool GuiSobelParams(SobelParams& params)
 {
-    ImGui::Text("Sobel Params");
+    ImGuiImm::BeginGroupPanel("Sobel Params");
+    ImGui::BeginTable("Sobel Params", 2, ImGuiTableFlags_SizingFixedFit);
     bool changed = false;
-    ImGui::SetNextItemWidth(70.f);
-    changed |= ImGuiExt::SliderDoubleLogarithmic("Blur Size", &params.GaussianBlurSize, 0.5, 50.);
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(70.f);
-    changed |= ImGuiExt::SliderDoubleLogarithmic("Scale", &params.Scale, 0., 5.);
+    // ImGui::Columns()
+
+    ImGui::TableNextRow(); ImGui::TableNextColumn();
+    ImGui::Text("Blur size");
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(200.f);
+    changed |= ImGuiExt::SliderDoubleLogarithmic("##Blur Size", &params.GaussianBlurSize, 0.5, 50.);
+    ImGui::TableNextRow(); ImGui::TableNextColumn();
 
     {
         ImGui::Text("Derivative Order");
+        ImGui::TableNextColumn();
         changed |= ImGui::RadioButton("1##DerivOrder", &params.DerivativeOrder, 1); ImGui::SameLine();
         changed |= ImGui::RadioButton("2##DerivOrder", &params.DerivativeOrder, 2); ImGui::SameLine();
         changed |= ImGui::RadioButton("3##DerivOrder", &params.DerivativeOrder, 3); ImGui::SameLine();
         changed |= ImGui::RadioButton("4##DerivOrder", &params.DerivativeOrder, 4); ImGui::SameLine();
         changed |= ImGui::RadioButton("5##DerivOrder", &params.DerivativeOrder, 5); ImGui::SameLine();
         changed |= ImGui::RadioButton("6##DerivOrder", &params.DerivativeOrder, 6); ImGui::SameLine();
-        ImGui::NewLine();
+        ImGui::TableNextRow(); ImGui::TableNextColumn();
     }
 
     // KSize
     {
         ImGui::Text("K Size");
+        ImGui::TableNextColumn();
         changed |= ImGui::RadioButton("1##KSize", &params.KSize, 1); ImGui::SameLine();
         changed |= ImGui::RadioButton("3##KSize", &params.KSize, 3); ImGui::SameLine();
         changed |= ImGui::RadioButton("5##KSize", &params.KSize, 5); ImGui::SameLine();
         changed |= ImGui::RadioButton("7##KSize", &params.KSize, 7); ImGui::SameLine();
-        ImGui::NewLine();
+        ImGui::TableNextRow(); ImGui::TableNextColumn();
     }
 
     if (params.KSize <= params.DerivativeOrder)
         params.KSize = 7;
 
+    ImGui::EndTable();
+    ImGuiImm::EndGroupPanel();
     return changed;
 }
 
 bool GuiDisplaySize(cv::Size& displaySize)
 {
+    ImGuiImm::BeginGroupPanel("Display size");
     bool changed = false;
-    ImGui::Text("Display");
     ImGui::SetNextItemWidth(70.f);
     changed |= ImGui::SliderInt("Width", &displaySize.width, 0, 1000);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(70.f);
     changed |= ImGui::SliderInt("Height", &displaySize.height, 0, 1000);
+    ImGuiImm::EndGroupPanel();
     return changed;
 }
 
@@ -136,27 +145,25 @@ void guiFunction()
 
     bool changed  = false;
 
-    ImGui::BeginGroup();
-    changed |= GuiDisplaySize(gAppState.DisplaySize);
-    changed |= GuiSobelParams(gAppState.SobelParams);
-    ImGui::EndGroup();
-    ImGui::SameLine();
+    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
-    if (changed)
-        gAppState.UpdateImages();
-    ImGui::BeginGroup();
+    changed |= GuiSobelParams(gAppState.SobelParams);
+    ImGui::SameLine();
+    changed |= GuiDisplaySize(gAppState.DisplaySize);
+
     {
         static ImmVision::ImageNavigatorParams imageNavigatorParams;
         imageNavigatorParams.Legend = "Original";
         imageNavigatorParams.ZoomKey = "i";
         imageNavigatorParams.ImageSize = gAppState.DisplaySize;
-        cv::Point2d mousePosition = ImmVision::ImageNavigator(gAppState.Image, imageNavigatorParams);
-        // ImGui::Text("mouse %.1lf %.1lf", mousePosition.x, mousePosition.y);
+        ImmVision::ImageNavigator(gAppState.Image, imageNavigatorParams);
     }
-    ImGui::EndGroup();
+    ImGui::SameLine();
 
     for (size_t i = 0; i < 2; ++i)
     {
+        if (i > 0)
+            ImGui::SameLine();
         static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter;
         imageNavigatorParamsFilter.ImageSize = gAppState.DisplaySize;
         imageNavigatorParamsFilter.ZoomKey = "i";
@@ -165,9 +172,11 @@ void guiFunction()
             gAppState.ImageFiltered[i],
             imageNavigatorParamsFilter,
             changed);
-        ImGui::SameLine();
     }
-    ImGui::NewLine();
+
+    if (changed)
+        gAppState.UpdateImages();
+
 
     {
         static ImmVision::ImageNavigatorParams imageNavigatorParamsTransparent;
@@ -179,9 +188,10 @@ void guiFunction()
             changed);
     }
 
-    ImGui::Begin("Style");
-    ImGui::ShowStyleEditor(nullptr);
-    ImGui::End();
+//    ImGui::Begin("Style");
+//    ImGui::ShowStyleEditor(nullptr);
+//    ImGui::End();
+
     //ImGui::ShowMetricsWindow(NULL);
     //ImGui::ShowMetricsWindow(NULL);
     //ImGui::ShowDemoWindow(NULL);
