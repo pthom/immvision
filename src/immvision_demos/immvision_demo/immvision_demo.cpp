@@ -151,7 +151,7 @@ void guiFunction()
         imageNavigatorParams.ZoomKey = "i";
         imageNavigatorParams.ImageSize = gAppState.DisplaySize;
         cv::Point2d mousePosition = ImmVision::ImageNavigator(gAppState.Image, imageNavigatorParams);
-        ImGui::Text("mouse %.1lf %.1lf", mousePosition.x, mousePosition.y);
+        // ImGui::Text("mouse %.1lf %.1lf", mousePosition.x, mousePosition.y);
     }
     ImGui::EndGroup();
 
@@ -179,6 +179,10 @@ void guiFunction()
             changed);
     }
 
+    ImGui::Begin("Style");
+    ImGui::ShowStyleEditor(nullptr);
+    ImGui::End();
+    //ImGui::ShowMetricsWindow(NULL);
     //ImGui::ShowMetricsWindow(NULL);
     //ImGui::ShowDemoWindow(NULL);
 }

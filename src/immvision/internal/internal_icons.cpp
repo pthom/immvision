@@ -263,7 +263,7 @@ namespace ImmVision
             ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
             ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
             if (disabled)
-                immvision_ImGuiExt::PushDisabled();
+                ImGuiImm::PushDisabled();
             bool clicked = ImGui::Button("  ");
 
             ImGui::GetWindowDrawList()->AddImage(
@@ -273,7 +273,7 @@ namespace ImmVision
                 backColor
                 );
             if (disabled)
-                immvision_ImGuiExt::PopDisabled();
+                ImGuiImm::PopDisabled();
             ImGui::PopID();
             return disabled ? false : clicked;
         }

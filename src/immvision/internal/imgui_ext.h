@@ -3,7 +3,8 @@
 #include "imgui.h"
 #include <opencv2/core.hpp>
 
-namespace immvision_ImGuiExt
+// Some extensions to ImGui, specific to ImmVision
+namespace ImGuiImm
 {
     bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags);
 
@@ -12,5 +13,11 @@ namespace immvision_ImGuiExt
 
     void PushDisabled();
     void PopDisabled();
+    void SameLineAlignRight(float rightMargin = 0.f, float alignRegionWidth = -1.f);
+
+
+    // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
+    void BeginGroupPanel(const char* name, const ImVec2& size = ImVec2(0.0f, 0.0f));
+    void EndGroupPanel();
 }
 

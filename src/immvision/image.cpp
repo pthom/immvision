@@ -96,7 +96,7 @@ namespace ImmVision
             glTextureCv->BlitMat(mat);
 
         ImVec2 sizeImVec2((float)size.width, (float)size.height);
-        ImVec2 displaySize = immvision_ImGuiExt::ComputeDisplayImageSize(sizeImVec2, glTextureCv->mImageSize);
+        ImVec2 displaySize = ImGuiImm::ComputeDisplayImageSize(sizeImVec2, glTextureCv->mImageSize);
 
         internal::gLastImageInfo.lastDisplayRatio = cv::Point2d(
             (double)(glTextureCv->mImageSize.x / displaySize.x),

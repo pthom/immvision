@@ -154,6 +154,8 @@ namespace ImmVision
             GlTextureCv* outTexture
             )
         {
+            if (image.empty())
+                return;
             cv::Mat imageWithWantedChannels = image;
             if (image.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < image.channels()))
             {
@@ -241,7 +243,7 @@ namespace ImmVision
 
             void UpdateCache(const cv::Mat& image, ImageNavigatorParams& params, bool refresh)
             {
-                params.ImageSize = immvision_ImGuiExt::ComputeDisplayImageSize(params.ImageSize, image.size());
+                params.ImageSize = ImGuiImm::ComputeDisplayImageSize(params.ImageSize, image.size());
 
                 bool needsRefreshTexture = refresh;
 
@@ -403,18 +405,6 @@ namespace ImmVision
 
     namespace ImGuiExt
     {
-        const char * LinkedLabel(const char *label, const void* linkedObject)
-        {
-            //static std::vector<std::string> gLinkedLabels;
-            static std::string r;
-            std::stringstream ss;
-            ss << label << "##" << (size_t)linkedObject;
-            //gLinkedLabels.push_back(ss.str());
-            //return gLinkedLabels.back().c_str();
-            r = ss.str();
-            return r.c_str();
-        }
-
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
@@ -429,18 +419,21 @@ namespace ImmVision
     } // namespace ImGuiExt
 
 
-    void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt, double zoomFactor, bool showColorAsRGB)
+    void ShowImageInfo(const cv::Mat &image, double zoomFactor)
     {
         std::string info = MatrixInfoUtils::_MatInfo(image);
         ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
+    }
+
+    void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt, bool showColorAsRGB)
+    {
         if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
         {
-            info = MatrixInfoUtils::_MatPixelColorInfo(image, pt.x, pt.y, showColorAsRGB);
+            auto info = MatrixInfoUtils::_MatPixelColorInfo(image, pt.x, pt.y, showColorAsRGB);
             ImGui::Text("%s", info.c_str());
         }
         else
             ImGui::Text("");
-
         // Color button
         if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
         {
@@ -473,7 +466,6 @@ namespace ImmVision
     }
 
 
-
     cv::Point2d ImageNavigator(
         const cv::Mat& image,
         ImageNavigatorParams& params,
@@ -481,46 +473,90 @@ namespace ImmVision
     {
         if (image.empty())
         {
-            ImGui::Text("empty image !");
+            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "%s -> empty image !!!", params.Legend.c_str());
             return cv::Point2d();
         }
-
         ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
 
         ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
         auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
 
+        // Options & Adjustments
+        auto ShowOptionsPopup = [&params, &cache, &image]()
+        {
+            if (ImGui::BeginPopup("Adjustments"))
+            {
+                // Adjust colors
+                ImGui::Text("Adjust");
+                ImGui::PushItemWidth(80.);
+                ImGuiImm::SliderDouble(
+                    "k", &params.ColorAdjustments.Factor,
+                    0., 32., "%.3f", ImGuiSliderFlags_Logarithmic);
+                ImGui::SameLine();
+                ImGui::PushItemWidth(80.);
+                ImGuiImm::SliderDouble(
+                    "Delta", &params.ColorAdjustments.Delta,
+                    -255., 255., "%.3f", ImGuiSliderFlags_Logarithmic);
+                if (! ColorAdjustmentsUtils::IsNone(params.ColorAdjustments))
+                {
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("reset"))
+                        params.ColorAdjustments = ColorAdjustments();
+                }
 
-        auto WidgetSize = [&params]() -> ImVec2 {
-            ImVec2 r((float)params.ImageSize.width + 15.f, (float)params.ImageSize.height);
-            r.y += 90.f;
-            if (!params.Legend.empty())
-                r.y += 20.f;
-            return r;
+                // Image display options
+                {
+                    ImGui::Text("Image display options");
+                    if (params.ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
+                        ImGui::Checkbox("Grid", &params.ShowGrid);
+                    if (image.type() == CV_8UC3)
+                        ImGui::Checkbox("Show color values as RGB", &params.ShowColorAsRGB);
+                    if (image.type() == CV_8UC4)
+                        ImGui::Checkbox("Show color values as RGBA", &params.ShowColorAsRGB); // Not a typo!
+                    if (image.type() == CV_8UC4)
+                        ImGui::Checkbox("Show alpha channel checkerboard", &params.ShowAlphaChannelCheckerboard);
+                    if (image.channels() > 1)
+                    {
+                        ImGui::Text("Channels: ");
+                        ImGui::RadioButton("All", &params.SelectedChannel, -1); ImGui::SameLine();
+                        for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
+                        {
+                            ImGui::RadioButton(std::to_string(channel_id).c_str(), &params.SelectedChannel, channel_id);
+                            ImGui::SameLine();
+                        }
+                        ImGui::NewLine();
+                    }
+                }
+
+                //Navigator display options
+                {
+                    ImGui::Text("Navigator display options");
+                    ImGui::Checkbox("Show legend border", &params.ShowLegendBorder);
+                    ImGui::Checkbox("Show image info", &params.ShowImageInfo);
+                    ImGui::Checkbox("Show pixel info", &params.ShowPixelInfo);
+                    ImGui::Checkbox("Show zoom buttons", &params.ShowZoomButtons);
+                    ImGui::Checkbox("Show adjust button", &params.ShowAdjustButton);
+                    ImGui::Checkbox("Pan with mouse", &params.PanWithMouse);
+                }
+
+                // Save Image
+                {
+                    char *filename = cache.FilenameEditBuffer.data();
+                    ImGui::InputText("Filename", filename, 1000);
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("save"))
+                        cv::imwrite(filename, image);
+                }
+
+                ImGui::EndPopup();
+            }
         };
 
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-        int windowFlags = ImGuiWindowFlags_MenuBar;
-        ImGui::BeginChild("ImageNavigator", WidgetSize(), true, windowFlags);
-        ImGui::PopStyleVar();
+        bool showLegendBorder = params.ShowLegendBorder;
+        if (showLegendBorder)
+            ImGuiImm::BeginGroupPanel(params.Legend.c_str());
 
-        /*
-        if (ImGui::BeginMenuBar())
-        {
-            if (ImGui::BeginMenu("Menu"))
-            {
-                ImGui::MenuItem("Test");
-                ImGui::EndMenu();
-            }
-            ImGui::EndMenuBar();
-        }
-         */
-
-        if ( ! params.Legend.empty())
-            ImGui::Text("%s", params.Legend.c_str());
-        
-        ImVec2 imageSize(params.ImageSize.width, params.ImageSize.height);
-        cv::Point2d mouseLocation = ImGuiExt::DisplayTexture_TrackMouse(cache.GlTextureCv, imageSize);
+        cv::Point2d mouseLocation = ImGuiExt::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params.ImageSize.width, (float)params.ImageSize.height));
 
         int mouseDragButton = 0;
         bool isItemHovered = ImGui::IsItemHovered();
@@ -548,7 +584,7 @@ namespace ImmVision
             cache.IsMouseDragging = false;
             cache.LastDragDelta = ImVec2(0.f, 0.f);
         }
-        if (cache.IsMouseDragging)
+        if (cache.IsMouseDragging && params.PanWithMouse )
         {
             ImVec2 dragDelta = ImGui::GetMouseDragDelta(mouseDragButton);
             ImVec2 dragDeltaDelta(dragDelta.x - cache.LastDragDelta.x, dragDelta.y - cache.LastDragDelta.y);
@@ -557,103 +593,63 @@ namespace ImmVision
         }
 
         // Pixel color info
-        ShowPixelColorInfo(image, mouseLocation_originalImage, params.ZoomMatrix(0, 0), params.ShowColorAsRGB);
+        if (params.ShowImageInfo)
+            ShowImageInfo(image, params.ZoomMatrix(0, 0));
+        if (params.ShowPixelInfo)
+            ShowPixelColorInfo(image, mouseLocation_originalImage, params.ShowColorAsRGB);
 
         // Zoom+ / Zoom- buttons
+        if (params.ShowZoomButtons)
         {
-            ImGui::PushButtonRepeat(true);
-            if (Icons::IconButton(Icons::IconType::ZoomPlus))
-                zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1.1);
+            {
+                ImGui::PushButtonRepeat(true);
+                if (Icons::IconButton(Icons::IconType::ZoomPlus))
+                    zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1.1);
 
+                ImGui::SameLine();
+
+                if (Icons::IconButton(Icons::IconType::ZoomMinus))
+                    zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1. / 1.1);
+
+                ImGui::PopButtonRepeat();
+            }
             ImGui::SameLine();
-
-            if (Icons::IconButton(Icons::IconType::ZoomMinus))
-                zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1. / 1.1);
-
-            ImGui::PopButtonRepeat();
-        }
-        ImGui::SameLine();
-        // Scale1 & Full View Zoom  buttons
-        {
-            auto scaleOneZoomInfo = ZoomMatrix::MakeScaleOne(image.size(), params.ImageSize);
-            auto fullViewZoomInfo = ZoomMatrix::MakeFullView(image.size(), params.ImageSize);
+            // Scale1 & Full View Zoom  buttons
+            {
+                auto scaleOneZoomInfo = ZoomMatrix::MakeScaleOne(image.size(), params.ImageSize);
+                auto fullViewZoomInfo = ZoomMatrix::MakeFullView(image.size(), params.ImageSize);
                 if (Icons::IconButton(
-                        Icons::IconType::ZoomScaleOne,
-                        ZoomMatrix::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
+                    Icons::IconType::ZoomScaleOne,
+                    ZoomMatrix::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
                     )
                     zoomMatrix = scaleOneZoomInfo;
 
-            ImGui::SameLine();
+                ImGui::SameLine();
 
-            if (Icons::IconButton(
+                if (Icons::IconButton(
                     Icons::IconType::ZoomFullView,
                     ZoomMatrix::IsEqual(zoomMatrix,fullViewZoomInfo)) // disabled flag
-                )
-                zoomMatrix = fullViewZoomInfo;
-
-            ImGui::SameLine();
-
-        }
-
-        // Color Adjustments
-        {
-            if (Icons::IconButton(Icons::IconType::AdjustLevels))
-                ImGui::OpenPopup("Adjustments");
-            if (ImGui::BeginPopup("Adjustments"))
-            {
-                // Adjust colors
-                ImGui::Text("Adjust");
-                ImGui::PushItemWidth(80.);
-                immvision_ImGuiExt::SliderDouble(
-                    "k", &params.ColorAdjustments.Factor,
-                    0., 32., "%.3f", ImGuiSliderFlags_Logarithmic);
-                ImGui::SameLine();
-                ImGui::PushItemWidth(80.);
-                immvision_ImGuiExt::SliderDouble(
-                    "Delta", &params.ColorAdjustments.Delta,
-                    -255., 255., "%.3f", ImGuiSliderFlags_Logarithmic);
-                if (! ColorAdjustmentsUtils::IsNone(params.ColorAdjustments))
-                {
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton("reset"))
-                        params.ColorAdjustments = ColorAdjustments();
-                }
-
-                // Options
-                if (params.ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
-                    ImGui::Checkbox("Grid", &params.ShowGrid);
-                if (image.type() == CV_8UC3)
-                    ImGui::Checkbox("Show color values as RGB", &params.ShowColorAsRGB);
-                if (image.type() == CV_8UC4)
-                    ImGui::Checkbox("Show color values as RGBA", &params.ShowColorAsRGB); // Not a typo!
-                if (image.type() == CV_8UC4)
-                    ImGui::Checkbox("Show alpha channel checkerboard", &params.ShowAlphaChannelCheckerboard);
-                if (image.channels() > 1)
-                {
-                    ImGui::Text("Channels: ");
-                    ImGui::RadioButton("All", &params.SelectedChannel, -1); ImGui::SameLine();
-                    for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
-                    {
-                        ImGui::RadioButton(std::to_string(channel_id).c_str(), &params.SelectedChannel, channel_id);
-                        ImGui::SameLine();
-                    }
-                    ImGui::NewLine();
-                }
-
-                // Save Image
-                {
-                    char *filename = cache.FilenameEditBuffer.data();
-                    ImGui::InputText("Filename", filename, 1000);
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton("save"))
-                        cv::imwrite(filename, image);
-                }
-
-                ImGui::EndPopup();
+                    )
+                    zoomMatrix = fullViewZoomInfo;
             }
         }
 
-        ImGui::EndChild();
+        // adjust button
+        {
+            if (params.ShowAdjustButton)
+            {
+                if (!params.ShowZoomButtons)
+                    ImGui::NewLine();
+                ImGuiImm::SameLineAlignRight(20.f, (float)params.ImageSize.width);
+                if (Icons::IconButton(Icons::IconType::AdjustLevels))
+                    ImGui::OpenPopup("Adjustments");
+                ShowOptionsPopup();
+            }
+        }
+
+        if (showLegendBorder)
+            ImGuiImm::EndGroupPanel();
+
 
         ImGui::PopID(); ImGui::PopID();
 
