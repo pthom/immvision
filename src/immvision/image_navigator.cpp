@@ -485,13 +485,14 @@ namespace ImmVision
             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "%s -> empty image !!!", params->Legend.c_str());
             return cv::Point2d();
         }
-        ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
 
         ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
         auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
 
-        // Options & Adjustments
-        auto OptionsInnerGui = [&params, &cache, &image]()
+        //
+        // Lambdas / Options & Adjustments
+        //
+        auto fnOptionsInnerGui = [&params, &cache, &image]()
         {
             // Adjust float values
             bool hasAdjustFloatValues = ((image.depth() == CV_32F) || (image.depth() == CV_64F));
@@ -542,7 +543,6 @@ namespace ImmVision
                 }
             }
 
-
             //Navigator display options
             if (ImGui::CollapsingHeader("Options"))
             {
@@ -578,30 +578,118 @@ namespace ImmVision
             }
 
         };
-        auto ToggleShowOptions = [&params]()
+        auto fnToggleShowOptions = [&params]()
         {
             if (params->ShowOptionsInTooltip)
                 ImGui::OpenPopup("Options");
             else
                 params->ShowOptions = !params->ShowOptions;
         };
-        auto OptionGui = [&params, &OptionsInnerGui]()
+        auto fnOptionGui = [&params, &fnOptionsInnerGui]()
         {
             if (params->ShowOptionsInTooltip)
             {
                 if (ImGui::BeginPopup("Options"))
                 {
-                    OptionsInnerGui();
+                    fnOptionsInnerGui();
                     ImGui::EndPopup();
                 }
             }
             else if (params->ShowOptions)
             {
                 ImGui::Text("Options");
-                OptionsInnerGui();
+                fnOptionsInnerGui();
             }
         };
 
+        //
+        // Lambdas / Handle Zoom
+        //
+        // Mouse dragging
+        auto fnHandleMouseDragging = [&cache, &params]()
+        {
+            ZoomMatrix::ZoomMatrixType& zoomMatrix = params->ZoomMatrix;
+
+            int mouseDragButton = 0;
+            bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && ImGui::IsItemHovered();
+            if (isMouseDraggingInside)
+                cache.IsMouseDragging = true;
+            if (! ImGui::IsMouseDown(mouseDragButton))
+            {
+                cache.IsMouseDragging = false;
+                cache.LastDragDelta = ImVec2(0.f, 0.f);
+            }
+            if (cache.IsMouseDragging && params->PanWithMouse )
+            {
+                ImVec2 dragDelta = ImGui::GetMouseDragDelta(mouseDragButton);
+                ImVec2 dragDeltaDelta(dragDelta.x - cache.LastDragDelta.x, dragDelta.y - cache.LastDragDelta.y);
+                zoomMatrix = zoomMatrix * ZoomMatrix::ComputePanMatrix(dragDeltaDelta, zoomMatrix(0, 0));
+                cache.LastDragDelta = dragDelta;
+            }
+        };
+        auto fnShowZoomButtons = [&params, &image]()
+        {
+            if (params->ShowZoomButtons)
+            {
+                ZoomMatrix::ZoomMatrixType& zoomMatrix = params->ZoomMatrix;
+
+                cv::Point2d viewportCenter_originalImage = ZoomMatrix::Apply(
+                    zoomMatrix.inv(),
+                    cv::Point2d (
+                        (double)params->ImageSize.width / 2.f,
+                        (double)params->ImageSize.height / 2.f)
+                );
+
+                {
+                    ImGui::PushButtonRepeat(true);
+                    if (Icons::IconButton(Icons::IconType::ZoomPlus))
+                        zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1.1);
+
+                    ImGui::SameLine();
+
+                    if (Icons::IconButton(Icons::IconType::ZoomMinus))
+                        zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1. / 1.1);
+
+                    ImGui::PopButtonRepeat();
+                }
+                ImGui::SameLine();
+                // Scale1 & Full View Zoom  buttons
+                {
+                    auto scaleOneZoomInfo = ZoomMatrix::MakeScaleOne(image.size(), params->ImageSize);
+                    auto fullViewZoomInfo = ZoomMatrix::MakeFullView(image.size(), params->ImageSize);
+                    if (Icons::IconButton(
+                        Icons::IconType::ZoomScaleOne,
+                        ZoomMatrix::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
+                        )
+                        zoomMatrix = scaleOneZoomInfo;
+
+                    ImGui::SameLine();
+
+                    if (Icons::IconButton(
+                        Icons::IconType::ZoomFullView,
+                        ZoomMatrix::IsEqual(zoomMatrix,fullViewZoomInfo)) // disabled flag
+                        )
+                        zoomMatrix = fullViewZoomInfo;
+                }
+            }
+
+        };
+
+        //
+        // Lambda / Show image
+        //
+        auto fnShowImage = [&params, &cache]()
+        {
+            cv::Point2d mouseLocation = ImageNavigatorUtils::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params->ImageSize.width, (float)params->ImageSize.height));
+            cv::Point2d mouseLocation_originalImage =
+                ImGui::IsItemHovered() ? ZoomMatrix::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
+            return mouseLocation_originalImage;
+        };
+
+        //
+        // GUI
+        //
+        ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
 
         // BeginGroupPanel
         bool showLegendBorder = params->ShowLegendBorder || (! params->ShowOptionsInTooltip);
@@ -610,41 +698,9 @@ namespace ImmVision
         else
             ImGuiImm::BeginChild_AutoSize("", false);
 
-        cv::Point2d mouseLocation = ImageNavigatorUtils::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params->ImageSize.width, (float)params->ImageSize.height));
+        cv::Point2d mouseLocation_originalImage = fnShowImage();
 
-        int mouseDragButton = 0;
-        bool isItemHovered = ImGui::IsItemHovered();
-
-        ZoomMatrix::ZoomMatrixType& zoomMatrix = params->ZoomMatrix;
-        cv::Point2d mouseLocation_originalImage =
-            isItemHovered   ?
-                ZoomMatrix::Apply(zoomMatrix.inv(), mouseLocation)
-            :
-                cv::Point2d(-1., -1.);
-
-        cv::Point2d viewportCenter_originalImage = ZoomMatrix::Apply(
-            zoomMatrix.inv(),
-            cv::Point2d (
-                (double)(ImGui::GetItemRectSize().x / 2.f),
-                (double)(ImGui::GetItemRectSize().y / 2.f))
-        );
-
-        // Mouse dragging
-        bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && isItemHovered;
-        if (isMouseDraggingInside)
-            cache.IsMouseDragging = true;
-        if (! ImGui::IsMouseDown(mouseDragButton))
-        {
-            cache.IsMouseDragging = false;
-            cache.LastDragDelta = ImVec2(0.f, 0.f);
-        }
-        if (cache.IsMouseDragging && params->PanWithMouse )
-        {
-            ImVec2 dragDelta = ImGui::GetMouseDragDelta(mouseDragButton);
-            ImVec2 dragDeltaDelta(dragDelta.x - cache.LastDragDelta.x, dragDelta.y - cache.LastDragDelta.y);
-            zoomMatrix = zoomMatrix * ZoomMatrix::ComputePanMatrix(dragDeltaDelta, zoomMatrix(0, 0));
-            cache.LastDragDelta = dragDelta;
-        }
+        fnHandleMouseDragging();
 
         // Pixel color info
         if (params->ShowImageInfo)
@@ -653,40 +709,7 @@ namespace ImmVision
             ImageNavigatorUtils::ShowPixelColorInfo(image, mouseLocation_originalImage, params->ShowColorAsRGB);
 
         // Zoom+ / Zoom- buttons
-        if (params->ShowZoomButtons)
-        {
-            {
-                ImGui::PushButtonRepeat(true);
-                if (Icons::IconButton(Icons::IconType::ZoomPlus))
-                    zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1.1);
-
-                ImGui::SameLine();
-
-                if (Icons::IconButton(Icons::IconType::ZoomMinus))
-                    zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1. / 1.1);
-
-                ImGui::PopButtonRepeat();
-            }
-            ImGui::SameLine();
-            // Scale1 & Full View Zoom  buttons
-            {
-                auto scaleOneZoomInfo = ZoomMatrix::MakeScaleOne(image.size(), params->ImageSize);
-                auto fullViewZoomInfo = ZoomMatrix::MakeFullView(image.size(), params->ImageSize);
-                if (Icons::IconButton(
-                    Icons::IconType::ZoomScaleOne,
-                    ZoomMatrix::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
-                    )
-                    zoomMatrix = scaleOneZoomInfo;
-
-                ImGui::SameLine();
-
-                if (Icons::IconButton(
-                    Icons::IconType::ZoomFullView,
-                    ZoomMatrix::IsEqual(zoomMatrix,fullViewZoomInfo)) // disabled flag
-                    )
-                    zoomMatrix = fullViewZoomInfo;
-            }
-        }
+        fnShowZoomButtons();
 
         // adjust button
         {
@@ -694,10 +717,10 @@ namespace ImmVision
                 ImGui::NewLine();
             ImGuiImm::SameLineAlignRight(20.f, (float)params->ImageSize.width);
             if (Icons::IconButton(Icons::IconType::AdjustLevels))
-                ToggleShowOptions();
+                fnToggleShowOptions();
         }
 
-        OptionGui();
+        fnOptionGui();
 
         ImGuiImm::EndChild_AutoSize();
 
