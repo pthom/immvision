@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include <opencv2/core.hpp>
+#include <vector>
 
 namespace ImmVision
 {
@@ -35,9 +36,12 @@ namespace ImmVision
         bool ShowPixelInfo = true;
         bool ShowZoomButtons = true;
         bool ShowLegendBorder = true;
-
         bool ShowOptions = false;
         bool ShowOptionsInTooltip = false;
+
+        // Watched Pixels
+        std::vector<cv::Point> WatchedPixels;
+        bool HighlightWatchedPixels = true;
     };
 
     cv::Point2d ImageNavigator(

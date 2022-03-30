@@ -17,9 +17,9 @@
   * [X] Pass ImageNavigatorParams by pointer (do not lie about lifetime)
     * [X] Add simpler API
   * [ ] Other feature: 
+    * [ ] Pixel watch  The ability to click on one or more pixels of an image and have those values appear in a list
     * [ ] Copy color info / various formats
     * [ ] Copy image to clipboard => voir https://github.com/dacap/clip
-    * [ ] Pixel watch  The ability to click on one or more pixels of an image and have those values appear in a list
   * [ ] Clean imgui_ext mess
   * [ ] Improve Save GUI
   * [ ] Additional simpler API?

@@ -490,9 +490,42 @@ namespace ImmVision
         auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
 
         //
+        // Lambdas / Watched Pixels
+        //
+        auto fnWatchedPixels_Add = [&params](const cv::Point2d& pixelDouble)
+        {
+            cv::Point pixel((int)(pixelDouble.x + .5), (int)(pixelDouble.y + .5));
+            params->WatchedPixels.push_back(pixel);
+        };
+        auto fnWatchedPixels_Gui = [&params, &image]()
+        {
+            int idxToRemove = -1;
+            for (size_t i = 0; i < params->WatchedPixels.size(); ++i)
+            {
+                cv::Point watchedPixel = params->WatchedPixels[i];
+                ImGui::Text("#%i: ", (int)(i+1));
+                ImGui::SameLine();
+                ImageNavigatorUtils::ShowPixelColorInfo(image, watchedPixel, params->ShowColorAsRGB);
+                ImGui::SameLine();
+                std::string lblRemove = "x##" + std::to_string(i);
+                if (ImGui::SmallButton(lblRemove.c_str()))
+                    idxToRemove = (int) i;
+            }
+            if (idxToRemove >= 0)
+                params->WatchedPixels.erase(params->WatchedPixels.begin() + (size_t)idxToRemove);
+        };
+        auto fnWatchedPixels_Draw = [&params](const cv::Mat& m) -> cv::Mat
+        {
+            if (! params->HighlightWatchedPixels)
+                return m;
+            return m;
+        };
+
+
+        //
         // Lambdas / Options & Adjustments
         //
-        auto fnOptionsInnerGui = [&params, &cache, &image]()
+        auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui]()
         {
             // Adjust float values
             bool hasAdjustFloatValues = ((image.depth() == CV_32F) || (image.depth() == CV_64F));
@@ -514,12 +547,15 @@ namespace ImmVision
                         params->ColorAdjustments = ColorAdjustments();
             }
 
+            // Watched Pixels
+            if (ImGui::CollapsingHeader("Watched Pixels"))
+                fnWatchedPixels_Gui();
+
             // Image display options
             bool hasImageDisplayOptions =
                 (params->ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
                 || (image.type() == CV_8UC3) || (image.type() == CV_8UC4)
-                || (image.channels() > 1)
-            ;
+                || (image.channels() > 1);
             if (hasImageDisplayOptions && ImGui::CollapsingHeader("Image Display"))
             {
                 if (params->ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
@@ -713,6 +749,10 @@ namespace ImmVision
         {
             // Show image
             mouseLocation_originalImage = fnShowImage();
+            // Add Watched Pixel on double click
+            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered())
+                fnWatchedPixels_Add(mouseLocation_originalImage);
+
             // Handle Mouse
             fnHandleMouseDragging();
 
