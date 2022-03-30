@@ -286,13 +286,13 @@ namespace ImmVision
 
             static ImmVision::ImageNavigatorParams imageNavigatorParams1;
             imageNavigatorParams1.ImageSize = {400, 400};
-            ImmVision::ImageNavigator(mag, imageNavigatorParams1);
+            ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
 
             ImGui::SameLine();
 
             static ImmVision::ImageNavigatorParams imageNavigatorParams2;
             imageNavigatorParams2.ImageSize = {400, 400};
-            ImmVision::ImageNavigator(img, imageNavigatorParams2);
+            ImmVision::ImageNavigator(img, &imageNavigatorParams2);
 
             ImVec2 iconSize(15.f, 15.f);
             ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);

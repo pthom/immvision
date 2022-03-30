@@ -156,21 +156,22 @@ void guiFunction()
         imageNavigatorParams.Legend = "Original";
         imageNavigatorParams.ZoomKey = "i";
         imageNavigatorParams.ImageSize = gAppState.DisplaySize;
-        ImmVision::ImageNavigator(gAppState.Image, imageNavigatorParams);
+        ImmVision::ImageNavigator(gAppState.Image, &imageNavigatorParams);
     }
     ImGui::SameLine();
 
+    static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter[2];
     for (size_t i = 0; i < 2; ++i)
     {
         if (i > 0)
             ImGui::SameLine();
-        static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter;
-        imageNavigatorParamsFilter.ImageSize = gAppState.DisplaySize;
-        imageNavigatorParamsFilter.ZoomKey = "i";
-        imageNavigatorParamsFilter.Legend = (i == 0) ? "X Gradient" : "Y Gradient";
+        imageNavigatorParamsFilter[i].ImageSize = gAppState.DisplaySize;
+        imageNavigatorParamsFilter[i].ZoomKey = "i";
+        imageNavigatorParamsFilter[i].ColorAdjustmentsKey = "c";
+        imageNavigatorParamsFilter[i].Legend = (i == 0) ? "X Gradient" : "Y Gradient";
         cv::Point2d mousePosition = ImmVision::ImageNavigator(
             gAppState.ImageFiltered[i],
-            imageNavigatorParamsFilter,
+            &imageNavigatorParamsFilter[i],
             changed);
     }
 
@@ -184,7 +185,7 @@ void guiFunction()
         imageNavigatorParamsTransparent.ImageSize = gAppState.DisplaySize;
         cv::Point2d mousePosition = ImmVision::ImageNavigator(
             gAppState.ImageTransparent,
-            imageNavigatorParamsTransparent,
+            &imageNavigatorParamsTransparent,
             changed);
     }
 

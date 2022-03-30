@@ -14,17 +14,12 @@
   * [ ] Test iPhone
 
 * [ ] ImageNavigator
-  * [X] work empty image
-  * [ ] Options 
-    * [ ] Remove options ShowlegendBorder / ShowAdjustButton 
-    * [X] Options inline
-    * [X] Option Show Border and legend
-    * [ ] Group by theme / Image Display Option can be empty
-    * [ ] Double click to show options
-  * [ ] Handle adjustments_key
-  * [ ] Pass ImageNavigatorParams by pointer (do not lie about lifetime)
+  * [X] Pass ImageNavigatorParams by pointer (do not lie about lifetime)
     * [ ] Add simpler API
-  * [X] Mise en page button Save (& others)
+  * [ ] Options 
+    * [ ] Arghhh clic option -> unwanted scroll
+    * [ ] Edit Keys
+    * [X] Layout suboptions
   * [ ] Other feature: 
     * [ ] Copy color info / various formats
     * [ ] Copy image to clipboard => voir https://github.com/dacap/clip

@@ -37,12 +37,12 @@ namespace ImmVision
         bool ShowLegendBorder = true;
 
         bool ShowOptions = false;
-        bool ShowOptionsInTooltip = true;
+        bool ShowOptionsInTooltip = false;
     };
 
     cv::Point2d ImageNavigator(
         const cv::Mat& image,
-        ImageNavigatorParams& params,
+        ImageNavigatorParams* params,
         bool refresh = false
         );
 
