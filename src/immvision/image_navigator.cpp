@@ -132,6 +132,113 @@ namespace ImmVision
     } // namespace ImageAdjustmentsUtils
 
 
+    namespace MatrixInfoUtils
+    {
+        std::string _MatTypeName(const cv::Mat& m)
+        {
+            std::map<int, std::string> depthNames
+                {
+                    { CV_8U, "CV_8U" },
+                    { CV_8S, "CV_8S" },
+                    { CV_16U, "CV_16U" },
+                    { CV_16S, "CV_16S" },
+                    { CV_32S, "CV_32S"},
+                    { CV_32F, "CV_32F"},
+                    { CV_64F, "CV_64F"},
+                    { CV_16F, "CV_16F"}
+                };
+            return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
+        }
+
+        std::string _MatInfo(const cv::Mat &m)
+        {
+            return _MatTypeName(m) + " " + std::to_string(m.cols) + "x" + std::to_string(m.rows);
+        }
+
+
+        std::string _MatPixelColorInfo(const cv::Mat & m, int x, int y, bool showColorAsRGB)
+        {
+            if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
+                return "";
+            char buffer_color[300];
+            if (m.type() == CV_64FC4)
+            {
+                auto v = m.at<cv::Vec4d>(y, x);
+                sprintf(buffer_color, "(%.5G,%.5G,%.5G,%.5G)", v[0], v[1], v[2], v[3]);
+            }
+            else if (m.type() == CV_64FC3)
+            {
+                auto v = m.at<cv::Vec3d>(y, x);
+                sprintf(buffer_color, "(%.5G,%.5G,%.5G)", v[0], v[1], v[2]);
+            }
+            else if (m.type() == CV_64FC2)
+            {
+                auto v = m.at<cv::Vec2d>(y, x);
+                sprintf(buffer_color, "(%.5G,%.5G)", v[0], v[1]);
+            }
+            else if (m.type() == CV_64FC1)
+            {
+                auto v = m.at<double>(y, x);
+                sprintf(buffer_color, "%.5G", v);
+            }
+            else if (m.type() == CV_32FC4)
+            {
+                auto v = m.at<cv::Vec4f>(y, x);
+                sprintf(buffer_color, "(%.5G,%.5G,%.5G,%.5G)", v[0], v[1], v[2], v[3]);
+            }
+            else if (m.type() == CV_32FC3)
+            {
+                auto v = m.at<cv::Vec3f>(y, x);
+                sprintf(buffer_color, "(%.5G,%.5G,%.5G)", v[0], v[1], v[2]);
+            }
+            else if (m.type() == CV_32FC2)
+            {
+                auto v = m.at<cv::Vec2f>(y, x);
+                sprintf(buffer_color, "(%.5G,%.5G)", v[0], v[1]);
+            }
+            else if (m.type() == CV_32FC1)
+            {
+                auto v = m.at<float>(y, x);
+                sprintf(buffer_color, "%.05G", v);
+            }
+            else if (m.type() == CV_8UC4)
+            {
+                auto v = m.at<cv::Vec4b>(y, x);
+                if (showColorAsRGB)
+                    sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0], (unsigned int)v[3]);
+                else
+                    sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2], (unsigned int)v[3]);
+            }
+            else if (m.type() == CV_8UC3)
+            {
+                auto v = m.at<cv::Vec3b>(y, x);
+                if (showColorAsRGB)
+                    sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0]);
+                else
+                    sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2]);
+            }
+            else if (m.type() == CV_8UC2)
+            {
+                auto v = m.at<cv::Vec2b>(y, x);
+                sprintf(buffer_color, "(%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1]);
+            }
+            else if (m.type() == CV_8UC1)
+            {
+                auto v = m.at<unsigned char>(y, x);
+                sprintf(buffer_color, "%03u", (unsigned int)v);
+            }
+            else
+                buffer_color[0] = '\0';
+
+            std::stringstream msg;
+            msg << "X:" << x << " Y:" << y << " ";
+            msg << " " << buffer_color;
+            return msg.str();
+        }
+
+    } // namespace MatrixInfoUtils
+
+
     namespace ImageNavigatorUtils
     {
         double gGridMinZoomFactor = 7.;
@@ -226,6 +333,65 @@ namespace ImmVision
             return false;
         }
 
+        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
+        {
+            ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
+            texture.Draw_DisableDragWindow(displaySize);
+            bool isImageHovered = ImGui::IsItemHovered();
+            ImVec2 mouse = ImGui::GetMousePos();
+            if (isImageHovered)
+                return cv::Point2d((double)(mouse.x - imageTopLeft.x), (double)(mouse.y - imageTopLeft.y));
+            else
+                return cv::Point2d(-1., -1.);
+        }
+
+        void ShowImageInfo(const cv::Mat &image, double zoomFactor)
+        {
+            std::string info = MatrixInfoUtils::_MatInfo(image);
+            ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
+        }
+
+        void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt, bool showColorAsRGB)
+        {
+            if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
+            {
+                auto info = MatrixInfoUtils::_MatPixelColorInfo(image, pt.x, pt.y, showColorAsRGB);
+                ImGui::Text("%s", info.c_str());
+            }
+            else
+                ImGui::Text("");
+            // Color button
+            if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
+            {
+                ImGui::SameLine();
+                ImVec2 colorButtonSize(12.f, 12.f);
+                if (image.type() == CV_8UC3)
+                {
+                    cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
+                    ImGui::ColorButton(
+                        "color",
+                        { (float)col[2] / 255.f, (float)col[1] / 255.f, (float)col[0] / 255.f, 1.f },
+                        0,
+                        colorButtonSize
+                    );
+                }
+                else if (image.type() == CV_8UC4)
+                {
+                    cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
+                    ImGui::ColorButton(
+                        "color",
+                        { (float)col[2] / 255.f, (float)col[1] / 255.f, (float)col[0] / 255.f, (float)col[3] / 255.f },
+                        0,
+                        colorButtonSize
+                    );
+                }
+                else
+                    ImGui::NewLine();
+            }
+
+        }
+
+
 
         class ImageNavigatorTextureCache
         {
@@ -294,176 +460,6 @@ namespace ImmVision
         };
         ImageNavigatorTextureCache gImageNavigatorTextureCache;
     } // namespace ImageNavigatorUtils
-
-
-    namespace MatrixInfoUtils
-    {
-        std::string _MatTypeName(const cv::Mat& m)
-        {
-            std::map<int, std::string> depthNames
-                {
-                    { CV_8U, "CV_8U" },
-                    { CV_8S, "CV_8S" },
-                    { CV_16U, "CV_16U" },
-                    { CV_16S, "CV_16S" },
-                    { CV_32S, "CV_32S"},
-                    { CV_32F, "CV_32F"},
-                    { CV_64F, "CV_64F"},
-                    { CV_16F, "CV_16F"}
-                };
-            return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
-        }
-
-        std::string _MatInfo(const cv::Mat &m)
-        {
-            return _MatTypeName(m) + " " + std::to_string(m.cols) + "x" + std::to_string(m.rows);
-        }
-
-
-        std::string _MatPixelColorInfo(const cv::Mat & m, int x, int y, bool showColorAsRGB)
-        {
-            if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
-                return "";
-            char buffer_color[300];
-            if (m.type() == CV_64FC4)
-            {
-                auto v = m.at<cv::Vec4d>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G,%.5G,%.5G)", v[0], v[1], v[2], v[3]);
-            }
-            else if (m.type() == CV_64FC3)
-            {
-                auto v = m.at<cv::Vec3d>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G,%.5G)", v[0], v[1], v[2]);
-            }
-            else if (m.type() == CV_64FC2)
-            {
-                auto v = m.at<cv::Vec2d>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G)", v[0], v[1]);
-            }
-            else if (m.type() == CV_64FC1)
-            {
-                auto v = m.at<double>(y, x);
-                sprintf(buffer_color, "%.5G", v);
-            }
-            else if (m.type() == CV_32FC4)
-            {
-                auto v = m.at<cv::Vec4f>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G,%.5G,%.5G)", v[0], v[1], v[2], v[3]);
-            }
-            else if (m.type() == CV_32FC3)
-            {
-                auto v = m.at<cv::Vec3f>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G,%.5G)", v[0], v[1], v[2]);
-            }
-            else if (m.type() == CV_32FC2)
-            {
-                auto v = m.at<cv::Vec2f>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G)", v[0], v[1]);
-            }
-            else if (m.type() == CV_32FC1)
-            {
-                auto v = m.at<float>(y, x);
-                sprintf(buffer_color, "%.05G", v);
-            }
-            else if (m.type() == CV_8UC4)
-            {
-                auto v = m.at<cv::Vec4b>(y, x);
-                if (showColorAsRGB)
-                    sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0], (unsigned int)v[3]);
-                else
-                sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2], (unsigned int)v[3]);
-            }
-            else if (m.type() == CV_8UC3)
-            {
-                auto v = m.at<cv::Vec3b>(y, x);
-                if (showColorAsRGB)
-                    sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0]);
-                else
-                sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2]);
-            }
-            else if (m.type() == CV_8UC2)
-            {
-                auto v = m.at<cv::Vec2b>(y, x);
-                sprintf(buffer_color, "(%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1]);
-            }
-            else if (m.type() == CV_8UC1)
-            {
-                auto v = m.at<unsigned char>(y, x);
-                sprintf(buffer_color, "%03u", (unsigned int)v);
-            }
-            else
-                buffer_color[0] = '\0';
-
-            std::stringstream msg;
-            msg << "X:" << x << " Y:" << y << " ";
-            msg << " " << buffer_color;
-            return msg.str();
-        }
-
-    } // namespace MatrixInfoUtils
-
-
-    namespace ImGuiExt
-    {
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
-        {
-            ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
-            texture.Draw_DisableDragWindow(displaySize);
-            bool isImageHovered = ImGui::IsItemHovered();
-            ImVec2 mouse = ImGui::GetMousePos();
-            if (isImageHovered)
-                return cv::Point2d((double)(mouse.x - imageTopLeft.x), (double)(mouse.y - imageTopLeft.y));
-            else
-                return cv::Point2d(-1., -1.);
-        }
-    } // namespace ImGuiExt
-
-
-    void ShowImageInfo(const cv::Mat &image, double zoomFactor)
-    {
-        std::string info = MatrixInfoUtils::_MatInfo(image);
-        ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
-    }
-
-    void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt, bool showColorAsRGB)
-    {
-        if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
-        {
-            auto info = MatrixInfoUtils::_MatPixelColorInfo(image, pt.x, pt.y, showColorAsRGB);
-            ImGui::Text("%s", info.c_str());
-        }
-        else
-            ImGui::Text("");
-        // Color button
-        if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
-        {
-            ImGui::SameLine();
-            ImVec2 colorButtonSize(12.f, 12.f);
-            if (image.type() == CV_8UC3)
-            {
-                cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
-                ImGui::ColorButton(
-                    "color",
-                    { (float)col[2] / 255.f, (float)col[1] / 255.f, (float)col[0] / 255.f, 1.f },
-                    0,
-                    colorButtonSize
-                    );
-            }
-            else if (image.type() == CV_8UC4)
-            {
-                cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
-                ImGui::ColorButton(
-                    "color",
-                    { (float)col[2] / 255.f, (float)col[1] / 255.f, (float)col[0] / 255.f, (float)col[3] / 255.f },
-                    0,
-                    colorButtonSize
-                );
-            }
-            else
-                ImGui::NewLine();
-        }
-
-    }
 
 
     cv::Point2d ImageNavigator(
@@ -556,7 +552,7 @@ namespace ImmVision
         if (showLegendBorder)
             ImGuiImm::BeginGroupPanel(params.Legend.c_str());
 
-        cv::Point2d mouseLocation = ImGuiExt::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params.ImageSize.width, (float)params.ImageSize.height));
+        cv::Point2d mouseLocation = ImageNavigatorUtils::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params.ImageSize.width, (float)params.ImageSize.height));
 
         int mouseDragButton = 0;
         bool isItemHovered = ImGui::IsItemHovered();
@@ -594,9 +590,9 @@ namespace ImmVision
 
         // Pixel color info
         if (params.ShowImageInfo)
-            ShowImageInfo(image, params.ZoomMatrix(0, 0));
+            ImageNavigatorUtils::ShowImageInfo(image, params.ZoomMatrix(0, 0));
         if (params.ShowPixelInfo)
-            ShowPixelColorInfo(image, mouseLocation_originalImage, params.ShowColorAsRGB);
+            ImageNavigatorUtils::ShowPixelColorInfo(image, mouseLocation_originalImage, params.ShowColorAsRGB);
 
         // Zoom+ / Zoom- buttons
         if (params.ShowZoomButtons)
