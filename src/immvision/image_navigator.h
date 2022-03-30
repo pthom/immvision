@@ -34,8 +34,10 @@ namespace ImmVision
         bool ShowImageInfo = true;
         bool ShowPixelInfo = true;
         bool ShowZoomButtons = true;
-        bool ShowAdjustButton = true;
         bool ShowLegendBorder = true;
+
+        bool ShowOptions = false;
+        bool ShowOptionsInTooltip = true;
     };
 
     cv::Point2d ImageNavigator(

@@ -478,11 +478,11 @@ namespace ImmVision
         auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
 
         // Options & Adjustments
-        auto ShowOptionsPopup = [&params, &cache, &image]()
+        auto OptionsInnerGui = [&params, &cache, &image]()
         {
-            if (ImGui::BeginPopup("Adjustments"))
+            // Adjust colors
+            if (ImGui::CollapsingHeader("Adjust"))
             {
-                // Adjust colors
                 ImGui::Text("Adjust");
                 ImGui::PushItemWidth(80.);
                 ImGuiImm::SliderDouble(
@@ -499,58 +499,93 @@ namespace ImmVision
                     if (ImGui::SmallButton("reset"))
                         params.ColorAdjustments = ColorAdjustments();
                 }
+            }
 
-                // Image display options
+            // Image display options
+            if (ImGui::CollapsingHeader("Colors"))
+            {
+                ImGui::Text("Image display options");
+                if (params.ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
+                    ImGui::Checkbox("Grid", &params.ShowGrid);
+                if (image.type() == CV_8UC3)
+                    ImGui::Checkbox("Show color values as RGB", &params.ShowColorAsRGB);
+                if (image.type() == CV_8UC4)
+                    ImGui::Checkbox("Show color values as RGBA", &params.ShowColorAsRGB); // Not a typo!
+                if (image.type() == CV_8UC4)
+                    ImGui::Checkbox("Show alpha channel checkerboard", &params.ShowAlphaChannelCheckerboard);
+                if (image.channels() > 1)
                 {
-                    ImGui::Text("Image display options");
-                    if (params.ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
-                        ImGui::Checkbox("Grid", &params.ShowGrid);
-                    if (image.type() == CV_8UC3)
-                        ImGui::Checkbox("Show color values as RGB", &params.ShowColorAsRGB);
-                    if (image.type() == CV_8UC4)
-                        ImGui::Checkbox("Show color values as RGBA", &params.ShowColorAsRGB); // Not a typo!
-                    if (image.type() == CV_8UC4)
-                        ImGui::Checkbox("Show alpha channel checkerboard", &params.ShowAlphaChannelCheckerboard);
-                    if (image.channels() > 1)
+                    ImGui::Text("Channels: ");
+                    ImGui::RadioButton("All", &params.SelectedChannel, -1); ImGui::SameLine();
+                    for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
                     {
-                        ImGui::Text("Channels: ");
-                        ImGui::RadioButton("All", &params.SelectedChannel, -1); ImGui::SameLine();
-                        for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
-                        {
-                            ImGui::RadioButton(std::to_string(channel_id).c_str(), &params.SelectedChannel, channel_id);
-                            ImGui::SameLine();
-                        }
-                        ImGui::NewLine();
+                        ImGui::RadioButton(std::to_string(channel_id).c_str(), &params.SelectedChannel, channel_id);
+                        ImGui::SameLine();
                     }
+                    ImGui::NewLine();
                 }
+            }
 
-                //Navigator display options
+            //Navigator display options
+            if (ImGui::CollapsingHeader("Options"))
+            {
+                ImGui::Text("Navigator display options");
+                ImGui::Checkbox("Show legend border", &params.ShowLegendBorder);
+                ImGui::Checkbox("Show image info", &params.ShowImageInfo);
+                ImGui::Checkbox("Show pixel info", &params.ShowPixelInfo);
+                ImGui::Checkbox("Show zoom buttons", &params.ShowZoomButtons);
+                ImGui::Checkbox("Pan with mouse", &params.PanWithMouse);
+            }
+
+            // Save Image
+            if (ImGui::CollapsingHeader("Save"))
+            {
+                char *filename = cache.FilenameEditBuffer.data();
+                ImGui::SetNextItemWidth(200.f);
+                ImGui::InputText("Filename", filename, 1000);
+                if (ImGui::SmallButton("save"))
+                    cv::imwrite(filename, image);
+            }
+
+            ImGui::Separator();
+            if (ImGui::Checkbox("Show Options in tooltip window", &params.ShowOptionsInTooltip))
+            {
+                if (!params.ShowOptionsInTooltip) // We were in a tooltip when clicking
+                    params.ShowOptions = true;
+            }
+
+        };
+        auto ToggleShowOptions = [&params]()
+        {
+            if (params.ShowOptionsInTooltip)
+                ImGui::OpenPopup("Options");
+            else
+                params.ShowOptions = !params.ShowOptions;
+        };
+        auto OptionGui = [&params, &OptionsInnerGui]()
+        {
+            if (params.ShowOptionsInTooltip)
+            {
+                if (ImGui::BeginPopup("Options"))
                 {
-                    ImGui::Text("Navigator display options");
-                    ImGui::Checkbox("Show legend border", &params.ShowLegendBorder);
-                    ImGui::Checkbox("Show image info", &params.ShowImageInfo);
-                    ImGui::Checkbox("Show pixel info", &params.ShowPixelInfo);
-                    ImGui::Checkbox("Show zoom buttons", &params.ShowZoomButtons);
-                    ImGui::Checkbox("Show adjust button", &params.ShowAdjustButton);
-                    ImGui::Checkbox("Pan with mouse", &params.PanWithMouse);
+                    OptionsInnerGui();
+                    ImGui::EndPopup();
                 }
-
-                // Save Image
-                {
-                    char *filename = cache.FilenameEditBuffer.data();
-                    ImGui::InputText("Filename", filename, 1000);
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton("save"))
-                        cv::imwrite(filename, image);
-                }
-
-                ImGui::EndPopup();
+            }
+            else if (params.ShowOptions)
+            {
+                ImGui::Text("Options");
+                OptionsInnerGui();
             }
         };
 
-        bool showLegendBorder = params.ShowLegendBorder;
+
+        // BeginGroupPanel
+        bool showLegendBorder = params.ShowLegendBorder || (! params.ShowOptionsInTooltip);
         if (showLegendBorder)
-            ImGuiImm::BeginGroupPanel(params.Legend.c_str());
+            ImGuiImm::BeginChild_AutoSize(params.Legend.c_str(), true);
+        else
+            ImGuiImm::BeginChild_AutoSize("", false);
 
         cv::Point2d mouseLocation = ImageNavigatorUtils::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params.ImageSize.width, (float)params.ImageSize.height));
 
@@ -632,19 +667,16 @@ namespace ImmVision
 
         // adjust button
         {
-            if (params.ShowAdjustButton)
-            {
-                if (!params.ShowZoomButtons)
-                    ImGui::NewLine();
-                ImGuiImm::SameLineAlignRight(20.f, (float)params.ImageSize.width);
-                if (Icons::IconButton(Icons::IconType::AdjustLevels))
-                    ImGui::OpenPopup("Adjustments");
-                ShowOptionsPopup();
-            }
+            if (!params.ShowZoomButtons)
+                ImGui::NewLine();
+            ImGuiImm::SameLineAlignRight(20.f, (float)params.ImageSize.width);
+            if (Icons::IconButton(Icons::IconType::AdjustLevels))
+                ToggleShowOptions();
         }
 
-        if (showLegendBorder)
-            ImGuiImm::EndGroupPanel();
+        OptionGui();
+
+        ImGuiImm::EndChild_AutoSize();
 
 
         ImGui::PopID(); ImGui::PopID();

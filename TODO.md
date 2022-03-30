@@ -16,8 +16,9 @@
 * [ ] ImageNavigator
   * [X] work empty image
   * [ ] Options 
+    * [ ] Remove options ShowlegendBorder / ShowAdjustButton 
+    * [X] Options inline
     * [X] Option Show Border and legend
-    * [ ] BeginWindow
     * [ ] Group by theme / Image Display Option can be empty
     * [ ] Double click to show options
   * [ ] Handle adjustments_key

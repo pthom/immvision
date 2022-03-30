@@ -15,9 +15,13 @@ namespace ImGuiImm
     void PopDisabled();
     void SameLineAlignRight(float rightMargin = 0.f, float alignRegionWidth = -1.f);
 
-
     // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
     void BeginGroupPanel(const char* name, const ImVec2& size = ImVec2(0.0f, 0.0f));
     void EndGroupPanel();
+
+    void BeginChild_AutoSize(const char* name, bool draw_border, const ImVec2& size = ImVec2(0.0f, 0.0f));
+    void EndChild_AutoSize();
+
 }
+
 

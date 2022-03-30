@@ -91,7 +91,9 @@ namespace ImGuiImm
         ImGui::BeginGroup();
         ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
         ImGui::SameLine(0.0f, 0.0f);
-        ImGui::TextUnformatted(name);
+        if (strlen(name) > 0)
+            ImGui::TextUnformatted(name);
+
         auto labelMin = ImGui::GetItemRectMin();
         auto labelMax = ImGui::GetItemRectMax();
         ImGui::SameLine(0.0f, 0.0f);
@@ -151,6 +153,7 @@ namespace ImGuiImm
         ImRect frameRect = ImRect(itemMin + halfFrame, itemMax - ImVec2(halfFrame.x, 0.0f));
         labelRect.Min.x -= itemSpacing.x;
         labelRect.Max.x += itemSpacing.x;
+
         for (int i = 0; i < 4; ++i)
         {
             switch (i)
@@ -188,5 +191,72 @@ namespace ImGuiImm
 
         ImGui::EndGroup();
     }
-}
 
+
+    struct IdWithSize
+    {
+        IdWithSize(ImGuiID id, ImVec2 size) : Id(id), Size(size){}
+        ImGuiID Id;
+        ImVec2  Size;
+    };
+    static ImVector<IdWithSize> s_Child_AutoSize_Sizes;
+    static ImVector<ImGuiID> s_Child_AutoSize_IDs;
+    static ImVector<bool> s_Child_AutoSize_DrawBorder;
+
+    void BeginChild_AutoSize(const char* name, bool draw_border, const ImVec2& size)
+    {
+        ImGuiID id = ImGui::GetIDWithSeed(name, name + strlen(name), ImGui::GetActiveID());
+
+        ImVec2 displayedSize = ImVec2(3.f, 3.f); // first ever display size: small!
+        if ((size.x != 0.f) || (size.y != 0.f))
+            displayedSize = size;
+        else
+        {
+            for (const auto& v : s_Child_AutoSize_Sizes)
+                if (v.Id == id)
+                    displayedSize = v.Size;
+        }
+
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar;
+        ImGui::BeginChild(name, displayedSize, false, flags);
+        s_Child_AutoSize_DrawBorder.push_back(draw_border);
+        if (draw_border)
+            BeginGroupPanel(name, size);
+        else
+        {
+            ImGui::BeginGroup();
+            if (strlen(name) > 0)
+                ImGui::Text("%s", name);
+        }
+        s_Child_AutoSize_IDs.push_back(id);
+    }
+
+    void EndChild_AutoSize()
+    {
+        bool drawBorder = s_Child_AutoSize_DrawBorder.back();
+        s_Child_AutoSize_DrawBorder.pop_back();
+        if (drawBorder)
+            EndGroupPanel();
+        else
+            ImGui::EndGroup();
+
+        auto id = s_Child_AutoSize_IDs.back();
+        s_Child_AutoSize_IDs.pop_back();
+        ImVec2 displayedSize = ImGui::GetItemRectSize();
+
+        bool found = false;
+        for (auto& v : s_Child_AutoSize_Sizes)
+        {
+            if (v.Id == id)
+            {
+                found = true;
+                v.Size = displayedSize;
+            }
+        }
+        if (!found)
+            s_Child_AutoSize_Sizes.push_back(IdWithSize(id, displayedSize));
+
+        ImGui::EndChild();
+    }
+
+}
