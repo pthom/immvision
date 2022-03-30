@@ -548,10 +548,10 @@ namespace ImmVision
             {
                 {
                     ImGuiImm::BeginGroupPanel("Navigator display options");
-                    ImGui::Checkbox("Show legend border", &params->ShowLegendBorder);
                     ImGui::Checkbox("Show image info", &params->ShowImageInfo);
                     ImGui::Checkbox("Show pixel info", &params->ShowPixelInfo);
                     ImGui::Checkbox("Show zoom buttons", &params->ShowZoomButtons);
+                    ImGui::Checkbox("Show legend border", &params->ShowLegendBorder);
                     ImGuiImm::EndGroupPanel();
                 }
 
@@ -687,44 +687,57 @@ namespace ImmVision
         };
 
         //
+        // Lambda / panel Title
+        //
+        auto fnPanelTitle = [&params, &image]()
+        {
+            std::string panelTitle;
+            {
+                if (params->ShowLegendBorder)
+                    panelTitle = params->Legend;
+                panelTitle += "##ImageNavigator_" + std::to_string((size_t)&image);
+            }
+            return panelTitle;
+        };
+
+
+        //
         // GUI
         //
         ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
+        cv::Point2d mouseLocation_originalImage;
 
         // BeginGroupPanel
-        bool showLegendBorder = params->ShowLegendBorder || (! params->ShowOptionsInTooltip);
-        if (showLegendBorder)
-            ImGuiImm::BeginChild_AutoSize(params->Legend.c_str(), true);
-        else
-            ImGuiImm::BeginChild_AutoSize("", false);
-
-        cv::Point2d mouseLocation_originalImage = fnShowImage();
-
-        fnHandleMouseDragging();
-
-        // Pixel color info
-        if (params->ShowImageInfo)
-            ImageNavigatorUtils::ShowImageInfo(image, params->ZoomMatrix(0, 0));
-        if (params->ShowPixelInfo)
-            ImageNavigatorUtils::ShowPixelColorInfo(image, mouseLocation_originalImage, params->ShowColorAsRGB);
-
-        // Zoom+ / Zoom- buttons
-        fnShowZoomButtons();
-
-        // adjust button
+        bool drawBorder = params->ShowLegendBorder || (! params->ShowOptionsInTooltip);
+        ImGuiImm::BeginChild_AutoSize(fnPanelTitle().c_str(), drawBorder);
         {
-            if (!params->ShowZoomButtons)
-                ImGui::NewLine();
-            ImGuiImm::SameLineAlignRight(20.f, (float)params->ImageSize.width);
-            if (Icons::IconButton(Icons::IconType::AdjustLevels))
-                fnToggleShowOptions();
+            // Show image
+            mouseLocation_originalImage = fnShowImage();
+            // Handle Mouse
+            fnHandleMouseDragging();
+
+            // Show infos
+            if (params->ShowImageInfo)
+                ImageNavigatorUtils::ShowImageInfo(image, params->ZoomMatrix(0, 0));
+            if (params->ShowPixelInfo)
+                ImageNavigatorUtils::ShowPixelColorInfo(image, mouseLocation_originalImage, params->ShowColorAsRGB);
+
+            // Zoom+ / Zoom- buttons
+            fnShowZoomButtons();
+
+            // adjust button
+            {
+                if (!params->ShowZoomButtons)
+                    ImGui::NewLine();
+                ImGuiImm::SameLineAlignRight(20.f, (float)params->ImageSize.width);
+                if (Icons::IconButton(Icons::IconType::AdjustLevels))
+                    fnToggleShowOptions();
+            }
+
+            // Show Options
+            fnOptionGui();
         }
-
-        fnOptionGui();
-
         ImGuiImm::EndChild_AutoSize();
-
-
         ImGui::PopID(); ImGui::PopID();
 
         return mouseLocation_originalImage;

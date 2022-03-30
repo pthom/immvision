@@ -5,6 +5,8 @@
 
 #include <sstream>
 #include <vector>
+#include <unordered_map>
+#include <stack>
 
 namespace ImGuiImm
 {
@@ -193,68 +195,56 @@ namespace ImGuiImm
     }
 
 
-    struct IdWithSize
-    {
-        IdWithSize(ImGuiID id, ImVec2 size) : Id(id), Size(size){}
-        ImGuiID Id;
-        ImVec2  Size;
-    };
-    static ImVector<IdWithSize> s_Child_AutoSize_Sizes;
-    static ImVector<ImGuiID> s_Child_AutoSize_IDs;
-    static ImVector<bool> s_Child_AutoSize_DrawBorder;
+    static std::unordered_map<std::string, ImVec2> s_Child_AutoSize_Sizes;
+    static std::stack<std::string> s_Child_AutoSize_IDs;
+    static std::stack<bool> s_Child_AutoSize_DrawBorder;
 
     void BeginChild_AutoSize(const char* name, bool draw_border, const ImVec2& size)
     {
-        ImGuiID id = ImGui::GetIDWithSeed(name, name + strlen(name), ImGui::GetActiveID());
+        std::string name_s(name);
+        std::string name_displayed;
+        {
+            auto pos = name_s.find("##");
+            if (pos != std::string::npos)
+                name_displayed =  name_s.substr(0, pos);
+            else
+                name_displayed = name_s;
+        }
 
         ImVec2 displayedSize = ImVec2(3.f, 3.f); // first ever display size: small!
         if ((size.x != 0.f) || (size.y != 0.f))
             displayedSize = size;
-        else
-        {
-            for (const auto& v : s_Child_AutoSize_Sizes)
-                if (v.Id == id)
-                    displayedSize = v.Size;
-        }
+        else if (s_Child_AutoSize_Sizes.find(name) != s_Child_AutoSize_Sizes.end())
+            displayedSize = s_Child_AutoSize_Sizes.at(name);
 
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar;
         ImGui::BeginChild(name, displayedSize, false, flags);
-        s_Child_AutoSize_DrawBorder.push_back(draw_border);
+        s_Child_AutoSize_DrawBorder.push(draw_border);
         if (draw_border)
-            BeginGroupPanel(name, size);
+            BeginGroupPanel(name_displayed.c_str(), size);
         else
         {
             ImGui::BeginGroup();
             if (strlen(name) > 0)
-                ImGui::Text("%s", name);
+                ImGui::Text("%s", name_displayed.c_str());
         }
-        s_Child_AutoSize_IDs.push_back(id);
+        s_Child_AutoSize_IDs.push(name);
     }
 
     void EndChild_AutoSize()
     {
-        bool drawBorder = s_Child_AutoSize_DrawBorder.back();
-        s_Child_AutoSize_DrawBorder.pop_back();
+        bool drawBorder = s_Child_AutoSize_DrawBorder.top();
+        s_Child_AutoSize_DrawBorder.pop();
         if (drawBorder)
             EndGroupPanel();
         else
             ImGui::EndGroup();
 
-        auto id = s_Child_AutoSize_IDs.back();
-        s_Child_AutoSize_IDs.pop_back();
+        auto name = s_Child_AutoSize_IDs.top();
+        s_Child_AutoSize_IDs.pop();
         ImVec2 displayedSize = ImGui::GetItemRectSize();
 
-        bool found = false;
-        for (auto& v : s_Child_AutoSize_Sizes)
-        {
-            if (v.Id == id)
-            {
-                found = true;
-                v.Size = displayedSize;
-            }
-        }
-        if (!found)
-            s_Child_AutoSize_Sizes.push_back(IdWithSize(id, displayedSize));
+        s_Child_AutoSize_Sizes[name] = displayedSize;
 
         ImGui::EndChild();
     }
