@@ -118,6 +118,8 @@ struct AppState
         // Image = cv::imread("resources/rainbow-lorikeet-1188535.jpg");
         // Image = cv::imread("resources/winter-in-holland-1396288.jpg");
         Image = cv::imread("resources/house.jpg");
+        cv::cvtColor(Image, Image, cv::COLOR_BGR2RGB);
+
         ImageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
     }
     void UpdateImages()

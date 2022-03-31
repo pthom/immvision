@@ -25,9 +25,12 @@ namespace ImmVision
         // Image navigation
         bool PanWithMouse = true;
 
+        // Input Image Color order: RGB or RGBA versus BGR or BGRA
+        // (Note: by default OpenCV uses BGR and BGRA)
+        bool IsColorOrderBGR = true;
+
         // Image display options
         bool ShowGrid = true;
-        bool ShowColorAsRGB = false; // By default, color values are displayed as BGR or BGRA (as in OpenCV)
         int  SelectedChannel = -1;
         bool ShowAlphaChannelCheckerboard = true;
 

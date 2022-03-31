@@ -263,7 +263,8 @@ namespace ImmVision
         {
             if (image.empty())
                 return;
-            cv::Mat imageWithWantedChannels = image;
+
+            cv::Mat imageWithWantedChannels = image.clone();
             if (image.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < image.channels()))
             {
                 std::vector<cv::Mat> channels;
@@ -271,13 +272,19 @@ namespace ImmVision
                 imageWithWantedChannels = channels[params.SelectedChannel];
             }
 
-            if (imageWithWantedChannels.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
+            cv::Mat imageBGR = imageWithWantedChannels;
+            if (imageBGR.type() == CV_8UC3 && !params.IsColorOrderBGR)
+                cv::cvtColor(imageWithWantedChannels, imageBGR, cv::COLOR_RGB2BGR);
+            if (imageBGR.type() == CV_8UC4 && !params.IsColorOrderBGR)
+                cv::cvtColor(imageWithWantedChannels, imageBGR, cv::COLOR_RGBA2BGRA);
+
+            if (imageBGR.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
             {
                 cv::Mat background = CvDrawingUtils::make_checkerboard_image(image.size());
-                imageWithWantedChannels = CvDrawingUtils::overlay_alpha_image_precise(background, imageWithWantedChannels, 1.);
+                imageBGR = CvDrawingUtils::overlay_alpha_image_precise(background, imageBGR, 1.);
             }
 
-            cv::Mat imageAdjustedColor = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, imageWithWantedChannels);
+            cv::Mat imageAdjustedColor = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, imageBGR);
 
             cv::Mat imageZoomed;
             cv::warpAffine(imageAdjustedColor, imageZoomed,
@@ -329,6 +336,8 @@ namespace ImmVision
             if (v1.SelectedChannel != v2.SelectedChannel)
                 return true;
             if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
+                return true;
+            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
                 return true;
             return false;
         }
@@ -560,10 +569,16 @@ namespace ImmVision
             {
                 if (params->ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
                     ImGui::Checkbox("Grid", &params->ShowGrid);
-                if (image.type() == CV_8UC3)
-                    ImGui::Checkbox("Show color values as RGB", &params->ShowColorAsRGB);
-                if (image.type() == CV_8UC4)
-                    ImGui::Checkbox("Show color values as RGBA", &params->ShowColorAsRGB);
+                if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
+                {
+                    ImGui::Text("Color Order");
+                    ImGui::SameLine();
+                    int v = params->IsColorOrderBGR ? 0 : 1;
+                    ImGui::RadioButton("RGB", &v, 1);
+                    ImGui::SameLine();
+                    ImGui::RadioButton("BGR", &v, 0);
+                    params->IsColorOrderBGR = (v == 0);
+                }
                 if (image.type() == CV_8UC4)
                     ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
                 if (image.channels() > 1)
@@ -606,7 +621,7 @@ namespace ImmVision
                     cv::imwrite(filename, image);
             }
 
-            ImGui::Separator();
+            ImGui::NewLine();
             if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
             {
                 if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
