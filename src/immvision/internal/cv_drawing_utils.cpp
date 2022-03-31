@@ -623,9 +623,9 @@ namespace ImmVision
             int nbChannels = mat.channels();
             if (nbChannels == 1)
             {
-                if (mat.type() == CV_8UC1)
+                if ((mat.depth() == CV_8U))
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
-                else if ((mat.type() == CV_32FC1) || (mat.type() == CV_64FC1))
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {
                     cv::Mat grey_uchar;
                     cv::Mat float_times_255 = mat * 255.;
@@ -633,11 +633,33 @@ namespace ImmVision
                     cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_GRAY2BGRA);
                 }
             }
+            else if (nbChannels == 2)
+            {
+                // Add a third channel, with values = 0
+                cv::Mat mat3Channels_lastZero;
+                {
+                    std::vector<cv::Mat> channels;
+                    cv::split(inputMat, channels);
+                    cv::Mat channel3(channels.front().size(), channels.front().type());
+                    channel3 = cv::Scalar(0., 0., 0., 0.);
+                    channels.push_back(channel3);
+                    cv::merge(channels, mat3Channels_lastZero);
+                }
+                if ( mat.depth() == CV_8U)
+                    cv::cvtColor(mat3Channels_lastZero, mat_rgba, cv::COLOR_BGR2BGRA);
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat3Channels_lastZero * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC3);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
+                }
+            }
             else if (nbChannels == 3)
             {
-                if (mat.type() == CV_8UC3)
+                if (mat.depth() == CV_8U)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2BGRA);
-                else if ((mat.type() == CV_32FC3) || (mat.type() == CV_64FC3))
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {
                     cv::Mat grey_uchar;
                     cv::Mat float_times_255 = mat * 255.;
@@ -649,9 +671,9 @@ namespace ImmVision
             }
             else if (nbChannels == 4)
             {
-                if (mat.type() == CV_8UC4)
+                if (mat.depth() == CV_8U)
                     mat_rgba = mat;
-                else if ((mat.type() == CV_32FC3) || (mat.type() == CV_64FC3))
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {
                     cv::Mat grey_uchar;
                     cv::Mat float_times_255 = mat * 255.;

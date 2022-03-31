@@ -14,9 +14,7 @@
   * [ ] Test iPhone
 
 * [ ] ImageNavigator
-  * [ ] Essayer images CV_64FC2/3/4 et CV_32FC2/3/4
   * [ ] Essayer navigator plus large
-  * [X] Draw watched pixels on image
   * [ ] Copy image to clipboard => voir https://github.com/dacap/clip
   * [ ] Clean imgui_ext mess
   * [ ] Improve Save GUI

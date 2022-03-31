@@ -120,13 +120,24 @@ namespace ImmVision
                     image * a.Factor + a.Delta;
         }
 
-        ColorAdjustments ComputeInitialImageAdjustments(const cv::Mat& displayedImage)
+        ColorAdjustments ComputeInitialImageAdjustments(const cv::Mat& m)
         {
             ColorAdjustments r;
-            if ( (displayedImage.channels() == 1) && ((displayedImage.depth() == CV_32F) || (displayedImage.depth() == CV_64F)) )
+            if ((m.depth() == CV_32F) || (m.depth() == CV_64F))
             {
-                double min, max;
-                cv::minMaxLoc(displayedImage, &min, &max);
+                std::vector<double> minima, maxima;
+                std::vector<cv::Mat> channels;
+                cv::split(m, channels);
+                for (const cv::Mat&channel: channels)
+                {
+                    double min, max;
+                    cv::minMaxLoc(channel, &min, &max);
+                    minima.push_back(min);
+                    maxima.push_back(max);
+                }
+
+                double min = *std::min_element(minima.begin(), minima.end());
+                double max = *std::max_element(maxima.begin(), maxima.end());
                 r.Factor = 1. / (max - min);
                 r.Delta = -min * r.Factor;
             }

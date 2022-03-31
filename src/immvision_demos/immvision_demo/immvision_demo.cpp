@@ -29,7 +29,7 @@ struct SobelParams
     int  	KSize = 5; // size of the extended Sobel kernel; it must be 1, 3, 5, or 7 (or -1 for Scharr)
 };
 
-std::array<cv::Mat, 2> ComputeSobelDerivatives(const cv::Mat&image, const SobelParams& params)
+cv::Mat ComputeSobelDerivatives(const cv::Mat&image, const SobelParams& params)
 {
     cv::Mat gray;
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
@@ -40,7 +40,7 @@ std::array<cv::Mat, 2> ComputeSobelDerivatives(const cv::Mat&image, const SobelP
     cv::Mat blurred;
     cv::GaussianBlur(img_float, blurred, cv::Size(), params.GaussianBlurSize, params.GaussianBlurSize);
 
-    std::array<cv::Mat, 2> r;
+    std::vector<cv::Mat> r(2);
     int ddepth = CV_64F;
 
     double good_scale = 1. / pow(2., (double)(params.KSize - 2 * params.DerivativeOrder - 2));
@@ -48,7 +48,9 @@ std::array<cv::Mat, 2> ComputeSobelDerivatives(const cv::Mat&image, const SobelP
     cv::Sobel(blurred, r[0], ddepth, params.DerivativeOrder, 0, params.KSize, good_scale);
     cv::Sobel(blurred, r[1], ddepth, 0, params.DerivativeOrder, params.KSize, good_scale);
 
-    return r;
+    cv::Mat m2;
+    cv::merge(r, m2);
+    return m2;
 }
 
 bool GuiSobelParams(SobelParams& params)
@@ -119,8 +121,6 @@ struct AppState
         // Image = cv::imread("resources/winter-in-holland-1396288.jpg");
         Image = cv::imread("resources/house.jpg");
         cv::cvtColor(Image, Image, cv::COLOR_BGR2RGB);
-
-        ImageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
     }
     void UpdateImages()
     {
@@ -128,9 +128,8 @@ struct AppState
     }
 
     cv::Mat Image;
-    cv::Mat ImageTransparent;
-    std::array<cv::Mat, 2> ImageFiltered;
-    cv::Size DisplaySize = cv::Size(0, 220);
+    cv::Mat ImageFiltered;
+    cv::Size DisplaySize = cv::Size(0, 400);
     SobelParams SobelParams;
 };
 
@@ -167,18 +166,15 @@ void guiFunction()
     }
     ImGui::SameLine();
 
-    static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter[2];
-    for (size_t i = 0; i < 2; ++i)
     {
-        if (i > 0)
-            ImGui::SameLine();
-        imageNavigatorParamsFilter[i].ImageDisplaySize = gAppState.DisplaySize;
-        imageNavigatorParamsFilter[i].ZoomKey = "i";
-        imageNavigatorParamsFilter[i].ColorAdjustmentsKey = "c";
-        imageNavigatorParamsFilter[i].Legend = (i == 0) ? "X Gradient" : "Y Gradient";
+        static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter;
+        imageNavigatorParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
+        imageNavigatorParamsFilter.ZoomKey = "i";
+        imageNavigatorParamsFilter.ColorAdjustmentsKey = "c";
+        imageNavigatorParamsFilter.Legend = "X & Y Gradients (see channels 0 & 1)";
         cv::Point2d mousePosition = ImmVision::ImageNavigator(
-            gAppState.ImageFiltered[i],
-            &imageNavigatorParamsFilter[i],
+            gAppState.ImageFiltered,
+            &imageNavigatorParamsFilter,
             changed);
     }
 
@@ -187,13 +183,8 @@ void guiFunction()
 
 
     {
-        static ImmVision::ImageNavigatorParams imageNavigatorParamsTransparent;
-        imageNavigatorParamsTransparent.Legend = "Transparent image";
-        imageNavigatorParamsTransparent.ImageDisplaySize = gAppState.DisplaySize;
-        cv::Point2d mousePosition = ImmVision::ImageNavigator(
-            gAppState.ImageTransparent,
-            &imageNavigatorParamsTransparent,
-            changed);
+        static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
+        ImmVision::ImageNavigator(imageTransparent, cv::Size(0, 400.f));
     }
 
 //    ImGui::Begin("Style");
