@@ -211,7 +211,9 @@ namespace ImGuiImm
     }
 
 
-    static std::stack<bool> s_Child_AutoSize_DrawBorder;
+    static std::stack<bool> s_GroupPanel_FlagBorder_DrawBorder;
+    static std::stack<std::string> s_GroupPanel_FlagBorder_Names;
+    static std::unordered_map<std::string, ImVec2> s_GroupPanel_FlagBorder_Sizes;
 
     void BeginGroupPanel_FlagBorder(const char* name, bool draw_border, const ImVec2& size)
     {
@@ -226,7 +228,8 @@ namespace ImGuiImm
         }
 
         ImGui::BeginGroup();
-        s_Child_AutoSize_DrawBorder.push(draw_border);
+        s_GroupPanel_FlagBorder_DrawBorder.push(draw_border);
+        s_GroupPanel_FlagBorder_Names.push(name);
         if (draw_border)
             BeginGroupPanel(name_displayed.c_str(), size);
         else
@@ -239,14 +242,29 @@ namespace ImGuiImm
 
     void EndGroupPanel_FlagBorder()
     {
-        bool drawBorder = s_Child_AutoSize_DrawBorder.top();
-        s_Child_AutoSize_DrawBorder.pop();
+        bool drawBorder = s_GroupPanel_FlagBorder_DrawBorder.top();
+        s_GroupPanel_FlagBorder_DrawBorder.pop();
         if (drawBorder)
             EndGroupPanel();
         else
             ImGui::EndGroup();
 
         ImGui::EndGroup();
+
+        // Store size
+        {
+            std::string name = s_GroupPanel_FlagBorder_Names.top();
+            s_GroupPanel_FlagBorder_Names.pop();
+            s_GroupPanel_FlagBorder_Sizes[name] = ImGui::GetItemRectSize();
+        }
+    }
+
+    ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name)
+    {
+        if (s_GroupPanel_FlagBorder_Sizes.find(name) == s_GroupPanel_FlagBorder_Sizes.end())
+            return ImVec2(3.f, 3.f);
+        else
+            return s_GroupPanel_FlagBorder_Sizes.at(name);
     }
 
 }

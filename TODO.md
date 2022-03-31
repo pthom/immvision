@@ -14,7 +14,6 @@
   * [ ] Test iPhone
 
 * [ ] ImageNavigator
-  * [ ] Essayer navigator plus large
   * [ ] Copy image to clipboard => voir https://github.com/dacap/clip
   * [ ] Clean imgui_ext mess
   * [ ] Improve Save GUI

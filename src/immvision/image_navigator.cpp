@@ -567,6 +567,20 @@ namespace ImmVision
         auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
 
         //
+        // Lambda / panel Title
+        //
+        auto fnPanelTitle = [&params, &image]()
+        {
+            std::string panelTitle;
+            {
+                if (params->ShowLegendBorder)
+                    panelTitle = params->Legend;
+                panelTitle += "##ImageNavigator_" + std::to_string((size_t)&image);
+            }
+            return panelTitle;
+        };
+
+        //
         // Lambdas / Watched Pixels
         //
         bool wasWatchedPixelAdded = false;
@@ -637,16 +651,17 @@ namespace ImmVision
             return m;
         };
 
-
         //
         // Lambdas / Options & Adjustments
         //
-        auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded]()
+        auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnPanelTitle]()
         {
-            auto fnMyCollapsingHeader = [](const char *name)
+            auto fnMyCollapsingHeader = [&fnPanelTitle](const char *name)
             {
+                ImVec2 lastPanelSize = ImGuiImm::GroupPanel_FlagBorder_LastKnownSize(fnPanelTitle().c_str());
+
                 //return ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_SpanAvailWidth);
-                return ImGuiImm::CollapsingHeaderFixedWidth(name, 200.f);
+                return ImGuiImm::CollapsingHeaderFixedWidth(name, lastPanelSize.x - 35.f);
             };
 
             // Adjust float values
@@ -852,20 +867,6 @@ namespace ImmVision
             cv::Point2d mouseLocation_originalImage =
                 ImGui::IsItemHovered() ? ZoomMatrix::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
             return mouseLocation_originalImage;
-        };
-
-        //
-        // Lambda / panel Title
-        //
-        auto fnPanelTitle = [&params, &image]()
-        {
-            std::string panelTitle;
-            {
-                if (params->ShowLegendBorder)
-                    panelTitle = params->Legend;
-                panelTitle += "##ImageNavigator_" + std::to_string((size_t)&image);
-            }
-            return panelTitle;
         };
 
 

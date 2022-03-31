@@ -23,6 +23,7 @@ namespace ImGuiImm
 
     void BeginGroupPanel_FlagBorder(const char* name, bool draw_border, const ImVec2& size = ImVec2(0.0f, 0.0f));
     void EndGroupPanel_FlagBorder();
+    ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name);
 
 }
 
