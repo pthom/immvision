@@ -244,6 +244,56 @@ namespace ImmVision
                 params->ZoomMatrix = ZoomMatrix::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
+        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params)
+        {
+            cv::Mat r = image.clone();
+
+            std::vector<std::pair<size_t, cv::Point2d>> visiblePixels;
+            {
+                for (size_t i = 0; i < params.WatchedPixels.size(); ++i)
+                {
+                    cv::Point w = params.WatchedPixels[i];
+                    cv::Point2d p = ZoomMatrix::Apply(params.ZoomMatrix, w);
+                    if (cv::Rect(cv::Point(0, 0), params.ImageDisplaySize).contains(p))
+                        visiblePixels.push_back({i, p});
+                }
+            }
+
+            for (const auto& kv : visiblePixels)
+            {
+                CvDrawingUtils::draw_named_feature(
+                    r, // img
+                    kv.second, // position,
+                    std::to_string(kv.first), // name
+                    cv::Scalar(255, 255, 255, 255), // color
+                    true, // add_cartouche = false,
+                    4., // size = 3.,
+                    2.5, // size_hole = 2.,
+                    1 //int thickness = 1
+                    );
+            }
+
+            return r;
+        }
+
+        cv::Mat DrawGrid(const cv::Mat& image, const ImageNavigatorParams& params)
+        {
+            double alpha = 0.15;
+            cv::Scalar gridColor(0, 255, 255, 255);
+            double x_spacing = (double) params.ZoomMatrix(0, 0);
+            double y_spacing = (double) params.ZoomMatrix(1, 1);
+            double x_start = (double) params.ZoomMatrix(0, 2) - 0.5 * x_spacing;
+            double y_start = (double) params.ZoomMatrix(1, 2) - 0.5 * y_spacing;
+            cv::Mat imageWithGrid = CvDrawingUtils::add_grid_to_image(
+                image,
+                x_start, y_start,
+                x_spacing, y_spacing,
+                gridColor,
+                alpha);
+            return imageWithGrid;
+        };
+
+
         void BlitImageNavigatorTexture(
             const ImageNavigatorParams& params,
             const cv::Mat& image,
@@ -253,54 +303,57 @@ namespace ImmVision
             if (image.empty())
                 return;
 
-            cv::Mat imageWithWantedChannels = image.clone();
-            if (image.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < image.channels()))
+            cv::Mat finalImage = image.clone();
+
+            // Selected channels
+            if (finalImage.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < image.channels()))
             {
                 std::vector<cv::Mat> channels;
                 cv::split(image, channels);
-                imageWithWantedChannels = channels[params.SelectedChannel];
+                finalImage = channels[params.SelectedChannel];
             }
 
-            cv::Mat imageBGR = imageWithWantedChannels;
-            if (imageBGR.type() == CV_8UC3 && !params.IsColorOrderBGR)
-                cv::cvtColor(imageWithWantedChannels, imageBGR, cv::COLOR_RGB2BGR);
-            if (imageBGR.type() == CV_8UC4 && !params.IsColorOrderBGR)
-                cv::cvtColor(imageWithWantedChannels, imageBGR, cv::COLOR_RGBA2BGRA);
-
-            if (imageBGR.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
+            // Convert to BGR
             {
-                cv::Mat background = CvDrawingUtils::make_checkerboard_image(image.size());
-                imageBGR = CvDrawingUtils::overlay_alpha_image_precise(background, imageBGR, 1.);
+                if (finalImage.type() == CV_8UC3 && !params.IsColorOrderBGR)
+                    cv::cvtColor(finalImage, finalImage, cv::COLOR_RGB2BGR);
+                if (finalImage.type() == CV_8UC4 && !params.IsColorOrderBGR)
+                    cv::cvtColor(finalImage, finalImage, cv::COLOR_RGBA2BGRA);
             }
 
-            cv::Mat imageAdjustedColor = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, imageBGR);
+            // Alpha checkerboard
+            {
+                if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
+                {
+                    cv::Mat background = CvDrawingUtils::make_checkerboard_image(image.size());
+                    finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
+                }
+            }
 
-            cv::Mat imageZoomed;
-            cv::warpAffine(imageAdjustedColor, imageZoomed,
-                           ZoomMatrix::ZoomMatrixToM23(params.ZoomMatrix), params.ImageDisplaySize, cv::INTER_NEAREST);
+            // Color adjustments
+            finalImage = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, finalImage);
 
-            cv::Mat imageZoomedRgba = CvDrawingUtils::converted_to_rgba_image(imageZoomed);
+            // Zoom
+            {
+                cv::Mat imageZoomed;
+                cv::warpAffine(finalImage, imageZoomed,
+                               ZoomMatrix::ZoomMatrixToM23(params.ZoomMatrix), params.ImageDisplaySize, cv::INTER_NEAREST);
+                finalImage = imageZoomed;
+            }
 
+            // Convert to RGBA
+            finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage);
+
+            // Draw grid
             double zoomFactor = (double)params.ZoomMatrix(0, 0);
             if (params.ShowGrid && zoomFactor >= gGridMinZoomFactor)
-            {
-                double alpha = 0.15;
-                cv::Scalar gridColor(0, 255, 255, 255);
-                double x_spacing = (double)params.ZoomMatrix(0, 0);
-                double y_spacing = (double)params.ZoomMatrix(1, 1);
-                double x_start = (double)params.ZoomMatrix(0, 2) - 0.5 * x_spacing;
-                double y_start = (double)params.ZoomMatrix(1, 2) - 0.5 * y_spacing;
-                cv::Mat imageWithGrid = CvDrawingUtils::add_grid_to_image(
-                    imageZoomedRgba,
-                    x_start, y_start,
-                    x_spacing, y_spacing,
-                    gridColor,
-                    alpha);
+                finalImage = DrawGrid(image, params);
 
-                outTexture->BlitMat(imageWithGrid);
-            }
-            else
-                outTexture->BlitMat(imageZoomed);
+            // Draw Watched Pixels
+            if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))
+                finalImage = DrawWatchedPixels(finalImage, params);
+
+            outTexture->BlitMat(finalImage);
         }
 
         bool operator==(const ColorAdjustments& v1, const ColorAdjustments& v2)
@@ -327,6 +380,10 @@ namespace ImmVision
             if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
                 return true;
             if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
+                return true;
+            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
+                return true;
+            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
                 return true;
             return false;
         }
@@ -501,10 +558,15 @@ namespace ImmVision
         //
         // Lambdas / Watched Pixels
         //
-        auto fnWatchedPixels_Add = [&params](const cv::Point2d& pixelDouble)
+        bool wasWatchedPixelAdded = false;
+        auto fnWatchedPixels_Add = [&params, &wasWatchedPixelAdded](const cv::Point2d& pixelDouble)
         {
             cv::Point pixel((int)(pixelDouble.x + .5), (int)(pixelDouble.y + .5));
             params->WatchedPixels.push_back(pixel);
+
+            wasWatchedPixelAdded = true;
+            if (! params->ShowOptionsInTooltip)
+                params->ShowOptions = true;
         };
         auto fnWatchedPixels_Gui = [&params, &image]()
         {
@@ -532,7 +594,7 @@ namespace ImmVision
 
                     // index
                     ImGui::TableNextColumn();
-                    ImGui::Text("#%i: ", (int)(i+1));
+                    ImGui::Text("#%i: ", (int)i);
 
                     // (x,y)
                     ImGui::TableNextColumn();
@@ -541,10 +603,7 @@ namespace ImmVision
 
                     // Show Color Cell
                     ImGui::TableNextColumn();
-                    //std::string colorStr = MatrixInfoUtils::_MatPixelColorInfo(image, watchedPixel.x, watchedPixel.y, params->ShowColorAsRGB, false);
-                    //ImGui::Text("%s", colorStr.c_str());
                     ImageNavigatorUtils::ShowPixelColorWidget(image, watchedPixel, *params);
-                    // ImageNavigatorUtils::ShowPixelColorInfo(image, watchedPixel, params->ShowColorAsRGB);
 
                     // Actions
                     ImGui::TableNextColumn();
@@ -555,9 +614,10 @@ namespace ImmVision
                 }
                 ImGui::EndTable();
             }
-
             if (idxToRemove >= 0)
                 params->WatchedPixels.erase(params->WatchedPixels.begin() + (size_t)idxToRemove);
+
+            ImGui::Checkbox("Highlight Watched Pixels", &params->HighlightWatchedPixels);
         };
         auto fnWatchedPixels_Draw = [&params](const cv::Mat& m) -> cv::Mat
         {
@@ -570,7 +630,7 @@ namespace ImmVision
         //
         // Lambdas / Options & Adjustments
         //
-        auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui]()
+        auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded]()
         {
             auto fnMyCollapsingHeader = [](const char *name)
             {
@@ -599,6 +659,8 @@ namespace ImmVision
             }
 
             // Watched Pixels
+            if (wasWatchedPixelAdded)
+                ImGui::SetNextItemOpen(wasWatchedPixelAdded);
             if (fnMyCollapsingHeader("Watched Pixels"))
                 fnWatchedPixels_Gui();
 

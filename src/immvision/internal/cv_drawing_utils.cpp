@@ -520,6 +520,11 @@ namespace ImmVision
                                 double size_hole /*= 2.*/,
                                 int thickness /*= 1*/)
         {
+            if (add_cartouche)
+                for (auto x : std::vector<double>{-1., 1.})
+                    for (auto y : std::vector<double>{-1., 1.})
+                        cross_hole(img, position + cv::Point2d(x, y), _ContrastColor(color), size, size_hole, thickness);
+
             cross_hole(img, position, color, size, size_hole, thickness);
             double delta_y = size_hole + size + 6.;
             cv::Point2d text_position = {position.x, position.y - delta_y};

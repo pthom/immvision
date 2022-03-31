@@ -16,15 +16,9 @@
 * [ ] ImageNavigator
   * [ ] Essayer images CV_64FC2/3/4 et CV_32FC2/3/4
   * [ ] Essayer navigator plus large
-  * [X] Pass ImageNavigatorParams by pointer (do not lie about lifetime)
-    * [X] Add simpler API
-  * [ ] Other feature: 
-    * [X] Pixel watch
-      * [ ] Draw watched pixels on image
-    * [ ] Copy image to clipboard => voir https://github.com/dacap/clip
+  * [X] Draw watched pixels on image
+  * [ ] Copy image to clipboard => voir https://github.com/dacap/clip
   * [ ] Clean imgui_ext mess
   * [ ] Improve Save GUI
-  * [ ] Additional simpler API?
-  * [ ] ClearNotUsedAnymoreTextures
   * [ ] Naming Draw_DisableDragWindow
 
