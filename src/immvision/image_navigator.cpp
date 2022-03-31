@@ -536,9 +536,15 @@ namespace ImmVision
         //
         auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui]()
         {
+            auto fnMyCollapsingHeader = [](const char *name)
+            {
+                //return ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_SpanAvailWidth);
+                return ImGuiImm::CollapsingHeaderFixedWidth(name, 200.f);
+            };
+
             // Adjust float values
             bool hasAdjustFloatValues = ((image.depth() == CV_32F) || (image.depth() == CV_64F));
-            if (hasAdjustFloatValues && ImGui::CollapsingHeader("Adjust"))
+            if (hasAdjustFloatValues && fnMyCollapsingHeader("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
                 ImGuiImm::SliderDouble(
@@ -557,7 +563,7 @@ namespace ImmVision
             }
 
             // Watched Pixels
-            if (ImGui::CollapsingHeader("Watched Pixels"))
+            if (fnMyCollapsingHeader("Watched Pixels"))
                 fnWatchedPixels_Gui();
 
             // Image display options
@@ -565,7 +571,7 @@ namespace ImmVision
                 (params->ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
                 || (image.type() == CV_8UC3) || (image.type() == CV_8UC4)
                 || (image.channels() > 1);
-            if (hasImageDisplayOptions && ImGui::CollapsingHeader("Image Display"))
+            if (hasImageDisplayOptions && fnMyCollapsingHeader("Image Display"))
             {
                 if (params->ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
                     ImGui::Checkbox("Grid", &params->ShowGrid);
@@ -595,7 +601,7 @@ namespace ImmVision
             }
 
             //Navigator display options
-            if (ImGui::CollapsingHeader("Options"))
+            if (fnMyCollapsingHeader("Options"))
             {
                 {
                     ImGuiImm::BeginGroupPanel("Navigator display options");
@@ -610,7 +616,7 @@ namespace ImmVision
             }
 
             // Save Image
-            if (ImGui::CollapsingHeader("Save"))
+            if (fnMyCollapsingHeader("Save"))
             {
                 ImGui::Text("File name");
                 char *filename = cache.FilenameEditBuffer.data();

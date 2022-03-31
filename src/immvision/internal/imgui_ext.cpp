@@ -67,6 +67,22 @@ namespace ImGuiImm
     }
 
 
+    bool CollapsingHeaderFixedWidth(const char* name, float width, ImGuiTreeNodeFlags flags)
+    {
+        ImVec2 oldItemSpacing = ImGui::GetStyle().ItemSpacing;
+        ImGui::GetStyle().ItemSpacing = ImVec2(0.f, 0.f);
+        std::string tableId = std::string("dummytable_") + name;
+        ImGui::BeginTable(tableId.c_str(), 1, 0, ImVec2(width, 0.f));
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+
+        bool opened = ImGui::CollapsingHeader(name, flags);
+        ImGui::EndTable();
+        ImGui::GetStyle().ItemSpacing = oldItemSpacing;
+        return opened;
+    }
+
+
     // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
     static ImVector<ImRect> s_GroupPanelLabelStack;
     void BeginGroupPanel(const char* name, const ImVec2& size)
