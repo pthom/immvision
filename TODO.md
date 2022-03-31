@@ -14,11 +14,13 @@
   * [ ] Test iPhone
 
 * [ ] ImageNavigator
+  * [ ] Essayer images CV_64FC2/3/4 et CV_32FC2/3/4
+  * [ ] Essayer navigator plus large
   * [X] Pass ImageNavigatorParams by pointer (do not lie about lifetime)
     * [X] Add simpler API
   * [ ] Other feature: 
-    * [ ] Pixel watch  The ability to click on one or more pixels of an image and have those values appear in a list
-    * [ ] Copy color info / various formats
+    * [X] Pixel watch
+      * [ ] Draw watched pixels on image
     * [ ] Copy image to clipboard => voir https://github.com/dacap/clip
   * [ ] Clean imgui_ext mess
   * [ ] Improve Save GUI

@@ -194,45 +194,33 @@ namespace ImmVision
             r = std::string("(") + JoinStrings(val_strs, ',') + ")";
             return r;
         }
-        template<typename _Tp, int cn>
-        std::string ShowVecValues_ExchangeRB(const cv::Vec<_Tp, cn>& v, bool exchange)
-        {
-            cv::Vec<_Tp, cn> v2 = v;
-            if (exchange && (cn >= 3))
-            {
-                 v2[0] = v[2];
-                 v2[2] = v[2];
-            }
-            return ShowVecValues(v2);
-        }
 
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, bool exchangeRB)
+        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y)
         {
             if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
                 return "";
-            char buffer_color[300];
             if (m.type() == CV_64FC4)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec4d>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec4d>(y, x));
             else if (m.type() == CV_64FC3)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec3d>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec3d>(y, x));
             else if (m.type() == CV_64FC2)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec2d>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec2d>(y, x));
             else if (m.type() == CV_64FC1)
                 return ShowVecValue(m.at<double>(y, x));
             else if (m.type() == CV_32FC4)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec4f>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec4f>(y, x));
             else if (m.type() == CV_32FC3)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec3f>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec3f>(y, x));
             else if (m.type() == CV_32FC2)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec2f>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec2f>(y, x));
             else if (m.type() == CV_32FC1)
                 return ShowVecValue(m.at<float>(y, x));
             else if (m.type() == CV_8UC4)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec4b>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec4b>(y, x));
             else if (m.type() == CV_8UC3)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec3b>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec3b>(y, x));
             else if (m.type() == CV_8UC2)
-                return ShowVecValues_ExchangeRB(m.at<cv::Vec2b>(y, x), exchangeRB);
+                return ShowVecValues(m.at<cv::Vec2b>(y, x));
             else if (m.type() == CV_8UC1)
                 return ShowVecValue(m.at<unsigned char>(y, x));
             else
@@ -361,46 +349,57 @@ namespace ImmVision
             ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
         }
 
-        void ShowPixelColorInfo(const cv::Mat &image, cv::Point pt, bool showColorAsRGB)
+
+        void ShowPixelColorWidget(
+            const cv::Mat &image,
+            cv::Point pt,
+            const ImageNavigatorParams& params)
         {
-            if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
+
+            auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
+            auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
+                return params.IsColorOrderBGR ?
+                            ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
+                        :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
+            };
+            auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
+                return params.IsColorOrderBGR ?
+                            ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
+                       :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
+            };
+            if ( ! cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
+                return;
+
+            bool done = false;
+            std::string id = std::string("##pixelcolor_") + std::to_string(pt.x) + "," + std::to_string(pt.y);
+            if (image.depth() == CV_8U)
             {
-                auto info = MatrixInfoUtils::_MatPixelColorInfo(image, pt.x, pt.y, showColorAsRGB);
-                ImGui::Text("%s", info.c_str());
-            }
-            else
-                ImGui::Text("");
-            // Color button
-            if (cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
-            {
-                ImGui::SameLine();
-                ImVec2 colorButtonSize(12.f, 12.f);
-                if (image.type() == CV_8UC3)
+                ImGuiColorEditFlags editFlags =
+                    ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_AlphaPreviewHalf
+                    | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_Uint8;
+                if (image.channels() == 3)
                 {
                     cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
-                    ImGui::ColorButton(
-                        "color",
-                        { (float)col[2] / 255.f, (float)col[1] / 255.f, (float)col[0] / 255.f, 1.f },
-                        0,
-                        colorButtonSize
-                    );
+                    ImVec4 colorAsImVec = Vec3bToImVec4(col);
+                    ImGui::SetNextItemWidth(150.f);
+                    ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
+                    done = true;
                 }
-                else if (image.type() == CV_8UC4)
+                if (image.channels() == 4)
                 {
                     cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
-                    ImGui::ColorButton(
-                        "color",
-                        { (float)col[2] / 255.f, (float)col[1] / 255.f, (float)col[0] / 255.f, (float)col[3] / 255.f },
-                        0,
-                        colorButtonSize
-                    );
+                    ImVec4 colorAsImVec = Vec4bToImVec4(col);
+                    ImGui::SetNextItemWidth(200.f);
+                    ImGui::ColorEdit4(id.c_str(), (float*)&colorAsImVec, editFlags);
+                    done = true;
                 }
-                else
-                    ImGui::NewLine();
             }
-
+            if (! done)
+            {
+                 std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(image, pt.x, pt.y);
+                 ImGui::Text("%s", pixelInfo.c_str());
+            }
         }
-
 
 
         class ImageNavigatorTextureCache
@@ -509,18 +508,54 @@ namespace ImmVision
         };
         auto fnWatchedPixels_Gui = [&params, &image]()
         {
+            ImGui::Text("Double click the image...");
+
             int idxToRemove = -1;
-            for (size_t i = 0; i < params->WatchedPixels.size(); ++i)
+
+            if (! params->WatchedPixels.empty())
             {
-                cv::Point watchedPixel = params->WatchedPixels[i];
-                ImGui::Text("#%i: ", (int)(i+1));
-                ImGui::SameLine();
-                ImageNavigatorUtils::ShowPixelColorInfo(image, watchedPixel, params->ShowColorAsRGB);
-                ImGui::SameLine();
-                std::string lblRemove = "x##" + std::to_string(i);
-                if (ImGui::SmallButton(lblRemove.c_str()))
-                    idxToRemove = (int) i;
+                ImGui::BeginTable("WatchedPixels", 4, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX);
+                ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+                ImGui::TableNextColumn();
+                ImGui::Text("#");
+                ImGui::TableNextColumn();
+                ImGui::Text("(x,y)");
+                ImGui::TableNextColumn();
+                ImGui::Text("Color");
+                ImGui::TableNextColumn();
+                ImGui::Text("");
+
+                for (size_t i = 0; i < params->WatchedPixels.size(); ++i)
+                {
+                    cv::Point watchedPixel = params->WatchedPixels[i];
+                    ImGui::TableNextRow();
+
+                    // index
+                    ImGui::TableNextColumn();
+                    ImGui::Text("#%i: ", (int)(i+1));
+
+                    // (x,y)
+                    ImGui::TableNextColumn();
+                    std::string posStr = std::string("(") + std::to_string(watchedPixel.x) + "," + std::to_string(watchedPixel.y) +")";
+                    ImGui::Text("%s", posStr.c_str());
+
+                    // Show Color Cell
+                    ImGui::TableNextColumn();
+                    //std::string colorStr = MatrixInfoUtils::_MatPixelColorInfo(image, watchedPixel.x, watchedPixel.y, params->ShowColorAsRGB, false);
+                    //ImGui::Text("%s", colorStr.c_str());
+                    ImageNavigatorUtils::ShowPixelColorWidget(image, watchedPixel, *params);
+                    // ImageNavigatorUtils::ShowPixelColorInfo(image, watchedPixel, params->ShowColorAsRGB);
+
+                    // Actions
+                    ImGui::TableNextColumn();
+                    std::string lblRemove = "x##" + std::to_string(i);
+                    if (ImGui::SmallButton(lblRemove.c_str()))
+                        idxToRemove = (int) i;
+                    ImGui::SameLine();
+                }
+                ImGui::EndTable();
             }
+
             if (idxToRemove >= 0)
                 params->WatchedPixels.erase(params->WatchedPixels.begin() + (size_t)idxToRemove);
         };
@@ -624,9 +659,8 @@ namespace ImmVision
                 ImGui::SetNextItemWidth(200.f);
                 ImGui::InputText("##filename", filename, 1000);
                 //ImGui::SetNextItemWidth(200.f);
-                ImGui::PushTextWrapPos(200.f);
-                ImGui::Text("(The image will be saved in the current folder, with a format corresponding to the filename extension)");
-                ImGui::PopTextWrapPos();
+                ImGui::Text("The image will be saved in the current folder");
+                ImGui::Text("with a format corresponding to the extension");
                 if (ImGui::SmallButton("save"))
                     cv::imwrite(filename, image);
             }
