@@ -160,84 +160,85 @@ namespace ImmVision
         }
 
 
-        std::string _MatPixelColorInfo(const cv::Mat & m, int x, int y, bool showColorAsRGB)
+        template<typename T>
+        std::string ShowVecValue(const T& v)
+        {
+            char buffer_color[300];
+            sprintf(buffer_color, "%.5G", v);
+            return std::string(buffer_color);
+        }
+        template<>
+        std::string ShowVecValue(const unsigned char& v)
+        {
+            return std::to_string((int)v);
+        }
+        std::string JoinStrings(const std::vector<std::string>&v, char separator)
+        {
+            std::string r;
+            for (size_t i = 0; i < v.size(); ++ i)
+            {
+                r += v[i];
+                if (i < v.size() - 1)
+                    r += separator;
+            }
+            return r;
+        }
+        template<typename _Tp, int cn>
+        std::string ShowVecValues(const cv::Vec<_Tp, cn>& v)
+        {
+            std::string r;
+            std::vector<std::string> val_strs;
+            for (int i = 0; i < cn; ++i)
+                val_strs.push_back(ShowVecValue(v[i]));
+
+            r = std::string("(") + JoinStrings(val_strs, ',') + ")";
+            return r;
+        }
+        template<typename _Tp, int cn>
+        std::string ShowVecValues_ExchangeRB(const cv::Vec<_Tp, cn>& v, bool exchange)
+        {
+            cv::Vec<_Tp, cn> v2 = v;
+            if (exchange && (cn >= 3))
+            {
+                 v2[0] = v[2];
+                 v2[2] = v[2];
+            }
+            return ShowVecValues(v2);
+        }
+
+        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, bool exchangeRB)
         {
             if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
                 return "";
             char buffer_color[300];
             if (m.type() == CV_64FC4)
-            {
-                auto v = m.at<cv::Vec4d>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G,%.5G,%.5G)", v[0], v[1], v[2], v[3]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec4d>(y, x), exchangeRB);
             else if (m.type() == CV_64FC3)
-            {
-                auto v = m.at<cv::Vec3d>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G,%.5G)", v[0], v[1], v[2]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec3d>(y, x), exchangeRB);
             else if (m.type() == CV_64FC2)
-            {
-                auto v = m.at<cv::Vec2d>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G)", v[0], v[1]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec2d>(y, x), exchangeRB);
             else if (m.type() == CV_64FC1)
-            {
-                auto v = m.at<double>(y, x);
-                sprintf(buffer_color, "%.5G", v);
-            }
+                return ShowVecValue(m.at<double>(y, x));
             else if (m.type() == CV_32FC4)
-            {
-                auto v = m.at<cv::Vec4f>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G,%.5G,%.5G)", v[0], v[1], v[2], v[3]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec4f>(y, x), exchangeRB);
             else if (m.type() == CV_32FC3)
-            {
-                auto v = m.at<cv::Vec3f>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G,%.5G)", v[0], v[1], v[2]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec3f>(y, x), exchangeRB);
             else if (m.type() == CV_32FC2)
-            {
-                auto v = m.at<cv::Vec2f>(y, x);
-                sprintf(buffer_color, "(%.5G,%.5G)", v[0], v[1]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec2f>(y, x), exchangeRB);
             else if (m.type() == CV_32FC1)
-            {
-                auto v = m.at<float>(y, x);
-                sprintf(buffer_color, "%.05G", v);
-            }
+                return ShowVecValue(m.at<float>(y, x));
             else if (m.type() == CV_8UC4)
-            {
-                auto v = m.at<cv::Vec4b>(y, x);
-                if (showColorAsRGB)
-                    sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0], (unsigned int)v[3]);
-                else
-                    sprintf(buffer_color, "(%03u,%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2], (unsigned int)v[3]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec4b>(y, x), exchangeRB);
             else if (m.type() == CV_8UC3)
-            {
-                auto v = m.at<cv::Vec3b>(y, x);
-                if (showColorAsRGB)
-                    sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[2], (unsigned int)v[1], (unsigned int)v[0]);
-                else
-                    sprintf(buffer_color, "(%03u,%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1], (unsigned int)v[2]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec3b>(y, x), exchangeRB);
             else if (m.type() == CV_8UC2)
-            {
-                auto v = m.at<cv::Vec2b>(y, x);
-                sprintf(buffer_color, "(%03u,%03u)", (unsigned int)v[0], (unsigned int)v[1]);
-            }
+                return ShowVecValues_ExchangeRB(m.at<cv::Vec2b>(y, x), exchangeRB);
             else if (m.type() == CV_8UC1)
-            {
-                auto v = m.at<unsigned char>(y, x);
-                sprintf(buffer_color, "%03u", (unsigned int)v);
-            }
+                return ShowVecValue(m.at<unsigned char>(y, x));
             else
-                buffer_color[0] = '\0';
+                assert("Unhandled matrix type !");
 
-            std::stringstream msg;
-            msg << "X:" << x << " Y:" << y << " ";
-            msg << " " << buffer_color;
-            return msg.str();
+            return "";
         }
 
     } // namespace MatrixInfoUtils
@@ -762,6 +763,31 @@ namespace ImmVision
 
 
         //
+        // Lambda / Show pixel info
+        //
+        auto fnShowPixelInfo = [&image, &params](const cv::Point2d& mouseLocation)
+        {
+            if (mouseLocation.x < 0.)
+            {
+                if ( (image.type() == CV_8UC3) || (image.type() == CV_8UC4))
+                {
+                    ImGui::NewLine();
+                    double lineHeight = ImGui::GetStyle().ItemSpacing.y / 2.f;
+                    ImGui::Dummy(ImVec2(1.f, lineHeight));
+                }
+                else
+                    ImGui::NewLine();
+            }
+            else
+            {
+                cv::Point mouseLoc((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5));
+                ImGui::Text("(%i,%i)", mouseLoc.x, mouseLoc.y);
+                ImGui::SameLine();
+                ImageNavigatorUtils::ShowPixelColorWidget(image, mouseLoc, *params);
+            }
+        };
+
+        //
         // GUI
         //
         ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
@@ -795,7 +821,7 @@ namespace ImmVision
             if (params->ShowImageInfo)
                 ImageNavigatorUtils::ShowImageInfo(image, params->ZoomMatrix(0, 0));
             if (params->ShowPixelInfo)
-                ImageNavigatorUtils::ShowPixelColorInfo(image, mouseLocation_originalImage, params->ShowColorAsRGB);
+                fnShowPixelInfo(mouseLocation_originalImage);
 
             // Show Options
             fnOptionGui();
