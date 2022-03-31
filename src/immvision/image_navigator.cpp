@@ -622,7 +622,10 @@ namespace ImmVision
                 char *filename = cache.FilenameEditBuffer.data();
                 ImGui::SetNextItemWidth(200.f);
                 ImGui::InputText("##filename", filename, 1000);
-                ImGui::TextWrapped("(The image will be saved in the current folder, with a format corresponding to the filename extension)");
+                //ImGui::SetNextItemWidth(200.f);
+                ImGui::PushTextWrapPos(200.f);
+                ImGui::Text("(The image will be saved in the current folder, with a format corresponding to the filename extension)");
+                ImGui::PopTextWrapPos();
                 if (ImGui::SmallButton("save"))
                     cv::imwrite(filename, image);
             }
@@ -766,7 +769,7 @@ namespace ImmVision
 
         // BeginGroupPanel
         bool drawBorder = params->ShowLegendBorder || (! params->ShowOptionsInTooltip);
-        ImGuiImm::BeginChild_AutoSize(fnPanelTitle().c_str(), drawBorder);
+        ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
         {
             // Show image
             mouseLocation_originalImage = fnShowImage();
@@ -797,7 +800,7 @@ namespace ImmVision
             // Show Options
             fnOptionGui();
         }
-        ImGuiImm::EndChild_AutoSize();
+        ImGuiImm::EndGroupPanel_FlagBorder();
         ImGui::PopID(); ImGui::PopID();
 
         return mouseLocation_originalImage;

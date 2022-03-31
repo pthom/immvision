@@ -21,8 +21,8 @@ namespace ImGuiImm
     void BeginGroupPanel(const char* name, const ImVec2& size = ImVec2(0.0f, 0.0f));
     void EndGroupPanel();
 
-    void BeginChild_AutoSize(const char* name, bool draw_border, const ImVec2& size = ImVec2(0.0f, 0.0f));
-    void EndChild_AutoSize();
+    void BeginGroupPanel_FlagBorder(const char* name, bool draw_border, const ImVec2& size = ImVec2(0.0f, 0.0f));
+    void EndGroupPanel_FlagBorder();
 
 }
 

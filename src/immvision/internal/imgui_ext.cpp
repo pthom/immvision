@@ -211,11 +211,9 @@ namespace ImGuiImm
     }
 
 
-    static std::unordered_map<std::string, ImVec2> s_Child_AutoSize_Sizes;
-    static std::stack<std::string> s_Child_AutoSize_IDs;
     static std::stack<bool> s_Child_AutoSize_DrawBorder;
 
-    void BeginChild_AutoSize(const char* name, bool draw_border, const ImVec2& size)
+    void BeginGroupPanel_FlagBorder(const char* name, bool draw_border, const ImVec2& size)
     {
         std::string name_s(name);
         std::string name_displayed;
@@ -227,14 +225,7 @@ namespace ImGuiImm
                 name_displayed = name_s;
         }
 
-        ImVec2 displayedSize = ImVec2(3.f, 3.f); // first ever display size: small!
-        if ((size.x != 0.f) || (size.y != 0.f))
-            displayedSize = size;
-        else if (s_Child_AutoSize_Sizes.find(name) != s_Child_AutoSize_Sizes.end())
-            displayedSize = s_Child_AutoSize_Sizes.at(name);
-
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar;
-        ImGui::BeginChild(name, displayedSize, false, flags);
+        ImGui::BeginGroup();
         s_Child_AutoSize_DrawBorder.push(draw_border);
         if (draw_border)
             BeginGroupPanel(name_displayed.c_str(), size);
@@ -244,10 +235,9 @@ namespace ImGuiImm
             if (strlen(name) > 0)
                 ImGui::Text("%s", name_displayed.c_str());
         }
-        s_Child_AutoSize_IDs.push(name);
     }
 
-    void EndChild_AutoSize()
+    void EndGroupPanel_FlagBorder()
     {
         bool drawBorder = s_Child_AutoSize_DrawBorder.top();
         s_Child_AutoSize_DrawBorder.pop();
@@ -256,13 +246,7 @@ namespace ImGuiImm
         else
             ImGui::EndGroup();
 
-        auto name = s_Child_AutoSize_IDs.top();
-        s_Child_AutoSize_IDs.pop();
-        ImVec2 displayedSize = ImGui::GetItemRectSize();
-
-        s_Child_AutoSize_Sizes[name] = displayedSize;
-
-        ImGui::EndChild();
+        ImGui::EndGroup();
     }
 
 }
