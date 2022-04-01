@@ -14,6 +14,7 @@ Two signatures are provided:
    * `refresh` indicates whether this cv::Mat was updated since it was last shown.
      If refresh is false, then the corresponding displayed texture will be fetched from a cache
      (i.e the cv::Mat data is not transferred again to the GPU)
+     If refresh is true, then the corresponding displayed texture will be refreshed.
    * `size` is the desired display size.
         * If it is (0,0) then the actual cv::Mat size will be used.
         * If it is (w,0) then the display width will be w, and the displayed image height

@@ -358,7 +358,7 @@ namespace ImmVision
             // Draw grid
             double zoomFactor = (double)params.ZoomMatrix(0, 0);
             if (params.ShowGrid && zoomFactor >= gGridMinZoomFactor)
-                finalImage = DrawGrid(image, params);
+                finalImage = DrawGrid(finalImage, params);
 
             // Draw Watched Pixels
             if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))

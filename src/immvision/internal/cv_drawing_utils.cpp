@@ -187,15 +187,18 @@ namespace ImmVision
             order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
             results that are nicer than photoshop itself !
             */
-            cv::Mat background_rgb;
-            assert(background_rgb.depth() == CV_8U);
+            assert(background_rgb_34.depth() == CV_8U);
             assert(overlay_rgba.type() == CV_8UC4);
-            if (background_rgb_34.channels() == 4)
-                cv::cvtColor(background_rgb_34, background_rgb, cv::COLOR_BGRA2BGR);
-            else if (background_rgb_34.channels() == 3)
-                background_rgb = background_rgb_34;
-            else
-                assert("Only CV_8UC3 or CV_8UC4 background are supported!");
+
+            cv::Mat background_rgb;
+            {
+                if (background_rgb_34.channels() == 4)
+                    cv::cvtColor(background_rgb_34, background_rgb, cv::COLOR_BGRA2BGR);
+                else if (background_rgb_34.channels() == 3)
+                    background_rgb = background_rgb_34;
+                else
+                    assert("Only CV_8UC3 or CV_8UC4 background are supported!");
+            }
 
 
             std::vector<cv::Mat> overlay_rgb_channels;
