@@ -3,6 +3,7 @@
 #include "immvision/internal/internal_icons.h"
 #include "immvision/internal/imgui_ext.h"
 #include "immvision/internal/cv_drawing_utils.h"
+#include "immvision/internal/portable_file_dialogs.h"
 #include "imgui.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
@@ -742,15 +743,41 @@ namespace ImmVision
             // Save Image
             if (fnMyCollapsingHeader("Save"))
             {
-                ImGui::Text("File name");
-                char *filename = cache.FilenameEditBuffer.data();
-                ImGui::SetNextItemWidth(200.f);
-                ImGui::InputText("##filename", filename, 1000);
-                //ImGui::SetNextItemWidth(200.f);
-                ImGui::Text("The image will be saved in the current folder");
-                ImGui::Text("with a format corresponding to the extension");
-                if (ImGui::SmallButton("save"))
-                    cv::imwrite(filename, image);
+                // Use portable_file_dialogs if available
+                if (pfd::settings::available())
+                {
+                    if (ImGui::Button("Save Image"))
+                    {
+                        pfd::settings::verbose(true);
+                        std::string filename = pfd::save_file("Select a file", ".",
+                                                              { "Image Files", "*.png *.jpg *.jpeg *.jpg *.bmp *.gif *.exr",
+                                                                "All Files", "*" }).result();
+                        if (!filename.empty())
+                        {
+                            try
+                            {
+                                cv::imwrite(filename, image);
+                            }
+                            catch(const cv::Exception& e)
+                            {
+                                std::string errorMessage = std::string("Could not save image\n") + e.err.c_str();
+                                pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    ImGui::Text("File name");
+                    char *filename = cache.FilenameEditBuffer.data();
+                    ImGui::SetNextItemWidth(200.f);
+                    ImGui::InputText("##filename", filename, 1000);
+                    //ImGui::SetNextItemWidth(200.f);
+                    ImGui::Text("The image will be saved in the current folder");
+                    ImGui::Text("with a format corresponding to the extension");
+                    if (ImGui::SmallButton("save"))
+                        cv::imwrite(filename, image);
+                }
             }
 
             ImGui::NewLine();
