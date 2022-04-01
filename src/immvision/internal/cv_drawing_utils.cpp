@@ -1,40 +1,13 @@
-// PYTHON
-// """
-// Divers utilitaires pour rendre le dessin avec cv2 plus facile
-// et plus joli
-// Alors que cv2 dessine par defaut sans antialiasing, les fonctions de ce
-// module sont antialiasees.
-// """
-// import cv2
-// import math
-// from enum import Enum
-// import numpy as np
-// from . import math_utils
-// from . import functional_utils
-// from .ivs_types import *
-
 #include "immvision/internal/cv_drawing_utils.h"
 
-//#include "ExternalCppUtils/math/MathUtils.h"
-//#include "rpp_base/ivs_types.h"
-
-//#include <fplus/fplus.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
-#include <cmath>
-#include <sstream>
 #include <unordered_map>
-//#include <algorithm>
+
 
 namespace ImmVision
 {
     namespace CvDrawingUtils
     {
-        // PYTHON
-        // drawing_shift = 3
-        // drawing_shift_pow = pow(2, drawing_shift)
         namespace
         {
             int drawing_shift = 3;
@@ -89,34 +62,7 @@ namespace ImmVision
                 }
                 return r;
             }
-
-
-        }
-
-        // PYTHON
-        // class Colors(Enum) :
-        //  """
-        //  Vous pouvez soit utiliser des couleurs sous forme de tuple(R, G, B),
-        //  soit utiliser des valeur provenant de cet enum.
-        //  """
-        //  Black = (0, 0, 0)
-        //  Red = (0, 0, 255)
-        //  Green = (0, 255, 0)
-        //  Blue = (255, 0, 0)
-        //  White = (255, 255, 255)
-        //  Yellow = (0, 255, 255)
-        //  Cyan = (0, 255, 255)
-        //  Violet = (200, 50, 200)
-        //  Orange = (255, 128, 0)
-        //  Black_RGBA = (0, 0, 0, 255)
-        //  Red_RGBA = (0, 0, 255, 255)
-        //  Green_RGBA = (0, 255, 0, 255)
-        //  Blue_RGBA = (255, 0, 0, 255)
-        //  White_RGBA = (255, 255, 255, 255)
-        //  Yellow_RGBA = (0, 255, 255, 255)
-        //  Cyan_RGBA = (0, 255, 255, 255)
-        //  Violet_RGBA = (200, 50, 200, 255)
-        //  Orange_RGBA = (255, 128, 0, 255)
+        } // namespace MathUtils
 
 
         const std::unordered_map<Colors, cv::Scalar> ColorsValues{
@@ -133,18 +79,6 @@ namespace ImmVision
         cv::Scalar ColorsToScalar(Colors value)
         { return ColorsValues.at(value); }
 
-        // PYTHON: Not Ported
-        // def _ToCvColor(color):
-        //     if type(color) is tuple or type(color) is list:
-        //         return color
-        //     if type(color) is Colors:
-        //         return color.value
-
-        // PYTHON
-        // cv::Scalar _ToCvPoint(pt)
-        // def _ToCvPoint(pt):
-        //     pt_tuple = tuple([int(v * drawing_shift_pow) for v in pt])
-        //     return pt_tuple
         cv::Point _ToCvPoint_Shift(const cv::Point2d &pt)
         {
             cv::Point pt_tuple;
@@ -153,10 +87,6 @@ namespace ImmVision
             return pt_tuple;
         }
 
-        // PYTHON
-        // def _ToCvPoint_NoShift(pt):
-        //     pt_tuple = tuple([int(v) for v in pt])
-        //     return pt_tuple
         cv::Point _ToCvPoint_NoShift(const cv::Point2d &pt)
         {
             cv::Point pt_tuple;
@@ -165,21 +95,13 @@ namespace ImmVision
             return pt_tuple;
         }
 
-        // PYTHON
-        // def _ToCvSize(size):
-        //     return tuple([int(v * drawing_shift_pow) for v in size])
         cv::Size _ToCvSize_WithShift(const cv::Size2d s)
         {
             return {MathUtils::RoundInt(static_cast<double>(s.width) * drawing_shift_pow),
                     MathUtils::RoundInt(static_cast<double>(s.height) * drawing_shift_pow)};
         }
 
-        // PYTHON - Not ported
-        // def shape_same_4_channels(shape: np.shape):
-        //     return (shape[0], shape[1], 4)
-
-        Image_RGB
-        overlay_alpha_image_precise(const Image_RGB &background_rgb_34, const Image_RGBA &overlay_rgba, double alpha)
+        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba, const Image_RGBA &overlay_rgba, double alpha)
         {
             /*
             cf minute physics brilliant clip "Computer color is broken" :
@@ -187,15 +109,15 @@ namespace ImmVision
             order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
             results that are nicer than photoshop itself !
             */
-            assert(background_rgb_34.depth() == CV_8U);
+            assert( (background_rgb_or_rgba.type() == CV_8UC3) || (background_rgb_or_rgba.type() == CV_8UC4));
             assert(overlay_rgba.type() == CV_8UC4);
 
             cv::Mat background_rgb;
             {
-                if (background_rgb_34.channels() == 4)
-                    cv::cvtColor(background_rgb_34, background_rgb, cv::COLOR_BGRA2BGR);
-                else if (background_rgb_34.channels() == 3)
-                    background_rgb = background_rgb_34;
+                if (background_rgb_or_rgba.channels() == 4)
+                    cv::cvtColor(background_rgb_or_rgba, background_rgb, cv::COLOR_BGRA2BGR);
+                else if (background_rgb_or_rgba.channels() == 3)
+                    background_rgb = background_rgb_or_rgba;
                 else
                     assert("Only CV_8UC3 or CV_8UC4 background are supported!");
             }
@@ -204,9 +126,6 @@ namespace ImmVision
             std::vector<cv::Mat> overlay_rgb_channels;
             cv::split(overlay_rgba, overlay_rgb_channels);
 
-            // py
-            // overlay_alpha = overlay_rgba[:, :, 3].astype(np.float) / 255. * alpha
-            // overlay_alpha_3 = np.dstack((overlay_alpha, overlay_alpha, overlay_alpha))
             cv::Mat overlay_alpha_3;
             {
                 cv::Mat overlay_alpha_int = overlay_rgb_channels[3];
@@ -218,8 +137,6 @@ namespace ImmVision
                 cv::merge(v, overlay_alpha_3);
             }
 
-            // py
-            // overlay_rgb_squared = np.square(overlay_rgba[: , : , : 3].astype(np.float))
             cv::Mat overlay_rgb_squared;
             {
                 cv::Mat overlay_rgb_int;
@@ -231,8 +148,6 @@ namespace ImmVision
                 overlay_rgb_squared = overlay_rgb_float.mul(overlay_rgb_float);
             }
 
-            // py
-            // background_rgb_squared = np.square ( background_rgb.astype(np.float) )
             cv::Mat background_rgb_squared;
             {
                 cv::Mat background_rgb_float;
@@ -240,8 +155,6 @@ namespace ImmVision
                 background_rgb_squared = background_rgb_float.mul(background_rgb_float);
             }
 
-            // py
-            // out_rgb_squared = overlay_rgb_squared * overlay_alpha_3 + background_rgb_squared * (1. - overlay_alpha_3)
             cv::Mat out_rgb_squared;
             {
                 out_rgb_squared = overlay_rgb_squared.mul(overlay_alpha_3) +
@@ -288,11 +201,6 @@ namespace ImmVision
             return {rgb, alpha};
         }
 
-
-        // PYTHON
-        // def line(image, a, b, color, thickness = 1):
-        //     cv2.line(image, _ToCvPoint(a), _ToCvPoint(b), _ToCvColor(color), thickness, cv2.LINE_AA,
-        //     drawing_shift)
         void line(cv::Mat &image,
                   const cv::Point2d &a,
                   const cv::Point2d &b,
@@ -308,25 +216,7 @@ namespace ImmVision
                      drawing_shift);
         }
 
-        void line_semi_transparent_slow(cv::Mat &image,
-                                        const cv::Point2d &a,
-                                        const cv::Point2d &b,
-                                        cv::Scalar color,
-                                        double alpha,
-                                        int thickness)
-        {
-            cv::Mat img_draw(image.size(), CV_8UC4);
-            img_draw = cv::Scalar(0., 0., 0., 0.);
-            line(img_draw, a, b, color, thickness);
-            cv::Mat imgMixed = overlay_alpha_image_precise(image, img_draw, alpha);
-            imgMixed.copyTo(image);
-        }
-
-        // def ellipse_(img, center, size, color, angle = 0., startAngle = 0, endAngle = 360,
-        // thickness=1):
-        //     cv2.ellipse(img, _ToCvPoint(center), _ToCvSize(size), angle, startAngle, endAngle,
-        //     _ToCvColor(color), thickness, cv2.LINE_AA, drawing_shift)
-        void ellipse(Image_RGB &image,
+        void ellipse(cv::Mat &image,
                      const cv::Point2d &center,
                      const cv::Size2d &size,
                      const cv::Scalar &color,
@@ -347,9 +237,7 @@ namespace ImmVision
                         drawing_shift);
         }
 
-        // def circle(img, center, radius, color, thickness=1):
-        //     ellipse_(img, center, (radius, radius), color)
-        void circle(Image_RGB &image,
+        void circle(cv::Mat &image,
                     const cv::Point2d &center,
                     double radius,
                     cv::Scalar color,
@@ -358,15 +246,6 @@ namespace ImmVision
             ellipse(image, center, {radius, radius}, color, 0., 0., 360., thickness);
         }
 
-        // Python
-        // # rectangle(img, pt1, pt2, color, thickness=None, lineType=None, shift=None)
-        // def rectangle(img, pt1, pt2, color, fill = False, thickness = 1):
-        //     if fill:
-        //         _thickness = -1
-        //     else:
-        //         _thickness = thickness
-        //     cv2.rectangle(img, _ToCvPoint(pt1), _ToCvPoint(pt2), _ToCvColor(color),
-        //     thickness=_thickness, lineType=cv2.LINE_AA, shift=drawing_shift)
         void rectangle(cv::Mat &image,
                        const cv::Point2d &pt1,
                        const cv::Point2d &pt2,
@@ -385,17 +264,11 @@ namespace ImmVision
                           drawing_shift);
         }
 
-        // def _ContrastColor(color):
-        //     return ( 255 - color[0], 255 - color[1], 255 - color[2] )
         cv::Scalar _ContrastColor(const cv::Scalar &color)
         {
             return {255. - color[0], 255. - color[1], 255. - color[2], color[3]};
         }
 
-        // Python
-        // def rectangle_size(img, pt, size, color, fill = False, thickness = 1):
-        //     pt2 = (pt[0] + size[0], pt[1] + size[1])
-        //     rectangle(img, pt, pt2, color, fill, thickness)
         void rectangle_size(cv::Mat &img,
                             const cv::Point2d &pt,
                             const cv::Size2d &size,
@@ -407,23 +280,6 @@ namespace ImmVision
             rectangle(img, pt, pt2, color, fill, thickness);
         }
 
-
-        // Python
-        // def text(img, position, text, color = Colors.Black, center_around_point = False, add_cartouche
-        // = False, fontScale = 0.4, thickness = 1):
-        //     #fontFace = cv2.FONT_HERSHEY_DUPLEX
-        //     fontFace = cv2.FONT_HERSHEY_SIMPLEX
-        //     size = cv2.getTextSize(text, fontFace, fontScale, thickness)[0]
-        //     position2 = _ToCvPoint_NoShift(position)
-        //     if center_around_point:
-        //         position3 = ( int(position2[0] -  size[0] / 2), int(position2[1] + size[1] / 2))
-        //     else:
-        //         position3 = position2
-        //     if add_cartouche:
-        //         position4 = ( position3[0], position3[1] - size[1] )
-        //         rectangle_size(img, position4, size, _ContrastColor(_ToCvColor(color)), fill = True)
-        //     cv2.putText(img, text, position3, fontFace, fontScale, _ToCvColor(color), thickness =
-        //     thickness, lineType = cv2.LINE_AA)
         int text_oneline(cv::Mat &img,
                          const cv::Point2d &position,
                          const std::string &text,
@@ -470,13 +326,6 @@ namespace ImmVision
             }
         }
 
-
-        // def cross_hole(img, position, color, size = 2, size_hole = 2, thickness = 1):
-        //     for xSign in [-1., 1.]:
-        //         for ySign in [-1., 1]:
-        //             a = (position[0] + xSign * size_hole, position[1] + ySign * size_hole)
-        //             b = (position[0] + xSign * ( size_hole +  size), position[1] + ySign * ( size_hole
-        //             +  size)) line(img, a, b, color, thickness)
         void cross_hole(cv::Mat &img,
                         const cv::Point2d &position,
                         const cv::Scalar &color,
@@ -507,13 +356,6 @@ namespace ImmVision
             cv::ellipse(img, center, size, 0., 0., 360., color, thickness, lineType, shift);
         }
 
-        // def draw_named_feature(img, position, name, color, add_cartouche = False, size = 3, size_hole =
-        // 2, thickness = 1):
-        //     cross_hole(img, position, color, size, size_hole, thickness)
-        //     delta_y = size_hole + size + 6
-        //     text_position = ( position[0], position[1] - delta_y)
-        //     text(img, text_position, name, color, add_cartouche=add_cartouche,
-        //     center_around_point=True)
         void draw_named_feature(cv::Mat &img,
                                 const cv::Point2d &position,
                                 const std::string &name,
@@ -534,28 +376,7 @@ namespace ImmVision
             text(img, text_position, name, color, true, add_cartouche);
         }
 
-        // def stack_images_verticaly(img1, img2):
-        //     """
-        //     Creates a bigger image by stacking 2 images
-        //     """
-        //     w1 = img1.shape[1]
-        //     h1 = img1.shape[0]
-        //     w2 = img2.shape[1]
-        //     h2 = img2.shape[0]
-        //     has_channels = len(img1.shape) > 2
-        //     if has_channels:
-        //         img = np.zeros( (h1 + h2, w1, img1.shape[2] ), np.uint8)
-        //     else:
-        //         img = np.zeros((h1 + h2, w1), np.uint8)
-
-        //     if has_channels:
-        //         img[0 : h1, 0 : w1, : ] = img1
-        //         img[h1 : h1 + h2, 0 : w1, : ] = img2
-        //     else:
-        //         img[0: h1, 0: w1] = img1
-        //         img[h1: h1 + h2, 0: w1] = img2
-        //     return img
-        cv::Mat stack_images_verticaly(const cv::Mat &img1, const cv::Mat &img2)
+        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2)
         {
             cv::Mat img(cv::Size(img1.cols, img1.rows + img2.rows), img1.type());
             img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
@@ -563,28 +384,7 @@ namespace ImmVision
             return img;
         }
 
-        // def stack_images_horizontaly(img1, img2):
-        //     """
-        //     Creates a bigger image by stacking 2 images
-        //     """
-        //     w1 = img1.shape[1]
-        //     h1 = img1.shape[0]
-        //     w2 = img2.shape[1]
-        //     h2 = img2.shape[0]
-        //     has_channels = len(img1.shape) > 2
-        //     if has_channels:
-        //         img = np.zeros( (h1, w1 + w2, img1.shape[2] ), np.uint8)
-        //     else:
-        //         img = np.zeros((h1 , w1 + 2), np.uint8)
-
-        //     if has_channels:
-        //         img[0 : h1, 0 : w1, : ] = img1
-        //         img[0 : h1 , w1 : w1 + w2, : ] = img2
-        //     else:
-        //         img[0: h1, 0: w1] = img1
-        //         img[0: h1, w1: w1 + w2] = img2
-        //     return img
-        cv::Mat stack_images_horizontaly(const cv::Mat &img1, const cv::Mat &img2)
+        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2)
         {
             cv::Mat img(cv::Size(img1.cols + img2.cols, img1.rows), img1.type());
             img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
@@ -592,9 +392,8 @@ namespace ImmVision
             return img;
         }
 
-
-        Image_RGB add_grid_to_image(
-            const Image_RGB &image,
+        cv::Mat add_grid_to_image(
+            const cv::Mat &image,
             double x_start, double y_start,
             double x_spacing, double y_spacing,
             cv::Scalar color,
@@ -615,8 +414,7 @@ namespace ImmVision
             return image_with_lines;
         }
 
-
-        cv::Mat converted_to_rgba_image(const cv::Mat &inputMat)
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat)
         {
             cv::Mat mat = inputMat;
             if (!inputMat.isContinuous())
@@ -689,7 +487,7 @@ namespace ImmVision
             return mat_rgba;
         }
 
-        Image_RGB make_checkerboard_image(const cv::Size& size, int squareSize)
+        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize)
         {
             cv::Mat r(size, CV_8UC3);
             for (int x = 0; x < size.width; x++)

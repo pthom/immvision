@@ -1,21 +1,8 @@
-// """
-// portage de internal_libs/base/cv_drawing_utils.py
-// Divers utilitaires pour rendre le dessin avec cv2 plus facile
-// et plus joli
-// Alors que cv2 dessine par defaut sans antialiasing, les fonctions de ce
-// module sont antialiasees.
-// """
 #pragma once
-//#include "rpp_base/ivs_types.h"
-//#include "rpp_base/math_utils.h"
-
 #include <opencv2/core/core.hpp>
 
 namespace ImmVision
 {
-    using Image_RGB = cv::Mat;
-    using Image_RGBA = cv::Mat;
-
 
     namespace CvDrawingUtils
     {
@@ -61,10 +48,6 @@ namespace ImmVision
         inline cv::Scalar Orange()
         { return {255, 128, 0, 255}; }
 
-        Image_RGB overlay_alpha_image_precise(const Image_RGB &background_rgb,
-                                              const Image_RGBA &overlay_rgba,
-                                              double alpha);
-
 
         void line(cv::Mat &image,
                   const cv::Point2d &a,
@@ -72,11 +55,7 @@ namespace ImmVision
                   cv::Scalar color,
                   int thickness = 1);
 
-        // slow !!! Do not use multiple in time intensive parts
-        void line_semi_transparent_slow(cv::Mat &image, const cv::Point2d &a, const cv::Point2d  &b, cv::Scalar color, double alpha, int thickness = 1);
-
-
-        void ellipse(Image_RGB &image,
+        void ellipse(cv::Mat &image,
                      const cv::Point2d &center,
                      const cv::Size2d &size,
                      const cv::Scalar &color,
@@ -85,7 +64,7 @@ namespace ImmVision
                      double end_angle = 360.,
                      int thickness = 1);
 
-        void circle(Image_RGB &image,
+        void circle(cv::Mat &image,
                     const cv::Point2d &center,
                     double radius,
                     cv::Scalar color,
@@ -131,20 +110,27 @@ namespace ImmVision
                                 double size_hole = 2.,
                                 int thickness = 1);
 
-        cv::Mat stack_images_verticaly(const cv::Mat &img1, const cv::Mat &img2);
+        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2);
+        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2);
 
-        cv::Mat stack_images_horizontaly(const cv::Mat &img1, const cv::Mat &img2);
 
-        Image_RGB add_grid_to_image(
-            const Image_RGB &image,
+        cv::Mat add_grid_to_image(
+            const cv::Mat &image,
             double x_start = 0., double y_start = 0.,
             double x_spacing = -1., double y_spacing = -1.,
             cv::Scalar color = Yellow(),
             double alpha = 0.4
         );
 
-        cv::Mat converted_to_rgba_image(const cv::Mat &inputMat);
+        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize = 30);
 
-        Image_RGB make_checkerboard_image(const cv::Size& size, int squareSize = 30);
+        using Image_RGB = cv::Mat;
+        using Image_RGBA = cv::Mat;
+
+        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba,
+                                              const Image_RGBA &overlay_rgba,
+                                              double alpha);
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat);
+
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision

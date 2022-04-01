@@ -2,7 +2,7 @@
 #include "immvision/internal/cv_drawing_utils.h"
 #include "immvision/internal/gl_texture.h"
 #include "immvision/image_navigator.h"
-#include "immvision/internal/imgui_ext.h"
+#include "immvision/internal/imgui_imm.h"
 #include <opencv2/core/core.hpp>
 #include "imgui_internal.h"
 #include <map>

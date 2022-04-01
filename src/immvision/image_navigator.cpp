@@ -1,7 +1,7 @@
 #include "immvision/image_navigator.h"
 #include "immvision/internal/gl_texture.h"
 #include "immvision/internal/internal_icons.h"
-#include "immvision/internal/imgui_ext.h"
+#include "immvision/internal/imgui_imm.h"
 #include "immvision/internal/cv_drawing_utils.h"
 #include "immvision/internal/portable_file_dialogs.h"
 #include "imgui.h"
@@ -337,7 +337,7 @@ namespace ImmVision
             {
                 if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
                 {
-                    cv::Mat background = CvDrawingUtils::make_checkerboard_image(image.size());
+                    cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(image.size());
                     finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
                 }
             }

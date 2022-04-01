@@ -16,9 +16,4 @@
 
 * [ ] ImageNavigator
   * [N] Copy image to clipboard => voir https://github.com/dacap/clip / Non: rend compilation complexe !
-  * [ ] Clean imgui_ext mess
-  * [X] Improve Save GUI
-  * [ ] Add Load ?
-    Use https://github.com/samhocevar/portable-file-dialogs or https://github.com/Sejoslaw/TinyFileDialogs
-  * [ ] Naming Draw_DisableDragWindow
 

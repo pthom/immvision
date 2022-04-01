@@ -2,7 +2,7 @@
 #include "mandelbrot.h"
 #include "immvision/image.h"
 #include "immvision/image_navigator.h"
-#include "immvision/internal/imgui_ext.h"
+#include "immvision/internal/imgui_imm.h"
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>

@@ -1,7 +1,7 @@
 #include "immvision/image.h"
 
 #include "immvision/internal/gl_texture.h"
-#include "immvision/internal/imgui_ext.h"
+#include "immvision/internal/imgui_imm.h"
 
 #include <map>
 #include <chrono>
