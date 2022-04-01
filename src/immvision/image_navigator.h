@@ -30,9 +30,11 @@ namespace ImmVision
         bool IsColorOrderBGR = true;
 
         // Image display options
-        bool ShowGrid = true;
-        int  SelectedChannel = -1;
+        int  SelectedChannel = -1; // if >= 0 then only this channel is displayed
         bool ShowAlphaChannelCheckerboard = true;
+        // Image display options when zoom is high
+        bool ShowGrid = true;
+        bool DrawValuesOnZoomedPixels = true;
 
         // Navigator display options
         bool ShowImageInfo = true;
@@ -61,6 +63,12 @@ namespace ImmVision
         bool showOptionsWhenAppearing = false,
         const std::string& zoomKey = "",
         const std::string& colorAdjustmentsKey = ""
+    );
+
+    cv::Matx33d MakeZoomMatrix(
+        const cv::Point2d & zoomCenter,
+        double zoomRatio,
+        const cv::Size displayedImageNavigatorSize
     );
 
 } // namespace ImmVision

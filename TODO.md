@@ -1,12 +1,11 @@
-* [ ] Handle (& test) CV_64FC3 & 4
-* [ ] simplify gl_texture
 * [X] imgui powersave 
 * [ ] All in one version (minimalist header / warning make opengl possibly external)
 * [ ] Compat Eigen ?
-* [ ] cleanup & doc
+* [ ] doc
 
 * [ ] Image Debugger
   * [ ] Voir https://github.com/OpenImageDebugger/OpenImageDebugger
+  * [ ] Search imgui themes
   * [ ] Make embeddable into other app
   * [ ] Much later : make usable on iPhone & Android (idea / server: https://crowcpp.org/) 
 

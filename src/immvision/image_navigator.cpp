@@ -96,6 +96,22 @@ namespace ImmVision
         }
     } // namespace ZoomMatrix
 
+    cv::Matx33d MakeZoomMatrix(
+        const cv::Point2d & zoomCenter,
+        double zoomRatio,
+        const cv::Size displayedImageNavigatorSize
+        )
+    {
+        auto mat = cv::Matx33d::eye();
+        mat(0, 0) = zoomRatio;
+        mat(1, 1) = zoomRatio;
+        double dx = (double)displayedImageNavigatorSize.width / 2. - zoomRatio * zoomCenter.x;
+        double dy = (double)displayedImageNavigatorSize.height / 2. - zoomRatio * zoomCenter.y;
+        mat(0, 2) = dx;
+        mat(1, 2) = dy;
+        return mat;
+    }
+
 
     namespace ColorAdjustmentsUtils
     {
@@ -196,43 +212,48 @@ namespace ImmVision
             return r;
         }
         template<typename _Tp, int cn>
-        std::string ShowVecValues(const cv::Vec<_Tp, cn>& v)
+        std::string ShowVecValues(const cv::Vec<_Tp, cn>& v, char separator = ',', bool add_paren = true)
         {
             std::string r;
             std::vector<std::string> val_strs;
             for (int i = 0; i < cn; ++i)
                 val_strs.push_back(ShowVecValue(v[i]));
 
-            r = std::string("(") + JoinStrings(val_strs, ',') + ")";
+            r = JoinStrings(val_strs, separator);
+            if (add_paren)
+                r = std::string("(") + r + ")";
             return r;
         }
 
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y)
+        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true)
         {
+            auto fnShowVecValues = [separator, add_paren](const auto& v) {
+                return ShowVecValues(v, separator, add_paren);
+            };
             if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
                 return "";
             if (m.type() == CV_64FC4)
-                return ShowVecValues(m.at<cv::Vec4d>(y, x));
+                return fnShowVecValues(m.at<cv::Vec4d>(y, x));
             else if (m.type() == CV_64FC3)
-                return ShowVecValues(m.at<cv::Vec3d>(y, x));
+                return fnShowVecValues(m.at<cv::Vec3d>(y, x));
             else if (m.type() == CV_64FC2)
-                return ShowVecValues(m.at<cv::Vec2d>(y, x));
+                return fnShowVecValues(m.at<cv::Vec2d>(y, x));
             else if (m.type() == CV_64FC1)
                 return ShowVecValue(m.at<double>(y, x));
             else if (m.type() == CV_32FC4)
-                return ShowVecValues(m.at<cv::Vec4f>(y, x));
+                return fnShowVecValues(m.at<cv::Vec4f>(y, x));
             else if (m.type() == CV_32FC3)
-                return ShowVecValues(m.at<cv::Vec3f>(y, x));
+                return fnShowVecValues(m.at<cv::Vec3f>(y, x));
             else if (m.type() == CV_32FC2)
-                return ShowVecValues(m.at<cv::Vec2f>(y, x));
+                return fnShowVecValues(m.at<cv::Vec2f>(y, x));
             else if (m.type() == CV_32FC1)
                 return ShowVecValue(m.at<float>(y, x));
             else if (m.type() == CV_8UC4)
-                return ShowVecValues(m.at<cv::Vec4b>(y, x));
+                return fnShowVecValues(m.at<cv::Vec4b>(y, x));
             else if (m.type() == CV_8UC3)
-                return ShowVecValues(m.at<cv::Vec3b>(y, x));
+                return fnShowVecValues(m.at<cv::Vec3b>(y, x));
             else if (m.type() == CV_8UC2)
-                return ShowVecValues(m.at<cv::Vec2b>(y, x));
+                return fnShowVecValues(m.at<cv::Vec2b>(y, x));
             else if (m.type() == CV_8UC1)
                 return ShowVecValue(m.at<unsigned char>(y, x));
             else
@@ -246,8 +267,6 @@ namespace ImmVision
 
     namespace ImageNavigatorUtils
     {
-        double gGridMinZoomFactor = 7.;
-
         void InitializeMissingParams(ImageNavigatorParams* params, const cv::Mat& image)
         {
             if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
@@ -274,14 +293,14 @@ namespace ImmVision
             for (const auto& kv : visiblePixels)
             {
                 CvDrawingUtils::draw_named_feature(
-                    r, // img
+                    r,         // img
                     kv.second, // position,
-                    std::to_string(kv.first), // name
+                    std::to_string(kv.first),       // name
                     cv::Scalar(255, 255, 255, 255), // color
-                    true, // add_cartouche = false,
-                    4., // size = 3.,
-                    2.5, // size_hole = 2.,
-                    1 //int thickness = 1
+                    true, // add_cartouche
+                    4.,   // size
+                    2.5,  // size_hole
+                    1     // thickness
                     );
             }
 
@@ -290,7 +309,7 @@ namespace ImmVision
 
         cv::Mat DrawGrid(const cv::Mat& image, const ImageNavigatorParams& params)
         {
-            double alpha = 0.15;
+            double alpha = 0.23;
             cv::Scalar gridColor(0, 255, 255, 255);
             double x_spacing = (double) params.ZoomMatrix(0, 0);
             double y_spacing = (double) params.ZoomMatrix(1, 1);
@@ -303,6 +322,60 @@ namespace ImmVision
                 gridColor,
                 alpha);
             return imageWithGrid;
+        };
+
+        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
+                                         const ImageNavigatorParams& params, bool drawPixelCoords)
+        {
+            assert(drawingImage.type() == CV_8UC4);
+
+            cv::Mat r = drawingImage;
+            cv::Point tl, br;
+            {
+                cv::Point2d tld = ZoomMatrix::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
+                cv::Point2d brd = ZoomMatrix::Apply(params.ZoomMatrix.inv(),
+                                                   cv::Point2d((double)params.ImageDisplaySize.width,
+                                                               (double)params.ImageDisplaySize.height));
+                tl = { (int)std::floor(tld.x), (int)std::floor(tld.y) };
+                br = { (int)std::ceil(brd.x), (int)std::ceil(brd.y) };
+            }
+
+            for (int x = tl.x; x <= br.x; x+= 1)
+            {
+                for (int y = tl.y; y <= br.y; y+= 1)
+                {
+                    std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(valuesImage, x, y, '\n', false);
+                    if (drawPixelCoords)
+                        pixelInfo = std::string("x:") + std::to_string(x) + "\n" + "y:" + std::to_string(y) + "\n" + pixelInfo;
+
+                    cv::Point2d position = ZoomMatrix::Apply(params.ZoomMatrix, cv::Point2d((double)x, (double )y));
+
+                    cv::Scalar textColor;
+                    {
+                        cv::Scalar white(255, 255, 255, 255);
+                        cv::Scalar black(0, 0, 0, 255);
+                        cv::Vec4b backgroundColor(0., 0., 0., 0.);
+                        if ( cv::Rect(cv::Point(), drawingImage.size()).contains({(int)position.x, (int)position.y}))
+                            backgroundColor = drawingImage.at<cv::Vec4b>((int)position.y, (int)position.x);
+                        double luminance = backgroundColor[2] * 0.2126 + backgroundColor[1] * 0.7152 + backgroundColor[0] * 0.0722;
+                        if (luminance > 170.)
+                            textColor = black;
+                        else
+                            textColor = white;
+                    }
+                    CvDrawingUtils::text(
+                        r,
+                        position,
+                        pixelInfo,
+                        textColor,
+                        true, // center_around_point
+                        false, // add_cartouche
+                        0.3,  //fontScale
+                        1     //int thickness
+                        );
+                }
+            }
+            return r;
         };
 
 
@@ -355,11 +428,22 @@ namespace ImmVision
 
             // Convert to RGBA
             finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage);
+            assert(finalImage.type() == CV_8UC4);
 
             // Draw grid
+            double gridMinZoomFactor = 7.;
             double zoomFactor = (double)params.ZoomMatrix(0, 0);
-            if (params.ShowGrid && zoomFactor >= gGridMinZoomFactor)
+            if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
                 finalImage = DrawGrid(finalImage, params);
+
+            // Draw Pixel Values
+            double drawPixelvaluesMinZoomFactor = (image.depth() == CV_8U) ? 36. : 48.;
+            if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelvaluesMinZoomFactor)
+            {
+                double drawPixelCoordsMinZoomFactor = 60.;
+                bool drawPixelCoords = zoomFactor > drawPixelCoordsMinZoomFactor;
+                finalImage = DrawValuesOnZoomedPixels(finalImage, image, params, drawPixelCoords);
+            }
 
             // Draw Watched Pixels
             if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))
@@ -396,6 +480,8 @@ namespace ImmVision
             if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
                 return true;
             if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
+                return true;
+            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
                 return true;
             return false;
         }
@@ -692,14 +778,8 @@ namespace ImmVision
                 fnWatchedPixels_Gui();
 
             // Image display options
-            bool hasImageDisplayOptions =
-                (params->ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
-                || (image.type() == CV_8UC3) || (image.type() == CV_8UC4)
-                || (image.channels() > 1);
-            if (hasImageDisplayOptions && fnMyCollapsingHeader("Image Display"))
+            if (fnMyCollapsingHeader("Image Display"))
             {
-                if (params->ZoomMatrix(0,0) >= ImageNavigatorUtils::gGridMinZoomFactor)
-                    ImGui::Checkbox("Grid", &params->ShowGrid);
                 if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
                 {
                     ImGui::Text("Color Order");
@@ -723,6 +803,13 @@ namespace ImmVision
                     }
                     ImGui::NewLine();
                 }
+                {
+                    ImGuiImm::BeginGroupPanel("High zoom options");
+                    ImGui::Checkbox("Grid", &params->ShowGrid);
+                    ImGui::Checkbox("Draw values on pixels", &params->DrawValuesOnZoomedPixels);
+                    ImGuiImm::EndGroupPanel();
+                }
+
             }
 
             //Navigator display options

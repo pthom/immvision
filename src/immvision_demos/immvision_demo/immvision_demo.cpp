@@ -172,10 +172,21 @@ void guiFunction()
         imageNavigatorParamsFilter.ZoomKey = "i";
         imageNavigatorParamsFilter.ColorAdjustmentsKey = "c";
         imageNavigatorParamsFilter.Legend = "X & Y Gradients (see channels 0 & 1)";
-        cv::Point2d mousePosition = ImmVision::ImageNavigator(
+
+        ImmVision::ImageNavigator(
             gAppState.ImageFiltered,
             &imageNavigatorParamsFilter,
             changed);
+
+        static bool zoomApplied = false;
+        if (!zoomApplied)
+        {
+            imageNavigatorParamsFilter.ZoomMatrix = ImmVision::MakeZoomMatrix(
+                cv::Point2d(1004., 953.), 40., imageNavigatorParamsFilter.ImageDisplaySize);
+
+            zoomApplied = true;
+        }
+
     }
 
     if (changed)

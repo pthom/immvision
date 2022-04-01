@@ -170,7 +170,15 @@ namespace ImmVision
             {
                 out_rgb_float.convertTo(out_rgb, CV_8U);
             }
-            return out_rgb;
+
+            if (background_rgb_or_rgba.type() == CV_8UC3)
+                return out_rgb;
+            else // background_rgb_or_rgba.type() == CV_8UC4
+            {
+                cv::Mat out_rgba;
+                cv::cvtColor(out_rgb, out_rgba, cv::COLOR_BGR2BGRA);
+                return out_rgba;
+            }
         }
 
 
@@ -280,6 +288,14 @@ namespace ImmVision
             rectangle(img, pt, pt2, color, fill, thickness);
         }
 
+        double _text_line_height(double fontScale, int thickness)
+        {
+            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
+            int baseLine_dummy;
+            cv::Size size = cv::getTextSize("ABC", fontFace, fontScale, thickness, &baseLine_dummy);
+            return (double)size.height;
+        }
+
         int text_oneline(cv::Mat &img,
                          const cv::Point2d &position,
                          const std::string &text,
@@ -317,12 +333,15 @@ namespace ImmVision
                   int thickness /*= 1*/)
         {
             auto lines = SplitString(msg, '\n');
+
+            double line_height = _text_line_height(fontScale, thickness) + 3.;
             cv::Point2d linePosition = position;
+            linePosition.y -= line_height * (double)(lines.size() - 1.) / 2.;
             for (const auto &line: lines)
             {
-                int height = text_oneline(
+                text_oneline(
                     img, linePosition, line, color, center_around_point, add_cartouche, fontScale, thickness);
-                linePosition.y += height + 3;
+                linePosition.y += line_height;
             }
         }
 
