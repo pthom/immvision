@@ -1,10 +1,4 @@
-if (APPLE)
-    file(GLOB_RECURSE sources *.h *.cpp *.c *.mm)
-else()
-    file(GLOB_RECURSE sources *.h *.cpp *.c)
-endif()
-
-
+file(GLOB_RECURSE sources *.h *.cpp)
 find_package(OpenCV CONFIG REQUIRED)
 
 set(target_name immvision)

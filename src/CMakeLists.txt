@@ -1,5 +1,7 @@
 add_subdirectory(immvision_gl_loader)
 add_subdirectory(immvision)
+add_subdirectory(immdebug)
+add_subdirectory(immdebug_viewer)
 if (IMMVISION_BUILD_DEMOS)
     add_subdirectory(immvision_demos)
 endif()

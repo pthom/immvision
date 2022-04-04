@@ -1,8 +1,26 @@
-//
-// Created by Pascal Thomet on 01/04/2022.
-//
+#pragma once
 
-#ifndef IMMVISION_IMMDEBUG_INTERNAL_H
-#define IMMVISION_IMMDEBUG_INTERNAL_H
+#include <opencv2/core/core.hpp>
+#include <string>
+#include <optional>
 
-#endif //IMMVISION_IMMDEBUG_INTERNAL_H
+namespace ImmVision
+{
+    namespace ImmDebug_Internal
+    {
+        struct ImagePayload
+        {
+            cv::Mat Image;
+            std::string Legend = "";
+            cv::Point2d ZoomCenter = cv::Point2d();
+            double ZoomRatio = 1.;
+            std::string ZoomKey = "";
+            std::string ColorAdjustmentsKey = "";
+            bool isColorOrderBGR = true;
+        };
+
+        void                        SaveImagePayload(const ImagePayload & imagePayload);
+        std::optional<ImagePayload> ReadImagePayload();
+
+    } // namespace ImmDebug_Internal
+} // namespace ImmVision
