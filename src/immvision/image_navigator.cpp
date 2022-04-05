@@ -1208,12 +1208,20 @@ namespace ImmVision
         params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;
         params.ColorAdjustmentsKey = colorAdjustmentsKey;
+        params.ShowOptions = true;
 
         s_Inspector_ImagesAndParams.push_back({image, params});
     }
 
     void Inspector_ShowWindow(bool* p_open)
     {
+        ImGui::SetNextWindowSizeConstraints(ImVec2(300.f, 200.f), ImVec2(10000.f, 10000.f));
+        if (! ImGui::Begin("ImageNavigatorWindow", p_open))
+        {
+            ImGui::End();
+            return;
+        }
+
         auto fnCleanInspectorImagesParams = [](const ImVec2& imageSize)
         {
             for (auto& i :s_Inspector_ImagesAndParams)
@@ -1227,27 +1235,50 @@ namespace ImmVision
                     ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
                     i.WasSentToTextureCache = true;
                 }
+            }
 
-                i.Params.ShowOptions = true;
+            // Propagate current options to hidden images
+            if ((s_Inspector_CurrentIndex >= 0) && (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size()))
+            {
+                const auto& currentParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex].Params;
+                for (auto& v : s_Inspector_ImagesAndParams)
+                {
+                    v.Params.ShowImageInfo = currentParams.ShowImageInfo;
+                    v.Params.ShowPixelInfo = currentParams.ShowPixelInfo;
+                    v.Params.ShowZoomButtons = currentParams.ShowZoomButtons;
+                    v.Params.ShowLegendBorder = currentParams.ShowLegendBorder;
+                    v.Params.ShowOptions = currentParams.ShowOptions;
+                    v.Params.ShowOptionsInTooltip = currentParams.ShowOptionsInTooltip;
+                    v.Params.PanWithMouse = currentParams.PanWithMouse;
+                }
             }
         };
 
-
-        ImGui::SetNextWindowSizeConstraints(ImVec2(300.f, 200.f), ImVec2(10000.f, 10000.f));
-        if (! ImGui::Begin("ImageNavigatorWindow", p_open))
+        bool showOptionsColumn = true;
+        if (!s_Inspector_ImagesAndParams.empty())
         {
-            ImGui::End();
-            return;
+            const auto& params = s_Inspector_ImagesAndParams.front().Params;
+            if ( (params.ShowOptionsInTooltip) || (!params.ShowOptions))
+                showOptionsColumn = false;
         }
 
         ImVec2 winSize = ImGui::GetWindowSize();
         float listWidth = winSize.x / 10.f;
-        float margin = 10.f;
+        float x_margin = 30.f;
+        float y_margin = 5.f;
         float navigator_info_height = 120.f;
-        float navigator_options_width = 300.f;
+        if (!s_Inspector_ImagesAndParams.empty())
+        {
+            const auto& params = s_Inspector_ImagesAndParams.front().Params;
+            if (!params.ShowImageInfo)
+                navigator_info_height -= 20.f;
+            if (!params.ShowPixelInfo)
+                navigator_info_height -= 20.f;
+        }
+        float navigator_options_width = showOptionsColumn ? 300.f : 0.f;
         ImVec2 imageSize = ImVec2(
-            winSize.x - listWidth - margin - navigator_options_width,
-            winSize.y - margin - navigator_info_height);
+            winSize.x - listWidth - x_margin - navigator_options_width,
+            winSize.y - y_margin - navigator_info_height);
         if (imageSize.x < 1.f)
             imageSize.x = 1.f;
         if (imageSize.y < 1.f)
