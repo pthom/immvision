@@ -1001,14 +1001,17 @@ namespace ImmVision
                 );
 
                 {
+                    cv::Point2d zoomCenter = params->WatchedPixels.empty() ?
+                                viewportCenter_originalImage
+                            :   cv::Point2d(params->WatchedPixels.back());
                     ImGui::PushButtonRepeat(true);
                     if (Icons::IconButton(Icons::IconType::ZoomPlus))
-                        zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1.1);
+                        zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(zoomCenter, 1.1);
 
                     ImGui::SameLine();
 
                     if (Icons::IconButton(Icons::IconType::ZoomMinus))
-                        zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(viewportCenter_originalImage, 1. / 1.1);
+                        zoomMatrix = zoomMatrix * ZoomMatrix::ComputeZoomMatrix(zoomCenter, 1. / 1.1);
 
                     ImGui::PopButtonRepeat();
                 }
@@ -1178,16 +1181,21 @@ namespace ImmVision
 
     void Inspector_ShowWindow(bool* p_open)
     {
-        auto fnForceImageSize = [](const ImVec2& imageSize)
+        auto fnCleanInspectorImagesParams = [](const ImVec2& imageSize)
         {
             for (auto& i :s_Inspector_ImagesAndParams)
             {
+                // Force image size
                 i.Params.ImageDisplaySize = cv::Size((int)imageSize.x, (int)imageSize.y);
+
+                // Store in texture cache
                 if (! i.WasSentToTextureCache)
                 {
                     ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
                     i.WasSentToTextureCache = true;
                 }
+
+                i.Params.ShowOptions = true;
             }
         };
 
@@ -1212,7 +1220,7 @@ namespace ImmVision
         if (imageSize.y < 1.f)
             imageSize.y = 1.f;
 
-        fnForceImageSize(imageSize);
+        fnCleanInspectorImagesParams(imageSize);
 
         ImGui::BeginGroup();
         ImGui::SetNextItemWidth(listWidth);
