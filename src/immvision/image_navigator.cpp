@@ -553,7 +553,7 @@ namespace ImmVision
             cv::Point pt,
             const ImageNavigatorParams& params)
         {
-
+            bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
             auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
             auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
                 return params.IsColorOrderBGR ?
@@ -565,8 +565,6 @@ namespace ImmVision
                             ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
                        :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
             };
-            if ( ! cv::Rect(cv::Point(0, 0), image.size()).contains(pt))
-                return;
 
             bool done = false;
             std::string id = std::string("##pixelcolor_") + std::to_string(pt.x) + "," + std::to_string(pt.y);
@@ -575,7 +573,17 @@ namespace ImmVision
                 ImGuiColorEditFlags editFlags =
                     ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_AlphaPreviewHalf
                     | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_Uint8;
-                if (image.channels() == 3)
+                if (!isInImage)
+                {
+                    // ColorEdit4 introduces a strange line spacing on the next group
+                    // which cannot be simulated with ImGui::Dummy
+                    // => we add a dummy one (hopefully black on a black background)
+                    float dummyColor[4]{0.f, 0.f, 0.f, 255.f};
+                    ImGui::SetNextItemWidth(1.f);
+                    ImGui::ColorEdit4(id.c_str(), dummyColor, ImGuiColorEditFlags_NoInputs );
+                    done = true;
+                }
+                else if (image.channels() == 3)
                 {
                     cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
                     ImVec4 colorAsImVec = Vec3bToImVec4(col);
@@ -583,7 +591,7 @@ namespace ImmVision
                     ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
                 }
-                if (image.channels() == 4)
+                else if (image.channels() == 4)
                 {
                     cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
                     ImVec4 colorAsImVec = Vec4bToImVec4(col);
@@ -634,6 +642,9 @@ namespace ImmVision
 
                 if (ShallRefreshTexture(oldParams, *params))
                     needsRefreshTexture = true;
+                if ((!oldParams.ImageDisplaySize.empty()) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
+                    params->ZoomMatrix = ZoomMatrix::UpdateZoomMatrix_DisplaySizeChanged(
+                        oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
                 if (needsRefreshTexture)
                     BlitImageNavigatorTexture(*params, image, &cachedData.GlTextureCv);
 
@@ -786,16 +797,20 @@ namespace ImmVision
         //
         auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnPanelTitle]()
         {
+            // We create a dummy table in order to force the collapsing headers width
+            float optionsWidth = 330.f;
+            ImGui::BeginTable("##OptionsTable", 1, 0, ImVec2(optionsWidth, 0.f));
+            ImGui::TableNextColumn();
+
             auto fnMyCollapsingHeader = [&fnPanelTitle](const char *name)
             {
-                ImVec2 lastPanelSize = ImGuiImm::GroupPanel_FlagBorder_LastKnownSize(fnPanelTitle().c_str());
-
-                //return ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_SpanAvailWidth);
-                return ImGuiImm::CollapsingHeaderFixedWidth(name, lastPanelSize.x - 35.f);
+                //ImVec2 lastPanelSize = ImGuiImm::GroupPanel_FlagBorder_LastKnownSize(fnPanelTitle().c_str());
+                //return ImGuiImm::CollapsingHeaderFixedWidth(name, lastPanelSize.x - 35.f);
+                return ImGui::CollapsingHeader(name);
             };
 
             // Adjust float values
-            bool hasAdjustFloatValues = ((image.depth() == CV_32F) || (image.depth() == CV_64F));
+            bool hasAdjustFloatValues = true; // ((image.depth() == CV_32F) || (image.depth() == CV_64F));
             if (hasAdjustFloatValues && fnMyCollapsingHeader("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
@@ -917,6 +932,8 @@ namespace ImmVision
                     params->ShowOptions = true;
             }
 
+            ImGui::EndTable();
+
         };
         auto fnToggleShowOptions = [&params]()
         {
@@ -937,8 +954,11 @@ namespace ImmVision
             }
             else if (params->ShowOptions)
             {
+                ImGui::SameLine();
+                ImGui::BeginGroup();
                 ImGui::Text("Options");
                 fnOptionsInnerGui();
+                ImGui::EndGroup();
             }
         };
 
@@ -1032,24 +1052,17 @@ namespace ImmVision
         //
         auto fnShowPixelInfo = [&image, &params](const cv::Point2d& mouseLocation)
         {
-            if (mouseLocation.x < 0.)
+            cv::Point mouseLoc =
+                mouseLocation.x >= 0. ?
+                        cv::Point((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5))
+                    :   cv::Point(-1, -1)
+                    ;
+            if (mouseLoc.x >= 0)
             {
-                if ( (image.type() == CV_8UC3) || (image.type() == CV_8UC4))
-                {
-                    ImGui::NewLine();
-                    double lineHeight = ImGui::GetStyle().ItemSpacing.y / 2.f;
-                    ImGui::Dummy(ImVec2(1.f, lineHeight));
-                }
-                else
-                    ImGui::NewLine();
-            }
-            else
-            {
-                cv::Point mouseLoc((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5));
                 ImGui::Text("(%i,%i)", mouseLoc.x, mouseLoc.y);
                 ImGui::SameLine();
-                ImageNavigatorUtils::ShowPixelColorWidget(image, mouseLoc, *params);
             }
+            ImageNavigatorUtils::ShowPixelColorWidget(image, mouseLoc, *params);
         };
 
         //
@@ -1062,6 +1075,7 @@ namespace ImmVision
         bool drawBorder = params->ShowLegendBorder || (! params->ShowOptionsInTooltip);
         ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
         {
+            ImGui::BeginGroup();
             // Show image
             mouseLocation_originalImage = fnShowImage();
             // Add Watched Pixel on double click
@@ -1087,6 +1101,7 @@ namespace ImmVision
                 ImageNavigatorUtils::ShowImageInfo(image, params->ZoomMatrix(0, 0));
             if (params->ShowPixelInfo)
                 fnShowPixelInfo(mouseLocation_originalImage);
+            ImGui::EndGroup();
 
             // Show Options
             fnOptionGui();
