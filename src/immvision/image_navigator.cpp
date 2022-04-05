@@ -113,7 +113,7 @@ namespace ImmVision
                 double oldZoomFactor = oldZoomMatrix(0, 0);
                 double kx = (double)newDisplaySize.width / (double)oldDisplaySize.width;
                 double ky = (double)newDisplaySize.height / (double)oldDisplaySize.height;
-                double k = std::min(kx, ky);
+                double k = (kx + ky) / 2.;
                 newZoomFactor = oldZoomFactor * k;
             }
 
@@ -413,17 +413,18 @@ namespace ImmVision
             return r;
         };
 
+
         cv::Mat MakeWarpPaperBackground(cv::Size s)
         {
-            cv::Mat r(s, CV_8UC4);
+            cv::Mat mat(s, CV_8UC4);
 
             auto paperColor = cv::Scalar(205, 215, 220, 255);
             auto lineColor = cv::Scalar(199, 196, 184, 255);
-            r = paperColor;
+            mat = paperColor;
             int quadSize = 17;
             for (int y = 0; y < s.height; y+= quadSize)
             {
-                auto linePtr = r.ptr<cv::Vec4b>(y);
+                auto linePtr = mat.ptr<cv::Vec4b>(y);
                 for (int x = 0; x < s.width; ++x)
                 {
                     *linePtr = lineColor;
@@ -432,14 +433,14 @@ namespace ImmVision
             }
             for (int y = 0; y < s.height; y++)
             {
-                auto linePtr = r.ptr<cv::Vec4b>(y);
+                auto linePtr = mat.ptr<cv::Vec4b>(y);
                 for (int x = 0; x < s.width; x+=quadSize)
                 {
                     *linePtr = lineColor;
                     linePtr += quadSize;
                 }
             }
-            return r;
+            return mat;
         }
 
         void BlitImageNavigatorTexture(
@@ -470,12 +471,10 @@ namespace ImmVision
             }
 
             // Alpha checkerboard
+            if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
             {
-                if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
-                {
-                    cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(image.size());
-                    finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
-                }
+                cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(image.size());
+                finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
             }
 
             // Color adjustments
@@ -933,6 +932,12 @@ namespace ImmVision
                 }
 
                 ImGui::Checkbox("Pan with mouse", &params->PanWithMouse);
+                ImGui::Separator();
+                if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
+                {
+                    if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
+                        params->ShowOptions = true;
+                }
             }
 
             // Save Image
@@ -973,13 +978,6 @@ namespace ImmVision
                     if (ImGui::SmallButton("save"))
                         cv::imwrite(filename, image);
                 }
-            }
-
-            ImGui::NewLine();
-            if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
-            {
-                if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
-                    params->ShowOptions = true;
             }
 
             ImGui::EndTable();
@@ -1282,7 +1280,7 @@ namespace ImmVision
         }
 
         ImVec2 winSize = ImGui::GetWindowSize();
-        float listWidth = winSize.x / 10.f;
+        static float listWidth = winSize.x / 10.f;
         float x_margin = 30.f;
         float y_margin = 5.f;
         float navigator_info_height = 120.f;
@@ -1305,32 +1303,48 @@ namespace ImmVision
 
         fnCleanInspectorImagesParams(imageSize);
 
-        ImGui::BeginGroup();
-        ImGui::SetNextItemWidth(listWidth);
-        if (ImGui::BeginListBox("##ImageNavigatorList"))
+        ImGui::Columns(2);
+
+        // First column: image list
         {
-            for (int i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
+            static bool wasWidthSet = false;
+            if (!wasWidthSet)
             {
-                const bool is_selected = (s_Inspector_CurrentIndex == i);
-                if (ImGui::Selectable(s_Inspector_ImagesAndParams[i].Params.Legend.c_str(), is_selected))
-                    s_Inspector_CurrentIndex = i;
+                ImGui::SetColumnWidth(0, listWidth);
+                wasWidthSet = true;
             }
-            ImGui::EndListBox();
+            ImGui::Text("Image list");
+            ImGui::SetNextItemWidth(listWidth);
+            if (ImGui::BeginListBox("##ImageNavigatorList"))
+            {
+                for (int i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
+                {
+                    const bool is_selected = (s_Inspector_CurrentIndex == i);
+                    if (ImGui::Selectable(s_Inspector_ImagesAndParams[i].Params.Legend.c_str(), is_selected))
+                        s_Inspector_CurrentIndex = i;
+                }
+                ImGui::EndListBox();
+            }
+            listWidth = ImGui::GetColumnWidth(0);
         }
-        ImGui::EndGroup();
 
-        ImGui::SameLine();
+        ImGui::NextColumn();
 
-        if (s_Inspector_CurrentIndex < 0)
-            s_Inspector_CurrentIndex = 0;
-        if (s_Inspector_CurrentIndex >= s_Inspector_ImagesAndParams.size())
-            s_Inspector_CurrentIndex = s_Inspector_ImagesAndParams.size() - 1;
-
-        if ((s_Inspector_CurrentIndex >= 0) && (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size()))
+        // Second column : navigator
         {
-            auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
-            ImageNavigator(imageAndParams.Image, &imageAndParams.Params);
+            if (s_Inspector_CurrentIndex < 0)
+                s_Inspector_CurrentIndex = 0;
+            if (s_Inspector_CurrentIndex >= s_Inspector_ImagesAndParams.size())
+                s_Inspector_CurrentIndex = s_Inspector_ImagesAndParams.size() - 1;
+
+            if ((s_Inspector_CurrentIndex >= 0) && (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size()))
+            {
+                auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
+                ImageNavigator(imageAndParams.Image, &imageAndParams.Params);
+            }
         }
+
+        ImGui::Columns(1);
 
         ImGui::End();
 
