@@ -1141,4 +1141,112 @@ namespace ImmVision
     }
 
 
+
+    ////////////////////////////////////////////
+    // Inspector
+    ////////////////////////////////////////////
+
+    struct Inspector_ImageAndParams
+    {
+        cv::Mat Image;
+        ImageNavigatorParams Params;
+        bool WasSentToTextureCache = false;
+    };
+
+    std::vector<Inspector_ImageAndParams> s_Inspector_ImagesAndParams;
+    int s_Inspector_CurrentIndex = 0;
+
+
+    void Inspector_AddImage(
+        const cv::Mat& image,
+        const std::string& legend,
+        const std::string& zoomKey,
+        const std::string& colorAdjustmentsKey,
+        const cv::Point2d & zoomCenter,
+        double zoomRatio,
+        bool isColorOrderBGR
+    )
+    {
+        ImageNavigatorParams params;
+        params.Legend = legend;
+        params.IsColorOrderBGR = isColorOrderBGR;
+        params.ZoomKey = zoomKey;
+        params.ColorAdjustmentsKey = colorAdjustmentsKey;
+
+        s_Inspector_ImagesAndParams.push_back({image, params});
+    }
+
+    void Inspector_ShowWindow(bool* p_open)
+    {
+        auto fnForceImageSize = [](const ImVec2& imageSize)
+        {
+            for (auto& i :s_Inspector_ImagesAndParams)
+            {
+                i.Params.ImageDisplaySize = cv::Size((int)imageSize.x, (int)imageSize.y);
+                if (! i.WasSentToTextureCache)
+                {
+                    ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
+                    i.WasSentToTextureCache = true;
+                }
+            }
+        };
+
+
+        ImGui::SetNextWindowSizeConstraints(ImVec2(300.f, 200.f), ImVec2(10000.f, 10000.f));
+        if (! ImGui::Begin("ImageNavigatorWindow", p_open))
+        {
+            ImGui::End();
+            return;
+        }
+
+        ImVec2 winSize = ImGui::GetWindowSize();
+        float listWidth = winSize.x / 10.f;
+        float margin = 10.f;
+        float navigator_info_height = 120.f;
+        float navigator_options_width = 300.f;
+        ImVec2 imageSize = ImVec2(
+            winSize.x - listWidth - margin - navigator_options_width,
+            winSize.y - margin - navigator_info_height);
+        if (imageSize.x < 1.f)
+            imageSize.x = 1.f;
+        if (imageSize.y < 1.f)
+            imageSize.y = 1.f;
+
+        fnForceImageSize(imageSize);
+
+        ImGui::BeginGroup();
+        ImGui::SetNextItemWidth(listWidth);
+        if (ImGui::BeginListBox("##ImageNavigatorList"))
+        {
+            for (int i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
+            {
+                const bool is_selected = (s_Inspector_CurrentIndex == i);
+                if (ImGui::Selectable(s_Inspector_ImagesAndParams[i].Params.Legend.c_str(), is_selected))
+                    s_Inspector_CurrentIndex = i;
+            }
+            ImGui::EndListBox();
+        }
+        ImGui::EndGroup();
+
+        ImGui::SameLine();
+
+        if (s_Inspector_CurrentIndex < 0)
+            s_Inspector_CurrentIndex = 0;
+        if (s_Inspector_CurrentIndex >= s_Inspector_ImagesAndParams.size())
+            s_Inspector_CurrentIndex = s_Inspector_ImagesAndParams.size() - 1;
+
+        if ((s_Inspector_CurrentIndex >= 0) && (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size()))
+        {
+            auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
+            ImageNavigator(imageAndParams.Image, &imageAndParams.Params);
+        }
+
+        ImGui::End();
+    }
+
+    void Inspector_ClearImages()
+    {
+        s_Inspector_ImagesAndParams.clear();
+    }
+
 } // namespace ImmVision
