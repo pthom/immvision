@@ -24,6 +24,7 @@ namespace ImmVision
 
         // Image navigation
         bool PanWithMouse = true;
+        bool ZoomWithMouseWheel = true;
 
         // Input Image Color order: RGB or RGBA versus BGR or BGRA
         // (Note: by default OpenCV uses BGR and BGRA)

@@ -932,6 +932,8 @@ namespace ImmVision
                 }
 
                 ImGui::Checkbox("Pan with mouse", &params->PanWithMouse);
+                ImGui::Checkbox("Zoom with mouse wheel", &params->ZoomWithMouseWheel);
+
                 ImGui::Separator();
                 if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
                 {
@@ -1035,6 +1037,21 @@ namespace ImmVision
                 cache.LastDragDelta = dragDelta;
             }
         };
+        auto fnHandleMouseWheel = [&params](const cv::Point2d& mouseLocation)
+        {
+            if (!params->ZoomWithMouseWheel)
+                return;
+
+            static float gLogZoomRatioFiltered = 0.;
+            gLogZoomRatioFiltered *= 0.9;
+            if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
+            {
+                gLogZoomRatioFiltered += (double)ImGui::GetIO().MouseWheel / 30.f;
+            }
+            if (fabs(gLogZoomRatioFiltered) > 0.01)
+                params->ZoomMatrix = params->ZoomMatrix * ZoomMatrix::ComputeZoomMatrix(mouseLocation, exp(gLogZoomRatioFiltered));
+
+        };
         auto fnShowZoomButtons = [&params, &image]()
         {
             if (params->ShowZoomButtons)
@@ -1135,6 +1152,7 @@ namespace ImmVision
 
             // Handle Mouse
             fnHandleMouseDragging();
+            fnHandleMouseWheel(mouseLocation_originalImage);
 
             // Zoom+ / Zoom- buttons
             fnShowZoomButtons();
@@ -1267,6 +1285,7 @@ namespace ImmVision
                     v.Params.ShowOptions = currentParams.ShowOptions;
                     v.Params.ShowOptionsInTooltip = currentParams.ShowOptionsInTooltip;
                     v.Params.PanWithMouse = currentParams.PanWithMouse;
+                    v.Params.ZoomWithMouseWheel = currentParams.ZoomWithMouseWheel;
                 }
             }
         };
