@@ -421,6 +421,34 @@ namespace ImmVision
             return r;
         };
 
+        cv::Mat MakeWarpPaperBackground(cv::Size s)
+        {
+            cv::Mat r(s, CV_8UC4);
+
+            auto paperColor = cv::Scalar(205, 215, 220, 255);
+            auto lineColor = cv::Scalar(199, 196, 184, 255);
+            r = paperColor;
+            int quadSize = 17;
+            for (int y = 0; y < s.height; y+= quadSize)
+            {
+                auto linePtr = r.ptr<cv::Vec4b>(y);
+                for (int x = 0; x < s.width; ++x)
+                {
+                    *linePtr = lineColor;
+                    linePtr++;
+                }
+            }
+            for (int y = 0; y < s.height; y++)
+            {
+                auto linePtr = r.ptr<cv::Vec4b>(y);
+                for (int x = 0; x < s.width; x+=quadSize)
+                {
+                    *linePtr = lineColor;
+                    linePtr += quadSize;
+                }
+            }
+            return r;
+        }
 
         void BlitImageNavigatorTexture(
             const ImageNavigatorParams& params,
@@ -461,17 +489,22 @@ namespace ImmVision
             // Color adjustments
             finalImage = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, finalImage);
 
-            // Zoom
-            {
-                cv::Mat imageZoomed;
-                cv::warpAffine(finalImage, imageZoomed,
-                               ZoomMatrix::ZoomMatrixToM23(params.ZoomMatrix), params.ImageDisplaySize, cv::INTER_NEAREST);
-                finalImage = imageZoomed;
-            }
-
             // Convert to RGBA
             finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage);
             assert(finalImage.type() == CV_8UC4);
+
+            // Zoom
+            {
+                cv::Mat imageZoomed = MakeWarpPaperBackground(params.ImageDisplaySize);
+                cv::warpAffine(finalImage, imageZoomed,
+                               ZoomMatrix::ZoomMatrixToM23(params.ZoomMatrix),
+                               params.ImageDisplaySize,
+                               cv::INTER_NEAREST,
+                               cv::BorderTypes::BORDER_TRANSPARENT,
+                               cv::Scalar(127, 127, 127, 127)
+                               );
+                finalImage = imageZoomed;
+            }
 
             // Draw grid
             double gridMinZoomFactor = 7.;
