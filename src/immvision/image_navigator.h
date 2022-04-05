@@ -68,7 +68,7 @@ namespace ImmVision
     cv::Matx33d MakeZoomMatrix(
         const cv::Point2d & zoomCenter,
         double zoomRatio,
-        const cv::Size displayedImageNavigatorSize
+        const cv::Size displayedImageSize
     );
 
 } // namespace ImmVision

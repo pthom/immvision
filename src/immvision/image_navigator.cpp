@@ -94,19 +94,62 @@ namespace ImmVision
             cv::Point2d r(rMat(0, 0), rMat(1, 0));
             return r;
         }
+
+        ZoomMatrixType UpdateZoomMatrix_DisplaySizeChanged(
+            const ZoomMatrixType& oldZoomMatrix,
+            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize)
+        {
+            if (oldDisplaySize.empty() || newDisplaySize.empty())
+                return oldZoomMatrix;
+
+            ZoomMatrixType zoomMatrix;
+
+            auto fnImageCenter = [](const cv::Size s) {
+                return cv::Point2d((double)s.width / 2.f, (double)s.height / 2.);
+            };
+
+            double newZoomFactor;
+            {
+                double oldZoomFactor = oldZoomMatrix(0, 0);
+                double kx = (double)newDisplaySize.width / (double)oldDisplaySize.width;
+                double ky = (double)newDisplaySize.height / (double)oldDisplaySize.height;
+                double k = std::min(kx, ky);
+                newZoomFactor = oldZoomFactor * k;
+            }
+
+            zoomMatrix = ZoomMatrixType::eye();
+            zoomMatrix(0, 0) = zoomMatrix(1, 1) = newZoomFactor;
+
+            cv::Point2d translation;
+            {
+                cv::Point2d oldDisplayCenter_Zoomed = fnImageCenter(oldDisplaySize);
+                cv::Point2d oldDisplayCenter_Image = ZoomMatrix::Apply(oldZoomMatrix.inv(), oldDisplayCenter_Zoomed);
+
+                cv::Point2d newDisplayCenter_Zoomed_Wanted = fnImageCenter(newDisplaySize);
+                cv::Point2d newDisplayCenter_Zoomed_Now = ZoomMatrix::Apply(zoomMatrix, oldDisplayCenter_Image);
+                translation = newDisplayCenter_Zoomed_Wanted - newDisplayCenter_Zoomed_Now;
+            }
+
+            zoomMatrix(0, 2) = translation.x;
+            zoomMatrix(1, 2) = translation.y;
+
+            return zoomMatrix;
+        }
+
+
     } // namespace ZoomMatrix
 
     cv::Matx33d MakeZoomMatrix(
         const cv::Point2d & zoomCenter,
         double zoomRatio,
-        const cv::Size displayedImageNavigatorSize
+        const cv::Size displayedImageSize
         )
     {
         auto mat = cv::Matx33d::eye();
         mat(0, 0) = zoomRatio;
         mat(1, 1) = zoomRatio;
-        double dx = (double)displayedImageNavigatorSize.width / 2. - zoomRatio * zoomCenter.x;
-        double dy = (double)displayedImageNavigatorSize.height / 2. - zoomRatio * zoomCenter.y;
+        double dx = (double)displayedImageSize.width / 2. - zoomRatio * zoomCenter.x;
+        double dy = (double)displayedImageSize.height / 2. - zoomRatio * zoomCenter.y;
         mat(0, 2) = dx;
         mat(1, 2) = dy;
         return mat;
