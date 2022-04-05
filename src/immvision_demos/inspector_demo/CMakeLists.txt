@@ -1,0 +1,3 @@
+include(${CMAKE_SOURCE_DIR}/external/hello_imgui/hello_imgui_cmake/hello_imgui_add_app.cmake)
+hello_imgui_add_app(imagenavigator_demo imagenavigator_demo.cpp)
+target_link_libraries(imagenavigator_demo PRIVATE immvision)

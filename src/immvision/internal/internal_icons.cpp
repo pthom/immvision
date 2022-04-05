@@ -264,7 +264,12 @@ namespace ImmVision
             ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
             if (disabled)
                 ImGuiImm::PushDisabled();
-            bool clicked = ImGui::Button("  ");
+
+            // Cannot use InvisibleButton, since it does not handle "Repeat"
+            std::string spaceLabel = " ";
+            while (ImGui::CalcTextSize(spaceLabel.c_str()).x < 14.f)
+                spaceLabel += " ";
+            bool clicked = ImGui::Button(spaceLabel.c_str());
 
             ImGui::GetWindowDrawList()->AddImage(
                 GetIcon(iconType), cursorPos, {cursorPos.x + size.x, cursorPos.y + size.y},
