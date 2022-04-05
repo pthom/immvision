@@ -1,25 +1,27 @@
+#include "immdebug_viewer/single_instance_app.h"
+#include "immdebug/immdebug_internal.h"
+#include <thread>
+#include <iostream>
 
 
-//
-//
-//void AddIncomingImages()
-//{
-//    std::optional<ImmVision::ImmDebug_Internal::ImagePayload> imagePayload;
-//    do
-//    {
-//        imagePayload = ImmVision::ImmDebug_Internal::ReadImagePayload();
-//        if (imagePayload)
-//        {
-//            std::cout << "Should display payload of size " << imagePayload->Image.size() << std::endl;
-//        }
-////        ImGuiCv::ImageExplorers_AddImage(
-////            imagePayload.Label,
-////            imagePayload.Image,
-////            imagePayload.InitialImageAdjustments,
-////            imagePayload.AdditionalLegend
-////        );
-//    } while(imagePayload);
-//}
+void AddIncomingImages()
+{
+    std::optional<ImmVision::ImmDebug_Internal::ImagePayload> imagePayload;
+    do
+    {
+        imagePayload = ImmVision::ImmDebug_Internal::ReadImagePayload();
+        if (imagePayload)
+        {
+            std::cout << "Should display payload of size " << imagePayload->Image.size() << std::endl;
+        }
+//        ImGuiCv::ImageExplorers_AddImage(
+//            imagePayload.Label,
+//            imagePayload.Image,
+//            imagePayload.InitialImageAdjustments,
+//            imagePayload.AdditionalLegend
+//        );
+    } while(imagePayload);
+}
 //
 //cv::Mat MakeWindowIcon()
 //{
@@ -90,9 +92,6 @@
 //    return 0;
 //}
 
-#include "immdebug_viewer/single_instance_app.h"
-#include <thread>
-#include <iostream>
 
 int main()
 {
