@@ -1314,14 +1314,28 @@ namespace ImmVision
                 wasWidthSet = true;
             }
             ImGui::Text("Image list");
-            ImGui::SetNextItemWidth(listWidth);
-            if (ImGui::BeginListBox("##ImageNavigatorList"))
+            //ImGui::SetNextItemWidth();
+
+            if (ImGui::BeginListBox("##ImageNavigatorList", ImVec2(listWidth - 10.f, ImGui::GetContentRegionAvail().y)))
             {
                 for (int i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
                 {
                     const bool is_selected = (s_Inspector_CurrentIndex == i);
-                    if (ImGui::Selectable(s_Inspector_ImagesAndParams[i].Params.Legend.c_str(), is_selected))
+
+                    std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
+                    auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(s_Inspector_ImagesAndParams[i].Image);
+
+                    ImVec2 itemSize(listWidth - 10.f, 40.f);
+                    float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
+                    ImVec2 pos = ImGui::GetCursorScreenPos();
+                    if (ImGui::Selectable(id.c_str(), is_selected, 0, itemSize))
                         s_Inspector_CurrentIndex = i;
+
+                    float imageRatio = cache.GlTextureCv.mImageSize.x / cache.GlTextureCv.mImageSize.y;
+                    ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
+                    ImVec2 image_br(pos.x + imageRatio * imageHeight ,image_tl.y + imageHeight);
+                    ImGui::GetWindowDrawList()->AddImage(cache.GlTextureCv.mImTextureId, image_tl, image_br);
+
                 }
                 ImGui::EndListBox();
             }
