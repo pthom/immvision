@@ -136,23 +136,23 @@ namespace ImmVision
             return zoomMatrix;
         }
 
+        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
+        {
+            auto mat = cv::Matx33d::eye();
+            mat(0, 0) = zoomRatio;
+            mat(1, 1) = zoomRatio;
+            double dx = (double)displayedImageSize.width / 2. - zoomRatio * zoomCenter.x;
+            double dy = (double)displayedImageSize.height / 2. - zoomRatio * zoomCenter.y;
+            mat(0, 2) = dx;
+            mat(1, 2) = dy;
+            return mat;
+        }
 
     } // namespace ZoomMatrix
 
-    cv::Matx33d MakeZoomMatrix(
-        const cv::Point2d & zoomCenter,
-        double zoomRatio,
-        const cv::Size displayedImageSize
-        )
+    cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
     {
-        auto mat = cv::Matx33d::eye();
-        mat(0, 0) = zoomRatio;
-        mat(1, 1) = zoomRatio;
-        double dx = (double)displayedImageSize.width / 2. - zoomRatio * zoomCenter.x;
-        double dy = (double)displayedImageSize.height / 2. - zoomRatio * zoomCenter.y;
-        mat(0, 2) = dx;
-        mat(1, 2) = dy;
-        return mat;
+        return ZoomMatrix::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
     }
 
 
@@ -308,16 +308,8 @@ namespace ImmVision
     } // namespace MatrixInfoUtils
 
 
-    namespace ImageNavigatorUtils
+    namespace ImageNavigatorDrawing
     {
-        void InitializeMissingParams(ImageNavigatorParams* params, const cv::Mat& image)
-        {
-            if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
-                params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
-            if (params->ZoomMatrix == cv::Matx33d::eye())
-                params->ZoomMatrix = ZoomMatrix::MakeFullView(image.size(), params->ImageDisplaySize);
-        }
-
         cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params)
         {
             cv::Mat r = image.clone();
@@ -344,7 +336,7 @@ namespace ImmVision
                     4.,   // size
                     2.5,  // size_hole
                     1     // thickness
-                    );
+                );
             }
 
             return r;
@@ -377,8 +369,8 @@ namespace ImmVision
             {
                 cv::Point2d tld = ZoomMatrix::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
                 cv::Point2d brd = ZoomMatrix::Apply(params.ZoomMatrix.inv(),
-                                                   cv::Point2d((double)params.ImageDisplaySize.width,
-                                                               (double)params.ImageDisplaySize.height));
+                                                    cv::Point2d((double)params.ImageDisplaySize.width,
+                                                                (double)params.ImageDisplaySize.height));
                 tl = { (int)std::floor(tld.x), (int)std::floor(tld.y) };
                 br = { (int)std::ceil(brd.x), (int)std::ceil(brd.y) };
             }
@@ -415,7 +407,7 @@ namespace ImmVision
                         false, // add_cartouche
                         0.3,  //fontScale
                         1     //int thickness
-                        );
+                    );
                 }
             }
             return r;
@@ -454,7 +446,7 @@ namespace ImmVision
             const ImageNavigatorParams& params,
             const cv::Mat& image,
             GlTextureCv* outTexture
-            )
+        )
         {
             if (image.empty())
                 return;
@@ -502,7 +494,7 @@ namespace ImmVision
                                cv::INTER_NEAREST,
                                cv::BorderTypes::BORDER_TRANSPARENT,
                                cv::Scalar(127, 127, 127, 127)
-                               );
+                );
                 finalImage = imageZoomed;
             }
 
@@ -528,40 +520,11 @@ namespace ImmVision
             outTexture->BlitMat(finalImage);
         }
 
-        bool operator==(const ColorAdjustments& v1, const ColorAdjustments& v2)
-        {
-            if (fabs(v2.Factor - v1.Factor) > 1E-6)
-                return false;
-            if (fabs(v2.Delta - v1.Delta) > 1E-6)
-                return false;
-            return true;
-        }
+    } // namespace ImageNavigatorDrawing
 
-        bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
-        {
-            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
-                return true;
-            if (! ZoomMatrix::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
-                return true;
-            if (! (v1.ColorAdjustments == v2.ColorAdjustments))
-                return true;
-            if (v1.ShowGrid != v2.ShowGrid)
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
-            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
-                return true;
-            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
-                return true;
-            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
-                return true;
-            return false;
-        }
 
+    namespace ImageNavigatorWidgets
+    {
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
@@ -590,13 +553,13 @@ namespace ImmVision
             auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
             auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
                 return params.IsColorOrderBGR ?
-                            ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
-                        :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
+                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
+                                              :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
             };
             auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
                 return params.IsColorOrderBGR ?
-                            ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
-                       :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
+                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
+                                              :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
             };
 
             bool done = false;
@@ -635,9 +598,71 @@ namespace ImmVision
             }
             if (! done)
             {
-                 std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(image, pt.x, pt.y);
-                 ImGui::Text("%s", pixelInfo.c_str());
+                std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(image, pt.x, pt.y);
+                ImGui::Text("%s", pixelInfo.c_str());
             }
+        }
+
+
+        // If true, the collapsing headers will be synced across instances
+        bool s_CollapsingHeader_CacheState_Sync = false;
+
+        bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false)
+        {
+            static std::map<std::string, bool> collapsingHeadersState;
+            if (s_CollapsingHeader_CacheState_Sync)
+            {
+                bool shallOpen = forceOpen;
+                if (collapsingHeadersState.find(name) != collapsingHeadersState.end())
+                {
+                    bool wasOpenedLastTime = collapsingHeadersState.at(name);
+                    if (wasOpenedLastTime)
+                        shallOpen = true;
+                }
+                if (shallOpen)
+                    ImGui::SetNextItemOpen(shallOpen, ImGuiCond_Always);
+            }
+            bool opened = ImGui::CollapsingHeader(name);
+            collapsingHeadersState[name] = opened;
+            return opened;
+        };
+
+    } // namespace ImageNavigatorWidgets
+
+
+    namespace ImageNavigatorUtils
+    {
+        void InitializeMissingParams(ImageNavigatorParams* params, const cv::Mat& image)
+        {
+            if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
+                params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
+            if (params->ZoomMatrix == cv::Matx33d::eye())
+                params->ZoomMatrix = ZoomMatrix::MakeFullView(image.size(), params->ImageDisplaySize);
+        }
+
+        bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
+        {
+            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
+                return true;
+            if (! ZoomMatrix::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
+                return true;
+            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
+                return true;
+            if (v1.ShowGrid != v2.ShowGrid)
+                return true;
+            if (v1.SelectedChannel != v2.SelectedChannel)
+                return true;
+            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
+                return true;
+            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
+                return true;
+            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
+                return true;
+            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
+                return true;
+            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
+                return true;
+            return false;
         }
 
 
@@ -679,7 +704,7 @@ namespace ImmVision
                     params->ZoomMatrix = ZoomMatrix::UpdateZoomMatrix_DisplaySizeChanged(
                         oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
                 if (needsRefreshTexture)
-                    BlitImageNavigatorTexture(*params, image, &cachedData.GlTextureCv);
+                    ImageNavigatorDrawing::BlitImageNavigatorTexture(*params, image, &cachedData.GlTextureCv);
 
                 if (! ZoomMatrix::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
                     UpdateLinkedZooms(image);
@@ -802,7 +827,7 @@ namespace ImmVision
 
                     // Show Color Cell
                     ImGui::TableNextColumn();
-                    ImageNavigatorUtils::ShowPixelColorWidget(image, watchedPixel, *params);
+                    ImageNavigatorWidgets::ShowPixelColorWidget(image, watchedPixel, *params);
 
                     // Actions
                     ImGui::TableNextColumn();
@@ -835,16 +860,10 @@ namespace ImmVision
             ImGui::BeginTable("##OptionsTable", 1, 0, ImVec2(optionsWidth, 0.f));
             ImGui::TableNextColumn();
 
-            auto fnMyCollapsingHeader = [&fnPanelTitle](const char *name)
-            {
-                //ImVec2 lastPanelSize = ImGuiImm::GroupPanel_FlagBorder_LastKnownSize(fnPanelTitle().c_str());
-                //return ImGuiImm::CollapsingHeaderFixedWidth(name, lastPanelSize.x - 35.f);
-                return ImGui::CollapsingHeader(name);
-            };
 
             // Adjust float values
             bool hasAdjustFloatValues = true; // ((image.depth() == CV_32F) || (image.depth() == CV_64F));
-            if (hasAdjustFloatValues && fnMyCollapsingHeader("Adjust"))
+            if (hasAdjustFloatValues && ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
                 ImGuiImm::SliderDouble(
@@ -863,13 +882,11 @@ namespace ImmVision
             }
 
             // Watched Pixels
-            if (wasWatchedPixelAdded)
-                ImGui::SetNextItemOpen(wasWatchedPixelAdded);
-            if (fnMyCollapsingHeader("Watched Pixels"))
+            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))
                 fnWatchedPixels_Gui();
 
             // Image display options
-            if (fnMyCollapsingHeader("Image Display"))
+            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Image Display"))
             {
                 if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
                 {
@@ -904,7 +921,7 @@ namespace ImmVision
             }
 
             //Navigator display options
-            if (fnMyCollapsingHeader("Options"))
+            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Options"))
             {
                 {
                     ImGuiImm::BeginGroupPanel("Navigator display options");
@@ -919,7 +936,7 @@ namespace ImmVision
             }
 
             // Save Image
-            if (fnMyCollapsingHeader("Save"))
+            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Save"))
             {
                 // Use portable_file_dialogs if available
                 if (pfd::settings::available())
@@ -1076,7 +1093,7 @@ namespace ImmVision
         //
         auto fnShowImage = [&params, &cache]()
         {
-            cv::Point2d mouseLocation = ImageNavigatorUtils::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
+            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
             cv::Point2d mouseLocation_originalImage =
                 ImGui::IsItemHovered() ? ZoomMatrix::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
             return mouseLocation_originalImage;
@@ -1098,7 +1115,7 @@ namespace ImmVision
                 ImGui::Text("(%i,%i)", mouseLoc.x, mouseLoc.y);
                 ImGui::SameLine();
             }
-            ImageNavigatorUtils::ShowPixelColorWidget(image, mouseLoc, *params);
+            ImageNavigatorWidgets::ShowPixelColorWidget(image, mouseLoc, *params);
         };
 
         //
@@ -1134,7 +1151,7 @@ namespace ImmVision
 
             // Show infos
             if (params->ShowImageInfo)
-                ImageNavigatorUtils::ShowImageInfo(image, params->ZoomMatrix(0, 0));
+                ImageNavigatorWidgets::ShowImageInfo(image, params->ZoomMatrix(0, 0));
             if (params->ShowPixelInfo)
                 fnShowPixelInfo(mouseLocation_originalImage);
             ImGui::EndGroup();
@@ -1221,6 +1238,8 @@ namespace ImmVision
             ImGui::End();
             return;
         }
+
+        ImageNavigatorWidgets::s_CollapsingHeader_CacheState_Sync = true;
 
         auto fnCleanInspectorImagesParams = [](const ImVec2& imageSize)
         {
@@ -1314,6 +1333,8 @@ namespace ImmVision
         }
 
         ImGui::End();
+
+        ImageNavigatorWidgets::s_CollapsingHeader_CacheState_Sync = false;
     }
 
     void Inspector_ClearImages()

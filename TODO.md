@@ -11,14 +11,14 @@
 
 * [ ] Inspector:
   * [ ] Find nice name (close to ImmDebug)
-  * [ ] Resizable column / list
   * [?] Separate File
   * [X] Resize children images
   * [X] Handle Zooms when resizing
   * [X] Handle initial zoomCenter & ratio
-  * [ ] Share many options
-  * [X] Options to the right ?
-    * [ ] Hide option / Show in tooltip ?
+  * [X] Share many options
+    * [X] Sync open Collapsed Headers
+  * [ ] Resizable column / list
+  * [X] Resize if options masked
   * [N] add Inspector_Run() ? (requires runner in main lib...) 
 
 
@@ -36,5 +36,6 @@
 
 * [ ] ImageNavigator
   * [N] Copy image to clipboard => voir https://github.com/dacap/clip / Non: rend compilation complexe !
-  * [ ] Zoom / last watched Pixel ?
+  * [X] Zoom / last watched Pixel ?
+  * [ ] Draw grid is slow!
   * [ ] Add param zoomCenter & zoomRatio
