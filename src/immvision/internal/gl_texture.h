@@ -44,7 +44,7 @@ namespace ImmVision
     {
         GlTextureCv() = default;
         GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra);
-        virtual ~GlTextureCv() = default;
+        ~GlTextureCv() override = default;
 
         void BlitMat(const cv::Mat& mat, bool isBgrOrBgra);
     };

@@ -12,10 +12,10 @@ namespace ImGuiImm
 {
     bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags)
     {
-        float vf = *v;
+        float vf = (float)*v;
         bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, format, flags);
         if (changed)
-            *v = vf;
+            *v = (double)vf;
         return changed;
     }
 
@@ -35,7 +35,7 @@ namespace ImGuiImm
     }
     cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize)
     {
-        auto toSize = [](ImVec2 v) { return cv::Size((int)(v.x + 0.5), (int)(v.y + 0.5)); };
+        auto toSize = [](ImVec2 v) { return cv::Size((int)((double)v.x + 0.5), (int)((double)v.y + 0.5)); };
         auto toImVec2 = [](cv::Size v) { return ImVec2((float)v.width, (float)v.height); };
         return toSize( ComputeDisplayImageSize(toImVec2(askedImageSize), toImVec2(realImageSize)) );
     }
@@ -89,7 +89,6 @@ namespace ImGuiImm
     {
         ImGui::BeginGroup();
 
-        auto cursorPos = ImGui::GetCursorScreenPos();
         auto itemSpacing = ImGui::GetStyle().ItemSpacing;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));

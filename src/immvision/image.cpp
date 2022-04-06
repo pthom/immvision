@@ -67,7 +67,7 @@ namespace ImmVision
         private:
             std::map<const cv::Mat *, CachedTexture> mTexturesMap;
         };
-        TextureCache gTextureCache;
+        static TextureCache gTextureCache;
 
 
         struct

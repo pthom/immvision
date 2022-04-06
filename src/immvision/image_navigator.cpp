@@ -37,8 +37,8 @@ namespace ImmVision
         ZoomMatrixType ComputePanMatrix(const ImVec2 & dragDelta, double currentZoom)
         {
             auto mat = cv::Matx33d::eye();
-            mat(0, 2) = dragDelta.x / currentZoom;
-            mat(1, 2) = dragDelta.y / currentZoom;
+            mat(0, 2) = (double)dragDelta.x / currentZoom;
+            mat(1, 2) = (double)dragDelta.y / currentZoom;
             return mat;
         }
 
@@ -106,7 +106,7 @@ namespace ImmVision
             ZoomMatrixType zoomMatrix;
 
             auto fnImageCenter = [](const cv::Size s) {
-                return cv::Point2d((double)s.width / 2.f, (double)s.height / 2.);
+                return cv::Point2d((double)s.width / 2., (double)s.height / 2.);
             };
 
             double newZoomFactor;
@@ -236,7 +236,7 @@ namespace ImmVision
         std::string ShowVecValue(const T& v)
         {
             char buffer_color[300];
-            sprintf(buffer_color, "%.5G", v);
+            sprintf(buffer_color, "%.5G", (double)v);
             return std::string(buffer_color);
         }
         template<>
@@ -301,9 +301,7 @@ namespace ImmVision
             else if (m.type() == CV_8UC1)
                 return ShowVecValue(m.at<unsigned char>(y, x));
             else
-                assert("Unhandled matrix type !");
-
-            return "";
+                throw("Unhandled matrix type !");
         }
 
     } // namespace MatrixInfoUtils
@@ -471,7 +469,7 @@ namespace ImmVision
                 {
                     std::vector<cv::Mat> channels;
                     cv::split(finalImage, channels);
-                    finalImage = channels[params.SelectedChannel];
+                    finalImage = channels[(size_t)params.SelectedChannel];
                 }
 
                 // Alpha checkerboard
@@ -633,7 +631,7 @@ namespace ImmVision
 
 
         // If true, the collapsing headers will be synced across instances
-        bool s_CollapsingHeader_CacheState_Sync = false;
+        static bool s_CollapsingHeader_CacheState_Sync = false;
 
         bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false)
         {
@@ -796,7 +794,7 @@ namespace ImmVision
 
             std::map<const cv::Mat*, CachedData> mCache;
         };
-        ImageNavigatorTextureCache gImageNavigatorTextureCache;
+        static ImageNavigatorTextureCache gImageNavigatorTextureCache;
     } // namespace ImageNavigatorUtils
 
 
@@ -888,21 +886,15 @@ namespace ImmVision
                 ImGui::EndTable();
             }
             if (idxToRemove >= 0)
-                params->WatchedPixels.erase(params->WatchedPixels.begin() + (size_t)idxToRemove);
+                params->WatchedPixels.erase(params->WatchedPixels.begin() + (std::ptrdiff_t)idxToRemove);
 
             ImGui::Checkbox("Highlight Watched Pixels", &params->HighlightWatchedPixels);
-        };
-        auto fnWatchedPixels_Draw = [&params](const cv::Mat& m) -> cv::Mat
-        {
-            if (! params->HighlightWatchedPixels)
-                return m;
-            return m;
         };
 
         //
         // Lambdas / Options & Adjustments
         //
-        auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnPanelTitle]()
+        auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded]()
         {
             // We create a dummy table in order to force the collapsing headers width
             float optionsWidth = 330.f;
@@ -1095,7 +1087,7 @@ namespace ImmVision
 
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
-                double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.f;
+                double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.;
                 params->ZoomMatrix = params->ZoomMatrix * ZoomMatrix::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
             }
         };
@@ -1108,8 +1100,8 @@ namespace ImmVision
                 cv::Point2d viewportCenter_originalImage = ZoomMatrix::Apply(
                     zoomMatrix.inv(),
                     cv::Point2d (
-                        (double)params->ImageDisplaySize.width / 2.f,
-                        (double)params->ImageDisplaySize.height / 2.f)
+                        (double)params->ImageDisplaySize.width / 2.,
+                        (double)params->ImageDisplaySize.height / 2.)
                 );
 
                 {
@@ -1266,11 +1258,14 @@ namespace ImmVision
     {
         cv::Mat Image;
         ImageNavigatorParams Params;
+
+        const cv::Point2d InitialZoomCenter = cv::Point2d();
+        double InitialZoomRatio = 1.;
         bool WasSentToTextureCache = false;
     };
 
-    std::vector<Inspector_ImageAndParams> s_Inspector_ImagesAndParams;
-    int s_Inspector_CurrentIndex = 0;
+    static std::vector<Inspector_ImageAndParams> s_Inspector_ImagesAndParams;
+    static int s_Inspector_CurrentIndex = 0;
 
 
     void Inspector_AddImage(
@@ -1290,7 +1285,7 @@ namespace ImmVision
         params.ColorAdjustmentsKey = colorAdjustmentsKey;
         params.ShowOptions = true;
 
-        s_Inspector_ImagesAndParams.push_back({image, params});
+        s_Inspector_ImagesAndParams.push_back({image, params, zoomCenter, zoomRatio});
     }
 
     void Inspector_Show()
@@ -1307,15 +1302,20 @@ namespace ImmVision
                 // Store in texture cache
                 if (! i.WasSentToTextureCache)
                 {
+                    if (i.InitialZoomRatio > 0.)
+                    {
+                        i.Params.ZoomMatrix = ZoomMatrix::MakeZoomMatrix(
+                            i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
+                    }
                     ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
                     i.WasSentToTextureCache = true;
                 }
             }
 
             // Propagate current options to hidden images
-            if ((s_Inspector_CurrentIndex >= 0) && (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size()))
+            if ((s_Inspector_CurrentIndex >= 0) && ((size_t)s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size()))
             {
-                const auto& currentParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex].Params;
+                const auto& currentParams = s_Inspector_ImagesAndParams[(size_t)s_Inspector_CurrentIndex].Params;
                 for (auto& v : s_Inspector_ImagesAndParams)
                 {
                     v.Params.ShowImageInfo = currentParams.ShowImageInfo;
@@ -1381,9 +1381,9 @@ namespace ImmVision
             ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
             if (ImGui::BeginListBox("##ImageNavigatorList", ImVec2(listWidth - 10.f, ImGui::GetContentRegionAvail().y)))
             {
-                for (int i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
+                for (size_t i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
                 {
-                    const bool is_selected = (s_Inspector_CurrentIndex == i);
+                    const bool is_selected = ((size_t)s_Inspector_CurrentIndex == i);
 
                     std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
                     auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(s_Inspector_ImagesAndParams[i].Image);
@@ -1392,7 +1392,7 @@ namespace ImmVision
                     float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
                     ImVec2 pos = ImGui::GetCursorScreenPos();
                     if (ImGui::Selectable(id.c_str(), is_selected, 0, itemSize))
-                        s_Inspector_CurrentIndex = i;
+                        s_Inspector_CurrentIndex = (int)i;
 
                     float imageRatio = cache.GlTextureCv.mImageSize.x / cache.GlTextureCv.mImageSize.y;
                     ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
@@ -1411,12 +1411,12 @@ namespace ImmVision
         {
             if (s_Inspector_CurrentIndex < 0)
                 s_Inspector_CurrentIndex = 0;
-            if (s_Inspector_CurrentIndex >= s_Inspector_ImagesAndParams.size())
-                s_Inspector_CurrentIndex = s_Inspector_ImagesAndParams.size() - 1;
+            if ((size_t)s_Inspector_CurrentIndex >= s_Inspector_ImagesAndParams.size())
+                s_Inspector_CurrentIndex = (int)s_Inspector_ImagesAndParams.size() - 1;
 
-            if ((s_Inspector_CurrentIndex >= 0) && (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size()))
+            if ((s_Inspector_CurrentIndex >= 0) && ((size_t)s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size()))
             {
-                auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
+                auto& imageAndParams = s_Inspector_ImagesAndParams[(size_t)s_Inspector_CurrentIndex];
                 ImageNavigator(imageAndParams.Image, &imageAndParams.Params);
             }
         }

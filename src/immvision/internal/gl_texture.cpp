@@ -100,7 +100,7 @@ namespace ImmVision
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
 
-        int gl_color_flag = 0;
+        GLenum gl_color_flag = 0;
         if (false)
             ;
 #ifndef __EMSCRIPTEN__

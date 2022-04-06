@@ -12,16 +12,7 @@ namespace ImmVision
 {
     namespace Icons
     {
-        cv::Size iconsSizeDraw(200, 200);
-
-        auto ImVec4ToScalarColorBGRA = [](ImVec4 col) {
-            return cv::Scalar((int) (col.z * 255.f), (int) (col.y * 255.f), (int) (col.y * 255.f),
-                              (int) (col.w * 255.f));
-        };
-
-        auto ScaleXY = [](double x, double y) {
-            return cv::Point2d(x * (double) iconsSizeDraw.width, y * (double) iconsSizeDraw.height);
-        };
+        static cv::Size iconsSizeDraw(200, 200);
         auto ScalePoint = [](cv::Point2d p) {
             return cv::Point2d(p.x * (double) iconsSizeDraw.width, p.y * (double) iconsSizeDraw.height);
         };

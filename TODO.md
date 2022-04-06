@@ -1,8 +1,9 @@
-* [ ] Post reddit r/place ?
-
-
 * [ ] Deploy
-  * [ ] Add more warnings
+  * [X] Add more warnings: 
+    * [ ] Add warnings for msvc
+    * [ ] Activate IMMVISION_ACTIVATE_ALL_WARNINGS via build_script?
+  * [ ] Github actions / build
+    * [ ] Github actions / build and deploy viewer
   * [ ] All in one version (minimalist header / warning make opengl possibly external)
     * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
   * [ ] build script 
@@ -17,6 +18,7 @@
 
 * [ ] Inspector:
   * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
+  * [ ] Handle params zoomCenter, zoomRatio,
   * [?] Separate File
   * [N] add Inspector_Run() ? (requires runner in main lib...) 
   * [X] draw thumbnail in list

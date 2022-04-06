@@ -23,11 +23,11 @@
 
     cv::Mat place = cv::imread(HelloImGui::assetFileFullPath("reddit_place_2022.png"));
     cv::resize(place, place, cv::Size(2000, 2000));
-    ImmVision::Inspector_AddImage(place, "Place");
+    ImmVision::Inspector_AddImage(place, "Place", "", "", cv::Point2d(130., 1617.), 1.5);
 
     auto gui = []()
     {
-        ImGui::Text("%s FPS:%.1f", datestr, ImGui::GetIO().Framerate);
+        ImGui::Text("%s FPS:%.1f", datestr, (double)ImGui::GetIO().Framerate);
         ImmVision::Inspector_Show();
     };
 

@@ -84,7 +84,7 @@ namespace ImmVision
         const std::string& zoomKey = "",
         const std::string& colorAdjustmentsKey = "",
         const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = 1.,
+        double zoomRatio = -1.,
         bool isColorOrderBGR = true
     );
     void Inspector_Show();

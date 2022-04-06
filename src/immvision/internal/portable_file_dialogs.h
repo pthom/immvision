@@ -736,7 +736,7 @@ static inline bool is_vista()
         ssize_t received = read(m_fd, buf, BUFSIZ); // Flawfinder: ignore
         if (received > 0)
         {
-            m_stdout += std::string(buf, received);
+            m_stdout += std::string(buf, (size_t)received);
             return false;
         }
 
@@ -891,7 +891,7 @@ inline HANDLE internal::platform::new_style_context::create()
             case choice::yes_no_cancel: return "yesnocancel";
             case choice::retry_cancel: return "retrycancel";
             case choice::abort_retry_ignore: return "abortretryignore";
-                /* case choice::ok: */ default: return "ok";
+            case choice::ok: default: return "ok";
         }
     }
 
@@ -903,7 +903,7 @@ inline HANDLE internal::platform::new_style_context::create()
             case icon::error: return "error";
             case icon::question: return "question";
                 // Zenity wants "information" but WinForms wants "info"
-                /* case icon::info: */ default:
+                case icon::info:  default:
 #if _WIN32
                 return "info";
 #else

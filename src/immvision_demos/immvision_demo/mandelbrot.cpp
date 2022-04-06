@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-cv::Vec3b ColorFromNbIterations(int nb_iterations)
+cv::Vec3b ColorFromNbIterations(unsigned int nb_iterations)
 {
     const unsigned int COLOR_TABLE[] = {
         0xf7df, 0xff5a, 0x07ff, 0x7ffa, 0xf7ff, 0xf7bb, 0xff38, 0xff59, 0x001f, 0x895c,
@@ -24,9 +24,9 @@ cv::Vec3b ColorFromNbIterations(int nb_iterations)
     };
     cv::Vec3b r;
     unsigned int color = COLOR_TABLE[nb_iterations];
-    r[0] = ((color >> 11) & 0x1F) << 3;
-    r[1] = ((color >> 5) & 0x3F) << 2;
-    r[2] = (color & 0x1F) << 3;
+    r[0] = (uchar)(((color >> 11) & 0x1F) << 3);
+    r[1] = (uchar)(((color >> 5) & 0x3F) << 2);
+    r[2] = (uchar)((color & 0x1F) << 3);
     return r;
 }
 
@@ -34,11 +34,11 @@ cv::Mat_<cv::Vec3b> MakeMandelbrotImage(const MandelbrotOptions& options)
 {
     cv::Mat_<cv::Vec3b> r(options.Size);
 
-    for (unsigned int y = 0; y < options.Size.height; ++y)
+    for (int y = 0; y < options.Size.height; ++y)
     {
         double p_i = (y - options.Size.height / 2.0) / (0.5 * options.Zoom * options.Size.height) + options.StartPoint.y;
 
-        for (unsigned int x = 0; x < options.Size.width; ++x)
+        for (int x = 0; x < options.Size.width; ++x)
         {
             double p_r = 1.5 * (x - options.Size.width / 2.0) / (0.5 * options.Zoom * options.Size.width) + options.StartPoint.x;
             double new_r = 0, new_i = 0, old_r = 0, old_i = 0;

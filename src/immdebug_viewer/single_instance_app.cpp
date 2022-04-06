@@ -103,6 +103,6 @@ namespace ImmVision
         : mPImpl(std::make_unique<SingleInstanceAppPImpl>(lockName)){}
     SingleInstanceApp::~SingleInstanceApp() = default;
     bool SingleInstanceApp::RunSingleInstance() {return mPImpl->RunSingleInstance(); }
-    bool SingleInstanceApp::WasPinged() { return mPImpl->WasPinged(); };
+    bool SingleInstanceApp::WasPinged() { return mPImpl->WasPinged(); }
 
 } // namespace ImmVision

@@ -13,10 +13,10 @@ namespace ImGuiExt
 {
     bool SliderDoubleLogarithmic(const char* label, double* v, double v_min, double v_max)
     {
-        float vf = *v;
+        float vf = (float)*v;
         bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, "%.3f", ImGuiSliderFlags_Logarithmic);
         if (changed)
-            *v = vf;
+            *v = (double)vf;
         return changed;
     }
 }
@@ -134,10 +134,10 @@ struct AppState
     SobelParams SobelParams;
 };
 
-AppState gAppState;
+static AppState gAppState;
 
 
-void guiFunction()
+static void guiFunction()
 {
     if (gAppState.Image.empty())
     {
@@ -147,7 +147,7 @@ void guiFunction()
 
     bool changed  = false;
 
-    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+    ImGui::Text("FPS: %.1lf", (double)ImGui::GetIO().Framerate);
 
     changed |= GuiSobelParams(gAppState.SobelParams);
     ImGui::SameLine();

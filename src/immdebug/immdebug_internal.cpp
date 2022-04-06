@@ -29,30 +29,31 @@ namespace ImmVision
             if (!m.isContinuous())
                 throw std::runtime_error("WriteMat only supports continuous Mat");
             size_t elem_size = m.elemSize();
-            size_t elem_type = m.type();
+            int elem_type = m.type();
 
             WriteValue<int>(os, m.cols);
             WriteValue<int>(os, m.rows);
-            WriteValue<std::size_t>(os, elem_size);
+            WriteValue<size_t>(os, elem_size);
             WriteValue<int>(os, elem_type);
 
-            const size_t data_size = m.cols * m.rows * elem_size;
+            const std::streamsize data_size = (std::streamsize)((int)m.cols * (int)m.rows * (int)elem_size);
             os.write(reinterpret_cast<const char *>(m.ptr()), data_size);
         }
 
         cv::Mat ReadMat(std::istream &is)
         {
             int cols, rows;
-            size_t elem_size, elem_type;
+            size_t elem_size;
+            int elem_type;
 
             cols = ReadValue<int>(is);
             rows = ReadValue<int>(is);
-            elem_size = ReadValue<std::size_t>(is);
+            elem_size = ReadValue<size_t>(is);
             elem_type = ReadValue<int>(is);
 
             cv::Mat m;
             m.create(rows, cols, elem_type);
-            size_t data_size = m.cols * m.rows * elem_size;
+            std::streamsize data_size = std::streamsize((int)m.cols * (int)m.rows * (int)elem_size);
             is.read(reinterpret_cast<char *>(m.ptr()), data_size);
             return m;
         }
@@ -60,14 +61,14 @@ namespace ImmVision
         void WriteString(std::ostream &os, const std::string &v)
         {
             WriteValue(os, v.size());
-            os.write(v.data(), sizeof(char) * v.size());
+            os.write(v.data(), std::streamsize(sizeof(char) * v.size()));
         }
 
         std::string ReadString(std::istream &is)
         {
             std::size_t len = ReadValue<std::size_t>(is);
             char *buffer = new char[len + 1];
-            is.read(buffer, len);
+            is.read(buffer, std::streamsize(len));
             buffer[len] = '\0';
             std::string s(buffer);
             delete[]buffer;

@@ -119,7 +119,7 @@ namespace ImmVision
                 else if (background_rgb_or_rgba.channels() == 3)
                     background_rgb = background_rgb_or_rgba;
                 else
-                    assert("Only CV_8UC3 or CV_8UC4 background are supported!");
+                    throw("Only CV_8UC3 or CV_8UC4 background are supported!");
             }
 
 
@@ -496,7 +496,7 @@ namespace ImmVision
             {
                 for (int y = 0; y < size.height; y++)
                 {
-                    int colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
+                    uchar colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
                     r.at<cv::Vec3b>(y, x) = cv::Vec3b(colorValue, colorValue, colorValue);
                 }
             }
@@ -515,8 +515,8 @@ namespace ImmVision
 
             auto fnLerpScalar = [](cv::Scalar c1, cv::Scalar c2, double k)
             {
-                auto fnLerp = [](double x1, double x2, double k) {
-                    return x1 + k * (x2 - x1);
+                auto fnLerp = [](double x1, double x2, double k2) {
+                    return x1 + k2 * (x2 - x1);
                 };
                 cv::Scalar r(
                     fnLerp(c1[0], c2[0], k),
