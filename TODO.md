@@ -1,9 +1,10 @@
 * [ ] Post reddit r/place ?
 
 * [ ] Deploy
-  * [ ] Solidify emscripten build 
-    * [ ] Separate in build script
-    * [ ] Bug in hello_imgui: first cmake (empty dir) fails during configure
+  * [ ] build script 
+    * [ ] Separate Emscripten in build script
+    * [ ] Review args input (from command line also ?)
+  * [ ] Bug in hello_imgui: first cmake (empty dir) fails during configure
   * [ ] hello_imgui : Check deploy assets Windows release & Debug build
   * [ ] Work on immvision_gl_loader
   * [ ] Add more warnings
@@ -12,8 +13,6 @@
   * [ ] Compat Eigen ?
   * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
   * [ ] doc
-  * [ ] script / hello_imgui
-    * [ ] commit hello_imgui modifs (and check windows debug/release...)
 
 * [ ] Inspector:
   * [ ] Find nice name (close to ImmDebug)

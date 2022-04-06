@@ -129,7 +129,7 @@ namespace ImmVisionSimpleRunner
             // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
             // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 
-#ifdef IMMVISION_DEMO_USE_POWERSAVE
+#ifdef IMMVISION_USE_POWERSAVE
             ImGui_ImplSDL2_WaitForEvent(window);
 #endif
 

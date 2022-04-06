@@ -2,10 +2,9 @@ option(IMMVISION_DEMO_USE_GLFW "Demos using GLFW" OFF)
 option(IMMVISION_DEMO_USE_SDL "Demos using SDL" ON)
 option(IMMVISION_DEMO_USE_POWERSAVE "Demos using power saving mode" OFF)
 
-message(WARNING "Forced powersave in src/immvision_demos/immvision_simple_runner/CMakeLists.txt")
+# KK Remove ?
 set(IMMVISION_DEMO_USE_SDL ON CACHE BOOL "" FORCE)
 #set(IMMVISION_DEMO_USE_GLFW OFF CACHE BOOL "" FORCE)
-set(IMMVISION_DEMO_USE_POWERSAVE ON CACHE BOOL "" FORCE)
 
 
 set(imgui_dir ${CMAKE_CURRENT_LIST_DIR}/../../../external/imgui)
