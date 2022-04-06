@@ -1,2 +1,5 @@
 imgui/
 hello_imgui/
+opencv/
+opencv_build_emscripten/
+vcpkg/
