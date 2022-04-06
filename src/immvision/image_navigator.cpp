@@ -343,22 +343,26 @@ namespace ImmVision
             return r;
         }
 
-        cv::Mat DrawGrid(const cv::Mat& image, const ImageNavigatorParams& params)
+        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params)
         {
-            double alpha = 0.23;
-            cv::Scalar gridColor(0, 255, 255, 255);
             double x_spacing = (double) params.ZoomMatrix(0, 0);
             double y_spacing = (double) params.ZoomMatrix(1, 1);
-            double x_start = (double) params.ZoomMatrix(0, 2) - 0.5 * x_spacing;
-            double y_start = (double) params.ZoomMatrix(1, 2) - 0.5 * y_spacing;
-            cv::Mat imageWithGrid = CvDrawingUtils::add_grid_to_image(
-                image,
-                x_start, y_start,
-                x_spacing, y_spacing,
-                gridColor,
-                alpha);
-            return imageWithGrid;
-        };
+
+            double x_start, y_start;
+            {
+                cv::Point2d origin_unzoomed = ZoomMatrix::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
+                origin_unzoomed = cv::Point2d(std::floor(origin_unzoomed.x) + 0.5, std::floor(origin_unzoomed.y) + 0.5);
+                cv::Point2d origin_zoomed = ZoomMatrix::Apply(params.ZoomMatrix, origin_unzoomed);
+                x_start = origin_zoomed.x;
+                y_start = origin_zoomed.y;
+            }
+            double x_end = (double)inOutImageRgba.cols - 1.;
+            double y_end = (double)inOutImageRgba.rows - 1.;
+
+            auto lineColor = cv::Scalar(255, 255, 0, 255);
+            double alpha = 0.3;
+            CvDrawingUtils::draw_grid(inOutImageRgba, lineColor, alpha, x_spacing, y_spacing, x_start, y_start, x_end, y_end);
+        }
 
         cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
                                          const ImageNavigatorParams& params, bool drawPixelCoords)
@@ -494,7 +498,7 @@ namespace ImmVision
             double gridMinZoomFactor = 7.;
             double zoomFactor = (double)params.ZoomMatrix(0, 0);
             if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
-                finalImage = DrawGrid(finalImage, params);
+                DrawGrid(finalImage, params);
 
             // Draw Pixel Values
             double drawPixelvaluesMinZoomFactor = (image.depth() == CV_8U) ? 36. : 48.;

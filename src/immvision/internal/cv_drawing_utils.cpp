@@ -411,27 +411,6 @@ namespace ImmVision
             return img;
         }
 
-        cv::Mat add_grid_to_image(
-            const cv::Mat &image,
-            double x_start, double y_start,
-            double x_spacing, double y_spacing,
-            cv::Scalar color,
-            double alpha
-        )
-        {
-            cv::Mat lines_images_alpha(image.size(), CV_8UC4);
-            lines_images_alpha = cv::Scalar(0, 0, 0, 0);
-            double h = (double) image.rows;
-            double w = (double) image.cols;
-            if (x_spacing > 0.)
-                for (double x  = x_start; x < w; x += x_spacing)
-                    line(lines_images_alpha, cv::Point2d{x, 0.}, cv::Point2d{x, h}, color);
-            if (y_spacing > 0.)
-                for (double y  = y_start; y < h; y += y_spacing)
-                    line(lines_images_alpha, cv::Point2d{0., y}, cv::Point2d{w, y}, color);
-            auto image_with_lines = overlay_alpha_image_precise(image, lines_images_alpha, alpha);
-            return image_with_lines;
-        }
 
         Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
         {
@@ -524,6 +503,82 @@ namespace ImmVision
             return r;
         }
 
+
+        void draw_transparent_pixel(
+            cv::Mat &img_rgba,
+            const cv::Point2d &position,
+            const cv::Scalar &color,
+            double alpha
+        )
+        {
+            assert(img_rgba.type() == CV_8UC4);
+
+            auto fnLerpScalar = [](cv::Scalar c1, cv::Scalar c2, double k)
+            {
+                auto fnLerp = [](double x1, double x2, double k) {
+                    return x1 + k * (x2 - x1);
+                };
+                cv::Scalar r(
+                    fnLerp(c1[0], c2[0], k),
+                    fnLerp(c1[1], c2[1], k),
+                    fnLerp(c1[2], c2[2], k),
+                    fnLerp(c1[3], c2[3], k)
+                );
+                return r;
+            };
+
+            double xFloor = (int)position.x;
+            double kx0 = 1. - (position.x - xFloor);
+            double kx1 = 1. - kx0;
+            double yFloor = (int)position.y;
+            double ky0 = 1. - (position.y - yFloor);
+            double ky1 = 1. - ky0;
+
+            std::vector<std::pair<cv::Point2d, double>> positionAndKs {
+                { cv::Point2d(0., 0.), kx0 * ky0 },
+                { cv::Point2d(1., 0.), kx1 * ky0 },
+                { cv::Point2d(0., 1.), kx0 * ky1 },
+                { cv::Point2d(1., 1.), kx1 * ky1 }
+            };
+
+            cv::Rect roi(cv::Point(0, 0), img_rgba.size());
+            for (const auto& kv: positionAndKs)
+            {
+                cv::Point pos;
+                {
+                    cv::Point2d delta = kv.first;
+                    pos = cv::Point((int)(position.x + delta.x), (int)(position.y + delta.y));
+                }
+                double k = kv.second;
+
+                if (!roi.contains(pos))
+                    continue;
+
+                cv::Scalar oldColor = img_rgba.at<cv::Vec4b>(pos.y, pos.x);
+                cv::Scalar dstColor = fnLerpScalar(oldColor, color, alpha * k);
+                img_rgba.at<cv::Vec4b>(pos.y, pos.x) = dstColor;
+            }
+        }
+
+
+        void draw_grid(
+            cv::Mat& img_rgba,
+            cv::Scalar lineColor,
+            double alpha,
+            double x_spacing, double y_spacing,
+            double x_start, double y_start,
+            double x_end, double y_end
+            )
+        {
+            assert(img_rgba.type() == CV_8UC4);
+
+            for (double y = y_start; y < y_end; y+= y_spacing)
+                for (double x = 0.; x < x_end; x+= 1.)
+                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
+            for (double x = x_start; x < x_end; x+= x_spacing)
+                for (double y = 0.; y < y_end; y+= 1.)
+                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
+        }
 
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision

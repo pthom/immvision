@@ -110,17 +110,24 @@ namespace ImmVision
                                 double size_hole = 2.,
                                 int thickness = 1);
 
+        void draw_transparent_pixel(
+            cv::Mat &img_rgba,
+            const cv::Point2d &position,
+            const cv::Scalar &color,
+            double alpha
+        );
+
+        void draw_grid(
+            cv::Mat& img_rgba,
+            cv::Scalar lineColor,
+            double alpha,
+            double x_spacing, double y_spacing,
+            double x_start, double y_start,
+            double x_end, double y_end
+        );
+
         cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2);
         cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2);
-
-
-        cv::Mat add_grid_to_image(
-            const cv::Mat &image,
-            double x_start = 0., double y_start = 0.,
-            double x_spacing = -1., double y_spacing = -1.,
-            cv::Scalar color = Yellow(),
-            double alpha = 0.4
-        );
 
         cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize = 30);
 
