@@ -451,6 +451,8 @@ namespace ImmVision
         void BlitImageNavigatorTexture(
             const ImageNavigatorParams& params,
             const cv::Mat& image,
+            cv::Mat& in_out_rgba_image_cache,
+            bool shall_refresh_rgba,
             GlTextureCv* outTexture
         )
         {
@@ -459,29 +461,50 @@ namespace ImmVision
 
             cv::Mat finalImage = image.clone();
 
-            // Selected channels
-            if (finalImage.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < image.channels()))
+            //
+            // Adjustements needed before conversion to rgba
+            //
+            auto fnAdjustColor = [&finalImage, params]()
             {
-                std::vector<cv::Mat> channels;
-                cv::split(image, channels);
-                finalImage = channels[params.SelectedChannel];
+                // Selected channels
+                if (finalImage.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels()))
+                {
+                    std::vector<cv::Mat> channels;
+                    cv::split(finalImage, channels);
+                    finalImage = channels[params.SelectedChannel];
+                }
+
+                // Alpha checkerboard
+                if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
+                {
+                    cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
+                    finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
+                }
+
+                // Color adjustments
+                finalImage = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, finalImage);
+            };
+
+            //
+            // Convert to rgba with adjustments if needed
+            //
+            if (shall_refresh_rgba)
+            {
+                fnAdjustColor();
+                finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
+                in_out_rgba_image_cache = finalImage;
+                assert(finalImage.type() == CV_8UC4);
+            }
+            else
+            {
+                finalImage = in_out_rgba_image_cache;
+                assert(finalImage.type() == CV_8UC4);
+                assert(!finalImage.empty());
             }
 
-            // Alpha checkerboard
-            if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
-            {
-                cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(image.size());
-                finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
-            }
-
-            // Color adjustments
-            finalImage = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, finalImage);
-
-            // Convert to RGBA
-            finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
-            assert(finalImage.type() == CV_8UC4);
-
+            //
             // Zoom
+            //
             {
                 cv::Mat imageZoomed = MakeWarpPaperBackground(params.ImageDisplaySize);
                 cv::warpAffine(finalImage, imageZoomed,
@@ -494,25 +517,34 @@ namespace ImmVision
                 finalImage = imageZoomed;
             }
 
-            // Draw grid
-            double gridMinZoomFactor = 7.;
-            double zoomFactor = (double)params.ZoomMatrix(0, 0);
-            if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
-                DrawGrid(finalImage, params);
-
-            // Draw Pixel Values
-            double drawPixelvaluesMinZoomFactor = (image.depth() == CV_8U) ? 36. : 48.;
-            if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelvaluesMinZoomFactor)
+            //
+            // Drawings on final image
+            //
             {
-                double drawPixelCoordsMinZoomFactor = 60.;
-                bool drawPixelCoords = zoomFactor > drawPixelCoordsMinZoomFactor;
-                finalImage = DrawValuesOnZoomedPixels(finalImage, image, params, drawPixelCoords);
+                // Draw grid
+                double gridMinZoomFactor = 7.;
+                double zoomFactor = (double)params.ZoomMatrix(0, 0);
+                if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
+                    DrawGrid(finalImage, params);
+
+                // Draw Pixel Values
+                double drawPixelvaluesMinZoomFactor = (image.depth() == CV_8U) ? 36. : 48.;
+                if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelvaluesMinZoomFactor)
+                {
+                    double drawPixelCoordsMinZoomFactor = 60.;
+                    bool drawPixelCoords = zoomFactor > drawPixelCoordsMinZoomFactor;
+                    finalImage = DrawValuesOnZoomedPixels(finalImage, image, params, drawPixelCoords);
+                }
+
+                // Draw Watched Pixels
+                if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))
+                    finalImage = DrawWatchedPixels(finalImage, params);
+
             }
 
-            // Draw Watched Pixels
-            if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))
-                finalImage = DrawWatchedPixels(finalImage, params);
-
+            //
+            // Blit
+            //
             outTexture->BlitMat(finalImage, false);
         }
 
@@ -636,6 +668,19 @@ namespace ImmVision
                 params->ZoomMatrix = ZoomMatrix::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
+        bool ShallRefreshRgbaCache(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
+        {
+            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
+                return true;
+            if (v1.SelectedChannel != v2.SelectedChannel)
+                return true;
+            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
+                return true;
+            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
+                return true;
+            return false;
+        }
+
         bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
         {
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
@@ -669,6 +714,7 @@ namespace ImmVision
             struct CachedData
             {
                 ImageNavigatorParams* ImageNavigatorParams = nullptr;
+                cv::Mat     ImageRgbaCache;
                 GlTextureCv GlTextureCv;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
@@ -681,11 +727,13 @@ namespace ImmVision
                 params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
                 bool needsRefreshTexture = refresh;
+                bool shallRefreshRgbaCache = false;
 
                 if (mCache.find(&image) == mCache.end())
                 {
                     InitializeMissingParams(params, image);
                     needsRefreshTexture = true;
+                    shallRefreshRgbaCache = true;
                 }
                 mCache[&image].ImageNavigatorParams = params;
 
@@ -700,7 +748,12 @@ namespace ImmVision
                     params->ZoomMatrix = ZoomMatrix::UpdateZoomMatrix_DisplaySizeChanged(
                         oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
                 if (needsRefreshTexture)
-                    ImageNavigatorDrawing::BlitImageNavigatorTexture(*params, image, &cachedData.GlTextureCv);
+                {
+                    if (ShallRefreshRgbaCache(oldParams, *params))
+                        shallRefreshRgbaCache = true;
+                    ImageNavigatorDrawing::BlitImageNavigatorTexture(
+                        *params, image, cachedData.ImageRgbaCache, shallRefreshRgbaCache, &cachedData.GlTextureCv);
+                }
 
                 if (! ZoomMatrix::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
                     UpdateLinkedZooms(image);

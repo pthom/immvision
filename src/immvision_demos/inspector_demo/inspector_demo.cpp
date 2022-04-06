@@ -27,22 +27,8 @@
 
     auto gui = []()
     {
-        ImGui::SetNextWindowSizeConstraints(ImVec2(300.f, 200.f), ImVec2(10000.f, 10000.f));
-        if (! ImGui::Begin("ImageNavigatorWindow", NULL))
-        {
-            ImGui::End();
-            return;
-        }
-
         ImGui::Text("%s FPS:%.1f", datestr, ImGui::GetIO().Framerate);
-
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->Pos);
-        ImVec2 viewportSize = viewport->Size;
-        ImGui::SetNextWindowSize(viewportSize);
-
         ImmVision::Inspector_Show();
-        ImGui::End();
     };
 
     HelloImGui::RunnerParams params;
