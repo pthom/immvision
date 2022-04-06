@@ -78,7 +78,13 @@ namespace ImmVision
         bool flip_RedBlue
     )
     {
-        std::cout << "GlTexture::Blit_Buffer() \n";
+#ifdef __EMSCRIPTEN__
+        if (flip_RedBlue)
+        {
+            std::cerr << "GlTexture::Blit_Buffer does not support flip_RedBlue under emscripten!\n";
+            assert(false);
+        }
+#endif
 
         // GL_UNPACK_ALIGNMENT needs to be changed if the amount of data per row is not a multiple of 4.
         // For example, if you have RGB data, with 3 bytes per pixel
@@ -88,28 +94,34 @@ namespace ImmVision
         glBindTexture(GL_TEXTURE_2D, toGLuint(this->mImTextureId));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-#if defined(HELLOIMGUI_USE_GLES2) || defined(HELLOIMGUI_USE_GLES3)
+#if defined(__EMSCRIPTEN__) || defined(IMMVISION_USE_GLES2) || defined(IMMVISION_USE_GLES3)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-#endif
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
 
         int gl_color_flag = 0;
-        if (nb_channels == 3 && flip_RedBlue)
+        if (false)
+            ;
+#ifndef __EMSCRIPTEN__
+        else if (nb_channels == 3 && flip_RedBlue)
             gl_color_flag = GL_BGR;
         else if (nb_channels == 4 && flip_RedBlue)
             gl_color_flag = GL_BGRA;
+#endif
         else if (nb_channels == 3)
             gl_color_flag = GL_RGB;
         else if (nb_channels == 4)
             gl_color_flag = GL_RGBA;
         else
-            assert(false);
+        {
+            std::cout << "GlTexture::Blit_Buffer() bad color\n";
+            throw "GlTexture::Blit_Buffer() bad color";
+        }
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                      image_width,
                      image_height, 0, gl_color_flag, GL_UNSIGNED_BYTE, image_data);
-
         glBindTexture(GL_TEXTURE_2D, 0);
 
         mImageSize = ImVec2((float)image_width, (float) image_height);
@@ -135,17 +147,17 @@ namespace ImmVision
     //
     // ImageTextureCv
     //
-    GlTextureCv::GlTextureCv(const cv::Mat& mat) : GlTextureCv()
+    GlTextureCv::GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra) : GlTextureCv()
     {
-        BlitMat(mat);
+        BlitMat(mat, isBgrOrBgra);
     }
 
-    void GlTextureCv::BlitMat(const cv::Mat& mat)
+    void GlTextureCv::BlitMat(const cv::Mat& mat, bool isBgrOrBgra)
     {
         if (mat.empty())
             return;
-        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat);
+        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat, isBgrOrBgra);
 
-        Blit_BGRA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows);
+        Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows);
     }
 } // namespace ImmVision

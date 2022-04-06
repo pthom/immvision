@@ -44,11 +44,14 @@ namespace ImmVision
     void Image(
         const cv::Mat &mat,
         bool refresh,
-        const cv::Size& size = cv::Size(0, 0)
+        const cv::Size& size = cv::Size(0, 0),
+        bool isBgrOrBgra = true
     );
 
-    inline void ImageStill(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0)) { Image(mat, false, size); }
-    inline void ImageAnimated(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0)) { Image(mat, true, size); }
+    inline void ImageStill(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0), bool isBgrOrBgra = true)
+        { Image(mat, false, size, isBgrOrBgra); }
+    inline void ImageAnimated(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0), bool isBgrOrBgra = true)
+        { Image(mat, true, size, isBgrOrBgra); }
 
     cv::Point2d GetImageMousePos();
 

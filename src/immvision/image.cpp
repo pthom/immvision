@@ -83,7 +83,8 @@ namespace ImmVision
     void Image(
         const cv::Mat &mat,
         bool refresh,
-        const cv::Size& size
+        const cv::Size& size,
+        bool isBgrOrBgra
     )
     {
         GlTextureCv* glTextureCv = internal::gTextureCache.GetTexture(&mat);
@@ -93,7 +94,7 @@ namespace ImmVision
             refresh = true;
 
         if (refresh)
-            glTextureCv->BlitMat(mat);
+            glTextureCv->BlitMat(mat, isBgrOrBgra);
 
         ImVec2 sizeImVec2((float)size.width, (float)size.height);
         ImVec2 displaySize = ImGuiImm::ComputeDisplayImageSize(sizeImVec2, glTextureCv->mImageSize);

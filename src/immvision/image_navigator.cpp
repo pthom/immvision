@@ -5,9 +5,10 @@
 #include "immvision/internal/cv_drawing_utils.h"
 #include "immvision/internal/portable_file_dialogs.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <map>
 #include <vector>
 #include <iostream>
@@ -462,14 +463,6 @@ namespace ImmVision
                 finalImage = channels[params.SelectedChannel];
             }
 
-            // Convert to BGR
-            {
-                if (finalImage.type() == CV_8UC3 && !params.IsColorOrderBGR)
-                    cv::cvtColor(finalImage, finalImage, cv::COLOR_RGB2BGR);
-                if (finalImage.type() == CV_8UC4 && !params.IsColorOrderBGR)
-                    cv::cvtColor(finalImage, finalImage, cv::COLOR_RGBA2BGRA);
-            }
-
             // Alpha checkerboard
             if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
             {
@@ -481,7 +474,7 @@ namespace ImmVision
             finalImage = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, finalImage);
 
             // Convert to RGBA
-            finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage);
+            finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
             assert(finalImage.type() == CV_8UC4);
 
             // Zoom
@@ -516,7 +509,7 @@ namespace ImmVision
             if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))
                 finalImage = DrawWatchedPixels(finalImage, params);
 
-            outTexture->BlitMat(finalImage);
+            outTexture->BlitMat(finalImage, false);
         }
 
     } // namespace ImageNavigatorDrawing
@@ -1041,16 +1034,13 @@ namespace ImmVision
         {
             if (!params->ZoomWithMouseWheel)
                 return;
+            ImGui::SetItemUsingMouseWheel();
 
-            static float gLogZoomRatioFiltered = 0.;
-            gLogZoomRatioFiltered *= 0.9;
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
-                gLogZoomRatioFiltered += (double)ImGui::GetIO().MouseWheel / 30.f;
+                double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.f;
+                params->ZoomMatrix = params->ZoomMatrix * ZoomMatrix::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
             }
-            if (fabs(gLogZoomRatioFiltered) > 0.01)
-                params->ZoomMatrix = params->ZoomMatrix * ZoomMatrix::ComputeZoomMatrix(mouseLocation, exp(gLogZoomRatioFiltered));
-
         };
         auto fnShowZoomButtons = [&params, &image]()
         {

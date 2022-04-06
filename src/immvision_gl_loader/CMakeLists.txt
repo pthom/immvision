@@ -22,11 +22,14 @@ if (IMMVISION_USE_GLAD)
     endif()
 endif()
 
-find_package(OpenGL REQUIRED)
 
 add_library(immvision_gl_loader immvision_gl_loader.cpp immvision_gl_loader.h)
 target_include_directories(immvision_gl_loader PUBLIC ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(immvision_gl_loader PUBLIC OpenGL::GL)
+
+if (NOT EMSCRIPTEN)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(immvision_gl_loader PUBLIC OpenGL::GL)
+endif()
 
 if (IMMVISION_USE_GLAD)
     target_link_libraries(immvision_gl_loader PUBLIC glad_imm)

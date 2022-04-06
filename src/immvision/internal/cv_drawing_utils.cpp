@@ -433,7 +433,7 @@ namespace ImmVision
             return image_with_lines;
         }
 
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat)
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
         {
             cv::Mat mat = inputMat;
             if (!inputMat.isContinuous())
@@ -477,21 +477,25 @@ namespace ImmVision
             }
             else if (nbChannels == 3)
             {
-                if (mat.depth() == CV_8U)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2BGRA);
+                if (mat.depth() == CV_8U && isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2RGBA);
+                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_RGB2RGBA);
                 else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {
                     cv::Mat grey_uchar;
                     cv::Mat float_times_255 = mat * 255.;
                     float_times_255.convertTo(grey_uchar, CV_8UC3);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_RGB2RGBA);
                 }
                 else
                     throw std::runtime_error("unsupported image format");
             }
             else if (nbChannels == 4)
             {
-                if (mat.depth() == CV_8U)
+                if (mat.depth() == CV_8U && isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGRA2RGBA);
+                else if (mat.depth() == CV_8U && !isBgrOrBgra)
                     mat_rgba = mat;
                 else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {

@@ -43,10 +43,10 @@ namespace ImmVision
     struct GlTextureCv : public GlTexture
     {
         GlTextureCv() = default;
-        GlTextureCv(const cv::Mat& mat);
+        GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra);
         virtual ~GlTextureCv() = default;
 
-        void BlitMat(const cv::Mat& mat);
+        void BlitMat(const cv::Mat& mat, bool isBgrOrBgra);
     };
 
 } // namespace ImmVision

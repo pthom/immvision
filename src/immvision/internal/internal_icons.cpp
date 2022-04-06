@@ -249,7 +249,7 @@ namespace ImmVision
                     m = MakeAdjustLevelsImage();
                 else
                     m = MakeMagnifierImage(iconType);
-                auto texture = std::make_unique<GlTextureCv>(m);
+                auto texture = std::make_unique<GlTextureCv>(m, true);
                 textureCache[iconType] = std::move(texture);
             }
             return textureCache[iconType]->mImTextureId;

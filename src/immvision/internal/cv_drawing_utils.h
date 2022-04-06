@@ -130,7 +130,7 @@ namespace ImmVision
         Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba,
                                               const Image_RGBA &overlay_rgba,
                                               double alpha);
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat);
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra);
 
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision
