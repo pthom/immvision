@@ -87,7 +87,7 @@ namespace ImmVision
         double zoomRatio = 1.,
         bool isColorOrderBGR = true
     );
-    void Inspector_ShowWindow(bool* p_open = NULL);
+    void Inspector_Show();
     void Inspector_ClearImages();
 
 } // namespace ImmVision

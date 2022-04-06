@@ -1236,15 +1236,8 @@ namespace ImmVision
         s_Inspector_ImagesAndParams.push_back({image, params});
     }
 
-    void Inspector_ShowWindow(bool* p_open)
+    void Inspector_Show()
     {
-        ImGui::SetNextWindowSizeConstraints(ImVec2(300.f, 200.f), ImVec2(10000.f, 10000.f));
-        if (! ImGui::Begin("ImageNavigatorWindow", p_open))
-        {
-            ImGui::End();
-            return;
-        }
-
         ImageNavigatorWidgets::s_CollapsingHeader_CacheState_Sync = true;
 
         auto fnCleanInspectorImagesParams = [](const ImVec2& imageSize)
@@ -1288,27 +1281,31 @@ namespace ImmVision
                 showOptionsColumn = false;
         }
 
-        ImVec2 winSize = ImGui::GetWindowSize();
-        static float listWidth = winSize.x / 10.f;
-        float x_margin = 30.f;
-        float y_margin = 5.f;
-        float navigator_info_height = 120.f;
-        if (!s_Inspector_ImagesAndParams.empty())
+        static float listWidth = ImGui::GetWindowSize().x / 10.f;
+
+        ImVec2 imageSize;
         {
-            const auto& params = s_Inspector_ImagesAndParams.front().Params;
-            if (!params.ShowImageInfo)
-                navigator_info_height -= 20.f;
-            if (!params.ShowPixelInfo)
-                navigator_info_height -= 20.f;
+            float x_margin = 30.f;
+            float y_margin = 5.f;
+            float navigator_info_height = 120.f;
+            if (!s_Inspector_ImagesAndParams.empty())
+            {
+                const auto &params = s_Inspector_ImagesAndParams.front().Params;
+                if (!params.ShowImageInfo)
+                    navigator_info_height -= 20.f;
+                if (!params.ShowPixelInfo)
+                    navigator_info_height -= 20.f;
+            }
+            float navigator_options_width = showOptionsColumn ? 300.f : 0.f;
+            ImVec2 winSize = ImGui::GetWindowSize();
+            imageSize = ImVec2(
+                winSize.x - listWidth - x_margin - navigator_options_width,
+                winSize.y - y_margin - navigator_info_height);
+            if (imageSize.x < 1.f)
+                imageSize.x = 1.f;
+            if (imageSize.y < 1.f)
+                imageSize.y = 1.f;
         }
-        float navigator_options_width = showOptionsColumn ? 300.f : 0.f;
-        ImVec2 imageSize = ImVec2(
-            winSize.x - listWidth - x_margin - navigator_options_width,
-            winSize.y - y_margin - navigator_info_height);
-        if (imageSize.x < 1.f)
-            imageSize.x = 1.f;
-        if (imageSize.y < 1.f)
-            imageSize.y = 1.f;
 
         fnCleanInspectorImagesParams(imageSize);
 
@@ -1323,8 +1320,8 @@ namespace ImmVision
                 wasWidthSet = true;
             }
             ImGui::Text("Image list");
-            //ImGui::SetNextItemWidth();
 
+            ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
             if (ImGui::BeginListBox("##ImageNavigatorList", ImVec2(listWidth - 10.f, ImGui::GetContentRegionAvail().y)))
             {
                 for (int i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
@@ -1368,8 +1365,6 @@ namespace ImmVision
         }
 
         ImGui::Columns(1);
-
-        ImGui::End();
 
         ImageNavigatorWidgets::s_CollapsingHeader_CacheState_Sync = false;
     }
