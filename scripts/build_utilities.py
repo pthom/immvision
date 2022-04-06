@@ -1,12 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import subprocess
+import datetime
 
 CURRENT_DIR=os.getcwd()
 THIS_DIR=os.path.dirname(os.path.realpath(__file__))
 REPO_DIR=THIS_DIR + "/.."
 EXTERNAL_DIR=REPO_DIR + "/external"
+CURRENT_DIR_IS_REPO_DIR = (os.path.realpath(CURRENT_DIR) == os.path.realpath(REPO_DIR))
+
+
 os.chdir(REPO_DIR)
 
 
@@ -38,7 +42,7 @@ def install_vcpkg_thirdparties(skip_if_present):
     os.chdir(REPO_DIR)
 
 
-def imgui_download(use_powersave:bool, skip_if_present: bool):
+def imgui_download(use_powersave: bool, skip_if_present: bool):
     os.chdir(EXTERNAL_DIR)
     if os.path.isdir("imgui") and skip_if_present:
         print("imgui_download => already present!")
@@ -113,19 +117,36 @@ def opencv_build_emscripten():
 
 
 def cmake_desktop_build(use_power_save: bool):
+    if CURRENT_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
+        return
+    os.chdir(CURRENT_DIR)
     cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
     if use_power_save:
         cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
-    if os.path.realpath(CURRENT_DIR) == os.path.realpath(REPO_DIR):
-        print("copy/paste the following command in your build directory")
-        print(cmd)
-    else:
-        # print("Should run cmake")
-        run(cmd)
+    run(cmd)
 
 
 def cmake_emscripten_build():
-    raise "Not Implemented"
+    if CURRENT_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
+        return
+    os.chdir(CURRENT_DIR)
+    cmd = f"source ~/emsdk/emsdk_env.sh && emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_build_emscripten"
+    run(cmd)
+
+
+def build_emscripten_with_timestamp():
+    if CURRENT_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
+        return
+    os.chdir(CURRENT_DIR)
+    now = datetime.datetime.now()
+    datestr_file = REPO_DIR + "/src/immvision_demos/inspector_demo/datestr.h"
+    with open(datestr_file, "w") as f:
+        f.write(f"#define datestr \"{now}\"")
+    run("make -j")
+
 
 
 if __name__ == "__main__":
@@ -139,6 +160,7 @@ if __name__ == "__main__":
     4.1 Build / Desktop: run cmake using vcpkg toolchain
     4.2 Build / Desktop using power save: run cmake using vcpkg toolchain
     4.3 Emscripten build: run cmake for emscripten
+    4.4 Emscripten: udpate datestr.h & build
     """)
     choice = input("Enter the corresponding number: ")
     if choice == "1.1":
@@ -157,3 +179,5 @@ if __name__ == "__main__":
         cmake_desktop_build(True)
     if choice == "4.3":
         cmake_emscripten_build()
+    if choice == "4.4":
+        build_emscripten_with_timestamp()

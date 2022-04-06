@@ -3,6 +3,7 @@
 * [ ] Deploy
   * [ ] Solidify emscripten build 
     * [ ] Separate in build script
+    * [ ] Bug in hello_imgui: first cmake (empty dir) fails during configure
   * [ ] hello_imgui : Check deploy assets Windows release & Debug build
   * [ ] Work on immvision_gl_loader
   * [ ] Add more warnings
