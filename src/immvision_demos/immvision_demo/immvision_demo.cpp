@@ -40,13 +40,14 @@ cv::Mat ComputeSobelDerivatives(const cv::Mat&image, const SobelParams& params)
     cv::Mat blurred;
     cv::GaussianBlur(img_float, blurred, cv::Size(), params.GaussianBlurSize, params.GaussianBlurSize);
 
-    std::vector<cv::Mat> r(2);
+    std::vector<cv::Mat> r(3);
     int ddepth = CV_64F;
 
     double good_scale = 1. / pow(2., (double)(params.KSize - 2 * params.DerivativeOrder - 2));
     //params.Scale = good_scale;
     cv::Sobel(blurred, r[0], ddepth, params.DerivativeOrder, 0, params.KSize, good_scale);
     cv::Sobel(blurred, r[1], ddepth, 0, params.DerivativeOrder, params.KSize, good_scale);
+    r[2] = (cv::abs(r[0]) + cv::abs(r[1])) / 2.;
 
     cv::Mat m2;
     cv::merge(r, m2);
