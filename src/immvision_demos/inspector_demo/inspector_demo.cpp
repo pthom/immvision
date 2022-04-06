@@ -1,17 +1,16 @@
 #include "immvision/image_navigator.h"
 #include "hello_imgui/hello_imgui.h"
-
+#include "datestr.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
-
-int main()
+ int main(int , char *[])
 {
+    std::cout << datestr << std::endl;
+
     std::string zoomKey = "zk";
-    auto image = cv::imread("resources/house.jpg");
-    //ImmVision::AddInspectedImage(image, "Original");
-    //ImmVision::Explorer_AddImage(image, "Original");
-    //ImmVision::Inspector_AddImage(image, "Original");
+
+    auto image = cv::imread(HelloImGui::assetFileFullPath("house.jpg"));
     ImmVision::Inspector_AddImage(image, "Original", zoomKey);
 
     cv::Mat gray;
@@ -22,29 +21,35 @@ int main()
     cv::GaussianBlur(gray, blur, cv::Size(), 7.);
     ImmVision::Inspector_AddImage(blur, "Blur", zoomKey, "colkey");
 
-    auto forcePowerSave = []{
-        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_EnablePowerSavingMode;
-    };
+    cv::Mat place = cv::imread(HelloImGui::assetFileFullPath("reddit_place_2022.png"));
+    cv::resize(place, place, cv::Size(2000, 2000));
+    ImmVision::Inspector_AddImage(place, "Place");
 
     auto gui = []()
     {
+        ImGui::SetNextWindowSizeConstraints(ImVec2(300.f, 200.f), ImVec2(10000.f, 10000.f));
+        if (! ImGui::Begin("ImageNavigatorWindow", NULL))
+        {
+            ImGui::End();
+            return;
+        }
+
+        ImGui::Text("%s FPS:%.1f", datestr, ImGui::GetIO().Framerate);
+
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
         ImVec2 viewportSize = viewport->Size;
         ImGui::SetNextWindowSize(viewportSize);
 
-        bool open = true;
-        ImmVision::Inspector_ShowWindow(&open);
+        ImmVision::Inspector_Show();
+        ImGui::End();
     };
 
     HelloImGui::RunnerParams params;
     params.appWindowParams.windowSize = {1200.f, 800.f};
     params.callbacks.ShowGui = gui;
-    params.callbacks.PostInit = forcePowerSave;
+    params.callbacks.LoadAdditionalFonts = []{};
     HelloImGui::Run(params);
 
-    //No: ImmVision::ShowInspectorWindow();
-    //ImmVision::Inspector_Run();
-    //ImmVisionSimpleRunner::Run(Gui);
+    return 0;
 }
-
