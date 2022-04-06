@@ -522,7 +522,7 @@ namespace ImmVision
             //
             {
                 // Draw grid
-                double gridMinZoomFactor = 7.;
+                double gridMinZoomFactor = 12.;
                 double zoomFactor = (double)params.ZoomMatrix(0, 0);
                 if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
                     DrawGrid(finalImage, params);
