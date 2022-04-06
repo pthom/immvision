@@ -84,7 +84,7 @@ namespace ImmVisionSimpleRunner
         //io.ConfigViewportsNoAutoMerge = true;
         //io.ConfigViewportsNoTaskBarIcon = true;
 
-#ifdef IMMVISION_DEMO_USE_POWERSAVE
+#ifdef IMMVISION_USE_POWERSAVE
         io.ConfigFlags |= ImGuiConfigFlags_EnablePowerSavingMode;
 #endif
         // Setup Dear ImGui style
