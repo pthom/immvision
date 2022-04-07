@@ -196,7 +196,7 @@ static void guiFunction()
 
     {
         static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
-        ImmVision::ImageNavigator(imageTransparent, cv::Size(0, 400.f));
+        ImmVision::ImageNavigator(imageTransparent, cv::Size(0, 400));
     }
 
 //    ImGui::Begin("Style");

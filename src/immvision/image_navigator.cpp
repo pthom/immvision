@@ -1,3 +1,6 @@
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+
 #include "immvision/image_navigator.h"
 #include "immvision/internal/gl_texture.h"
 #include "immvision/internal/internal_icons.h"
@@ -7,8 +10,6 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <map>
 #include <vector>
 #include <iostream>
@@ -236,7 +237,7 @@ namespace ImmVision
         std::string ShowVecValue(const T& v)
         {
             char buffer_color[300];
-            sprintf(buffer_color, "%.5G", (double)v);
+            snprintf(buffer_color, 300, "%.5G", (double)v);
             return std::string(buffer_color);
         }
         template<>
@@ -392,7 +393,7 @@ namespace ImmVision
                     {
                         cv::Scalar white(255, 255, 255, 255);
                         cv::Scalar black(0, 0, 0, 255);
-                        cv::Vec4b backgroundColor(0., 0., 0., 0.);
+                        cv::Vec4b backgroundColor(0, 0, 0, 0);
                         if ( cv::Rect(cv::Point(), drawingImage.size()).contains({(int)position.x, (int)position.y}))
                             backgroundColor = drawingImage.at<cv::Vec4b>((int)position.y, (int)position.x);
                         double luminance = backgroundColor[2] * 0.2126 + backgroundColor[1] * 0.7152 + backgroundColor[0] * 0.0722;
