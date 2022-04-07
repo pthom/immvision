@@ -44,7 +44,7 @@ macro(activate_all_warnings)
             set(warning_flags "${warning_flags} /Wd-${ignored_warning}")
         endforeach()
         # Warning as error
-        set(warning_flags "${warning_flags} /WX")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
         
         add_compile_options(${warning_flags})
         message("add_compile_options(${warning_flags})")
