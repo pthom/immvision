@@ -6,7 +6,7 @@
 
 namespace ImmVision
 {
-    struct ColorAdjustments
+    struct ColorAdjustmentsValues
     {
         double Factor = 1., Delta = 0.;
     };
@@ -19,7 +19,7 @@ namespace ImmVision
         cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
         std::string ZoomKey = "";
 
-        ColorAdjustments ColorAdjustments = {};
+        ColorAdjustmentsValues ColorAdjustments = {};
         std::string ColorAdjustmentsKey = "";
 
         // Image navigation
