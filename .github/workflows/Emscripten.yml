@@ -18,10 +18,10 @@ jobs:
 
       - name: Configure
         run: |
-          source ~/emsdk/emsdk_env.sh
-          mkdir build_emscripten
-          cd build_emscripten
-          ../scripts/build_utilities.py --cmake_emscripten_build
+            source ~/emsdk/emsdk_env.sh
+            mkdir build_emscripten
+            cd build_emscripten
+            ../scripts/build_utilities.py --cmake_emscripten_build
 
       - name: Build
         working-directory: build_emscripten

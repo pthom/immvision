@@ -23,7 +23,7 @@ jobs:
       run: |
           mkdir build
           cd build
-        ../scripts/build_utilities.py --cmake_desktop_build_vcpkg
+          ../scripts/build_utilities.py --cmake_desktop_build_vcpkg
 
     - name: Build
       working-directory: build
