@@ -199,7 +199,7 @@ def cmake_desktop_build_vcpkg():
         print("Run this from your build dir!")
         return
     os.chdir(CURRENT_DIR)
-    cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake -B ."
     if USE_POWERSAVE:
         cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
     if ACTIVATE_ALL_WARNINGS:
