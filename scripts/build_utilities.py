@@ -4,23 +4,42 @@ import os
 import subprocess
 import datetime
 
+# global options
+SKIP_IF_PRESENT = True
+USE_POWERSAVE = True
+
+# Directory global variables
 CURRENT_DIR=os.getcwd()
 THIS_DIR=os.path.dirname(os.path.realpath(__file__))
 REPO_DIR=THIS_DIR + "/.."
 EXTERNAL_DIR=REPO_DIR + "/external"
-CURRENT_DIR_IS_REPO_DIR = (os.path.realpath(CURRENT_DIR) == os.path.realpath(REPO_DIR))
+CURRENT_DIR_IS_REPO_DIR = False
+if (os.path.realpath(CURRENT_DIR) == os.path.realpath(REPO_DIR)):
+    CURRENT_DIR_IS_REPO_DIR = True
+if (os.path.realpath(CURRENT_DIR) == os.path.realpath(THIS_DIR)):
+    CURRENT_DIR_IS_REPO_DIR = True
+if (os.path.realpath(CURRENT_DIR) == os.path.realpath(EXTERNAL_DIR)):
+    CURRENT_DIR_IS_REPO_DIR = True
 
 
 os.chdir(REPO_DIR)
 
 
 def run(cmd):
+    print("#####################################################")
+    print("Running shell command: \n    " + cmd)
+    print("#####################################################")
     subprocess.check_call(cmd, shell=True)
 
 
-def install_vcpkg_thirdparties(skip_if_present):
+def install_vcpkg_thirdparties():
+    """
+    Install vcpkg + opencv and sdl (for desktop builds) into external/vcpkg
+    Will create a folder external/vcpkg/ where vcpkg will be installed, with OpenCV and SDL.
+    You can skip this part if you already have OpenCV and SDL someewhere else on your system.
+    """
     os.chdir(EXTERNAL_DIR)
-    if os.path.isdir("vcpkg") and skip_if_present:
+    if os.path.isdir("vcpkg") and SKIP_IF_PRESENT:
         print("install_vcpkg_thirdparties => already present!")
         return
 
@@ -42,16 +61,24 @@ def install_vcpkg_thirdparties(skip_if_present):
     os.chdir(REPO_DIR)
 
 
-def imgui_download(use_powersave: bool, skip_if_present: bool):
+def imgui_download():
+    """
+    Download imgui into external/imgui/
+    Two versions are avaible: 
+    * standard version: docking branch of the standard repo (https://github.com/ocornut/imgui.git)
+    * power save version: see PR https://github.com/ocornut/imgui/pull/4076
+      This PR was adapted to imgui docking version of March 2022 here: 
+      https://github.com/pthom/imgui/tree/docking_powersave
+    """
     os.chdir(EXTERNAL_DIR)
-    if os.path.isdir("imgui") and skip_if_present:
+    if os.path.isdir("imgui") and SKIP_IF_PRESENT:
         print("imgui_download => already present!")
         return
 
     print("imgui_download")
     if (os.path.isdir("imgui")):
         run("rm -rf imgui")
-    if use_powersave:
+    if USE_POWERSAVE:
         run("git clone https://github.com/pthom/imgui.git")
         os.chdir("imgui")
         run("git checkout docking_powersave")
@@ -62,21 +89,37 @@ def imgui_download(use_powersave: bool, skip_if_present: bool):
     os.chdir(REPO_DIR)
 
 
-def hello_imgui_download(skip_if_present: bool):
+def hello_imgui_download():
+    """
+    Download hello_imgui into external/hello_imgui (optional)
+    hello_imgui is not required, and is only used to build the demos 
+    and the standalone image debug viewer.
+    """
     os.chdir(EXTERNAL_DIR)
-    if os.path.isdir("hello_imgui") and skip_if_present:
+    if os.path.isdir("hello_imgui") and SKIP_IF_PRESENT:
         print("hello_imgui_download => already present!")
         return
     run("git clone https://github.com/pthom/hello_imgui.git")
 
 
 def opencv_build_emscripten():
+    """
+    Download and build opencv for emscripten (into external/opencv and external/external/opencv_build_emscripten)
+    (only used for emscripten builds, where OpenCV is not available through vcpkg)
+    Will clone opencv code into external/opencv, then build it for emscripten into external/opencv_build_emscripten
+    """
     os.chdir(EXTERNAL_DIR)
+
 
     # Git clone
     if not os.path.isdir("opencv"):
         run("git clone https://github.com/opencv/opencv.git")
+    else:
+        if not SKIP_IF_PRESENT:
+            run("rm -rf opencv")
+            run("git clone https://github.com/opencv/opencv.git")
 
+    # build
     if not os.path.isdir("opencv_build_emscripten"):
         os.makedirs("opencv_build_emscripten")
     os.chdir("opencv_build_emscripten")
@@ -116,18 +159,29 @@ def opencv_build_emscripten():
     os.chdir(REPO_DIR)
 
 
-def cmake_desktop_build(use_power_save: bool):
+def cmake_desktop_build_vcpkg():
+    """
+    Run cmake with correct flags for a desktop build with vcpkg
+    * CMAKE_TOOLCHAIN_FILE will use the vcpkg toolchain
+    * IMMVISION_USE_POWERSAVE can optionally activate the power save mode
+    Run this script from your desired build dir.
+    """
     if CURRENT_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
     os.chdir(CURRENT_DIR)
     cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    if use_power_save:
+    if USE_POWERSAVE:
         cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
     run(cmd)
 
 
 def cmake_emscripten_build():
+    """
+    Run cmake with correct flags for a build with emscripten.
+    OpenCV_DIR will point to external/opencv_build_emscripten. 
+    Run this script from your desired build dir.
+    """
     if CURRENT_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
@@ -137,6 +191,12 @@ def cmake_emscripten_build():
 
 
 def build_emscripten_with_timestamp():
+    """
+    Helper to build the emscripten version
+    This will update src/immvision_demos/inspector_demo/datestr.h and then run `make`
+    (this date is displayed in the javascript console at startup to help diagnose issues) 
+    You can safely run `make` manually instead.
+    """
     if CURRENT_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
@@ -148,36 +208,68 @@ def build_emscripten_with_timestamp():
     run("make -j")
 
 
+def run_interactive():
+    print()
+    print("Current options:")
+    print("================")
+    print(f"* USE_POWERSAVE (Use imgui power save version): {USE_POWERSAVE}")
+    print(f"* SKIP_IF_PRESENT (do not reinstall present third parties): {SKIP_IF_PRESENT}")
+    print()
+
+    print("Choose a command:\n")
+    function_list_third_parties = {  
+        "name": "Install third parties",
+        "functions": [
+            install_vcpkg_thirdparties,
+            imgui_download,
+            hello_imgui_download
+        ]
+    }
+    function_list_build = {  
+        "name": "Build for desktop",
+        "functions": [
+            cmake_desktop_build_vcpkg,
+        ]
+    }
+    
+    function_list_emscripten = {  
+        "name": "Build for emscripten",
+        "functions": [
+            opencv_build_emscripten,
+            cmake_emscripten_build,
+            build_emscripten_with_timestamp
+        ]
+    }
+    all_function_categories = [function_list_third_parties, function_list_build, function_list_emscripten]
+    all_function_list = []
+
+    i = 0
+    for category in all_function_categories:
+        print(f"{category['name']}")
+        print("=================================================")
+        for fn in category['functions']:
+            doc = fn.__doc__
+            doc_lines = doc.split("\n")[1:]
+            title = doc_lines[:1][0].strip()
+            doc_detail_lines = doc_lines[1:]
+            def indent_doc_line(line):
+                return "   " + line.strip()
+            doc_detail_lines = list(map(indent_doc_line, doc_detail_lines))
+            doc_detail = "\n".join(doc_detail_lines)  
+            print(f"{i + 1}. {title}")
+            print(f"{doc_detail}")
+            all_function_list.append(fn)
+            i = i + 1
+    choice = input("Enter the number corresponding to your choice: ")
+    try:
+        choice_nb = int(choice) - 1
+        if choice_nb < 0 or choice_nb >= len(all_function_list):
+            print(f"Enter a number between 1 and {len(all_function_list)}")
+            return
+        fn_to_run = all_function_list[choice_nb]
+        fn_to_run()
+    except ValueError:
+        print("Enter a number!")
 
 if __name__ == "__main__":
-    print("Choose a command:")
-    print("""
-    1.1 Desktop builds: Install vcpkg + opencv and sdl
-    1.2 Emscripten build: Dowload and build opencv
-    2.1 Download imgui official docking version
-    2.2 Download imgui power save version
-    3   Download hello_imgui (needed for the viewer)
-    4.1 Build / Desktop: run cmake using vcpkg toolchain
-    4.2 Build / Desktop using power save: run cmake using vcpkg toolchain
-    4.3 Emscripten build: run cmake for emscripten
-    4.4 Emscripten: udpate datestr.h & build
-    """)
-    choice = input("Enter the corresponding number: ")
-    if choice == "1.1":
-        install_vcpkg_thirdparties(True)
-    if choice == "1.2":
-        opencv_build_emscripten()
-    if choice == "2.1":
-        imgui_download(False, True)
-    if choice == "2.2":
-        imgui_download(True, True)
-    if choice == "3":
-        hello_imgui_download(True)
-    if choice == "4.1":
-        cmake_desktop_build(False)
-    if choice == "4.2":
-        cmake_desktop_build(True)
-    if choice == "4.3":
-        cmake_emscripten_build()
-    if choice == "4.4":
-        build_emscripten_with_timestamp()
+    run_interactive()
