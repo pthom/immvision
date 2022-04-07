@@ -17,7 +17,9 @@ jobs:
 
     # Does not install OpenCVConfig.cmake !!!
     - name: Install opencv via apt-get
-      run:  sudo apt-get install libopencv-core-dev libopencv-highgui-dev libopencv-imgcodecs-dev libopencv-imgproc-dev
+      run:  |
+        sudo apt-get install libopencv-core-dev libopencv-highgui-dev libopencv-imgcodecs-dev libopencv-imgproc-dev
+        sudo apt-get install libsdl2-dev libsdl2-2.0-0
 
     - name: Clone imgui and hello_imgui
       run: |
