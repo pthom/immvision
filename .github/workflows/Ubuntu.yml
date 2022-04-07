@@ -28,37 +28,37 @@ jobs:
 
 
 
-#    - name: Setup interactive tmate session
-#      uses: mxschmitt/action-tmate@v2
+    - name: Setup interactive tmate session
+      uses: mxschmitt/action-tmate@v2
 
 
-    - name: Configure
-      run:  |
-        mkdir build
-        cd build
-        cmake .. -DIMMVISION_FIX_MISSING_OPENCV_CONFIG=ON
-
-    - name: Build
-      run: |
-        cd build
-        make
-
-
-
-
-#    - name: Install vcpkg
-#      run: |
-#        ./scripts/build_utilities.py --install_vcpkg_thirdparties
-
-
-#
 #    - name: Configure
-#      run: |
+#      run:  |
 #        mkdir build
 #        cd build
-#        ../scripts/build_utilities.py --cmake_desktop_build_vcpkg
+#        cmake .. -DIMMVISION_FIX_MISSING_OPENCV_CONFIG=ON
 #
 #    - name: Build
 #      run: |
 #        cd build
 #        make
+#
+#
+#
+#
+##    - name: Install vcpkg
+##      run: |
+##        ./scripts/build_utilities.py --install_vcpkg_thirdparties
+#
+#
+##
+##    - name: Configure
+##      run: |
+##        mkdir build
+##        cd build
+##        ../scripts/build_utilities.py --cmake_desktop_build_vcpkg
+##
+##    - name: Build
+##      run: |
+##        cd build
+##        make

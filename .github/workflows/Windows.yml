@@ -1,16 +1,16 @@
-#name: Windows
-#
-#on:
-#  push:
-#  pull_request:
-#
-#jobs:
-#  build:
-#    runs-on: windows-latest
-#    steps:
-#    - uses: actions/checkout@master
-#    - name: Checkout submodules
-#      run: git submodule update --init --recursive
+name: Windows
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
 #
 #    - name: Setup interactive tmate session
 #      uses: mxschmitt/action-tmate@v2
