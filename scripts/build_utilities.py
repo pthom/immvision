@@ -3,6 +3,7 @@
 import os
 import subprocess
 import datetime
+import sys
 
 # global options
 SKIP_IF_PRESENT = True
@@ -24,6 +25,15 @@ if (os.path.realpath(CURRENT_DIR) == os.path.realpath(EXTERNAL_DIR)):
 
 os.chdir(REPO_DIR)
 
+def has_program(program_name):
+    paths = os.environ['PATH'].split(":")
+    for path in paths:
+        prog_path = f"{path}/{program_name}"
+        if os.path.exists(prog_path) and os.path.isfile(prog_path):
+            return True
+    return False
+
+HAS_EMSCRIPTEN = has_program("emcmake")
 
 def run(cmd):
     print("#####################################################")
@@ -124,9 +134,7 @@ def opencv_build_emscripten():
         os.makedirs("opencv_build_emscripten")
     os.chdir("opencv_build_emscripten")
 
-    cmd = """
-    source ~/emsdk/emsdk_env.sh && \
-    emcmake cmake ../opencv \
+    cmd = """emcmake cmake ../opencv \
     -DENABLE_PIC=FALSE -DCMAKE_BUILD_TYPE=Release -DCPU_BASELINE='' \
     -DCPU_DISPATCH='' -DCV_TRACE=OFF \
      \
@@ -186,7 +194,7 @@ def cmake_emscripten_build():
         print("Run this from your build dir!")
         return
     os.chdir(CURRENT_DIR)
-    cmd = f"source ~/emsdk/emsdk_env.sh && emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_build_emscripten"
+    cmd = f"emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_build_emscripten"
     run(cmd)
 
 
@@ -214,6 +222,8 @@ def run_interactive():
     print("================")
     print(f"* USE_POWERSAVE (Use imgui power save version): {USE_POWERSAVE}")
     print(f"* SKIP_IF_PRESENT (do not reinstall present third parties): {SKIP_IF_PRESENT}")
+    doc_ems = "" if HAS_EMSCRIPTEN else "(run `source emsdk_env.sh` before running this script)"
+    print(f"* HAS_EMSCRIPTEN: {HAS_EMSCRIPTEN} {doc_ems}")
     print()
 
     print("Choose a command:\n")
@@ -240,7 +250,9 @@ def run_interactive():
             build_emscripten_with_timestamp
         ]
     }
-    all_function_categories = [function_list_third_parties, function_list_build, function_list_emscripten]
+    all_function_categories = [function_list_third_parties, function_list_build]
+    if HAS_EMSCRIPTEN:
+        all_function_categories.append(function_list_emscripten)
     all_function_list = []
 
     i = 0
@@ -270,6 +282,8 @@ def run_interactive():
         fn_to_run()
     except ValueError:
         print("Enter a number!")
+
+
 
 if __name__ == "__main__":
     run_interactive()
