@@ -10,7 +10,7 @@ SKIP_IF_PRESENT = False
 USE_POWERSAVE = True
 ACTIVATE_ALL_WARNINGS = True
 ONLY_ECHO_COMMAND = False
-LINK_STATIC_LIBRARIES = True
+LINK_STATIC_LIBRARIES_WINDOWS = True # link opencv as a static lib under windows (for other OSes, this is the default)
 ARCH_X64_OR_X86 = "x64" # can be "x64" or "x86"
 
 # Directory global variables
@@ -45,7 +45,8 @@ def print_current_options():
     print(f"* USE_POWERSAVE (Use imgui power save version): {USE_POWERSAVE}")
     print(f"* SKIP_IF_PRESENT (do not reinstall present third parties): {SKIP_IF_PRESENT}")
     print(f"* ACTIVATE_ALL_WARNINGS: {ACTIVATE_ALL_WARNINGS} (activate many warning, as errors)")
-    print(f"* LINK_STATIC_LIBRARIES: {LINK_STATIC_LIBRARIES} (build libs, i.e OpenCV, as static libs)")
+    if os.name == "nt":
+        print(f"* LINK_STATIC_LIBRARIES_WINDOWS: {LINK_STATIC_LIBRARIES_WINDOWS} (build libs, i.e OpenCV, as static libs)")
     print(f"* ONLY_ECHO_COMMAND: {ONLY_ECHO_COMMAND} (if true, only display required shell commands)")
     print(f"* ARCH_X64_OR_X86: {ARCH_X64_OR_X86}")
     doc_ems = "" if HAS_EMSCRIPTEN else "(run `source emsdk_env.sh` before running this script)"
@@ -66,7 +67,7 @@ def run(cmd):
 
 def optional_triplet_name():
     if os.name == 'nt':
-        if LINK_STATIC_LIBRARIES:
+        if LINK_STATIC_LIBRARIES_WINDOWS:
             return "x86-windows-static-md" if ARCH_X64_OR_X86 == "x86" else "x64-windows-static-md"
         else:
             return "x86-windows" if ARCH_X64_OR_X86 == "x86" else "x64-windows"
@@ -234,8 +235,8 @@ def cmake_desktop_build_vcpkg():
     cmd = cmd + " -B ."
 
     if os.name == 'nt':
-        generator = "Visual Studio 16 2019"
         arch = "win32" if ARCH_X64_OR_X86 == "x86" else "x64"
+        # generator = "Visual Studio 16 2019"
         # cmd = cmd + f" -G \"{generator}\""
         cmd = cmd + f" -A {arch}"
 
