@@ -57,10 +57,29 @@ if (IMMVISION_ACTIVATE_ALL_WARNINGS)
     activate_all_warnings()
 endif()
 
-
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
+
+
+option(IMMVISION_FIX_MISSING_OPENCV_CONFIG "Workaround for linux opencv package which does not include cmake support..." OFF)
+if (IMMVISION_FIX_MISSING_OPENCV_CONFIG)
+    add_library(opencv_core INTERFACE)
+    add_library(opencv_highgui INTERFACE)
+    add_library(opencv_imgcodecs INTERFACE)
+    add_library(opencv_imgproc INTERFACE)
+    add_library(opencv_videoio INTERFACE)
+    target_link_libraries(opencv_core
+        PUBLIC
+        /usr/lib/x86_64-linux-gnu/libopencv_core.a
+        /usr/lib/x86_64-linux-gnu/libopencv_highgui.a
+        /usr/lib/x86_64-linux-gnu/libopencv_imgcodecs.a
+        /usr/lib/x86_64-linux-gnu/libopencv_imgproc.a
+        /usr/lib/x86_64-linux-gnu/libopencv_videoio.a
+        )
+    target_include_directories(opencv_core PUBLIC /usr/include)
+endif()
+
 
 add_subdirectory(immvision_gl_loader)
 add_subdirectory(immvision)

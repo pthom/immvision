@@ -12,20 +12,43 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
-#    - name: Setup interactive tmate session
-#      uses: mxschmitt/action-tmate@v2
-
     - name: Install needed libraries
       run: sudo apt-get update && sudo apt-get install -y libxrandr-dev xorg-dev libxinerama-dev
 
-    - name: Setup interactive tmate session
-      uses: mxschmitt/action-tmate@v2
+    # Does not install OpenCVConfig.cmake !!!
+    - name: Install opencv via apt-get
+      run:  sudo apt-get install libopencv-core-dev libopencv-highgui-dev libopencv-imgcodecs-dev libopencv-imgproc-dev
 
-#    - name: Install third parties
+    - name: Clone imgui and hello_imgui
+      run: |
+        ./scripts/build_utilities.py --imgui_download
+        ./scripts/build_utilities.py --hello_imgui_download
+
+
+
+#    - name: Setup interactive tmate session
+#      uses: mxschmitt/action-tmate@v2
+
+
+    - name: Configure
+      run:  |
+        mkdir build
+        cd build
+        cmake .. -DIMMVISION_FIX_MISSING_OPENCV_CONFIG=ON
+
+    - name: Build
+      run: |
+        cd build
+        make
+
+
+
+
+#    - name: Install vcpkg
 #      run: |
 #        ./scripts/build_utilities.py --install_vcpkg_thirdparties
-#        ./scripts/build_utilities.py --imgui_download
-#        ./scripts/build_utilities.py --hello_imgui_download
+
+
 #
 #    - name: Configure
 #      run: |
