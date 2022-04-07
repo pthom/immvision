@@ -12,7 +12,5 @@ option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
 # only use if your version of imgui has this mode!
 option(IMMVISION_USE_POWERSAVE "use powersave mode for imgui" OFF)
 
-find_package(OpenCV CONFIG REQUIRED)
-
 add_subdirectory(src)
 add_subdirectory(external)
