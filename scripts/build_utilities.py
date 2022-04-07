@@ -8,6 +8,7 @@ import sys
 # global options
 SKIP_IF_PRESENT = True
 USE_POWERSAVE = True
+ACTIVATE_ALL_WARNINGS = True
 
 # Directory global variables
 CURRENT_DIR=os.getcwd()
@@ -23,8 +24,6 @@ if (os.path.realpath(CURRENT_DIR) == os.path.realpath(EXTERNAL_DIR)):
     CURRENT_DIR_IS_REPO_DIR = True
 
 
-os.chdir(REPO_DIR)
-
 def has_program(program_name):
     paths = os.environ['PATH'].split(":")
     for path in paths:
@@ -34,6 +33,18 @@ def has_program(program_name):
     return False
 
 HAS_EMSCRIPTEN = has_program("emcmake")
+
+
+def print_current_options():
+    print()
+    print("Current options:")
+    print("================")
+    print(f"* USE_POWERSAVE (Use imgui power save version): {USE_POWERSAVE}")
+    print(f"* SKIP_IF_PRESENT (do not reinstall present third parties): {SKIP_IF_PRESENT}")
+    doc_ems = "" if HAS_EMSCRIPTEN else "(run `source emsdk_env.sh` before running this script)"
+    print(f"* HAS_EMSCRIPTEN: {HAS_EMSCRIPTEN} {doc_ems}")
+    print(f"* ACTIVATE_ALL_WARNINGS: {ACTIVATE_ALL_WARNINGS} (activate many warning, as errors)")
+    print()
 
 def run(cmd):
     print("#####################################################")
@@ -181,6 +192,8 @@ def cmake_desktop_build_vcpkg():
     cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
     if USE_POWERSAVE:
         cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
+    if ACTIVATE_ALL_WARNINGS:
+        cmd = cmd + " -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
     run(cmd)
 
 
@@ -217,14 +230,7 @@ def build_emscripten_with_timestamp():
 
 
 def run_interactive():
-    print()
-    print("Current options:")
-    print("================")
-    print(f"* USE_POWERSAVE (Use imgui power save version): {USE_POWERSAVE}")
-    print(f"* SKIP_IF_PRESENT (do not reinstall present third parties): {SKIP_IF_PRESENT}")
-    doc_ems = "" if HAS_EMSCRIPTEN else "(run `source emsdk_env.sh` before running this script)"
-    print(f"* HAS_EMSCRIPTEN: {HAS_EMSCRIPTEN} {doc_ems}")
-    print()
+    print_current_options()
 
     print("Choose a command:\n")
     function_list_third_parties = {  
