@@ -90,6 +90,7 @@ def imgui_download():
     * power save version: see PR https://github.com/ocornut/imgui/pull/4076
       This PR was adapted to imgui docking version of March 2022 here: 
       https://github.com/pthom/imgui/tree/docking_powersave
+    Keyword: vcpkg
     """
     os.chdir(EXTERNAL_DIR)
     if os.path.isdir("imgui") and SKIP_IF_PRESENT:
@@ -229,11 +230,8 @@ def build_emscripten_with_timestamp():
     run("make -j")
 
 
-def run_interactive():
-    print_current_options()
-
-    print("Choose a command:\n")
-    function_list_third_parties = {  
+def get_all_function_categories():
+    function_list_third_parties = {
         "name": "Install third parties",
         "functions": [
             install_vcpkg_thirdparties,
@@ -241,14 +239,15 @@ def run_interactive():
             hello_imgui_download
         ]
     }
-    function_list_build = {  
+
+    function_list_build = {
         "name": "Build for desktop",
         "functions": [
             cmake_desktop_build_vcpkg,
         ]
     }
-    
-    function_list_emscripten = {  
+
+    function_list_emscripten = {
         "name": "Build for emscripten",
         "functions": [
             opencv_build_emscripten,
@@ -259,10 +258,23 @@ def run_interactive():
     all_function_categories = [function_list_third_parties, function_list_build]
     if HAS_EMSCRIPTEN:
         all_function_categories.append(function_list_emscripten)
+    return all_function_categories
+
+def get_all_functions():
+    all_functions = []
+    for c in get_all_function_categories():
+        all_functions = all_functions + (c["functions"])
+    return all_functions
+
+
+def run_interactive():
+    print_current_options()
+
+    print("Choose a command:\n")
     all_function_list = []
 
     i = 0
-    for category in all_function_categories:
+    for category in get_all_function_categories():
         print(f"{category['name']}")
         print("=================================================")
         for fn in category['functions']:
@@ -289,7 +301,34 @@ def run_interactive():
     except ValueError:
         print("Enter a number!")
 
+def help_available_functions():
+    print("Available functions:")
+    for fn in get_all_functions():
+        print(f" {sys.argv[0]} --{fn.__name__}")
+
+def run_argv_function(arg1):
+    if not arg1[:2] == "--":
+        return False
+    function_name = arg1[2:]
+    found_function = False
+    for fn in get_all_functions():
+        if fn.__name__ == function_name:
+            found_function = True
+            fn()
+    if not found_function:
+        print("Bad argument!")
+        help_available_functions()
+        return False
+    else:
+        return True
 
 
 if __name__ == "__main__":
-    run_interactive()
+    if len(sys.argv) == 1:
+        run_interactive()
+    if len(sys.argv) == 2:
+        arg1 = sys.argv[1]
+        if arg1 == "-h":
+            help_available_functions()
+        elif not run_argv_function(arg1):
+            print("Failure")
