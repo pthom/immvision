@@ -70,14 +70,14 @@ if (IMMVISION_FIX_MISSING_OPENCV_CONFIG)
     add_library(opencv_imgproc INTERFACE)
     add_library(opencv_videoio INTERFACE)
     target_link_libraries(opencv_core
-        PUBLIC
+        INTERFACE
         /usr/lib/x86_64-linux-gnu/libopencv_core.a
         /usr/lib/x86_64-linux-gnu/libopencv_highgui.a
         /usr/lib/x86_64-linux-gnu/libopencv_imgcodecs.a
         /usr/lib/x86_64-linux-gnu/libopencv_imgproc.a
         /usr/lib/x86_64-linux-gnu/libopencv_videoio.a
         )
-    target_include_directories(opencv_core PUBLIC /usr/include)
+    target_include_directories(opencv_core INTERFACE /usr/include)
 endif()
 
 
