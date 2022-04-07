@@ -1,5 +1,7 @@
+cmake_policy(SET CMP0054 NEW)
+
 macro(activate_all_warnings)
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
         # using Clang
         set(warning_flags "-Weverything -Werror")
 
@@ -20,11 +22,6 @@ macro(activate_all_warnings)
             padded
             weak-vtables
             )
-        set(important_warnings
-            sign-conversion
-            sign-compare
-            implicit-int-conversion
-            )
         foreach(ignored_warning ${ignored_warnings})
             set(warning_flags "${warning_flags} -Wno-${ignored_warning}")
         endforeach()
@@ -32,12 +29,25 @@ macro(activate_all_warnings)
         set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${warning_flags})
         message("set(CMAKE_CXX_FLAGS ${warning_flags})")
 
-    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         # using GCC
-    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
         # using Intel C++
-    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         # using Visual Studio C++
+        set(warning_flags "/W4")
+
+        set(ignored_warnings
+        # no ignored warning
+        )
+        foreach(ignored_warning ${ignored_warnings})
+            set(warning_flags "${warning_flags} /Wd-${ignored_warning}")
+        endforeach()
+        # Warning as error
+        set(warning_flags "${warning_flags} /WX")
+        
+        add_compile_options(${warning_flags})
+        message("add_compile_options(${warning_flags})")
     endif()
 endmacro()
 
