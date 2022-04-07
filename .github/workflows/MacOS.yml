@@ -15,9 +15,9 @@ jobs:
 
     - name: Install third parties
       run: |
-          ../scripts/build_utilities.py --install_vcpkg_thirdparties
-          ../scripts/build_utilities.py --imgui_download
-          ../scripts/build_utilities.py --hello_imgui_download          
+          ./scripts/build_utilities.py --install_vcpkg_thirdparties
+          ./scripts/build_utilities.py --imgui_download
+          ./scripts/build_utilities.py --hello_imgui_download          
 
     - name: Configure
       run: |
@@ -26,6 +26,6 @@ jobs:
           ../scripts/build_utilities.py --cmake_desktop_build_vcpkg
 
     - name: Build
-      working-directory: build
       run: |
-          make
+        cd build
+        make

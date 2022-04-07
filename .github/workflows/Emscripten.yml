@@ -16,6 +16,9 @@ jobs:
       - name: Install emscripten
         run: ./scripts/emscripten/install_emscripten.sh
 
+      - name: Compile OpenCV
+        run: ./scripts/build_utilities.py --opencv_build_emscripten
+
       - name: Configure
         run: |
             source ~/emsdk/emsdk_env.sh
