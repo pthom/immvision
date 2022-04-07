@@ -160,12 +160,12 @@ namespace ImmVision
 
     namespace ColorAdjustmentsUtils
     {
-        static bool IsNone(const ColorAdjustments& a)
+        static bool IsNone(const ColorAdjustmentsValues& a)
         {
             return (a.Factor == 1.) && (a.Delta == 0.);
         }
 
-        static bool IsEqual(const ColorAdjustments& v1, const ColorAdjustments& v2)
+        static bool IsEqual(const ColorAdjustmentsValues& v1, const ColorAdjustmentsValues& v2)
         {
             if (fabs(v2.Factor - v1.Factor) > 1E-6)
                 return false;
@@ -174,7 +174,7 @@ namespace ImmVision
             return true;
         }
 
-        static cv::Mat Adjust(const ColorAdjustments& a, const cv::Mat &image)
+        static cv::Mat Adjust(const ColorAdjustmentsValues& a, const cv::Mat &image)
         {
             if (IsNone(a))
                 return image;
@@ -182,9 +182,9 @@ namespace ImmVision
                     image * a.Factor + a.Delta;
         }
 
-        ColorAdjustments ComputeInitialImageAdjustments(const cv::Mat& m)
+        ColorAdjustmentsValues ComputeInitialImageAdjustments(const cv::Mat& m)
         {
-            ColorAdjustments r;
+            ColorAdjustmentsValues r;
             if ((m.depth() == CV_32F) || (m.depth() == CV_64F))
             {
                 std::vector<double> minima, maxima;
@@ -712,9 +712,9 @@ namespace ImmVision
             // members
             struct CachedData
             {
-                ImageNavigatorParams* ImageNavigatorParams = nullptr;
+                ImageNavigatorParams* NavigatorParams = nullptr;
                 cv::Mat     ImageRgbaCache;
-                GlTextureCv GlTextureCv;
+                GlTextureCv GlTexture;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
@@ -734,12 +734,12 @@ namespace ImmVision
                     needsRefreshTexture = true;
                     shallRefreshRgbaCache = true;
                 }
-                mCache[&image].ImageNavigatorParams = params;
+                mCache[&image].NavigatorParams = params;
 
                 auto& cachedData = mCache.at(&image);
 
                 ImageNavigatorParams oldParams = cachedData.PreviousParams;
-                *cachedData.ImageNavigatorParams = *params;
+                *cachedData.NavigatorParams = *params;
 
                 if (ShallRefreshTexture(oldParams, *params))
                     needsRefreshTexture = true;
@@ -751,7 +751,7 @@ namespace ImmVision
                     if (ShallRefreshRgbaCache(oldParams, *params))
                         shallRefreshRgbaCache = true;
                     ImageNavigatorDrawing::BlitImageNavigatorTexture(
-                        *params, image, cachedData.ImageRgbaCache, shallRefreshRgbaCache, &cachedData.GlTextureCv);
+                        *params, image, cachedData.ImageRgbaCache, shallRefreshRgbaCache, &cachedData.GlTexture);
                 }
 
                 if (! ZoomMatrix::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
@@ -773,24 +773,24 @@ namespace ImmVision
             void UpdateLinkedZooms(const cv::Mat& image)
             {
                 assert(mCache.find(&image) != mCache.end());
-                std::string key = mCache[&image].ImageNavigatorParams->ZoomKey;
+                std::string key = mCache[&image].NavigatorParams->ZoomKey;
                 if (key.empty())
                     return;
-                ZoomMatrix::ZoomMatrixType newZoom = mCache[&image].ImageNavigatorParams->ZoomMatrix;
+                ZoomMatrix::ZoomMatrixType newZoom = mCache[&image].NavigatorParams->ZoomMatrix;
                 for (auto& kv : mCache)
-                    if ( (kv.second.ImageNavigatorParams->ZoomKey == key) && (kv.first != &image))
-                        kv.second.ImageNavigatorParams->ZoomMatrix = newZoom;
+                    if ((kv.second.NavigatorParams->ZoomKey == key) && (kv.first != &image))
+                        kv.second.NavigatorParams->ZoomMatrix = newZoom;
             }
             void UpdateLinkedColorAdjustments(const cv::Mat& image)
             {
                 assert(mCache.find(&image) != mCache.end());
-                std::string key = mCache[&image].ImageNavigatorParams->ColorAdjustmentsKey;
+                std::string key = mCache[&image].NavigatorParams->ColorAdjustmentsKey;
                 if (key.empty())
                     return;
-                ColorAdjustments newColorAdjustments = mCache[&image].ImageNavigatorParams->ColorAdjustments;
+                ColorAdjustmentsValues newColorAdjustments = mCache[&image].NavigatorParams->ColorAdjustments;
                 for (auto& kv : mCache)
-                    if ( (kv.second.ImageNavigatorParams->ColorAdjustmentsKey == key) && (kv.first != &image))
-                        kv.second.ImageNavigatorParams->ColorAdjustments = newColorAdjustments;
+                    if ((kv.second.NavigatorParams->ColorAdjustmentsKey == key) && (kv.first != &image))
+                        kv.second.NavigatorParams->ColorAdjustments = newColorAdjustments;
             }
 
             std::map<const cv::Mat*, CachedData> mCache;
@@ -857,7 +857,7 @@ namespace ImmVision
                 ImGui::TableNextColumn();
                 ImGui::Text("Color");
                 ImGui::TableNextColumn();
-                ImGui::Text("");
+                ImGui::Text("%s", "");
 
                 for (size_t i = 0; i < params->WatchedPixels.size(); ++i)
                 {
@@ -920,7 +920,7 @@ namespace ImmVision
                     params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
                 ImGui::SameLine();
                  if (ImGui::Button("No Adjustment"))
-                        params->ColorAdjustments = ColorAdjustments();
+                        params->ColorAdjustments = ColorAdjustmentsValues();
             }
 
             // Watched Pixels
@@ -1148,7 +1148,7 @@ namespace ImmVision
         //
         auto fnShowImage = [&params, &cache]()
         {
-            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(cache.GlTextureCv, ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
+            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(cache.GlTexture, ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
             cv::Point2d mouseLocation_originalImage =
                 ImGui::IsItemHovered() ? ZoomMatrix::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
             return mouseLocation_originalImage;
@@ -1309,10 +1309,10 @@ namespace ImmVision
                 if (ImGui::Selectable(id.c_str(), is_selected, 0, itemSize))
                     s_Inspector_CurrentIndex = i;
 
-                float imageRatio = cache.GlTextureCv.mImageSize.x / cache.GlTextureCv.mImageSize.y;
+                float imageRatio = cache.GlTexture.mImageSize.x / cache.GlTexture.mImageSize.y;
                 ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
-                ImGui::GetWindowDrawList()->AddImage(cache.GlTextureCv.mImTextureId, image_tl, image_br);
+                ImGui::GetWindowDrawList()->AddImage(cache.GlTexture.mImTextureId, image_tl, image_br);
 
             }
             ImGui::EndListBox();

@@ -2,6 +2,9 @@ name: Windows
 
 on:
   push:
+    branches:
+      - master
+      - dev
   pull_request:
 
 jobs:
@@ -12,19 +15,24 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
-    - name: Install third parties
+    - name: Clone imgui and hello_imgui
       run: |
-        python .\scripts\build_utilities.py --install_vcpkg_thirdparties
         python .\scripts\build_utilities.py --imgui_download
-        python .\scripts\build_utilities.py --hello_imgui_download          
+        python .\scripts\build_utilities.py --hello_imgui_download
 
-    - name: Configure
-      run: |
-        mkdir build
-        cd build
-        python ..\scripts\build_utilities.py --cmake_desktop_build_vcpkg
-
-    - name: Build
-      run: |
-        cd build
-        cmake --build .
+#    - name: Install Conan + OpenCV and SDL
+#      run: |
+#        pip install conan
+#        mkdir build
+#        cd build
+#        conan install .. --build=missing
+#
+#    - name: Configure
+#      run: |
+#        cd build
+#        python ..\scripts\build_utilities.py  --run_cmake
+#
+#    - name: Build
+#      run: |
+#        cd build
+#        cmake --build .

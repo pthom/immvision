@@ -1,5 +1,4 @@
-#include "immvision_simple_runner/immvision_simple_runner.h"
-#include "mandelbrot.h"
+#include "hello_imgui/hello_imgui.h"
 #include "immvision/image.h"
 #include "immvision/image_navigator.h"
 #include "immvision/internal/imgui_imm.h"
@@ -22,14 +21,14 @@ namespace ImGuiExt
 }
 
 
-struct SobelParams
+struct SobelParamsValues
 {
     double GaussianBlurSize = 1.25;
     int  	DerivativeOrder = 1; // order of the derivative
     int  	KSize = 5; // size of the extended Sobel kernel; it must be 1, 3, 5, or 7 (or -1 for Scharr)
 };
 
-cv::Mat ComputeSobelDerivatives(const cv::Mat&image, const SobelParams& params)
+cv::Mat ComputeSobelDerivatives(const cv::Mat&image, const SobelParamsValues& params)
 {
     cv::Mat gray;
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
@@ -54,7 +53,7 @@ cv::Mat ComputeSobelDerivatives(const cv::Mat&image, const SobelParams& params)
     return m2;
 }
 
-bool GuiSobelParams(SobelParams& params)
+bool GuiSobelParams(SobelParamsValues& params)
 {
     ImGuiImm::BeginGroupPanel("Sobel Params");
     ImGui::BeginTable("Sobel Params", 2, ImGuiTableFlags_SizingFixedFit);
@@ -131,7 +130,7 @@ struct AppState
     cv::Mat Image;
     cv::Mat ImageFiltered;
     cv::Size DisplaySize = cv::Size(0, 400);
-    SobelParams SobelParams;
+    SobelParamsValues SobelParams;
 };
 
 static AppState gAppState;
@@ -210,11 +209,14 @@ static void guiFunction()
 
 
 #include "immvision/internal/internal_icons.h"
-int main()
+int main(int, char* [])
 {
-    auto appParams = ImmVisionSimpleRunner::AppParams();
+    HelloImGui::RunnerParams params;
+    params.appWindowParams.windowSize = {1000.f, 800.f};
+    params.appWindowParams.windowTitle = "ImmVision Demo";
+    params.callbacks.ShowGui = guiFunction;
+    HelloImGui::Run(params);
 
-    ImmVisionSimpleRunner::Run(guiFunction, appParams);
-    //ImmVisionSimpleRunner::Run(ImmVision::Icons::DevelPlaygroundGui, appParams);
+    return 0;
 }
 

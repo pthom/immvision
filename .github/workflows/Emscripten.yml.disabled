@@ -1,0 +1,42 @@
+name: Emscripten
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+
+      - name: Clone imgui and hello_imgui
+        run: |
+          ./scripts/build_utilities.py --imgui_download
+          ./scripts/build_utilities.py --hello_imgui_download
+
+      - name: Install emscripten
+        run: ./scripts/emscripten/install_emscripten.sh
+
+      - name: Compile OpenCV (about 12 minutes)
+        run: source ~/emsdk/emsdk_env.sh && ./scripts/build_utilities.py --opencv_build_emscripten
+
+      - name: Configure
+        run: |
+            mkdir build_emscripten
+            cd build_emscripten
+            source ~/emsdk/emsdk_env.sh && ../scripts/build_utilities.py --cmake_emscripten_build
+
+      - name: Build
+        working-directory: build_emscripten
+        run: |
+          make -j 4
+
+#      - name: Setup interactive tmate session
+#        uses: mxschmitt/action-tmate@v2

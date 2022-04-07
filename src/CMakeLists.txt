@@ -3,7 +3,7 @@ cmake_policy(SET CMP0054 NEW)
 macro(activate_all_warnings)
     if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
         # using Clang
-        set(warning_flags "-Weverything -Werror")
+        set(warning_flags "-Wall -Werror")
 
         set(ignored_warnings
             old-style-cast
@@ -57,10 +57,15 @@ if (IMMVISION_ACTIVATE_ALL_WARNINGS)
     activate_all_warnings()
 endif()
 
-
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
+
+if (UNIX AND NOT APPLE)
+    set(OpenGL_GL_PREFERENCE GLVND)
+endif()
+
+
 
 add_subdirectory(immvision_gl_loader)
 add_subdirectory(immvision)
