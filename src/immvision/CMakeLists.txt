@@ -1,7 +1,5 @@
 file(GLOB_RECURSE sources *.h *.cpp)
-if (NOT IMMVISION_FIX_MISSING_OPENCV_CONFIG)
-    find_package(OpenCV CONFIG REQUIRED)
-endif()
+find_package(OpenCV CONFIG REQUIRED)
 
 set(target_name immvision)
 add_library(${target_name} ${sources})
