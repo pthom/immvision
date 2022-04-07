@@ -12,19 +12,23 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
-    - name: Install third parties
-      run: |
-        python .\scripts\build_utilities.py --install_vcpkg_thirdparties
-        python .\scripts\build_utilities.py --imgui_download
-        python .\scripts\build_utilities.py --hello_imgui_download          
+    - name: Setup interactive tmate session
+      uses: mxschmitt/action-tmate@v2
 
-    - name: Configure
-      run: |
-        mkdir build
-        cd build
-        python ..\scripts\build_utilities.py --cmake_desktop_build_vcpkg
 
-    - name: Build
-      run: |
-        cd build
-        cmake --build .
+#    - name: Install third parties
+#      run: |
+#        python .\scripts\build_utilities.py --install_vcpkg_thirdparties
+#        python .\scripts\build_utilities.py --imgui_download
+#        python .\scripts\build_utilities.py --hello_imgui_download
+#
+#    - name: Configure
+#      run: |
+#        mkdir build
+#        cd build
+#        python ..\scripts\build_utilities.py --cmake_desktop_build_vcpkg
+#
+#    - name: Build
+#      run: |
+#        cd build
+#        cmake --build .

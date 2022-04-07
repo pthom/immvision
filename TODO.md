@@ -2,6 +2,7 @@
   * [X] Add more warnings: 
     * [ ] Add warnings for linux
   * [ ] Github actions / build
+    * [ ] Link opencv static? 
     * [ ] Github actions / build and deploy viewer
   * [ ] All in one version (minimalist header / warning make opengl possibly external)
     * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
@@ -13,7 +14,7 @@
   * [ ] Compat Eigen ?
   * [ ] doc
 
-
+  
 * [ ] Inspector:
   * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
   * [ ] Handle params zoomCenter, zoomRatio
