@@ -6,10 +6,12 @@ import datetime
 import sys
 
 # global options
-SKIP_IF_PRESENT = True
+SKIP_IF_PRESENT = False
 USE_POWERSAVE = True
 ACTIVATE_ALL_WARNINGS = True
 ONLY_ECHO_COMMAND = False
+LINK_STATIC_LIBRARIES = True
+ARCH_X64_OR_X86 = "x64" # can be "x64" or "x86"
 
 # Directory global variables
 CURRENT_DIR=os.getcwd()
@@ -43,7 +45,9 @@ def print_current_options():
     print(f"* USE_POWERSAVE (Use imgui power save version): {USE_POWERSAVE}")
     print(f"* SKIP_IF_PRESENT (do not reinstall present third parties): {SKIP_IF_PRESENT}")
     print(f"* ACTIVATE_ALL_WARNINGS: {ACTIVATE_ALL_WARNINGS} (activate many warning, as errors)")
+    print(f"* LINK_STATIC_LIBRARIES: {LINK_STATIC_LIBRARIES} (build libs, i.e OpenCV, as static libs)")
     print(f"* ONLY_ECHO_COMMAND: {ONLY_ECHO_COMMAND} (if true, only display required shell commands)")
+    print(f"* ARCH_X64_OR_X86: {ARCH_X64_OR_X86}")
     doc_ems = "" if HAS_EMSCRIPTEN else "(run `source emsdk_env.sh` before running this script)"
     print(f"* HAS_EMSCRIPTEN: {HAS_EMSCRIPTEN} {doc_ems}")
     print()
@@ -60,32 +64,48 @@ def run(cmd):
         subprocess.check_call(cmd, shell=True)
 
 
+def optional_triplet_name():
+    if os.name == 'nt':
+        if LINK_STATIC_LIBRARIES:
+            return "x86-windows-static-md" if ARCH_X64_OR_X86 == "x86" else "x64-windows-static-md"
+        else:
+            return "x86-windows" if ARCH_X64_OR_X86 == "x86" else "x64-windows"
+    return ""
+
+
 def install_vcpkg_thirdparties():
     """
     Install vcpkg + opencv and sdl (for desktop builds) into external/vcpkg
     Will create a folder external/vcpkg/ where vcpkg will be installed, with OpenCV and SDL.
     You can skip this part if you already have OpenCV and SDL someewhere else on your system.
     """
+    vcpkg_exe = ".\\vcpkg" if os.name == "nt" else "./vcpkg"
+
     print("# install_vcpkg_thirdparties")
     os.chdir(EXTERNAL_DIR)
     if os.path.isdir("vcpkg") and SKIP_IF_PRESENT:
         print("install_vcpkg_thirdparties => already present!")
         return
 
-    print("install_vcpkg_thirdparties => Running...")
-    run("git clone https://github.com/Microsoft/vcpkg.git")
+    if not os.path.isdir("vcpkg"):
+        print("install_vcpkg_thirdparties => Running...")
+        run("git clone https://github.com/Microsoft/vcpkg.git")
+
     os.chdir("vcpkg")
 
     if os.name == 'nt':
-        run("bootstrap-vcpkg.bat")
+        run(".\\bootstrap-vcpkg.bat")
     else:
         run("./bootstrap-vcpkg.sh")
 
     if os.name == 'nt':
-        run("vcpkg.exe install sdl2:x86-windows opencv4:x86-windows")
-        run("vcpkg.exe install sdl2:x64-windows opencv4:x64-windows")
+        packages = ["sdl2", "opencv4[core,jpeg,png]" ]
+        triplet = optional_triplet_name()
+        for package in packages:
+            cmd = f"{vcpkg_exe} install {package}:{triplet}"
+            run(cmd)
     else:
-        run("./vcpkg install sdl2 opencv4")
+        run(f"{vcpkg_exe} install sdl2 opencv4")
 
     os.chdir(REPO_DIR)
 
@@ -199,11 +219,26 @@ def cmake_desktop_build_vcpkg():
         print("Run this from your build dir!")
         return
     os.chdir(CURRENT_DIR)
-    cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake -B ."
+    cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+
+    triplet = optional_triplet_name()
+    if len(triplet) > 0:
+        cmd = cmd + f" -DVCPKG_TARGET_TRIPLET={triplet}"
+
     if USE_POWERSAVE:
         cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
+
     if ACTIVATE_ALL_WARNINGS:
         cmd = cmd + " -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
+
+    cmd = cmd + " -B ."
+
+    if os.name == 'nt':
+        generator = "Visual Studio 16 2019"
+        arch = "win32" if ARCH_X64_OR_X86 == "x86" else "x64"
+        # cmd = cmd + f" -G \"{generator}\""
+        cmd = cmd + f" -A {arch}"
+
     run(cmd)
 
 
