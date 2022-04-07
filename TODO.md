@@ -1,14 +1,12 @@
 * [ ] Deploy
   * [X] Add more warnings: 
-    * [ ] Add warnings for msvc
-    * [ ] Activate IMMVISION_ACTIVATE_ALL_WARNINGS via build_script?
+    * [ ] Add warnings for linux
   * [ ] Github actions / build
     * [ ] Github actions / build and deploy viewer
   * [ ] All in one version (minimalist header / warning make opengl possibly external)
     * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
   * [ ] build script 
-    * [ ] Separate Emscripten in build script
-    * [ ] Review args input (from command line also ?)
+    * [ ] Change options
   * [ ] Bug in hello_imgui: first cmake (empty dir) fails during configure
   * [ ] hello_imgui : Check deploy assets Windows release & Debug build
   * [ ] Work on immvision_gl_loader
@@ -18,25 +16,24 @@
 
 * [ ] Inspector:
   * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
-  * [ ] Handle params zoomCenter, zoomRatio,
-  * [?] Separate File
-  * [N] add Inspector_Run() ? (requires runner in main lib...) 
-  * [X] draw thumbnail in list
+  * [ ] Handle params zoomCenter, zoomRatio
   * [ ] load images
-  * [ ] Remove images
-  * [ ] List / Different views : list, thumbs, thumbs size, etc
+  * [ ] List Image
+    * [ ] Different views : list, thumbs, thumbs size, etc
+    * [ ] Remove one image / Remove all
   * [ ] Save inspector setup (options and window size ?)
-  * [ ] Show dates
-  * [ ] Test themes
 
 
 * [ ] Viewer
-  * [ ] Remove Window Title
+  * [ ] Test themes
+  * [ ] Show dates
 
 
 * [ ] Image Debugger
   * [ ] Tester resistance a fichier corrompu (doit le supprimer !) 
-  * [ ] LaunchViewer: use https://github.com/sheredom/subprocess.h
+  * [ ] LaunchViewer: 
+    * [ ] use https://github.com/sheredom/subprocess.h
+    * [ ] find exe in path
   * [ ] Drag Watched Pixels & reorder ? + clear ?
   * [ ] Voir https://github.com/OpenImageDebugger/OpenImageDebugger
   * [ ] Much later : make usable on iPhone & Android (idea / server: https://crowcpp.org/) 

@@ -9,6 +9,7 @@ import sys
 SKIP_IF_PRESENT = True
 USE_POWERSAVE = True
 ACTIVATE_ALL_WARNINGS = True
+ONLY_ECHO_COMMAND = False
 
 # Directory global variables
 CURRENT_DIR=os.getcwd()
@@ -41,16 +42,22 @@ def print_current_options():
     print("================")
     print(f"* USE_POWERSAVE (Use imgui power save version): {USE_POWERSAVE}")
     print(f"* SKIP_IF_PRESENT (do not reinstall present third parties): {SKIP_IF_PRESENT}")
+    print(f"* ACTIVATE_ALL_WARNINGS: {ACTIVATE_ALL_WARNINGS} (activate many warning, as errors)")
+    print(f"* ONLY_ECHO_COMMAND: {ONLY_ECHO_COMMAND} (if true, only display required shell commands)")
     doc_ems = "" if HAS_EMSCRIPTEN else "(run `source emsdk_env.sh` before running this script)"
     print(f"* HAS_EMSCRIPTEN: {HAS_EMSCRIPTEN} {doc_ems}")
-    print(f"* ACTIVATE_ALL_WARNINGS: {ACTIVATE_ALL_WARNINGS} (activate many warning, as errors)")
     print()
 
 def run(cmd):
-    print("#####################################################")
-    print("Running shell command: \n    " + cmd)
-    print("#####################################################")
-    subprocess.check_call(cmd, shell=True)
+    if ONLY_ECHO_COMMAND:
+        print("cd " + os.getcwd())
+        print(cmd)
+    else:
+        print("#####################################################")
+        print("Running shell command: \n    " + cmd)
+        print("in directory " + os.getcwd())
+        print("#####################################################")
+        subprocess.check_call(cmd, shell=True)
 
 
 def install_vcpkg_thirdparties():
@@ -59,6 +66,7 @@ def install_vcpkg_thirdparties():
     Will create a folder external/vcpkg/ where vcpkg will be installed, with OpenCV and SDL.
     You can skip this part if you already have OpenCV and SDL someewhere else on your system.
     """
+    print("# install_vcpkg_thirdparties")
     os.chdir(EXTERNAL_DIR)
     if os.path.isdir("vcpkg") and SKIP_IF_PRESENT:
         print("install_vcpkg_thirdparties => already present!")
@@ -90,14 +98,13 @@ def imgui_download():
     * power save version: see PR https://github.com/ocornut/imgui/pull/4076
       This PR was adapted to imgui docking version of March 2022 here: 
       https://github.com/pthom/imgui/tree/docking_powersave
-    Keyword: vcpkg
     """
+    print("# imgui_download")
     os.chdir(EXTERNAL_DIR)
     if os.path.isdir("imgui") and SKIP_IF_PRESENT:
         print("imgui_download => already present!")
         return
 
-    print("imgui_download")
     if (os.path.isdir("imgui")):
         run("rm -rf imgui")
     if USE_POWERSAVE:
@@ -117,6 +124,7 @@ def hello_imgui_download():
     hello_imgui is not required, and is only used to build the demos 
     and the standalone image debug viewer.
     """
+    print("# hello_imgui_download")
     os.chdir(EXTERNAL_DIR)
     if os.path.isdir("hello_imgui") and SKIP_IF_PRESENT:
         print("hello_imgui_download => already present!")
@@ -130,6 +138,7 @@ def opencv_build_emscripten():
     (only used for emscripten builds, where OpenCV is not available through vcpkg)
     Will clone opencv code into external/opencv, then build it for emscripten into external/opencv_build_emscripten
     """
+    print("# opencv_build_emscripten")
     os.chdir(EXTERNAL_DIR)
 
 
@@ -172,7 +181,6 @@ def opencv_build_emscripten():
     \
     -DCMAKE_C_FLAGS='-s USE_PTHREADS=0 ' -DCMAKE_CXX_FLAGS='-s USE_PTHREADS=0 '
     """
-    print(cmd)
     run(cmd)
 
     run("make -j")
@@ -186,6 +194,7 @@ def cmake_desktop_build_vcpkg():
     * IMMVISION_USE_POWERSAVE can optionally activate the power save mode
     Run this script from your desired build dir.
     """
+    print("# cmake_desktop_build_vcpkg")
     if CURRENT_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
@@ -204,6 +213,7 @@ def cmake_emscripten_build():
     OpenCV_DIR will point to external/opencv_build_emscripten. 
     Run this script from your desired build dir.
     """
+    print("# cmake_emscripten_build")
     if CURRENT_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
@@ -219,6 +229,7 @@ def build_emscripten_with_timestamp():
     (this date is displayed in the javascript console at startup to help diagnose issues) 
     You can safely run `make` manually instead.
     """
+    print("# build_emscripten_with_timestamp")
     if CURRENT_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
@@ -273,6 +284,9 @@ def run_interactive():
     print("Choose a command:\n")
     all_function_list = []
 
+    print("0. List command line options")
+    print()
+
     i = 0
     for category in get_all_function_categories():
         print(f"{category['name']}")
@@ -293,18 +307,25 @@ def run_interactive():
     choice = input("Enter the number corresponding to your choice: ")
     try:
         choice_nb = int(choice) - 1
-        if choice_nb < 0 or choice_nb >= len(all_function_list):
+        if choice == "0":
+            help_available_functions()
+        elif choice_nb < 0 or choice_nb >= len(all_function_list):
             print(f"Enter a number between 1 and {len(all_function_list)}")
             return
-        fn_to_run = all_function_list[choice_nb]
-        fn_to_run()
+        else:
+            fn_to_run = all_function_list[choice_nb]
+            fn_to_run()
     except ValueError:
         print("Enter a number!")
 
 def help_available_functions():
     print("Available functions:")
     for fn in get_all_functions():
-        print(f" {sys.argv[0]} --{fn.__name__}")
+        print(f"{sys.argv[0]} --{fn.__name__}")
+        doc = fn.__doc__
+        doc_lines = doc.split("\n")[1:]
+        title = doc_lines[:1][0].strip()
+        print(f"    {title}")
 
 def run_argv_function(arg1):
     if not arg1[:2] == "--":
@@ -331,4 +352,4 @@ if __name__ == "__main__":
         if arg1 == "-h":
             help_available_functions()
         elif not run_argv_function(arg1):
-            print("Failure")
+            help_available_functions()
