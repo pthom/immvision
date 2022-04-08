@@ -23,14 +23,15 @@ jobs:
         ./scripts/build_utilities.py --imgui_download
         ./scripts/build_utilities.py --hello_imgui_download
 
+    - name: Setup interactive tmate session
+      uses: mxschmitt/action-tmate@v2
+
     - name: Install third parties with conan
       run: |
         mkdir build
         cd build
         conan install .. --build=missing
 
-#    - name: Setup interactive tmate session
-#      uses: mxschmitt/action-tmate@v2
 
     - name: Configure
       run:  |
