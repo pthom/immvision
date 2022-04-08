@@ -1,6 +1,7 @@
 [requires]
 opencv/4.5.5
 sdl/2.0.20
+zlib/1.2.12
 
 [generators]
 cmake_find_package
