@@ -25,6 +25,7 @@ jobs:
 
     - name: Configure
       run:  |
+        mkdir build
         cd build
         ../scripts/build_utilities.py --run_cmake
 
