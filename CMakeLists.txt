@@ -12,5 +12,8 @@ option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
 # only use if your version of imgui has this mode!
 option(IMMVISION_USE_POWERSAVE "use powersave mode for imgui" OFF)
 
+# For conan, add binary dir to module search path
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
+
 add_subdirectory(src)
 add_subdirectory(external)

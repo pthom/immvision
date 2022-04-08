@@ -1,5 +1,5 @@
 file(GLOB_RECURSE sources *.h *.cpp)
-find_package(OpenCV CONFIG REQUIRED)
+find_package(OpenCV REQUIRED)
 
 set(target_name immvision)
 add_library(${target_name} ${sources})
