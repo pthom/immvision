@@ -2,7 +2,8 @@
   * [X] Add more warnings: 
     * [ ] Add warnings for linux
   * [ ] Github actions / build
-    * [ ] Link opencv static? 
+    * [ ] Use conan to speedup install? 
+    * [ ] Link opencv static for windows 
     * [ ] Github actions / build and deploy viewer
   * [ ] All in one version (minimalist header / warning make opengl possibly external)
     * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)

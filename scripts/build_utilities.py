@@ -170,7 +170,7 @@ def vcpkg_install_thirdparties():
 
     os.chdir(REPO_DIR)
 
-def vcpkg_cmake_desktop_build():
+def vcpkg_cmake():
     """
     Run cmake with correct flags for a desktop build with vcpkg
     * CMAKE_TOOLCHAIN_FILE will use the vcpkg toolchain
@@ -220,7 +220,7 @@ def conan_install_thirdparties():
     run(f"conan install {REPO_DIR}")
 
 
-def conan_cmake_desktop_build():
+def conan_cmake():
     """
     Run cmake with correct flags for a desktop build with conan
     * IMMVISION_USE_POWERSAVE can optionally activate the power save mode
@@ -359,7 +359,7 @@ def get_all_function_categories():
         "name": "Build with vcpkg",
         "functions": [
             vcpkg_install_thirdparties,
-            vcpkg_cmake_desktop_build,
+            vcpkg_cmake,
         ]
     }
 
@@ -367,7 +367,7 @@ def get_all_function_categories():
         "name": "Build with Conan",
         "functions": [
             conan_install_thirdparties,
-            conan_cmake_desktop_build,
+            conan_cmake,
         ]
     }
 
