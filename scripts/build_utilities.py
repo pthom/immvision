@@ -78,13 +78,40 @@ def run(cmd):
         subprocess.check_call(cmd, shell=True)
 
 
-def optional_vcpkg_triplet_name():
+
+######################################################################
+# cmake and build
+######################################################################
+def run_cmake():
+    """
+    Run cmake with correct flags:
+    * - IMMVISION_USE_POWERSAVE can optionally activate the power save mode
+    * - IMMVISION_ACTIVATE_ALL_WARNINGS
+    * - arch if building for Win32
+    Run this script from your desired build dir.
+    """
+    print("# cmake_desktop_build_vcpkg")
+    if CURRENT_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
+        return
+    os.chdir(CURRENT_DIR)
+    cmd = f"cmake {REPO_DIR}"
+
+    if OPTIONS.USE_POWERSAVE.Value:
+        cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
+
+    if OPTIONS.ACTIVATE_ALL_WARNINGS.Value:
+        cmd = cmd + " -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
+
+    cmd = cmd + " -B ."
+
     if os.name == 'nt':
-        if OPTIONS.WINDOWS_OPENCV_STATIC.Value:
-            return "x86-windows-static-md" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64-windows-static-md"
-        else:
-            return "x86-windows" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64-windows"
-    return ""
+        arch = "win32" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64"
+        # generator = "Visual Studio 16 2019"
+        # cmd = cmd + f" -G \"{generator}\""
+        cmd = cmd + f" -A {arch}"
+
+    run(cmd)
 
 
 ######################################################################
@@ -134,6 +161,15 @@ def hello_imgui_download():
 ######################################################################
 # vcpkg
 ######################################################################
+def vcpkg_optional_triplet_name():
+    if os.name == 'nt':
+        if OPTIONS.WINDOWS_OPENCV_STATIC.Value:
+            return "x86-windows-static-md" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64-windows-static-md"
+        else:
+            return "x86-windows" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64-windows"
+    return ""
+
+
 def vcpkg_install_thirdparties():
     """
     Install vcpkg + opencv and sdl (for desktop builds) into external/vcpkg
@@ -161,7 +197,7 @@ def vcpkg_install_thirdparties():
 
     if os.name == 'nt':
         packages = ["sdl2", "opencv4[core,jpeg,png]" ]
-        triplet = optional_vcpkg_triplet_name()
+        triplet = vcpkg_optional_triplet_name()
         for package in packages:
             cmd = f"{vcpkg_exe} install {package}:{triplet}"
             run(cmd)
@@ -184,7 +220,7 @@ def vcpkg_cmake():
     os.chdir(CURRENT_DIR)
     cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
-    triplet = optional_vcpkg_triplet_name()
+    triplet = vcpkg_optional_triplet_name()
     if len(triplet) > 0:
         cmd = cmd + f" -DVCPKG_TARGET_TRIPLET={triplet}"
 
@@ -218,36 +254,6 @@ def conan_install_thirdparties():
         return
     os.chdir(CURRENT_DIR)
     run(f"conan install {REPO_DIR}")
-
-
-def conan_cmake():
-    """
-    Run cmake with correct flags for a desktop build with conan
-    * IMMVISION_USE_POWERSAVE can optionally activate the power save mode
-    Run this script from your desired build dir.
-    """
-    print("# cmake_desktop_build_vcpkg")
-    if CURRENT_DIR_IS_REPO_DIR:
-        print("Run this from your build dir!")
-        return
-    os.chdir(CURRENT_DIR)
-    cmd = f"cmake {REPO_DIR}"
-
-    if OPTIONS.USE_POWERSAVE.Value:
-        cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
-
-    if OPTIONS.ACTIVATE_ALL_WARNINGS.Value:
-        cmd = cmd + " -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
-
-    cmd = cmd + " -B ."
-
-    if os.name == 'nt':
-        arch = "win32" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64"
-        # generator = "Visual Studio 16 2019"
-        # cmd = cmd + f" -G \"{generator}\""
-        cmd = cmd + f" -A {arch}"
-
-    run(cmd)
 
 
 ######################################################################
@@ -355,6 +361,13 @@ def get_all_function_categories():
         ]
     }
 
+    function_list_cmake = {
+        "name": "Build with cmake",
+        "functions": [
+            run_cmake,
+        ]
+    }
+
     function_list_vcpkg = {
         "name": "Build with vcpkg",
         "functions": [
@@ -367,7 +380,6 @@ def get_all_function_categories():
         "name": "Build with Conan",
         "functions": [
             conan_install_thirdparties,
-            conan_cmake,
         ]
     }
 
@@ -380,6 +392,8 @@ def get_all_function_categories():
         ]
     }
     all_function_categories = [function_list_third_parties]
+    if not OPTIONS.USE_VCPKG.Value:
+        all_function_categories.append(function_list_cmake)
     if OPTIONS.USE_VCPKG.Value:
         all_function_categories.append(function_list_vcpkg)
     if OPTIONS.USE_CONAN.Value:

@@ -12,38 +12,26 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
-    - name: Install needed libraries
-      run: |
-        sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
-#        sudo apt-get install libegl-dev libgtk2.0-dev libva-dev libvdpau-dev libxmu-dev  libxmuu-dev  libxpm-dev  libxrandr-dev  libxrender-dev  libxres-dev  libxss-dev  libxt-dev  libxtst-dev  libxv-dev  libxvmc-dev  libxxf86vm-dev  xtrans-dev  libxcb-render0-dev  libxcb-render-util0-dev  libxcb-xkb-dev  libxcb-icccm4-dev  libxcb-image0-dev  libxcb-keysyms1-dev  libxcb-randr0-dev  libxcb-shape0-dev  libxcb-sync-dev  libxcb-xfixes0-dev  libxcb-xinerama0-dev  xkb-data  libxcb-dri3-dev  uuid-dev  libxcb-util-dev
-#        sudo apt-get install libx11-dev  libx11-xcb-dev  libfontenc-dev libice-dev  libsm-dev  libxau-dev libxaw7-dev  libxcomposite-dev  libxcursor-dev  libxdamage-dev  libxdmcp-dev  libxext-dev  libxfixes-dev  libxft-dev  libxi-dev  libxinerama-dev  libxkbfile-dev  libxmu-dev  libxmuu-dev  libxpm-dev  libxrandr-dev  libxrender-dev  libxres-dev  libxss-dev  libxt-dev  libxtst-dev  libxv-dev  libxvmc-dev
-
-    - name: Install OpenCV and SDL via apt
-      run: sudo apt-get install -y libopencv-dev libsdl2-dev
-
-#    - name: Install conan
-#      run: sudo pip install conan
-
     - name: Clone imgui and hello_imgui
       run: |
         ./scripts/build_utilities.py --imgui_download
         ./scripts/build_utilities.py --hello_imgui_download
 
-    - name: Setup interactive tmate session
-      uses: mxschmitt/action-tmate@v2
+    - name: Install needed libraries
+      run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
 
-    - name: Install third parties with conan
-      run: |
-        mkdir build
-        cd build
-        conan install .. --build=missing
+    - name: Install OpenCV and SDL via apt
+      run: sudo apt-get install -y libopencv-dev libsdl2-dev
 
     - name: Configure
       run:  |
         cd build
-        ./scripts/build_utilities.py --conan_cmake
+        ../scripts/build_utilities.py --run_cmake
 
     - name: Build
       run: |
         cd build
         make
+
+#    - name: Setup interactive tmate session
+#      uses: mxschmitt/action-tmate@v2

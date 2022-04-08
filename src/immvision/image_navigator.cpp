@@ -857,7 +857,7 @@ namespace ImmVision
                 ImGui::TableNextColumn();
                 ImGui::Text("Color");
                 ImGui::TableNextColumn();
-                ImGui::Text("");
+                ImGui::Text("%s", "");
 
                 for (size_t i = 0; i < params->WatchedPixels.size(); ++i)
                 {

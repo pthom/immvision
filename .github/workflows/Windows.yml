@@ -11,6 +11,12 @@ jobs:
     - uses: actions/checkout@master
     - name: Checkout submodules
       run: git submodule update --init --recursive
+
+    - name: Clone imgui and hello_imgui
+      run: |
+        ./scripts/build_utilities.py --imgui_download
+        ./scripts/build_utilities.py --hello_imgui_download
+
 #
 #    - name: Setup interactive tmate session
 #      uses: mxschmitt/action-tmate@v2
@@ -19,8 +25,6 @@ jobs:
 ##    - name: Install third parties
 ##      run: |
 ##        python .\scripts\build_utilities.py --install_vcpkg_thirdparties
-##        python .\scripts\build_utilities.py --imgui_download
-##        python .\scripts\build_utilities.py --hello_imgui_download
 ##
 ##    - name: Configure
 ##      run: |
