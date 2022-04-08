@@ -42,10 +42,8 @@ if (IMMVISION_DEMO_USE_SDL)
         PRIVATE
         ${imgui_dir}/backends
         )
-    target_link_libraries(immvision_simple_runner PUBLIC SDL2::SDL2 SDL2::SDL2main)
-    if (NOT MSVC)
-        target_link_libraries(immvision_simple_runner PUBLIC SDL2::SDL2-static)
-    endif()
+    target_link_libraries(immvision_simple_runner PUBLIC SDL2 SDL2main)
+    target_include_directories(immvision_simple_runner  PUBLIC ${SDL2_INCLUDE_DIRS})
 endif()
 
 if (IMMVISION_DEMO_USE_GLFW)
