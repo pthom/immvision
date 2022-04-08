@@ -24,16 +24,16 @@ jobs:
       - name: Compile OpenCV (about 12 minutes)
         run: source ~/emsdk/emsdk_env.sh && ./scripts/build_utilities.py --opencv_build_emscripten
 
-#      - name: Configure
-#        run: |
-#            mkdir build_emscripten
-#            cd build_emscripten
-#            source ~/emsdk/emsdk_env.sh && ../scripts/build_utilities.py --cmake_emscripten_build
-#
-#      - name: Build
-#        working-directory: build_emscripten
-#        run: |
-#          make -j 4
+      - name: Configure
+        run: |
+            mkdir build_emscripten
+            cd build_emscripten
+            source ~/emsdk/emsdk_env.sh && ../scripts/build_utilities.py --cmake_emscripten_build
 
-      - name: Setup interactive tmate session
-        uses: mxschmitt/action-tmate@v2
+      - name: Build
+        working-directory: build_emscripten
+        run: |
+          make -j 4
+
+#      - name: Setup interactive tmate session
+#        uses: mxschmitt/action-tmate@v2
