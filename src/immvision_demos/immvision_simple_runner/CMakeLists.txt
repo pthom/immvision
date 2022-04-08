@@ -42,7 +42,11 @@ if (IMMVISION_DEMO_USE_SDL)
         PRIVATE
         ${imgui_dir}/backends
         )
-    target_link_libraries(immvision_simple_runner PUBLIC SDL2 SDL2main)
+    if (APPLE)
+        target_link_libraries(immvision_simple_runner PUBLIC SDL2::SDL2)
+    else()
+        target_link_libraries(immvision_simple_runner PUBLIC SDL2 SDL2main)
+    endif()
     target_include_directories(immvision_simple_runner  PUBLIC ${SDL2_INCLUDE_DIRS})
 endif()
 
