@@ -13,7 +13,7 @@ jobs:
       run: git submodule update --init --recursive
 
     - name: Install needed libraries
-      run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
+      run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar libegl-dev
 
     - name: Install conan
       run: sudo pip install conan
@@ -27,7 +27,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        conan install ..
+        conan install .. --build=missing
 
 #    - name: Setup interactive tmate session
 #      uses: mxschmitt/action-tmate@v2
