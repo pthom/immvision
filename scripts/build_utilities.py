@@ -4,14 +4,33 @@ import os
 import subprocess
 import datetime
 import sys
+import dataclasses
 
-# global options
-SKIP_IF_PRESENT = False
-USE_POWERSAVE = True
-ACTIVATE_ALL_WARNINGS = True
-ONLY_ECHO_COMMAND = False
-LINK_STATIC_LIBRARIES_WINDOWS = True # link opencv as a static lib under windows (for other OSes, this is the default)
-ARCH_X64_OR_X86 = "x64" # can be "x64" or "x86"
+
+@dataclasses.dataclass
+class Option:
+    Value: bool
+    Description: str
+
+
+@dataclasses.dataclass
+class Options:
+    ONLY_ECHO_COMMAND:Option = Option(False, "Only echo shell command, but do nothing")
+
+    USE_VCPKG: Option = Option(False, "Use vcpkg package manager")
+    USE_CONAN: Option = Option(True, "Use Conan package manager")
+
+    SKIP_IF_PRESENT:Option = Option(True, "Skip if third party already present")
+
+    USE_POWERSAVE: Option = Option(True, "Use imgui powersave version")
+    ACTIVATE_ALL_WARNINGS:Option = Option(True, "Activate all warnings, as errors")
+
+    WINDOWS_OPENCV_STATIC: Option = Option(True, "Link opencv as a static lib (for windows, when using vcpkg)")
+    WINDOWS_BUILD_WIN32: Option = Option(False, "For windows, build Win32 version")   #"x64" # can be "x64" or "x86"
+
+
+OPTIONS = Options()
+
 
 # Directory global variables
 CURRENT_DIR=os.getcwd()
@@ -42,19 +61,13 @@ def print_current_options():
     print()
     print("Current options:")
     print("================")
-    print(f"* USE_POWERSAVE (Use imgui power save version): {USE_POWERSAVE}")
-    print(f"* SKIP_IF_PRESENT (do not reinstall present third parties): {SKIP_IF_PRESENT}")
-    print(f"* ACTIVATE_ALL_WARNINGS: {ACTIVATE_ALL_WARNINGS} (activate many warning, as errors)")
-    if os.name == "nt":
-        print(f"* LINK_STATIC_LIBRARIES_WINDOWS: {LINK_STATIC_LIBRARIES_WINDOWS} (build libs, i.e OpenCV, as static libs)")
-    print(f"* ONLY_ECHO_COMMAND: {ONLY_ECHO_COMMAND} (if true, only display required shell commands)")
-    print(f"* ARCH_X64_OR_X86: {ARCH_X64_OR_X86}")
-    doc_ems = "" if HAS_EMSCRIPTEN else "(run `source emsdk_env.sh` before running this script)"
-    print(f"* HAS_EMSCRIPTEN: {HAS_EMSCRIPTEN} {doc_ems}")
+    options_dict = dataclasses.asdict(OPTIONS)
+    for option_name, value in options_dict.items():
+        print(f"{option_name}: {value['Value']} ({value['Description']}) ")
     print()
 
 def run(cmd):
-    if ONLY_ECHO_COMMAND:
+    if OPTIONS.ONLY_ECHO_COMMAND.Value:
         print("cd " + os.getcwd())
         print(cmd)
     else:
@@ -65,16 +78,63 @@ def run(cmd):
         subprocess.check_call(cmd, shell=True)
 
 
-def optional_triplet_name():
+def optional_vcpkg_triplet_name():
     if os.name == 'nt':
-        if LINK_STATIC_LIBRARIES_WINDOWS:
-            return "x86-windows-static-md" if ARCH_X64_OR_X86 == "x86" else "x64-windows-static-md"
+        if OPTIONS.WINDOWS_OPENCV_STATIC.Value:
+            return "x86-windows-static-md" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64-windows-static-md"
         else:
-            return "x86-windows" if ARCH_X64_OR_X86 == "x86" else "x64-windows"
+            return "x86-windows" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64-windows"
     return ""
 
 
-def install_vcpkg_thirdparties():
+######################################################################
+# imgui and hello_imgui
+######################################################################
+def imgui_download():
+    """
+    Download imgui into external/imgui/
+    Two versions are avaible:
+    * standard version: docking branch of the standard repo (https://github.com/ocornut/imgui.git)
+    * power save version: see PR https://github.com/ocornut/imgui/pull/4076
+      This PR was adapted to imgui docking version of March 2022 here:
+      https://github.com/pthom/imgui/tree/docking_powersave
+    """
+    print("# imgui_download")
+    os.chdir(EXTERNAL_DIR)
+    if os.path.isdir("imgui") and OPTIONS.SKIP_IF_PRESENT.Value:
+        print("imgui_download => already present!")
+        return
+
+    if (os.path.isdir("imgui")):
+        run("rm -rf imgui")
+    if OPTIONS.USE_POWERSAVE.Value:
+        run("git clone https://github.com/pthom/imgui.git")
+        os.chdir("imgui")
+        run("git checkout docking_powersave")
+    else:
+        run("git clone https://github.com/ocornut/imgui.git")
+        os.chdir("imgui")
+        run("git checkout docking")
+    os.chdir(REPO_DIR)
+
+def hello_imgui_download():
+    """
+    Download hello_imgui into external/hello_imgui (optional)
+    hello_imgui is not required, and is only used to build the demos
+    and the standalone image debug viewer.
+    """
+    print("# hello_imgui_download")
+    os.chdir(EXTERNAL_DIR)
+    if os.path.isdir("hello_imgui"):
+        print("hello_imgui_download => already present!")
+        return
+    run("git clone https://github.com/pthom/hello_imgui.git")
+
+
+######################################################################
+# vcpkg
+######################################################################
+def vcpkg_install_thirdparties():
     """
     Install vcpkg + opencv and sdl (for desktop builds) into external/vcpkg
     Will create a folder external/vcpkg/ where vcpkg will be installed, with OpenCV and SDL.
@@ -84,7 +144,7 @@ def install_vcpkg_thirdparties():
 
     print("# install_vcpkg_thirdparties")
     os.chdir(EXTERNAL_DIR)
-    if os.path.isdir("vcpkg") and SKIP_IF_PRESENT:
+    if os.path.isdir("vcpkg") and OPTIONS.SKIP_IF_PRESENT.Value:
         print("install_vcpkg_thirdparties => already present!")
         return
 
@@ -101,7 +161,7 @@ def install_vcpkg_thirdparties():
 
     if os.name == 'nt':
         packages = ["sdl2", "opencv4[core,jpeg,png]" ]
-        triplet = optional_triplet_name()
+        triplet = optional_vcpkg_triplet_name()
         for package in packages:
             cmd = f"{vcpkg_exe} install {package}:{triplet}"
             run(cmd)
@@ -110,48 +170,89 @@ def install_vcpkg_thirdparties():
 
     os.chdir(REPO_DIR)
 
-
-def imgui_download():
+def vcpkg_cmake_desktop_build():
     """
-    Download imgui into external/imgui/
-    Two versions are avaible: 
-    * standard version: docking branch of the standard repo (https://github.com/ocornut/imgui.git)
-    * power save version: see PR https://github.com/ocornut/imgui/pull/4076
-      This PR was adapted to imgui docking version of March 2022 here: 
-      https://github.com/pthom/imgui/tree/docking_powersave
+    Run cmake with correct flags for a desktop build with vcpkg
+    * CMAKE_TOOLCHAIN_FILE will use the vcpkg toolchain
+    * IMMVISION_USE_POWERSAVE can optionally activate the power save mode
+    Run this script from your desired build dir.
     """
-    print("# imgui_download")
-    os.chdir(EXTERNAL_DIR)
-    if os.path.isdir("imgui") and SKIP_IF_PRESENT:
-        print("imgui_download => already present!")
+    print("# cmake_desktop_build_vcpkg")
+    if CURRENT_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
         return
+    os.chdir(CURRENT_DIR)
+    cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
-    if (os.path.isdir("imgui")):
-        run("rm -rf imgui")
-    if USE_POWERSAVE:
-        run("git clone https://github.com/pthom/imgui.git")
-        os.chdir("imgui")
-        run("git checkout docking_powersave")
-    else:
-        run("git clone https://github.com/ocornut/imgui.git")
-        os.chdir("imgui")
-        run("git checkout docking")
-    os.chdir(REPO_DIR)
+    triplet = optional_vcpkg_triplet_name()
+    if len(triplet) > 0:
+        cmd = cmd + f" -DVCPKG_TARGET_TRIPLET={triplet}"
+
+    if OPTIONS.USE_POWERSAVE.Value:
+        cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
+
+    if OPTIONS.ACTIVATE_ALL_WARNINGS.Value:
+        cmd = cmd + " -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
+
+    cmd = cmd + " -B ."
+
+    if os.name == 'nt':
+        arch = "win32" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64"
+        # generator = "Visual Studio 16 2019"
+        # cmd = cmd + f" -G \"{generator}\""
+        cmd = cmd + f" -A {arch}"
+
+    run(cmd)
 
 
-def hello_imgui_download():
+######################################################################
+# conan
+######################################################################
+def conan_install_thirdparties():
     """
-    Download hello_imgui into external/hello_imgui (optional)
-    hello_imgui is not required, and is only used to build the demos 
-    and the standalone image debug viewer.
+    Install thirdparties (opencv and sdl) via conan
+    Run this script from your desired build dir.
     """
-    print("# hello_imgui_download")
-    os.chdir(EXTERNAL_DIR)
-    if os.path.isdir("hello_imgui") and SKIP_IF_PRESENT:
-        print("hello_imgui_download => already present!")
+    if CURRENT_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
         return
-    run("git clone https://github.com/pthom/hello_imgui.git")
+    os.chdir(CURRENT_DIR)
+    run(f"conan install {REPO_DIR}")
 
+
+def conan_cmake_desktop_build():
+    """
+    Run cmake with correct flags for a desktop build with conan
+    * IMMVISION_USE_POWERSAVE can optionally activate the power save mode
+    Run this script from your desired build dir.
+    """
+    print("# cmake_desktop_build_vcpkg")
+    if CURRENT_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
+        return
+    os.chdir(CURRENT_DIR)
+    cmd = f"cmake {REPO_DIR}"
+
+    if OPTIONS.USE_POWERSAVE.Value:
+        cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
+
+    if OPTIONS.ACTIVATE_ALL_WARNINGS.Value:
+        cmd = cmd + " -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
+
+    cmd = cmd + " -B ."
+
+    if os.name == 'nt':
+        arch = "win32" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64"
+        # generator = "Visual Studio 16 2019"
+        # cmd = cmd + f" -G \"{generator}\""
+        cmd = cmd + f" -A {arch}"
+
+    run(cmd)
+
+
+######################################################################
+# emscripten
+######################################################################
 
 def opencv_build_emscripten():
     """
@@ -167,7 +268,7 @@ def opencv_build_emscripten():
     if not os.path.isdir("opencv"):
         run("git clone https://github.com/opencv/opencv.git")
     else:
-        if not SKIP_IF_PRESENT:
+        if not OPTIONS.SKIP_IF_PRESENT.Value:
             run("rm -rf opencv")
             run("git clone https://github.com/opencv/opencv.git")
 
@@ -207,42 +308,6 @@ def opencv_build_emscripten():
     run("make -j")
     os.chdir(REPO_DIR)
 
-
-def cmake_desktop_build_vcpkg():
-    """
-    Run cmake with correct flags for a desktop build with vcpkg
-    * CMAKE_TOOLCHAIN_FILE will use the vcpkg toolchain
-    * IMMVISION_USE_POWERSAVE can optionally activate the power save mode
-    Run this script from your desired build dir.
-    """
-    print("# cmake_desktop_build_vcpkg")
-    if CURRENT_DIR_IS_REPO_DIR:
-        print("Run this from your build dir!")
-        return
-    os.chdir(CURRENT_DIR)
-    cmd = f"cmake {REPO_DIR} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-
-    triplet = optional_triplet_name()
-    if len(triplet) > 0:
-        cmd = cmd + f" -DVCPKG_TARGET_TRIPLET={triplet}"
-
-    if USE_POWERSAVE:
-        cmd = cmd + " -DIMMVISION_USE_POWERSAVE=ON"
-
-    if ACTIVATE_ALL_WARNINGS:
-        cmd = cmd + " -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
-
-    cmd = cmd + " -B ."
-
-    if os.name == 'nt':
-        arch = "win32" if ARCH_X64_OR_X86 == "x86" else "x64"
-        # generator = "Visual Studio 16 2019"
-        # cmd = cmd + f" -G \"{generator}\""
-        cmd = cmd + f" -A {arch}"
-
-    run(cmd)
-
-
 def cmake_emscripten_build():
     """
     Run cmake with correct flags for a build with emscripten.
@@ -256,7 +321,6 @@ def cmake_emscripten_build():
     os.chdir(CURRENT_DIR)
     cmd = f"emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_build_emscripten"
     run(cmd)
-
 
 def build_emscripten_with_timestamp():
     """
@@ -276,21 +340,34 @@ def build_emscripten_with_timestamp():
         f.write(f"#define datestr \"{now}\"")
     run("make -j")
 
+# TODO: add install_emscripten!
+
+######################################################################
+# Main
+######################################################################
 
 def get_all_function_categories():
     function_list_third_parties = {
-        "name": "Install third parties",
+        "name": "Install imgui third parties",
         "functions": [
-            install_vcpkg_thirdparties,
             imgui_download,
             hello_imgui_download
         ]
     }
 
-    function_list_build = {
-        "name": "Build for desktop",
+    function_list_vcpkg = {
+        "name": "Build with vcpkg",
         "functions": [
-            cmake_desktop_build_vcpkg,
+            vcpkg_install_thirdparties,
+            vcpkg_cmake_desktop_build,
+        ]
+    }
+
+    function_list_conan = {
+        "name": "Build with Conan",
+        "functions": [
+            conan_install_thirdparties,
+            conan_cmake_desktop_build,
         ]
     }
 
@@ -302,7 +379,11 @@ def get_all_function_categories():
             build_emscripten_with_timestamp
         ]
     }
-    all_function_categories = [function_list_third_parties, function_list_build]
+    all_function_categories = [function_list_third_parties]
+    if OPTIONS.USE_VCPKG.Value:
+        all_function_categories.append(function_list_vcpkg)
+    if OPTIONS.USE_CONAN.Value:
+        all_function_categories.append(function_list_conan)
     if HAS_EMSCRIPTEN:
         all_function_categories.append(function_list_emscripten)
     return all_function_categories
@@ -312,7 +393,6 @@ def get_all_functions():
     for c in get_all_function_categories():
         all_functions = all_functions + (c["functions"])
     return all_functions
-
 
 def run_interactive():
     print_current_options()
@@ -379,8 +459,7 @@ def run_argv_function(arg1):
     else:
         return True
 
-
-if __name__ == "__main__":
+def main():
     if len(sys.argv) == 1:
         run_interactive()
     if len(sys.argv) == 2:
@@ -389,3 +468,7 @@ if __name__ == "__main__":
             help_available_functions()
         elif not run_argv_function(arg1):
             help_available_functions()
+
+
+if __name__ == "__main__":
+    main()
