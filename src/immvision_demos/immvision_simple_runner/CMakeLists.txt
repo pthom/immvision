@@ -57,6 +57,10 @@ if (IMMVISION_DEMO_USE_GLFW)
     target_link_libraries(immvision_simple_runner PUBLIC glfw)
 endif()
 
+if (UNIX AND NOT APPLE)
+    target_link_libraries(immvision_simple_runner PRIVATE dl)
+endif()
+
 if (IMMVISION_USE_POWERSAVE)
     target_compile_definitions(immvision_simple_runner PRIVATE IMMVISION_USE_POWERSAVE)
 endif()
