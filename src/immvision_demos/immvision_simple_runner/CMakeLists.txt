@@ -35,7 +35,7 @@ target_link_libraries(immvision_simple_runner
     PRIVATE immvision_gl_loader)
 
 if (IMMVISION_DEMO_USE_SDL)
-    find_package(SDL2 CONFIG REQUIRED)
+    find_package(SDL2 REQUIRED)
     target_include_directories(immvision_simple_runner
         PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/..
