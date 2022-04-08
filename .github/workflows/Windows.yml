@@ -20,19 +20,31 @@ jobs:
         python .\scripts\build_utilities.py --imgui_download
         python .\scripts\build_utilities.py --hello_imgui_download
 
-#    - name: Install Conan + OpenCV and SDL
-#      run: |
-#        pip install conan
-#        mkdir build
-#        cd build
-#        conan install .. --build=missing
-#
-#    - name: Configure
-#      run: |
-#        cd build
-#        python ..\scripts\build_utilities.py  --run_cmake
-#
-#    - name: Build
-#      run: |
-#        cd build
-#        cmake --build .
+    - name: Download precompiled OpenCV and SDL
+      run: |
+        mkdir build-manual-64
+        cd build-manual-64
+        C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/opencv-4.5.5-vc14_vc15.zip
+        C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/SDL2-devel-2.0.20-VC.zip
+        7z x opencv-4.5.5-vc14_vc15.zip
+        7z x SDL2-devel-2.0.20-VC.zip
+
+    - name: Configure
+      run: |
+        cd build-manual-64
+        mkdir build
+        cd build
+        $current_directory = pwd
+        $current_directory = $current_directory.Path
+        echo "current_directory"
+        echo $current_directory
+        cmake -DOpenCV_DIR=D:/a/immvision/immvision/build-manual-64/opencv/build/x64/vc15/lib -DIMMVISION_USE_POWERSAVE=ON -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON -DSDL2_LIBDIR=D:/a/immvision/immvision/build-manual-64/SDL2-2.0.20/lib/x64 -DSDL2_INCLUDE_DIRS=D:/a/immvision/immvision/build-manual-64/SDL2-2.0.20/include  -B . ../..
+
+    # Note: the cmake command should use the current_directory variable, as below. It does not work for now...
+    # cmake -DOpenCV_DIR=$current_directory/../opencv/build/x64/vc15/lib -DIMMVISION_USE_POWERSAVE=ON -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON -DSDL2_LIBDIR=$current_directory/../SDL2-2.0.20/lib/x64 -DSDL2_INCLUDE_DIRS=$current_directory/../SDL2-2.0.20/include  -B . ../..
+
+    - name: Build
+      run: |
+        cd build-manual-64
+        cd build
+        cmake --build .
