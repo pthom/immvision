@@ -18,25 +18,20 @@ jobs:
         ./scripts/build_utilities.py --imgui_download
         ./scripts/build_utilities.py --hello_imgui_download
 
-#    - name: Install OpenCV and SDL via brew
-#      run: sudo apt-get install -y libopencv-dev libsdl2-dev
+    - name: Install OpenCV and SDL via brew (about 8 minutes)
+      run: brew install opencv sdl2
 
+    - name: Configure
+      run: |
+          mkdir build
+          cd build
+          ../scripts/build_utilities.py --run_cmake
 
-    - name: Setup interactive tmate session
-      uses: mxschmitt/action-tmate@v2
-#
-#
-##    - name: Install third parties
-##      run: |
-##          ./scripts/build_utilities.py --install_vcpkg_thirdparties
-##
-##    - name: Configure
-##      run: |
-##          mkdir build
-##          cd build
-##          ../scripts/build_utilities.py --cmake_desktop_build_vcpkg
-##
-##    - name: Build
-##      run: |
-##        cd build
-##        make
+    - name: Build
+      run: |
+        cd build
+        make -j
+
+#    - name: Setup interactive tmate session
+#      uses: mxschmitt/action-tmate@v2
+
