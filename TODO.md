@@ -2,7 +2,9 @@
   * [X] Add more warnings: 
     * [ ] Add warnings for linux
   * [ ] Github actions / build
+    * [ ] Argh SDL en dylib avec brew pour mac
     * [ ] Use conan to speedup install? 
+    * [ ] emscripten: CMake Error: File /hello_imgui_cmake/emscripten/shell.emscripten.html does not exist.
     * [ ] Link opencv static for windows 
     * [ ] Github actions / build and deploy viewer
   * [ ] All in one version (minimalist header / warning make opengl possibly external)

@@ -430,7 +430,7 @@ def run_interactive():
                 return "   " + line.strip()
             doc_detail_lines = list(map(indent_doc_line, doc_detail_lines))
             doc_detail = "\n".join(doc_detail_lines)  
-            print(f"{i + 1}. {title}")
+            print(f"{i + 1}. {title}      --{fn.__name__}")
             print(f"{doc_detail}")
             all_function_list.append(fn)
             i = i + 1
