@@ -25,7 +25,6 @@ jobs:
 ##    - name: Install third parties
 ##      run: |
 ##        python .\scripts\build_utilities.py --install_vcpkg_thirdparties
-##
 ##    - name: Configure
 ##      run: |
 ##        mkdir build
