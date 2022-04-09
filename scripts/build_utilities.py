@@ -284,6 +284,7 @@ def opencv_build_emscripten():
     os.chdir("opencv_build_emscripten")
 
     cmd = """emcmake cmake ../opencv \
+    -DCMAKE_INSTALL_PREFIX=../opencv_install_emscripten \
     -DENABLE_PIC=FALSE -DCMAKE_BUILD_TYPE=Release -DCPU_BASELINE='' \
     -DCPU_DISPATCH='' -DCV_TRACE=OFF \
      \
@@ -312,6 +313,7 @@ def opencv_build_emscripten():
     run(cmd)
 
     run("make -j")
+    run("make install")
     os.chdir(REPO_DIR)
 
 def cmake_emscripten_build():
@@ -325,7 +327,7 @@ def cmake_emscripten_build():
         print("Run this from your build dir!")
         return
     os.chdir(CURRENT_DIR)
-    cmd = f"emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_build_emscripten"
+    cmd = f"emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_install_emscripten/lib/cmake/opencv4"
     run(cmd)
 
 def build_emscripten_with_timestamp():
