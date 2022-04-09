@@ -17,7 +17,7 @@ class Option:
 class Options:
     ONLY_ECHO_COMMAND:Option = Option(False, "Only echo shell command, but do nothing")
 
-    USE_VCPKG: Option = Option(False, "Use vcpkg package manager")
+    USE_VCPKG: Option = Option(True, "Use vcpkg package manager")
     USE_CONAN: Option = Option(True, "Use Conan package manager")
 
     SKIP_IF_PRESENT:Option = Option(True, "Skip if third party already present")

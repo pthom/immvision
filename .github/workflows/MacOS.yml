@@ -21,14 +21,29 @@ jobs:
         ./scripts/build_utilities.py --imgui_download
         ./scripts/build_utilities.py --hello_imgui_download
 
-    - name: Install OpenCV and SDL via brew (about 8 minutes)
-      run: brew install opencv sdl2
+#    - name: Install OpenCV and SDL via brew (about 8 minutes)
+#      run: brew install opencv sdl2
+#
+#    - name: Configure
+#      run: |
+#        mkdir build
+#        cd build
+#        ../scripts/build_utilities.py --run_cmake
 
-    - name: Configure
-      run: |
+# vcpkg_osx_intel.tgz created with
+# tar --exclude=vcpkg/.git  --exclude=vcpkg/downloads --exclude=vcpkg/buildtrees  -zcvf "vcpkg_osx_intel.tgz" vcpkg
+
+    - name: Download vcpkg_osx_intel.tgz
+        run: |
+          cd external
+          wget https://traineq.org/ImmvisionGithubFiles/vcpkg_osx_intel.tgz
+          tar xfz vcpkg_osx_intel.tgz
+
+    - name: Configure with vcpkg
+      - run: |
           mkdir build
           cd build
-          ../scripts/build_utilities.py --run_cmake
+          ../scripts/build_utilities.py --vcpkg_cmake 
 
     - name: Build
       run: |
