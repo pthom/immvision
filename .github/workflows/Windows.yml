@@ -17,8 +17,7 @@ jobs:
 
     - name: Clone imgui and hello_imgui
       run: |
-        python .\scripts\build_utilities.py --imgui_download
-        python .\scripts\build_utilities.py --hello_imgui_download
+        python ./scripts/build_utilities.py --only_echo_command=False -all_imgui_downloads
 
     - name: Download precompiled vcpkg
       run: |
@@ -26,10 +25,16 @@ jobs:
         C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/vcpkg_nt.7z
         7z x vcpkg_nt.7z
 
-    - name: Configure and build x64 # Todo: switch config to x64
+    - name: Configure and build x64
       run: |
         mkdir build_x64
         cd build_x64
-        python ../scripts/build_utilities.py --vcpkg_cmake
+        python ../scripts/build_utilities.py --only_echo_command=False --use_vcpkg=True -run_cmake --BUILD_32BITS=False
         cmake --build . --config Release
 
+    - name: Configure and build x86
+      run: |
+        mkdir build_x86
+        cd build_x86
+        python ../scripts/build_utilities.py --only_echo_command=False --use_vcpkg=True -run_cmake --BUILD_32BITS=True
+        cmake --build . --config Release

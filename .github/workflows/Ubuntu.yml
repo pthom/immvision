@@ -17,8 +17,7 @@ jobs:
 
     - name: Clone imgui and hello_imgui
       run: |
-        ./scripts/build_utilities.py --imgui_download
-        ./scripts/build_utilities.py --hello_imgui_download
+        ./scripts/build_utilities.py --only_echo_command=False -all_imgui_downloads
 
     - name: Install needed libraries
       run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
@@ -36,4 +35,3 @@ jobs:
       run: |
         cd build
         make
-

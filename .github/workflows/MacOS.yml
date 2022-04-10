@@ -18,8 +18,7 @@ jobs:
 
     - name: Clone imgui and hello_imgui
       run: |
-        ./scripts/build_utilities.py --imgui_download
-        ./scripts/build_utilities.py --hello_imgui_download
+        ./scripts/build_utilities.py --only_echo_command=False -all_imgui_downloads
 
     #    - name: Install OpenCV and SDL via brew (about 8 minutes)
     #      run: brew install opencv sdl2
@@ -43,7 +42,7 @@ jobs:
       run: |
           mkdir build
           cd build
-          ../scripts/build_utilities.py --vcpkg_cmake 
+          ../scripts/build_utilities.py --only_echo_command=False --use_vcpkg=True -run_cmake 
 
     - name: Build
       run: |
