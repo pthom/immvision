@@ -2,21 +2,18 @@
   * [X] Add more warnings: 
     * [ ] Add warnings for linux
   * [ ] Github actions / build
-    * [ ] Argh SDL en dylib avec brew pour mac
-    * [ ] Use conan on windows to speedud
-      * [X] Link opencv static for windows (OK with conan)
-      * [ ] Argh, need to build libs on GH machines...
-      * [ ] Use windows OpenCv package instead?
-    * [X] Use apt and brew on mac & linux
-    * [ ] Github actions / build and deploy viewer
+    * [ ] Github actions / build and deploy viewer : search "artifacts"
+    * [ ] Windows / Vcpkg 32 & 64 bits
   * [ ] All in one version (minimalist header / warning make opengl possibly external)
     * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
   * [ ] build script 
-    * [ ] Change options
-  * [ ] hello_imgui : Check deploy assets Windows release & Debug build
+    * [ ] Change & save options
+    * [ ] CMAKE_BUILD_TYPE
   * [ ] Work on immvision_gl_loader
   * [ ] Compat Eigen ?
   * [ ] doc
+  * [ ] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
+  * 
 
   
 * [ ] Inspector:

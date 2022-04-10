@@ -25,7 +25,7 @@ class Options:
     USE_POWERSAVE: Option = Option(True, "Use imgui powersave version")
     ACTIVATE_ALL_WARNINGS:Option = Option(True, "Activate all warnings, as errors")
 
-    WINDOWS_OPENCV_STATIC: Option = Option(True, "Link opencv as a static lib (for windows, when using vcpkg)")
+    WINDOWS_VCPKG_STATIC_LIBS: Option = Option(True, "Let vcpkg build static libraries under windows (i.e OpenCV and sdl)")
     WINDOWS_BUILD_WIN32: Option = Option(False, "For windows, build Win32 version")   #"x64" # can be "x64" or "x86"
 
 
@@ -163,7 +163,7 @@ def hello_imgui_download():
 ######################################################################
 def vcpkg_optional_triplet_name():
     if os.name == 'nt':
-        if OPTIONS.WINDOWS_OPENCV_STATIC.Value:
+        if OPTIONS.WINDOWS_VCPKG_STATIC_LIBS.Value:
             return "x86-windows-static-md" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64-windows-static-md"
         else:
             return "x86-windows" if OPTIONS.WINDOWS_BUILD_WIN32.Value else "x64-windows"
