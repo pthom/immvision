@@ -1,19 +1,16 @@
 * [ ] Deploy
-  * [X] Add more warnings: 
-    * [ ] Add warnings for linux
+  * [x] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
+  * [ ] Add warnings / gcc
+  * [ ] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact
+    * [ ] Then remove ADVANCED option 
   * [ ] Github actions / build
     * [ ] Github actions / build and deploy viewer : search "artifacts"
-    * [ ] Windows / Vcpkg 32 & 64 bits
   * [ ] All in one version (minimalist header / warning make opengl possibly external)
     * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
-  * [ ] build script 
-    * [ ] Change & save options
-    * [ ] CMAKE_BUILD_TYPE
   * [ ] Work on immvision_gl_loader
   * [ ] Compat Eigen ?
   * [ ] doc
-  * [ ] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
-  * 
+  * [?] Add global option Emscripten instead of emcmake program detection
 
   
 * [ ] Inspector:

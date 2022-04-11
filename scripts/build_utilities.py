@@ -59,14 +59,26 @@ def has_program(program_name):
 HAS_EMSCRIPTEN = has_program("emcmake")
 
 RUN_LAST_DIRECTORY = "NotSet!!!"
+CHDIR_LAST_DIRECTORY = INVOKE_DIR
+
+def my_chdir(folder):
+    global CHDIR_LAST_DIRECTORY
+    try:
+        os.chdir(folder)
+    except FileNotFoundError as e:
+        if OPTIONS.ONLY_ECHO_COMMAND.Value:
+            print(f"# Warning, folder {folder} does not yet exist")
+        else:
+            raise FileNotFoundError(f"# Cannot chdir to folder {folder} !")
+    CHDIR_LAST_DIRECTORY = folder
 
 
 def run(cmd):
     global RUN_LAST_DIRECTORY
     if OPTIONS.ONLY_ECHO_COMMAND.Value:
-        if os.getcwd() != RUN_LAST_DIRECTORY:
-            print("cd " + os.getcwd())
-            RUN_LAST_DIRECTORY = os.getcwd()
+        if CHDIR_LAST_DIRECTORY != RUN_LAST_DIRECTORY:
+            print("cd " + CHDIR_LAST_DIRECTORY)
+            RUN_LAST_DIRECTORY = CHDIR_LAST_DIRECTORY
         print(cmd)
     else:
         print("#####################################################")
@@ -96,7 +108,7 @@ def run_cmake():
     if INVOKE_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
-    os.chdir(INVOKE_DIR)
+    my_chdir(INVOKE_DIR)
 
     if OPTIONS.USE_CONAN.Value:
         print("# Install dependencies via conan")
@@ -130,10 +142,10 @@ def run_cmake():
 # imgui and hello_imgui
 ######################################################################
 def _do_clone_repo(git_repo, folder, branch):
-    os.chdir(EXTERNAL_DIR)
+    my_chdir(EXTERNAL_DIR)
     if not os.path.isdir(folder):
-        run(f"git clone {git_repo}")
-    os.chdir(folder)
+        run(f"git clone {git_repo} {folder}")
+    my_chdir(folder)
     run(f"git checkout {branch}")
     run(f"git pull")
 
@@ -150,11 +162,11 @@ def imgui_download():
     print("# imgui_download")
     git_repo = "https://github.com/pthom/imgui.git" if OPTIONS.USE_POWERSAVE.Value else "https://github.com/ocornut/imgui.git"
     branch = "docking_powersave" if OPTIONS.USE_POWERSAVE.Value else "master"
-    os.chdir(EXTERNAL_DIR)
+    my_chdir(EXTERNAL_DIR)
 
     # Check if we changed to/from powersave mode
     if os.path.isdir("imgui"):
-        os.chdir("imgui")
+        my_chdir("imgui")
         cmd_result = subprocess.check_output("git branch", shell=True).decode("utf-8")
         cmd_result_lines = cmd_result.split("\n")
         need_reset_repo = False
@@ -163,7 +175,7 @@ def imgui_download():
         if not OPTIONS.USE_POWERSAVE.Value and "* master" not in cmd_result_lines:
             need_reset_repo = True
         if need_reset_repo:
-            os.chdir(EXTERNAL_DIR)
+            my_chdir(EXTERNAL_DIR)
             print("Need to re-download imgui (changed powersave mode)")
             print("Please remove external/imgui manually")
             sys.exit(1)
@@ -209,12 +221,12 @@ def vcpkg_install_thirdparties():
     vcpkg_exe = ".\\vcpkg" if os.name == "nt" else "./vcpkg"
 
     print("# install_vcpkg_thirdparties")
-    os.chdir(EXTERNAL_DIR)
+    my_chdir(EXTERNAL_DIR)
 
     if not os.path.isdir("vcpkg"):
         run("git clone https://github.com/Microsoft/vcpkg.git")
 
-    os.chdir("vcpkg")
+    my_chdir("vcpkg")
     run("git pull")
 
     if os.name == 'nt':
@@ -239,7 +251,7 @@ def vcpkg_export():
     """
     # vcpkg_osx_intel.tgz created with
     # tar --exclude=vcpkg/.git  --exclude=vcpkg/downloads --exclude=vcpkg/buildtrees  -zcvf "vcpkg_osx_intel.tgz" vcpkg
-    os.chdir(EXTERNAL_DIR)
+    my_chdir(EXTERNAL_DIR)
     
     # Build vcpkg libraries
     if os.name != "nt":
@@ -252,7 +264,7 @@ def vcpkg_export():
         vcpkg_install_thirdparties()
         OPTIONS.BUILD_32BITS.Value = old_win32
 
-    os.chdir(EXTERNAL_DIR)
+    my_chdir(EXTERNAL_DIR)
     if os.path.exists("vcpkg.7z"):
         run("rm vcpkg.7z")
     run(f'7z a -t7z vcpkg_{os.name}.7z vcpkg -xr!"vcpkg/downloads" -xr!"vcpkg/buildtrees" -xr!"vcpkg/.git" -xr!"vcpkg/packages"')
@@ -269,7 +281,7 @@ def opencv_build_emscripten():
     Will clone opencv code into external/opencv, then build it for emscripten into external/opencv_build_emscripten
     """
     print("# opencv_build_emscripten")
-    os.chdir(EXTERNAL_DIR)
+    my_chdir(EXTERNAL_DIR)
 
     # Git clone
     if not os.path.isdir("opencv"):
@@ -278,7 +290,7 @@ def opencv_build_emscripten():
     # build
     if not os.path.isdir("opencv_build_emscripten"):
         os.makedirs("opencv_build_emscripten")
-    os.chdir("opencv_build_emscripten")
+    my_chdir("opencv_build_emscripten")
 
     cmd = """emcmake cmake ../opencv \
     -DCMAKE_INSTALL_PREFIX=../opencv_install_emscripten \
@@ -323,8 +335,8 @@ def cmake_emscripten_build():
     if INVOKE_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
-    os.chdir(INVOKE_DIR)
-    cmd = f"emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_install_emscripten/lib/cmake/opencv4"
+    my_chdir(INVOKE_DIR)
+    cmd = f"emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_install_emscripten/lib/cmake/opencv4 -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
     run(cmd)
 
 
@@ -339,7 +351,7 @@ def build_emscripten_with_timestamp():
     if INVOKE_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
-    os.chdir(INVOKE_DIR)
+    my_chdir(INVOKE_DIR)
     now = datetime.datetime.now()
     datestr_file = REPO_DIR + "/src/immvision_demos/inspector_demo/datestr.h"
     with open(datestr_file, "w") as f:
@@ -446,6 +458,9 @@ def help_commands():
 def help():
     help_commands()
     help_options()
+    if not HAS_EMSCRIPTEN:
+        print("Emscripten: activate emscripten in order to get related utilities, first : for example\n\
+        source ~/emsdk/emsdk_env.sh")
 
 
 def display_current_options():
