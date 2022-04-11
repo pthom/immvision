@@ -10,10 +10,11 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-#    - uses: actions/upload-artifact@v3
-#      with:
-#        name: my_artifact
-#        path: src/immvision/
+    - uses: actions/upload-artifact@v3
+      with:
+        name: my_artifact
+        path: src/immvision/
+        retention-days: 90
 
     - uses: actions/download-artifact@v3
       with:
