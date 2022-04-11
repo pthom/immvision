@@ -2,9 +2,6 @@ name: Ubuntu
 
 on:
   push:
-    branches:
-      - master
-      - dev
   pull_request:
 
 jobs:
@@ -12,31 +9,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - name: Checkout submodules
-      run: git submodule update --init --recursive
-
-    - name: Clone imgui and hello_imgui
-      run: |
-        ./scripts/build_utilities.py --only_echo_command=False -all_imgui_downloads
-
-    - name: Install needed libraries
-      run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
-
-    - name: Install OpenCV and SDL via apt
-      run: sudo apt-get install -y libopencv-dev libsdl2-dev
-
-    - name: Configure
-      run:  |
-        mkdir build
-        cd build
-        cmake .. -DIMMVISION_USE_POWERSAVE=ON -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON
-
-    - name: Build
-      run: |
-        cd build
-        make
 
     - uses: actions/upload-artifact@v3
       with:
-        name: my-bin-artifact
-        path: build/bin/
+        name: my_artifact
+        path: src/immvision/
+
+
+#    - name: Checkout submodules
+#      run: git submodule update --init --recursive
+#
+#    - name: Clone imgui and hello_imgui
+#      run: |
+#        ./scripts/build_utilities.py --only_echo_command=False -all_imgui_downloads
+#
+#    - name: Install needed libraries
+#      run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
+#
+#    - name: Install OpenCV and SDL via apt
+#      run: sudo apt-get install -y libopencv-dev libsdl2-dev
+#
+#    - name: Configure
+#      run:  |
+#        mkdir build
+#        cd build
+#        cmake .. -DIMMVISION_USE_POWERSAVE=ON -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON
+#
+#    - name: Build
+#      run: |
+#        cd build
+#        make
