@@ -40,4 +40,4 @@ jobs:
       with:
         name: ubuntu_bin_artifacts
         path: build/bin/
-        retention-days: 30
+        retention-days: 90

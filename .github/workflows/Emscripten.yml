@@ -43,5 +43,8 @@ jobs:
         run: |
           make -j 4
 
-#      - name: Setup interactive tmate session
-#        uses: mxschmitt/action-tmate@v2
+      - uses: actions/upload-artifact@v3
+        with:
+          name: emscripten_bin_artifacts
+          path: build_emscripten/bin/
+          retention-days: 90
