@@ -10,11 +10,20 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    - uses: actions/upload-artifact@v3
+#    - uses: actions/upload-artifact@v3
+#      with:
+#        name: my_artifact
+#        path: src/immvision/
+
+    - uses: actions/download-artifact@v3
       with:
         name: my_artifact
-        path: src/immvision/
+        path: artif/src/immvision
 
+    - name: Display structure of downloaded files
+      run: |
+        cd artif
+        tree
 
 #    - name: Checkout submodules
 #      run: git submodule update --init --recursive
