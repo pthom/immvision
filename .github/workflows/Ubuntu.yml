@@ -35,3 +35,8 @@ jobs:
       run: |
         cd build
         make
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: my-bin-artifact
+        path: build/bin/
