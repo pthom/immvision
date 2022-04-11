@@ -1,2 +1,0 @@
-add_executable(immdebug_demo immdebug_demo.cpp)
-target_link_libraries(immdebug_demo PRIVATE immdebug)
