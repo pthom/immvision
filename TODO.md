@@ -1,8 +1,6 @@
 * [ ] Deploy
   * [x] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
   * [ ] Add warnings / gcc
-  * [ ] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact
-    * [ ] Then remove ADVANCED option 
   * [ ] Github actions / build
     * [ ] Github actions / build and deploy viewer : search "artifacts"
   * [ ] All in one version (minimalist header / warning make opengl possibly external)
@@ -10,7 +8,9 @@
   * [ ] Work on immvision_gl_loader
   * [ ] Compat Eigen ?
   * [ ] doc
-  * [?] Add global option Emscripten instead of emcmake program detection
+  * [ ] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact
+    Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
+    
 
   
 * [ ] Inspector:

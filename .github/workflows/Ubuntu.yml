@@ -34,4 +34,10 @@ jobs:
     - name: Build
       run: |
         cd build
-        make
+        make -j
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ubuntu_bin_artifacts
+        path: build/bin/
+        retention-days: 30
