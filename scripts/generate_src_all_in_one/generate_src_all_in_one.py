@@ -159,7 +159,7 @@ def amalgamate_one_file(included_filename, including_filename, already_included_
             is_code_composed_of_only_blank_lines = False
     if is_code_composed_of_only_blank_lines:
         return ""
-    
+
     return parsed_result
 
 
