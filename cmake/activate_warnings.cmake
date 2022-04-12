@@ -32,6 +32,15 @@ macro(immvision_activate_warnings)
 
     elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         # using GCC
+        set(warning_flags "-Wall -Wextra")
+        set(ignored_warnings
+            )
+        foreach(ignored_warning ${ignored_warnings})
+            set(warning_flags "${warning_flags} -Wno-${ignored_warning}")
+        endforeach()
+
+        set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${warning_flags})
+        message("set(CMAKE_CXX_FLAGS ${warning_flags})")
     elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
         # using Intel C++
     elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
