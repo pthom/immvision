@@ -130,7 +130,7 @@ def run_cmake():
         new_line = "    \\\n     "
 
     cmake_cmd = "emcmake cmake" if OPTIONS.build_emscripten.Value else "cmake"
-    cmake_cmd = cmake_cmd + f" cmake {REPO_DIR}"
+    cmake_cmd = cmake_cmd + f" {REPO_DIR}"
 
     if OPTIONS.use_vcpkg.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
