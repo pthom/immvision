@@ -1,15 +1,20 @@
+* [ ] ImGui manual: build release!
 * [ ] Deploy
-  * [x] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
-  * [ ] Add warnings / gcc
-  * [ ] Github actions / build
-    * [ ] Github actions / build and deploy viewer : search "artifacts"
-  * [ ] All in one version (minimalist header / warning make opengl possibly external)
-    * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
-  * [ ] Work on immvision_gl_loader
-  * [ ] Compat Eigen ?
-  * [ ] doc
-  * [ ] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact
-    Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
+    * [ ] build_script: 
+      * [ ] Add full build / Show vcpkg and Conan always
+      * [ ] Add build with docker
+    * [x] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
+    * [ ] Add warnings / gcc
+    * [ ] Github release (search actions artifacts to release : https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
+    * [ ] All in one version (minimalist header / warning make opengl possibly external)
+      * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
+    * [ ] Work on immvision_gl_loader
+    * [ ] Compat Eigen ?
+    * [ ] doc
+    * [N] Static link linux. Dead end
+      use ldd to see links. Read https://insanecoding.blogspot.com/2012/07/creating-portable-linux-binaries.html and https://www.systutorials.com/how-to-statically-link-c-and-c-programs-on-linux-with-gcc/
+    * [N] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact
+      Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
     
 
   
