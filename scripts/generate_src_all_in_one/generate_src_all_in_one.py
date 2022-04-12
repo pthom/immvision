@@ -167,4 +167,5 @@ def auto_generate():
 
 
 if __name__ == "__main__":
+    print("  Running generate_src_all_in_one")
     auto_generate()
