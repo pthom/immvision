@@ -166,8 +166,8 @@ namespace ImGuiImm
         auto labelRect = s_GroupPanelLabelStack.back();
         s_GroupPanelLabelStack.pop_back();
 
-        ImVec2 halfFrame = ImVec2(frameHeight * 0.25f, frameHeight) * 0.5f;
-        ImRect frameRect = ImRect(itemMin + halfFrame, itemMax - ImVec2(halfFrame.x, 0.0f));
+        ImVec2 halfFrame = ImVec2(frameHeight * 0.25f * 0.5f, frameHeight * 0.5f);
+        ImRect frameRect = ImRect(ImVec2(itemMin.x + halfFrame.x, itemMin.y + halfFrame.y), ImVec2(itemMax.x - halfFrame.x, itemMax.y));
         labelRect.Min.x -= itemSpacing.x;
         labelRect.Max.x += itemSpacing.x;
 
