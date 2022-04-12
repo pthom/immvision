@@ -23,7 +23,8 @@ RUN cd /tmp && \
     rm cmake-3.23.0-rc1-linux-x86_64.sh
 
 
-RUN apt-get install -y curl zip unzip tar bison pkg-config python3-distutils gperf libx11-dev libxft-dev libxft-dev x11proto-xext-dev libxext-dev  libegl-dev
+RUN apt-get install -y curl zip unzip tar bison pkg-config python3-distutils gperf libx11-dev libxft-dev libxft-dev x11proto-xext-dev libxext-dev  libegl-dev psmisc
+
 
 # install_x11vnc
 RUN DEBIAN_FRONTEND="noninteractive"  apt-get install -y x11vnc xvfb icewm
@@ -34,6 +35,9 @@ RUN mkdir ~/.vnc &&\
 # -> you can connect to it via VNC on the port 5900 of the localhost
 RUN echo "Xvfb -screen 0 1280x1024x16 & sleep 1 && icewm & x11vnc -forever  -ncache 10" > /start_x_vnc.sh &&\
     chmod +x /start_x_vnc.sh
+
+
+RUN apt-get install -y libopencv-dev libsdl2-dev
 
 # Clear package cache
 #RUN rm -rf /var/lib/apt/lists/*

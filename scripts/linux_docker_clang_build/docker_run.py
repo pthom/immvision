@@ -12,7 +12,17 @@ DOCKER_CONTAINER_NAME = "immvision_docker_builder"
 SOURCES_MOUNT_DIR = "/dvp/sources"
 VNC_PORT = 5900
 ONLY_SHOW_COMMAND = False
-
+BUILD_COMMANDS = """
+            echo '1. Make build dir in the container' &&\\
+            cd /dvp &&\\
+            mkdir -p build &&\\
+            cd build &&\\
+            echo '2. Run cmake and build' &&\\
+            cmake ../sources -DCMAKE_BUILD_TYPE=Release -DCMAKE_UNITY_BUILD=ON &&\\
+            make -j &&\\
+            echo '3. Deploy binaries to the host machine inside scripts/linux_docker_clang_build/bin_docker/' &&\\
+            cp -a bin/ ../sources/scripts/linux_docker_clang_build/bin_docker
+            """
 
 CHDIR_LAST_DIRECTORY = INVOKE_DIR
 
@@ -53,6 +63,10 @@ def help():
             {sys.argv[0]} -run [any command and args]
         Will start the container and run the commands given after "-run".
         For example, "{sys.argv[0]} -run ls -al" will list the files.  
+
+            {sys.argv[0]} -build
+        Will start the container and build the project using the following commands:
+        {BUILD_COMMANDS}
 
             {sys.argv[0]} -remove_container 
         Will remove the container (you will lose all modifications in the Docker container)
@@ -99,7 +113,6 @@ def main():
         my_chdir(THIS_DIR)
         run(f"docker build -t {DOCKER_IMAGE_NAME} .")
     elif arg1 == "-create_container":
-        help_vnc()
         run(f"docker run --name {DOCKER_CONTAINER_NAME} -p {VNC_PORT}:{VNC_PORT} -it -d -v {REPO_DIR}:{SOURCES_MOUNT_DIR} {DOCKER_IMAGE_NAME}  /bin/bash")
     elif arg1 == "-bash":
         help_vnc()
@@ -112,6 +125,9 @@ def main():
     elif arg1 == "-run":
         command = " ".join(sys.argv[2:])
         run(f"docker start {DOCKER_CONTAINER_NAME} && docker exec -it {DOCKER_CONTAINER_NAME} {command}")
+    elif arg1 == "-build":
+        commands = f'/bin/bash -c "{BUILD_COMMANDS}"'
+        run(f"docker start {DOCKER_CONTAINER_NAME} && docker exec -it {DOCKER_CONTAINER_NAME} {commands}")
     else:
         help()
 
