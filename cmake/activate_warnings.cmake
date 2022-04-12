@@ -42,7 +42,7 @@ macro(immvision_activate_warnings)
             4005 # macro redefinition
             )
         foreach(ignored_warning ${ignored_warnings})
-            set(warning_flags "${warning_flags} /Wd-${ignored_warning}")
+            set(warning_flags "${warning_flags} /Wd${ignored_warning}")
         endforeach()
         # Warning as error
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
