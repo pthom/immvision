@@ -2,9 +2,6 @@ name: Windows
 
 on:
   push:
-    branches:
-      - master
-      - dev
   pull_request:
 
 jobs:
@@ -21,23 +18,17 @@ jobs:
         C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/vcpkg_nt.7z
         7z x vcpkg_nt.7z
 
-    - name: Clone imgui and hello_imgui
-      run: |
-        python ./scripts/build_utilities.py run -all_imgui_downloads
-
     - name: Configure and build x64
       run: |
         mkdir build_x64
         cd build_x64
-        python ../scripts/build_utilities.py run --use_vcpkg=True -run_cmake --BUILD_32BITS=False
-        cmake --build . --config Release
+        python ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True --build_32bits=False -run_build_all
 
     - name: Configure and build x86
       run: |
         mkdir build_x86
         cd build_x86
-        python ../scripts/build_utilities.py run --use_vcpkg=True -run_cmake --BUILD_32BITS=True
-        cmake --build . --config Release
+        python ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True --build_32bits=True -run_build_all
 
     - uses: actions/upload-artifact@v3
       with:

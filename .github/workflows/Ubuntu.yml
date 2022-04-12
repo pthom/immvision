@@ -2,9 +2,6 @@ name: Ubuntu
 
 on:
   push:
-    branches:
-      - master
-      - dev
   pull_request:
 
 jobs:
@@ -15,26 +12,17 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
-    - name: Clone imgui and hello_imgui
-      run: |
-        ./scripts/build_utilities.py run -all_imgui_downloads
-
     - name: Install needed libraries
       run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
 
     - name: Install OpenCV and SDL via apt
       run: sudo apt-get install -y libopencv-dev libsdl2-dev
 
-    - name: Configure
+    - name: run_build_all
       run:  |
         mkdir build
         cd build
-        cmake .. -DIMMVISION_USE_POWERSAVE=ON -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON
-
-    - name: Build
-      run: |
-        cd build
-        make -j
+        ../scripts/build_utilities.py run -run_build_all
 
     - uses: actions/upload-artifact@v3
       with:

@@ -2,9 +2,6 @@ name: MacOS
 
 on:
   push:
-    branches:
-      - master
-      - dev
   pull_request:
 
 jobs:
@@ -16,31 +13,20 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
-    - name: Clone imgui and hello_imgui
-      run: |
-        ./scripts/build_utilities.py run -all_imgui_downloads
-
     # vcpkg_osx_intel.tgz created with
     # tar --exclude=vcpkg/.git  --exclude=vcpkg/downloads --exclude=vcpkg/buildtrees  -zcvf "vcpkg_osx_intel.tgz" vcpkg
+    # Next time, prefer 7z version, created by build_utilities (vcpkg_export)
     - name: Download vcpkg_osx_intel.tgz
       run: |
           cd external
           wget https://traineq.org/ImmvisionGithubFiles/vcpkg_osx_intel.tgz
           tar xfz vcpkg_osx_intel.tgz
 
-    - name: Configure with vcpkg
+    - name: run_build_all
       run: |
           mkdir build
           cd build
-          ../scripts/build_utilities.py run --use_vcpkg=True -run_cmake 
-
-    - name: Build
-      run: |
-        cd build
-        make -j
-
-#    - name: Setup interactive tmate session
-#      uses: mxschmitt/action-tmate@v2
+          ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True -run_build_all
 
     - uses: actions/upload-artifact@v3
       with:

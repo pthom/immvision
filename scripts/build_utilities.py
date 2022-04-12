@@ -26,6 +26,8 @@ class Options:
     use_powersave: Option = Option(True, "Use imgui powersave version")
     activate_all_warnings:Option = Option(True, "Activate all warnings, as errors")
 
+    # advanced options below
+    build_emscripten: Option = Option(False, "Build for emscripten")
     windows_vcpkg_static: Option = Option(True, "Let vcpkg build static libraries under windows")
     build_32bits: Option = Option(False, "Build 32 bits version (only possible under windows)")
     vcpkg_bypass_install: Option = Option(False, "Bypass vcpkg install (advanced option, for CI only)")
@@ -115,6 +117,9 @@ def run_cmake():
         return
     my_chdir(INVOKE_DIR)
 
+    if OPTIONS.build_emscripten.Value:
+        _complain_and_exit_if_emscripten_absent()
+
     if OPTIONS.use_conan.Value:
         print("# Install dependencies via conan")
         run(f"conan install {REPO_DIR}")
@@ -123,13 +128,18 @@ def run_cmake():
         new_line = "    "
     else:
         new_line = "    \\\n     "
-    cmake_cmd = f"cmake {REPO_DIR}"
+
+    cmake_cmd = "emcmake cmake" if OPTIONS.build_emscripten.Value else "cmake"
+    cmake_cmd = cmake_cmd + f" cmake {REPO_DIR}"
 
     if OPTIONS.use_vcpkg.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
         triplet = _vcpkg_optional_triplet_name()
         if len(triplet) > 0:
             cmake_cmd = cmake_cmd + f"{new_line} -DVCPKG_TARGET_TRIPLET={triplet}"
+
+    if OPTIONS.build_emscripten.Value:
+        cmake_cmd = cmake_cmd + f"{new_line} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_install_emscripten/lib/cmake/opencv4"
 
     if OPTIONS.use_powersave.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_USE_POWERSAVE=ON"
@@ -183,7 +193,7 @@ def run_build_all():
     # Install opencv and SDL (via vcpkg, conan, or via apt packages)
     if OPTIONS.use_vcpkg.Value and not OPTIONS.vcpkg_bypass_install.Value:
         vcpkg_install_thirdparties()
-    elif not OPTIONS.use_conan.Value:
+    elif not OPTIONS.use_conan.Value and not OPTIONS.build_emscripten.Value:
         _propose_install_opencv_sdl_for_ubuntu()
 
     # Run cmake
@@ -417,7 +427,6 @@ def install_emscripten():
     run("./emsdk activate latest")
 
 
-
 @decorate_loudly_echo_function_name
 def opencv_build_emscripten():
     """
@@ -473,39 +482,17 @@ def opencv_build_emscripten():
 
 
 @decorate_loudly_echo_function_name
-def cmake_emscripten_build():
+def emscripten_update_timestamp():
     """
-    Run cmake with correct flags for a build with emscripten.
-    OpenCV_DIR will point to external/opencv_build_emscripten. 
-    Run this script from your desired build dir.
-    """
-    _complain_and_exit_if_emscripten_absent()
-    if INVOKE_DIR_IS_REPO_DIR:
-        print("Run this from your build dir!")
-        return
-    my_chdir(INVOKE_DIR)
-    cmd = f"emcmake cmake {REPO_DIR} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_install_emscripten/lib/cmake/opencv4 -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
-    run(cmd)
-
-
-@decorate_loudly_echo_function_name
-def build_emscripten_with_timestamp():
-    """
-    Helper to build the emscripten version
-    This will update src/immvision_demos/inspector_demo/datestr.h and then run `make`
-    (this date is displayed in the javascript console at startup to help diagnose issues) 
-    You can safely run `make` manually instead.
+    (Advanced) Helper to build the emscripten version
+    This will update src/immvision_demos/inspector_demo/datestr.h with the latest date
+    (this date is displayed in the javascript console at startup to help diagnose issues)
     """
     _complain_and_exit_if_emscripten_absent()
-    if INVOKE_DIR_IS_REPO_DIR:
-        print("Run this from your build dir!")
-        return
-    my_chdir(INVOKE_DIR)
     now = datetime.datetime.now()
-    datestr_file = REPO_DIR + "/src/immvision_demos/inspector_demo/datestr.h"
+    datestr_file = f"{REPO_DIR}/src/immvision_demos/inspector_demo/datestr.h"
     with open(datestr_file, "w") as f:
         f.write(f"#define datestr \"{now}\"")
-    run("make -j")
 
 ######################################################################
 # Main
@@ -547,8 +534,7 @@ def get_all_function_categories():
         "functions": [
             install_emscripten,
             opencv_build_emscripten,
-            cmake_emscripten_build,
-            build_emscripten_with_timestamp
+            emscripten_update_timestamp
         ]
     }
 
