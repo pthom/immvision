@@ -1,7 +1,12 @@
 #include "immvision/internal/cv_drawing_utils.h"
 
+#include <opencv2/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <unordered_map>
+
+#ifndef CV_16F // for old versions of OpenCV
+#define CV_16F 7
+#endif
 
 
 namespace ImmVision

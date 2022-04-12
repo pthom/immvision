@@ -1,4 +1,5 @@
-#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
 #include "immvision/image_navigator.h"
@@ -13,6 +14,11 @@
 #include <map>
 #include <vector>
 #include <iostream>
+
+#ifndef CV_16F // for old versions of OpenCV
+#define CV_16F 7
+#endif
+
 
 namespace ImmVision
 {
@@ -101,7 +107,7 @@ namespace ImmVision
             const ZoomMatrixType& oldZoomMatrix,
             const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize)
         {
-            if (oldDisplaySize.empty() || newDisplaySize.empty())
+            if (oldDisplaySize.area() == 0 || newDisplaySize.area() == 0)
                 return oldZoomMatrix;
 
             ZoomMatrixType zoomMatrix;
@@ -743,7 +749,7 @@ namespace ImmVision
 
                 if (ShallRefreshTexture(oldParams, *params))
                     needsRefreshTexture = true;
-                if ((!oldParams.ImageDisplaySize.empty()) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
+                if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
                     params->ZoomMatrix = ZoomMatrix::UpdateZoomMatrix_DisplaySizeChanged(
                         oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
                 if (needsRefreshTexture)
