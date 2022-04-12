@@ -119,7 +119,10 @@ def run_cmake():
         print("# Install dependencies via conan")
         run(f"conan install {REPO_DIR}")
 
-    new_line = "    \\\n     "
+    if os.name == "nt":
+        new_line = "    "
+    else:
+        new_line = "    \\\n     "
     cmake_cmd = f"cmake {REPO_DIR}"
 
     if OPTIONS.use_vcpkg.Value:
