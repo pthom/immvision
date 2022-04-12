@@ -58,9 +58,7 @@ def has_program(program_name):
 
 HAS_EMSCRIPTEN = has_program("emcmake")
 
-RUN_LAST_DIRECTORY = "NotSet!!!"
 CHDIR_LAST_DIRECTORY = INVOKE_DIR
-
 def my_chdir(folder):
     global CHDIR_LAST_DIRECTORY
     try:
@@ -70,21 +68,17 @@ def my_chdir(folder):
             print(f"# Warning, folder {folder} does not yet exist")
         else:
             raise FileNotFoundError(f"# Cannot chdir to folder {folder} !")
+    if OPTIONS.ONLY_ECHO_COMMAND.Value and folder != CHDIR_LAST_DIRECTORY:
+        print(f"cd {folder}")
     CHDIR_LAST_DIRECTORY = folder
 
 
 def run(cmd):
-    global RUN_LAST_DIRECTORY
     if OPTIONS.ONLY_ECHO_COMMAND.Value:
-        if CHDIR_LAST_DIRECTORY != RUN_LAST_DIRECTORY:
-            print("cd " + CHDIR_LAST_DIRECTORY)
-            RUN_LAST_DIRECTORY = CHDIR_LAST_DIRECTORY
         print(cmd)
     else:
         print("#####################################################")
         print("# Running shell command:")
-        if os.getcwd() != RUN_LAST_DIRECTORY:
-            print("cd " + os.getcwd())
         print(cmd)
         print("#####################################################")
         subprocess.check_call(cmd, shell=True)
@@ -234,14 +228,14 @@ def vcpkg_install_thirdparties():
     else:
         run("./bootstrap-vcpkg.sh")
 
-    if os.name == 'nt':
-        packages = ["sdl2", "opencv4[core,jpeg,png]" ]
+    packages = ["sdl2", "opencv4[core,jpeg,png]" ]
+    for package in packages:
         triplet = _vcpkg_optional_triplet_name()
-        for package in packages:
+        if len(triplet) >0:
             cmd = f"{vcpkg_exe} install {package}:{triplet}"
-            run(cmd)
-    else:
-        run(f"{vcpkg_exe} install sdl2 opencv4")
+        else:
+            cmd = f"{vcpkg_exe} install {package}"
+        run(cmd)
 
 
 def vcpkg_export():
