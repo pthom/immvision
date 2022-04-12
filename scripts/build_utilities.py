@@ -5,7 +5,7 @@ import datetime
 import sys
 import dataclasses
 import typing
-
+from pathlib import Path
 
 CMAKE_BUILD_TYPE="Release"
 
@@ -39,7 +39,7 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 REPO_DIR = os.path.realpath(THIS_DIR + "/..")
 EXTERNAL_DIR = REPO_DIR + "/external"
 INVOKE_DIR_IS_REPO_DIR = False
-HOME_FOLDER = os.environ['HOME']
+HOME_FOLDER = Path.home()
 if (os.path.realpath(INVOKE_DIR) == os.path.realpath(REPO_DIR)):
     INVOKE_DIR_IS_REPO_DIR = True
 if (os.path.realpath(INVOKE_DIR) == os.path.realpath(THIS_DIR)):
