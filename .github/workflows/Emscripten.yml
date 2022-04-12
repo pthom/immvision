@@ -26,7 +26,7 @@ jobs:
         run: |
             mkdir build_emscripten
             cd build_emscripten
-            source ~/emsdk/emsdk_env.sh && ../scripts/build_utilities.py run --build_emscripten=True -run_build_all
+            source ~/emsdk/emsdk_env.sh && ../scripts/build_utilities.py run --build_emscripten=True --emscripten_bypass_opencv_compil=True -run_build_all
 
       - uses: actions/upload-artifact@v3
         with:

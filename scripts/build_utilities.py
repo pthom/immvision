@@ -31,6 +31,7 @@ class Options:
     windows_vcpkg_static: Option = Option(True, "Let vcpkg build static libraries under windows")
     build_32bits: Option = Option(False, "Build 32 bits version (only possible under windows)")
     vcpkg_bypass_install: Option = Option(False, "Bypass vcpkg install (advanced option, for CI only)")
+    emscripten_bypass_opencv_compil: Option = Option(False, "Bypass opencv compil for emscripten (advanced option, for CI only)")
 
 
 OPTIONS = Options()
@@ -195,7 +196,7 @@ def run_build_all():
         vcpkg_install_thirdparties()
     elif not OPTIONS.use_conan.Value and not OPTIONS.build_emscripten.Value:
         _propose_install_opencv_sdl_for_ubuntu()
-    elif OPTIONS.build_emscripten.Value:
+    elif OPTIONS.build_emscripten.Value and not OPTIONS.emscripten_bypass_opencv_compil.Value:
         opencv_build_emscripten()
 
     # Run cmake
