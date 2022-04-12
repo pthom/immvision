@@ -295,6 +295,7 @@ def vcpkg_install_thirdparties():
     if not os.path.isdir(f"{EXTERNAL_DIR}/vcpkg"):
         my_chdir(EXTERNAL_DIR)
         run("git clone https://github.com/Microsoft/vcpkg.git")
+        my_chdir(f"{EXTERNAL_DIR}/vcpkg")
         if os.name == 'nt':
             run(".\\bootstrap-vcpkg.bat")
         else:
