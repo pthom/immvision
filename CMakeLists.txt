@@ -17,3 +17,4 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(external)
 add_subdirectory(src)
+add_subdirectory(src_all_in_one)
