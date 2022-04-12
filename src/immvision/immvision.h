@@ -1,4 +1,2 @@
-namespace ImmVision
-{
-    void foo();
-} // namespace ImmVision
+#include "immvision/image.h"
+#include "immvision/image_navigator.h"

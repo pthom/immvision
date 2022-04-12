@@ -1,6 +1,6 @@
-#include "gl_texture.h"
+#include "immvision/internal/gl_texture.h"
 
-#include "immvision_gl_loader.h"
+#include "immvision_gl_loader/immvision_gl_loader.h"
 #include "immvision/internal/cv_drawing_utils.h"
 
 #ifdef __APPLE__

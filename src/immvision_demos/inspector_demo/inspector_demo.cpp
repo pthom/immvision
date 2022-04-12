@@ -1,4 +1,4 @@
-#include "immvision/image_navigator.h"
+#include "immvision/immvision.h"
 #include "hello_imgui/hello_imgui.h"
 #include "datestr.h"
 #include <opencv2/imgproc.hpp>
