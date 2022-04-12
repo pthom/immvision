@@ -195,6 +195,8 @@ def run_build_all():
         vcpkg_install_thirdparties()
     elif not OPTIONS.use_conan.Value and not OPTIONS.build_emscripten.Value:
         _propose_install_opencv_sdl_for_ubuntu()
+    elif OPTIONS.build_emscripten.Value:
+        opencv_build_emscripten()
 
     # Run cmake
     run_cmake()
