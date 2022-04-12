@@ -1,16 +1,14 @@
 * [ ] ImGui manual: build release!
 * [ ] Deploy
-  * [ ] All in one version (minimalist header / warning make opengl possibly external)
-  * [ ] build_script: 
-    * [X] Add full build / Show vcpkg and Conan always
-    * [ ] Add build with docker
-  * [x] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
   * [ ] Add warnings / gcc
   * [ ] Github release (search actions artifacts to release : https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
     * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
-  * [ ] Work on immvision_gl_loader
   * [ ] Compat Eigen ?
   * [ ] doc
+  * [ ] All in one version
+    * [X] All in one immvision
+    * [ ] All in one immdebug
+  * [x] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
   * [N] Static link linux. Dead end
     use ldd to see links. Read https://insanecoding.blogspot.com/2012/07/creating-portable-linux-binaries.html and https://www.systutorials.com/how-to-statically-link-c-and-c-programs-on-linux-with-gcc/
   * [N] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact

@@ -100,8 +100,13 @@ def amalgamate_one_file(filename, already_included_local_files, already_included
     """
     Recursive function that will create an amalgamation for a given header file.
     """
+    filename_orig = filename
     if not os.path.isfile(filename):
-        filename = f"{REPO_DIR}/src/{filename}"
+        filename = f"{REPO_DIR}/{filename_orig}"
+    if not os.path.isfile(filename):
+        filename = f"{REPO_DIR}/src/{filename_orig}"
+    if not os.path.isfile(filename):
+        raise FileNotFoundError(filename)
 
     if filename in already_included_local_files:
         return ""
