@@ -13,15 +13,15 @@ SOURCES_MOUNT_DIR = "/dvp/sources"
 VNC_PORT = 5900
 ONLY_SHOW_COMMAND = False
 BUILD_COMMANDS = """
-            echo '1. Make build dir in the container' &&\\
+            echo 'Making build dir in the container' &&\\
             cd /dvp &&\\
             mkdir -p build &&\\
             cd build &&\\
-            echo '2. Run cmake and build' &&\\
+            echo 'Running cmake and build' &&\\
             ../sources/scripts/build_utilities.py run -run_cmake &&\\
             make -j &&\\
-            echo '3. Deploy binaries to the host machine inside scripts/linux_docker_clang_build/bin_docker/' &&\\
-            cp -a bin/ ../sources/scripts/linux_docker_clang_build/bin_docker
+            echo 'Deploying binaries to the host machine inside scripts/docker_clang_build/bin_docker/' &&\\
+            cp -a bin/ ../sources/scripts/docker_clang_build/bin_docker
             """
 
 CHDIR_LAST_DIRECTORY = INVOKE_DIR
