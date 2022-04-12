@@ -122,7 +122,7 @@ def run_cmake():
 
     if OPTIONS.use_conan.Value:
         print("# Install dependencies via conan")
-        run(f"conan install {REPO_DIR}")
+        run(f"conan install {REPO_DIR} --build=missing")
 
     if os.name == "nt":
         new_line = "    "
