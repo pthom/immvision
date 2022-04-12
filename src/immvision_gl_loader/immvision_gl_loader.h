@@ -1,6 +1,11 @@
 #pragma once
 
-#if defined(IMMVISION_USE_GLAD)
+#if defined(IMMVISION_CUSTOM_GL_INCLUDE)
+    // See https://stackoverflow.com/questions/40062883/how-to-use-a-macro-in-an-include-directive
+    #define STRINGIFY_MACRO(x) STR(x)
+    #define STR(x) #x
+    #include STRINGIFY_MACRO(IMMVISION_CUSTOM_GL_INCLUDE)
+#elif defined(IMMVISION_USE_GLAD)
     #include <glad/glad.h>
 #elif defined(IMMVISION_USE_GLES3)
     #if defined(IOS)
