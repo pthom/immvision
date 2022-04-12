@@ -127,8 +127,6 @@ def amalgamate_one_file(filename, already_included_local_files, already_included
                 already_included_external_files.append(external_file)
         elif is_local_include_line(code_line):
             new_file = extract_local_include_file(code_line)
-            if not os.path.exists(REPO_DIR + "/" + new_file):
-                print("Argh...")
             parsed_result = parsed_result + amalgamate_one_file(new_file, already_included_local_files, already_included_external_files)
         else:
             if not "#pragma once" in code_line:
