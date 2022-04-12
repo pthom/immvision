@@ -12,6 +12,7 @@ macro(immvision_activate_warnings)
             global-constructors
             exit-time-destructors
             zero-as-null-pointer-constant
+            unused-function
 
             undef
             newline-eof
@@ -38,7 +39,7 @@ macro(immvision_activate_warnings)
         set(warning_flags "/W4")
 
         set(ignored_warnings
-            # no ignored warning
+            4005 # macro redefinition
             )
         foreach(ignored_warning ${ignored_warnings})
             set(warning_flags "${warning_flags} /Wd-${ignored_warning}")

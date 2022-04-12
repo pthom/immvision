@@ -1,6 +1,5 @@
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/activate_warnings.cmake")
 
-option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
 if (IMMVISION_ACTIVATE_ALL_WARNINGS)
     immvision_activate_warnings()
 endif()
