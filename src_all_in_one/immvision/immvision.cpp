@@ -1,13 +1,126 @@
 // THIS FILE WAS GENERATED AUTOMATICALLY. DO NOT EDIT.
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision/internal/imgui_imm.cpp  //
+//                       src/immvision/image.cpp                                                                //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision/internal/imgui_imm.h                                                         //
+//                       src/immvision/image.h                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <opencv2/core.hpp>
+#include "imgui.h"
+
+/**
+@@md#ImmVision::Image
+
+ __ImmVision::Image()__ will show an image from a cv::Mat.
+
+Two signatures are provided:
+
+* `ImmVision::Image(const cv::Mat &mat, bool refresh, const cv::Size& size = cv::Size(0, 0))`:
+   * `mat` is the image to show
+   * `refresh` indicates whether this cv::Mat was updated since it was last shown.
+     If refresh is false, then the corresponding displayed texture will be fetched from a cache
+     (i.e the cv::Mat data is not transferred again to the GPU)
+     If refresh is true, then the corresponding displayed texture will be refreshed.
+   * `size` is the desired display size.
+        * If it is (0,0) then the actual cv::Mat size will be used.
+        * If it is (w,0) then the display width will be w, and the displayed image height
+          will conform to the vertical/horizontal ratio of the image size.
+        * If it is (0,h) then the display height will be h, and the displayed image width
+          will conform to the vertical/horizontal ratio of the image size.
+        * If it is (w,h) then this is the displayed size
+
+* `ImmVision::ImageStill(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0))`:
+    Same a 'ImmVision::Image` where refresh is set to false
+
+* `ImmVision::ImageAnimated(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0))`:
+    Same a 'ImmVision::Image` where refresh is set to true
+
+* `cv::Point2d ImmVision::GetImageMousePos()`: returns the position of the mouse on the last displayed image.
+ This position is in *unscaled image coords*, i.e if the image was displayed with a smaller/bigger size, the returned
+ mouse position is still between (0,0) and (image.cols, image.rows)
+
+* `ImmVision::ClearTextureCache()`: clear the internal GPU texture cache. You should rarely/never need to do it.
+  (the cache is handled automatically, and older GPU textures are cleared from the cache after 3 seconds if they are
+  not displayed anymore)
+@@md
+*/
+
+namespace ImmVision
+{
+    void Image(
+        const cv::Mat &mat,
+        bool refresh,
+        const cv::Size& size = cv::Size(0, 0),
+        bool isBgrOrBgra = true
+    );
+
+    inline void ImageStill(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0), bool isBgrOrBgra = true)
+        { Image(mat, false, size, isBgrOrBgra); }
+    inline void ImageAnimated(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0), bool isBgrOrBgra = true)
+        { Image(mat, true, size, isBgrOrBgra); }
+
+    cv::Point2d GetImageMousePos();
+
+    void ClearTextureCache();
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/gl_texture.h                                                    //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <memory>
+
+namespace ImmVision
+{
+    /// GlTexture holds a OpenGL Texture (created via glGenTextures)
+    /// You can blit (i.e transfer) image buffer onto it.
+    /// The linked OpenGL texture lifetime is linked to this.
+    /// GlTexture is not copiable (since it holds a reference to a texture stored on the GPU)
+    struct GlTexture
+    {
+        GlTexture();
+        virtual ~GlTexture();
+
+        // non copiable
+        GlTexture(const GlTexture& ) = delete;
+        GlTexture& operator=(const GlTexture& ) = delete;
+
+        void Draw(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0)) const;
+        bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
+        void Draw_DisableDragWindow(const ImVec2& size = ImVec2(0, 0)) const;
+
+        void Blit_Buffer(
+            unsigned char *image_data,
+            int image_width,
+            int image_height,
+            int nb_channels,
+            bool flip_RedBlue
+        );
+        void Blit_RGB_Buffer(unsigned char *image_data, int image_width, int image_height);
+        void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
+        void Blit_BGR_Buffer(unsigned char *image_data, int image_width, int image_height);
+        void Blit_BGRA_Buffer(unsigned char *image_data, int image_width, int image_height);
+
+        // members
+        ImVec2 mImageSize;
+        ImTextureID mImTextureId;
+    };
+
+
+    struct GlTextureCv : public GlTexture
+    {
+        GlTextureCv() = default;
+        GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra);
+        ~GlTextureCv() override = default;
+
+        void BlitMat(const cv::Mat& mat, bool isBgrOrBgra);
+    };
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/imgui_imm.h                                                     //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "imgui.h"
-#include <opencv2/core.hpp>
 
 // Some extensions to ImGui, specific to ImmVision
 namespace ImGuiImm
@@ -34,637 +147,239 @@ namespace ImGuiImm
 }
 
 
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui_internal.h"
 
-#include <sstream>
-#include <vector>
-#include <unordered_map>
-#include <stack>
+#include <map>
+#include <chrono>
 
-namespace ImGuiImm
+namespace ImmVision
 {
-    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags)
+    namespace internal
     {
-        float vf = (float)*v;
-        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, format, flags);
-        if (changed)
-            *v = (double)vf;
-        return changed;
-    }
+        double HighResTimer()
+        {
+            using chrono_second = std::chrono::duration<double, std::ratio<1>>;
+            using chrono_clock = std::chrono::high_resolution_clock;
 
-    ImVec2 ComputeDisplayImageSize(
-        ImVec2 askedImageSize,
-        ImVec2 realImageSize
+            static std::chrono::time_point<chrono_clock> startTime = chrono_clock::now();
+            double elapsed = std::chrono::duration_cast<chrono_second>(chrono_clock::now() - startTime).count();
+            return elapsed;
+        }
+
+        struct CachedTexture
+        {
+            CachedTexture() : mGlTextureCv()
+            {
+                mLastUsageTime = HighResTimer();
+            }
+            void Ping()
+            {
+                mLastUsageTime = HighResTimer();
+            }
+            bool IsUnused() const
+            {
+                double now = HighResTimer();
+                return ((now - mLastUsageTime) > 3.);
+            }
+            GlTextureCv mGlTextureCv;
+            double mLastUsageTime;
+        };
+
+        // Cache for images that are not refreshed at each frame
+        class TextureCache
+        {
+        public:
+            GlTextureCv* GetTexture(const cv::Mat *mat)
+            {
+                mTexturesMap[mat].Ping();
+                ClearNotUsedAnymoreTextures();
+                return &mTexturesMap[mat].mGlTextureCv;
+            }
+            void ClearAllTextures()
+            {
+                mTexturesMap.clear();
+            }
+        private:
+            void ClearNotUsedAnymoreTextures()
+            {
+                std::vector<const cv::Mat*> unused;
+                for (const auto& kv: mTexturesMap)
+                    if (kv.second.IsUnused())
+                        unused.push_back(kv.first);
+
+               for (auto& v: unused)
+                   mTexturesMap.erase(v);
+            }
+        private:
+            std::map<const cv::Mat *, CachedTexture> mTexturesMap;
+        };
+        static TextureCache gTextureCache;
+
+
+        struct
+        {
+            cv::Point2d lastDisplayRatio = cv::Point2d(1., 1.);
+            ImVec2      lastImageCursorPos = ImVec2(0.f, 0.f);
+        } gLastImageInfo;
+
+
+    } // namespace internal
+
+
+    void Image(
+        const cv::Mat &mat,
+        bool refresh,
+        const cv::Size& size,
+        bool isBgrOrBgra
     )
     {
-        if ((askedImageSize.x == 0.f) && (askedImageSize.y == 0.f))
-            return realImageSize;
-        else if ((askedImageSize.x == 0.f) && (realImageSize.y >= 1.f))
-            return ImVec2(askedImageSize.y * realImageSize.x / realImageSize.y, askedImageSize.y);
-        else if ((askedImageSize.y == 0.f) && (realImageSize.x >= 1.f))
-            return ImVec2(askedImageSize.x, askedImageSize.x * realImageSize.y / realImageSize.x);
-        else
-            return askedImageSize;
-    }
-    cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize)
-    {
-        auto toSize = [](ImVec2 v) { return cv::Size((int)((double)v.x + 0.5), (int)((double)v.y + 0.5)); };
-        auto toImVec2 = [](cv::Size v) { return ImVec2((float)v.width, (float)v.height); };
-        return toSize( ComputeDisplayImageSize(toImVec2(askedImageSize), toImVec2(realImageSize)) );
-    }
+        GlTextureCv* glTextureCv = internal::gTextureCache.GetTexture(&mat);
 
-    void PushDisabled()
-    {
-        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.7f);
+        // Detect if the texture was not transfered to OpenGL yet
+        if ((glTextureCv->mImageSize.x == 0.f) && (glTextureCv->mImageSize.y == 0.f))
+            refresh = true;
 
-    }
-    void PopDisabled()
-    {
-        ImGui::PopItemFlag();
-        ImGui::PopStyleVar();
+        if (refresh)
+            glTextureCv->BlitMat(mat, isBgrOrBgra);
+
+        ImVec2 sizeImVec2((float)size.width, (float)size.height);
+        ImVec2 displaySize = ImGuiImm::ComputeDisplayImageSize(sizeImVec2, glTextureCv->mImageSize);
+
+        internal::gLastImageInfo.lastDisplayRatio = cv::Point2d(
+            (double)(glTextureCv->mImageSize.x / displaySize.x),
+            (double)(glTextureCv->mImageSize.y / displaySize.y)
+        );
+        internal::gLastImageInfo.lastImageCursorPos = ImGui::GetCursorScreenPos();
+
+        glTextureCv->Draw_DisableDragWindow(displaySize);
     }
 
-    void SameLineAlignRight(float rightMargin, float alignRegionWidth)
+    ImVec2 GetImageMousePos_OnScreen()
     {
-        auto window = ImGui::GetCurrentWindow();
-        if (alignRegionWidth < 0.f)
-            alignRegionWidth = window->Size.x;
+        ImVec2 mouse = ImGui::GetMousePos();
+        ImVec2 imagePos = internal::gLastImageInfo.lastImageCursorPos;
 
-        // Formulas taken from ImGui::ItemSize() code
-        float xLineStart = IM_FLOOR(window->Pos.x + window->DC.Indent.x + window->DC.ColumnsOffset.x);
-        float y = window->DC.CursorPosPrevLine.y;
-
-        float x = xLineStart + alignRegionWidth - rightMargin;
-        ImGui::SetCursorScreenPos({x, y});
+        return ImVec2(mouse.x - imagePos.x, mouse.y - imagePos.y);
     }
 
-
-    bool CollapsingHeaderFixedWidth(const char* name, float width, ImGuiTreeNodeFlags flags)
+    cv::Point2d GetImageMousePos()
     {
-        ImVec2 oldItemSpacing = ImGui::GetStyle().ItemSpacing;
-        ImGui::GetStyle().ItemSpacing = ImVec2(0.f, 0.f);
-        std::string tableId = std::string("dummytable_") + name;
-        ImGui::BeginTable(tableId.c_str(), 1, 0, ImVec2(width, 0.f));
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-
-        bool opened = ImGui::CollapsingHeader(name, flags);
-        ImGui::EndTable();
-        ImGui::GetStyle().ItemSpacing = oldItemSpacing;
-        return opened;
-    }
-
-
-    // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
-    static ImVector<ImRect> s_GroupPanelLabelStack;
-    void BeginGroupPanel(const char* name, const ImVec2& size)
-    {
-        ImGui::BeginGroup();
-
-        auto itemSpacing = ImGui::GetStyle().ItemSpacing;
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-
-        auto frameHeight = ImGui::GetFrameHeight();
-        ImGui::BeginGroup();
-
-        ImVec2 effectiveSize = size;
-        if (size.x < 0.0f)
-            effectiveSize.x = ImGui::GetWindowContentRegionWidth();
-        else
-            effectiveSize.x = size.x;
-        ImGui::Dummy(ImVec2(effectiveSize.x, 0.0f));
-
-        ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
-        ImGui::SameLine(0.0f, 0.0f);
-        ImGui::BeginGroup();
-        ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
-        ImGui::SameLine(0.0f, 0.0f);
-        if (strlen(name) > 0)
-            ImGui::TextUnformatted(name);
-
-        auto labelMin = ImGui::GetItemRectMin();
-        auto labelMax = ImGui::GetItemRectMax();
-        ImGui::SameLine(0.0f, 0.0f);
-        ImGui::Dummy(ImVec2(0.0, frameHeight + itemSpacing.y));
-        ImGui::BeginGroup();
-
-        //ImGui::GetWindowDrawList()->AddRect(labelMin, labelMax, IM_COL32(255, 0, 255, 255));
-
-        ImGui::PopStyleVar(2);
-
-#if IMGUI_VERSION_NUM >= 17301
-        ImGui::GetCurrentWindow()->ContentRegionRect.Max.x -= frameHeight * 0.5f;
-        ImGui::GetCurrentWindow()->WorkRect.Max.x          -= frameHeight * 0.5f;
-        ImGui::GetCurrentWindow()->InnerRect.Max.x         -= frameHeight * 0.5f;
-#else
-        ImGui::GetCurrentWindow()->ContentsRegionRect.Max.x -= frameHeight * 0.5f;
-#endif
-        ImGui::GetCurrentWindow()->Size.x                   -= frameHeight;
-
-        auto itemWidth = ImGui::CalcItemWidth();
-        ImGui::PushItemWidth(ImMax(0.0f, itemWidth - frameHeight));
-
-        s_GroupPanelLabelStack.push_back(ImRect(labelMin, labelMax));
-    }
-
-    void EndGroupPanel()
-    {
-        ImGui::PopItemWidth();
-
-        auto itemSpacing = ImGui::GetStyle().ItemSpacing;
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-
-        auto frameHeight = ImGui::GetFrameHeight();
-
-        ImGui::EndGroup();
-
-        //ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), IM_COL32(0, 255, 0, 64), 4.0f);
-
-        ImGui::EndGroup();
-
-        ImGui::SameLine(0.0f, 0.0f);
-        ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
-        ImGui::Dummy(ImVec2(0.0, frameHeight - frameHeight * 0.5f - itemSpacing.y));
-
-        ImGui::EndGroup();
-
-        auto itemMin = ImGui::GetItemRectMin();
-        auto itemMax = ImGui::GetItemRectMax();
-        //ImGui::GetWindowDrawList()->AddRectFilled(itemMin, itemMax, IM_COL32(255, 0, 0, 64), 4.0f);
-
-        auto labelRect = s_GroupPanelLabelStack.back();
-        s_GroupPanelLabelStack.pop_back();
-
-        ImVec2 halfFrame = ImVec2(frameHeight * 0.25f * 0.5f, frameHeight * 0.5f);
-        ImRect frameRect = ImRect(ImVec2(itemMin.x + halfFrame.x, itemMin.y + halfFrame.y), ImVec2(itemMax.x - halfFrame.x, itemMax.y));
-        labelRect.Min.x -= itemSpacing.x;
-        labelRect.Max.x += itemSpacing.x;
-
-        for (int i = 0; i < 4; ++i)
-        {
-            switch (i)
+        ImVec2 mousePos_OnScreen = GetImageMousePos_OnScreen();
+        cv::Point2d mousePositionOriginal =
             {
-                // left half-plane
-                case 0: ImGui::PushClipRect(ImVec2(-FLT_MAX, -FLT_MAX), ImVec2(labelRect.Min.x, FLT_MAX), true); break;
-                    // right half-plane
-                case 1: ImGui::PushClipRect(ImVec2(labelRect.Max.x, -FLT_MAX), ImVec2(FLT_MAX, FLT_MAX), true); break;
-                    // top
-                case 2: ImGui::PushClipRect(ImVec2(labelRect.Min.x, -FLT_MAX), ImVec2(labelRect.Max.x, labelRect.Min.y), true); break;
-                    // bottom
-                case 3: ImGui::PushClipRect(ImVec2(labelRect.Min.x, labelRect.Max.y), ImVec2(labelRect.Max.x, FLT_MAX), true); break;
-            }
-
-            ImGui::GetWindowDrawList()->AddRect(
-                frameRect.Min, frameRect.Max,
-                ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border)),
-                halfFrame.x);
-
-            ImGui::PopClipRect();
-        }
-
-        ImGui::PopStyleVar(2);
-
-#if IMGUI_VERSION_NUM >= 17301
-        ImGui::GetCurrentWindow()->ContentRegionRect.Max.x += frameHeight * 0.5f;
-        ImGui::GetCurrentWindow()->WorkRect.Max.x          += frameHeight * 0.5f;
-        ImGui::GetCurrentWindow()->InnerRect.Max.x         += frameHeight * 0.5f;
-#else
-        ImGui::GetCurrentWindow()->ContentsRegionRect.Max.x += frameHeight * 0.5f;
-#endif
-        ImGui::GetCurrentWindow()->Size.x                   += frameHeight;
-
-        ImGui::Dummy(ImVec2(0.0f, 0.0f));
-
-        ImGui::EndGroup();
+                (double)mousePos_OnScreen.x * internal::gLastImageInfo.lastDisplayRatio.x,
+                (double)mousePos_OnScreen.y * internal::gLastImageInfo.lastDisplayRatio.y
+            };
+        return mousePositionOriginal;
     }
 
-
-    static std::stack<bool> s_GroupPanel_FlagBorder_DrawBorder;
-    static std::stack<std::string> s_GroupPanel_FlagBorder_Names;
-    static std::unordered_map<std::string, ImVec2> s_GroupPanel_FlagBorder_Sizes;
-
-    void BeginGroupPanel_FlagBorder(const char* name, bool draw_border, const ImVec2& size)
+    void ClearTextureCache()
     {
-        std::string name_s(name);
-        std::string name_displayed;
-        {
-            auto pos = name_s.find("##");
-            if (pos != std::string::npos)
-                name_displayed =  name_s.substr(0, pos);
-            else
-                name_displayed = name_s;
-        }
-
-        ImGui::BeginGroup();
-        s_GroupPanel_FlagBorder_DrawBorder.push(draw_border);
-        s_GroupPanel_FlagBorder_Names.push(name);
-        if (draw_border)
-            BeginGroupPanel(name_displayed.c_str(), size);
-        else
-        {
-            ImGui::BeginGroup();
-            if (strlen(name) > 0)
-                ImGui::Text("%s", name_displayed.c_str());
-        }
+        internal::gTextureCache.ClearAllTextures();
     }
-
-    void EndGroupPanel_FlagBorder()
-    {
-        bool drawBorder = s_GroupPanel_FlagBorder_DrawBorder.top();
-        s_GroupPanel_FlagBorder_DrawBorder.pop();
-        if (drawBorder)
-            EndGroupPanel();
-        else
-            ImGui::EndGroup();
-
-        ImGui::EndGroup();
-
-        // Store size
-        {
-            std::string name = s_GroupPanel_FlagBorder_Names.top();
-            s_GroupPanel_FlagBorder_Names.pop();
-            s_GroupPanel_FlagBorder_Sizes[name] = ImGui::GetItemRectSize();
-        }
-    }
-
-    ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name)
-    {
-        if (s_GroupPanel_FlagBorder_Sizes.find(name) == s_GroupPanel_FlagBorder_Sizes.end())
-            return ImVec2(3.f, 3.f);
-        else
-            return s_GroupPanel_FlagBorder_Sizes.at(name);
-    }
-
-    void Theme_Debug()
-    {
-        ImGuiStyle &style = ImGui::GetStyle();
-        style.Colors[ImGuiCol_Text] = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
-        style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
-        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.21f, 0.25f, 0.21f, 0.70f);
-        style.Colors[ImGuiCol_PopupBg] = ImVec4(0.05f, 0.05f, 0.10f, 0.90f);
-        style.Colors[ImGuiCol_Border] = ImVec4(0.70f, 0.70f, 0.70f, 0.40f);
-        style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        style.Colors[ImGuiCol_FrameBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.30f);
-        style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.90f, 0.80f, 0.80f, 0.40f);
-        style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.65f, 0.90f, 0.70f, 0.45f);
-        style.Colors[ImGuiCol_TitleBg] = ImVec4(0.27f, 0.54f, 0.28f, 0.83f);
-        style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.40f, 0.80f, 0.43f, 0.20f);
-        style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.32f, 0.63f, 0.33f, 0.87f);
-        style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.40f, 0.55f, 0.45f, 0.80f);
-        style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.20f, 0.25f, 0.30f, 0.60f);
-        style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.40f, 0.80f, 0.53f, 0.30f);
-        style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.40f, 0.80f, 0.48f, 0.40f);
-        style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.50f, 0.80f, 0.54f, 0.40f);
-        style.Colors[ImGuiCol_CheckMark] = ImVec4(0.90f, 0.90f, 0.90f, 0.50f);
-        style.Colors[ImGuiCol_SliderGrab] = ImVec4(1.00f, 1.00f, 1.00f, 0.30f);
-        style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.80f, 0.50f, 0.50f, 1.00f);
-        style.Colors[ImGuiCol_Button] = ImVec4(0.40f, 0.67f, 0.47f, 0.60f);
-        style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.40f, 0.50f, 0.67f, 1.00f);
-        style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.05f, 0.20f, 0.51f, 1.00f);
-        style.Colors[ImGuiCol_Header] = ImVec4(0.38f, 0.76f, 0.17f, 0.45f);
-        style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.45f, 0.90f, 0.47f, 0.80f);
-        style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.55f, 0.87f, 0.53f, 0.80f);
-        style.Colors[ImGuiCol_Separator] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-        style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.60f, 0.60f, 0.70f, 1.00f);
-        style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.70f, 0.70f, 0.90f, 1.00f);
-        style.Colors[ImGuiCol_ResizeGrip] = ImVec4(1.00f, 1.00f, 1.00f, 0.30f);
-        style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.00f, 1.00f, 1.00f, 0.60f);
-        style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(1.00f, 1.00f, 1.00f, 0.90f);
-        style.Colors[ImGuiCol_PlotLines] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-        style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-        style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-        style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-        style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.00f, 0.00f, 1.00f, 0.35f);
-    }
-
-
-    // Theme CorporateGrey: https://github.com/ocornut/imgui/issues/707#issuecomment-468798935
-    void Theme_CorporateGrey()
-    {
-        ImGuiStyle & style = ImGui::GetStyle();
-        ImVec4 * colors = style.Colors;
-
-        /// 0 = FLAT APPEARENCE
-        /// 1 = MORE "3D" LOOK
-        int is3D = 0;
-
-        colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-        colors[ImGuiCol_TextDisabled]           = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
-        colors[ImGuiCol_ChildBg]                = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
-        colors[ImGuiCol_WindowBg]               = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
-        colors[ImGuiCol_PopupBg]                = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
-        colors[ImGuiCol_Border]                 = ImVec4(0.12f, 0.12f, 0.12f, 0.71f);
-        colors[ImGuiCol_BorderShadow]           = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
-        colors[ImGuiCol_FrameBg]                = ImVec4(0.42f, 0.42f, 0.42f, 0.54f);
-        colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.42f, 0.42f, 0.42f, 0.40f);
-        colors[ImGuiCol_FrameBgActive]          = ImVec4(0.56f, 0.56f, 0.56f, 0.67f);
-        colors[ImGuiCol_TitleBg]                = ImVec4(0.19f, 0.19f, 0.19f, 1.00f);
-        colors[ImGuiCol_TitleBgActive]          = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
-        colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(0.17f, 0.17f, 0.17f, 0.90f);
-        colors[ImGuiCol_MenuBarBg]              = ImVec4(0.335f, 0.335f, 0.335f, 1.000f);
-        colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.24f, 0.24f, 0.24f, 0.53f);
-        colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4(0.52f, 0.52f, 0.52f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4(0.76f, 0.76f, 0.76f, 1.00f);
-        colors[ImGuiCol_CheckMark]              = ImVec4(0.65f, 0.65f, 0.65f, 1.00f);
-        colors[ImGuiCol_SliderGrab]             = ImVec4(0.52f, 0.52f, 0.52f, 1.00f);
-        colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.64f, 0.64f, 0.64f, 1.00f);
-        colors[ImGuiCol_Button]                 = ImVec4(0.54f, 0.54f, 0.54f, 0.35f);
-        colors[ImGuiCol_ButtonHovered]          = ImVec4(0.52f, 0.52f, 0.52f, 0.59f);
-        colors[ImGuiCol_ButtonActive]           = ImVec4(0.76f, 0.76f, 0.76f, 1.00f);
-        colors[ImGuiCol_Header]                 = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
-        colors[ImGuiCol_HeaderHovered]          = ImVec4(0.47f, 0.47f, 0.47f, 1.00f);
-        colors[ImGuiCol_HeaderActive]           = ImVec4(0.76f, 0.76f, 0.76f, 0.77f);
-        colors[ImGuiCol_Separator]              = ImVec4(0.000f, 0.000f, 0.000f, 0.137f);
-        colors[ImGuiCol_SeparatorHovered]       = ImVec4(0.700f, 0.671f, 0.600f, 0.290f);
-        colors[ImGuiCol_SeparatorActive]        = ImVec4(0.702f, 0.671f, 0.600f, 0.674f);
-        colors[ImGuiCol_ResizeGrip]             = ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
-        colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-        colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
-        colors[ImGuiCol_PlotLines]              = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
-        colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-        colors[ImGuiCol_PlotHistogram]          = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-        colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-        colors[ImGuiCol_TextSelectedBg]         = ImVec4(0.73f, 0.73f, 0.73f, 0.35f);
-        colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-        colors[ImGuiCol_DragDropTarget]         = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-        colors[ImGuiCol_NavHighlight]           = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-        colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
-
-        style.PopupRounding = 3;
-
-        style.WindowPadding = ImVec2(4, 4);
-        style.FramePadding  = ImVec2(6, 4);
-        style.ItemSpacing   = ImVec2(6, 2);
-
-        style.ScrollbarSize = 18;
-
-        style.WindowBorderSize = 1;
-        style.ChildBorderSize  = 1;
-        style.PopupBorderSize  = 1;
-        style.FrameBorderSize  = (float)is3D;
-
-        style.WindowRounding    = 3;
-        style.ChildRounding     = 3;
-        style.FrameRounding     = 3;
-        style.ScrollbarRounding = 2;
-        style.GrabRounding      = 3;
-
-#ifdef IMGUI_HAS_DOCK
-        style.TabBorderSize = (float)is3D;
-        style.TabRounding   = 3;
-
-        colors[ImGuiCol_DockingEmptyBg]     = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
-        colors[ImGuiCol_Tab]                = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
-        colors[ImGuiCol_TabHovered]         = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
-        colors[ImGuiCol_TabActive]          = ImVec4(0.33f, 0.33f, 0.33f, 1.00f);
-        colors[ImGuiCol_TabUnfocused]       = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
-        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.33f, 0.33f, 0.33f, 1.00f);
-        colors[ImGuiCol_DockingPreview]     = ImVec4(0.85f, 0.85f, 0.85f, 0.28f);
-
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        }
-#endif
-    }
-
-    void Theme_Dark()
-    {
-        //ImGui::GetIO().Fonts->AddFontFromFileTTF("../data/Fonts/Ruda-Bold.ttf", 15.0f, &config);
-        ImGui::GetStyle().FrameRounding = 4.0f;
-        ImGui::GetStyle().GrabRounding = 4.0f;
-
-        ImVec4* colors = ImGui::GetStyle().Colors;
-        colors[ImGuiCol_Text] = ImVec4(0.95f, 0.96f, 0.98f, 1.00f);
-        colors[ImGuiCol_TextDisabled] = ImVec4(0.36f, 0.42f, 0.47f, 1.00f);
-        colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
-        colors[ImGuiCol_ChildBg] = ImVec4(0.15f, 0.18f, 0.22f, 1.00f);
-        colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
-        colors[ImGuiCol_Border] = ImVec4(0.08f, 0.10f, 0.12f, 1.00f);
-        colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_FrameBg] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
-        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.12f, 0.20f, 0.28f, 1.00f);
-        colors[ImGuiCol_FrameBgActive] = ImVec4(0.09f, 0.12f, 0.14f, 1.00f);
-        colors[ImGuiCol_TitleBg] = ImVec4(0.09f, 0.12f, 0.14f, 0.65f);
-        colors[ImGuiCol_TitleBgActive] = ImVec4(0.08f, 0.10f, 0.12f, 1.00f);
-        colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
-        colors[ImGuiCol_MenuBarBg] = ImVec4(0.15f, 0.18f, 0.22f, 1.00f);
-        colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.39f);
-        colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.18f, 0.22f, 0.25f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.09f, 0.21f, 0.31f, 1.00f);
-        colors[ImGuiCol_CheckMark] = ImVec4(0.28f, 0.56f, 1.00f, 1.00f);
-        colors[ImGuiCol_SliderGrab] = ImVec4(0.28f, 0.56f, 1.00f, 1.00f);
-        colors[ImGuiCol_SliderGrabActive] = ImVec4(0.37f, 0.61f, 1.00f, 1.00f);
-        colors[ImGuiCol_Button] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
-        colors[ImGuiCol_ButtonHovered] = ImVec4(0.28f, 0.56f, 1.00f, 1.00f);
-        colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
-        colors[ImGuiCol_Header] = ImVec4(0.20f, 0.25f, 0.29f, 0.55f);
-        colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-        colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        colors[ImGuiCol_Separator] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
-        colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
-        colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
-        colors[ImGuiCol_ResizeGrip] = ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
-        colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-        colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
-        colors[ImGuiCol_Tab] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
-        colors[ImGuiCol_TabHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-        colors[ImGuiCol_TabActive] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
-        colors[ImGuiCol_TabUnfocused] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
-        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
-        colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
-        colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-        colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-        colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-        colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
-        colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-        colors[ImGuiCol_NavHighlight] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-        colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
-        colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-
-    }
-
-    void Theme_EmbraceTheDarkness()
-    {
-        ImVec4* colors = ImGui::GetStyle().Colors;
-        colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-        colors[ImGuiCol_TextDisabled]           = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-        colors[ImGuiCol_WindowBg]               = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-        colors[ImGuiCol_ChildBg]                = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_PopupBg]                = ImVec4(0.19f, 0.19f, 0.19f, 0.92f);
-        colors[ImGuiCol_Border]                 = ImVec4(0.19f, 0.19f, 0.19f, 0.29f);
-        colors[ImGuiCol_BorderShadow]           = ImVec4(0.00f, 0.00f, 0.00f, 0.24f);
-        colors[ImGuiCol_FrameBg]                = ImVec4(0.05f, 0.05f, 0.05f, 0.54f);
-        colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
-        colors[ImGuiCol_FrameBgActive]          = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
-        colors[ImGuiCol_TitleBg]                = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
-        colors[ImGuiCol_TitleBgActive]          = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
-        colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
-        colors[ImGuiCol_MenuBarBg]              = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-        colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.05f, 0.05f, 0.05f, 0.54f);
-        colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.34f, 0.34f, 0.34f, 0.54f);
-        colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4(0.40f, 0.40f, 0.40f, 0.54f);
-        colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4(0.56f, 0.56f, 0.56f, 0.54f);
-        colors[ImGuiCol_CheckMark]              = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
-        colors[ImGuiCol_SliderGrab]             = ImVec4(0.34f, 0.34f, 0.34f, 0.54f);
-        colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.56f, 0.56f, 0.56f, 0.54f);
-        colors[ImGuiCol_Button]                 = ImVec4(0.05f, 0.05f, 0.05f, 0.54f);
-        colors[ImGuiCol_ButtonHovered]          = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
-        colors[ImGuiCol_ButtonActive]           = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
-        colors[ImGuiCol_Header]                 = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
-        colors[ImGuiCol_HeaderHovered]          = ImVec4(0.00f, 0.00f, 0.00f, 0.36f);
-        colors[ImGuiCol_HeaderActive]           = ImVec4(0.20f, 0.22f, 0.23f, 0.33f);
-        colors[ImGuiCol_Separator]              = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
-        colors[ImGuiCol_SeparatorHovered]       = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
-        colors[ImGuiCol_SeparatorActive]        = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
-        colors[ImGuiCol_ResizeGrip]             = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
-        colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
-        colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
-        colors[ImGuiCol_Tab]                    = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
-        colors[ImGuiCol_TabHovered]             = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-        colors[ImGuiCol_TabActive]              = ImVec4(0.20f, 0.20f, 0.20f, 0.36f);
-        colors[ImGuiCol_TabUnfocused]           = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
-        colors[ImGuiCol_TabUnfocusedActive]     = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-        colors[ImGuiCol_DockingPreview]         = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
-        colors[ImGuiCol_DockingEmptyBg]         = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
-        colors[ImGuiCol_PlotLines]              = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
-        colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
-        colors[ImGuiCol_PlotHistogram]          = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
-        colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
-        colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
-        colors[ImGuiCol_TableBorderStrong]      = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
-        colors[ImGuiCol_TableBorderLight]       = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
-        colors[ImGuiCol_TableRowBg]             = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_TableRowBgAlt]          = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
-        colors[ImGuiCol_TextSelectedBg]         = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
-        colors[ImGuiCol_DragDropTarget]         = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
-        colors[ImGuiCol_NavHighlight]           = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
-        colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 0.00f, 0.00f, 0.70f);
-        colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(1.00f, 0.00f, 0.00f, 0.20f);
-        colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(1.00f, 0.00f, 0.00f, 0.35f);
-
-        ImGuiStyle& style = ImGui::GetStyle();
-        style.WindowPadding                     = ImVec2(8.00f, 8.00f);
-        style.FramePadding                      = ImVec2(5.00f, 2.00f);
-        style.CellPadding                       = ImVec2(6.00f, 6.00f);
-        style.ItemSpacing                       = ImVec2(6.00f, 6.00f);
-        style.ItemInnerSpacing                  = ImVec2(6.00f, 6.00f);
-        style.TouchExtraPadding                 = ImVec2(0.00f, 0.00f);
-        style.IndentSpacing                     = 25;
-        style.ScrollbarSize                     = 15;
-        style.GrabMinSize                       = 10;
-        style.WindowBorderSize                  = 1;
-        style.ChildBorderSize                   = 1;
-        style.PopupBorderSize                   = 1;
-        style.FrameBorderSize                   = 1;
-        style.TabBorderSize                     = 1;
-        style.WindowRounding                    = 7;
-        style.ChildRounding                     = 4;
-        style.FrameRounding                     = 3;
-        style.PopupRounding                     = 4;
-        style.ScrollbarRounding                 = 9;
-        style.GrabRounding                      = 3;
-        style.LogSliderDeadzone                 = 4;
-        style.TabRounding                       = 4;
-    }
-
-    // https://github.com/ocornut/imgui/issues/707#issuecomment-226993714
-    void Theme_Binks( bool bStyleDark_, float alpha_  )
-    {
-        ImGuiStyle& style = ImGui::GetStyle();
-
-        // light style from Pacôme Danhiez (user itamago) https://github.com/ocornut/imgui/pull/511#issuecomment-175719267
-        style.Alpha = 1.0f;
-        style.FrameRounding = 3.0f;
-        style.Colors[ImGuiCol_Text]                  = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
-        style.Colors[ImGuiCol_TextDisabled]          = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
-        style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.94f, 0.94f, 0.94f, 0.94f);
-        style.Colors[ImGuiCol_WindowBg]         = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        style.Colors[ImGuiCol_PopupBg]               = ImVec4(1.00f, 1.00f, 1.00f, 0.94f);
-        style.Colors[ImGuiCol_Border]                = ImVec4(0.00f, 0.00f, 0.00f, 0.39f);
-        style.Colors[ImGuiCol_BorderShadow]          = ImVec4(1.00f, 1.00f, 1.00f, 0.10f);
-        style.Colors[ImGuiCol_FrameBg]               = ImVec4(1.00f, 1.00f, 1.00f, 0.94f);
-        style.Colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-        style.Colors[ImGuiCol_FrameBgActive]         = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-        style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.96f, 0.96f, 0.96f, 1.00f);
-        style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(1.00f, 1.00f, 1.00f, 0.51f);
-        style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.82f, 0.82f, 0.82f, 1.00f);
-        style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
-        style.Colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.98f, 0.98f, 0.98f, 0.53f);
-        style.Colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.69f, 0.69f, 0.69f, 1.00f);
-        style.Colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.59f, 0.59f, 0.59f, 1.00f);
-        style.Colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
-        style.Colors[ImGuiCol_CheckMark]             = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        style.Colors[ImGuiCol_SliderGrab]            = ImVec4(0.24f, 0.52f, 0.88f, 1.00f);
-        style.Colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        style.Colors[ImGuiCol_Button]                = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-        style.Colors[ImGuiCol_ButtonHovered]         = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        style.Colors[ImGuiCol_ButtonActive]          = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
-        style.Colors[ImGuiCol_Header]                = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
-        style.Colors[ImGuiCol_HeaderHovered]         = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-        style.Colors[ImGuiCol_HeaderActive]          = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        style.Colors[ImGuiCol_ResizeGrip]            = ImVec4(1.00f, 1.00f, 1.00f, 0.50f);
-        style.Colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-        style.Colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
-        style.Colors[ImGuiCol_PlotLines]             = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
-        style.Colors[ImGuiCol_PlotLinesHovered]      = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-        style.Colors[ImGuiCol_PlotHistogram]         = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-        style.Colors[ImGuiCol_PlotHistogramHovered]  = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-        style.Colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
-
-        if( bStyleDark_ )
-        {
-            for (int i = 0; i <= ImGuiCol_COUNT; i++)
-            {
-                ImVec4& col = style.Colors[i];
-                float H, S, V;
-                ImGui::ColorConvertRGBtoHSV( col.x, col.y, col.z, H, S, V );
-
-                if( S < 0.1f )
-                {
-                    V = 1.0f - V;
-                }
-                ImGui::ColorConvertHSVtoRGB( H, S, V, col.x, col.y, col.z );
-                if( col.w < 1.00f )
-                {
-                    col.w *= alpha_;
-                }
-            }
-        }
-        else
-        {
-            for (int i = 0; i <= ImGuiCol_COUNT; i++)
-            {
-                ImVec4& col = style.Colors[i];
-                if( col.w < 1.00f )
-                {
-                    col.x *= alpha_;
-                    col.y *= alpha_;
-                    col.z *= alpha_;
-                    col.w *= alpha_;
-                }
-            }
-        }
-    }
-}
-
-
+    
+} // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision/internal/internal_icons.cpp//
+//                       src/immvision/image_navigator.cpp                                                      //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision/internal/internal_icons.h                                                    //
+//                       src/immvision/image_navigator.h                                                        //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <vector>
+
+namespace ImmVision
+{
+    struct ColorAdjustmentsValues
+    {
+        double Factor = 1., Delta = 0.;
+    };
+
+    struct ImageNavigatorParams
+    {
+        cv::Size ImageDisplaySize = cv::Size();
+        std::string Legend = "Image Navigator";
+
+        cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
+        std::string ZoomKey = "";
+
+        ColorAdjustmentsValues ColorAdjustments = {};
+        std::string ColorAdjustmentsKey = "";
+
+        // Image navigation
+        bool PanWithMouse = true;
+        bool ZoomWithMouseWheel = true;
+
+        // Input Image Color order: RGB or RGBA versus BGR or BGRA
+        // (Note: by default OpenCV uses BGR and BGRA)
+        bool IsColorOrderBGR = true;
+
+        // Image display options
+        int  SelectedChannel = -1; // if >= 0 then only this channel is displayed
+        bool ShowAlphaChannelCheckerboard = true;
+        // Image display options when zoom is high
+        bool ShowGrid = true;
+        bool DrawValuesOnZoomedPixels = true;
+
+        // Navigator display options
+        bool ShowImageInfo = true;
+        bool ShowPixelInfo = true;
+        bool ShowZoomButtons = true;
+        bool ShowLegendBorder = true;
+        bool ShowOptions = false;
+        bool ShowOptionsInTooltip = false;
+
+        // Watched Pixels
+        std::vector<cv::Point> WatchedPixels;
+        bool HighlightWatchedPixels = true;
+    };
+
+    cv::Point2d ImageNavigator(
+        const cv::Mat& image,
+        ImageNavigatorParams* params,
+        bool refreshImage = false
+        );
+
+    cv::Point2d ImageNavigator(
+        const cv::Mat& image,
+        const cv::Size& imageDisplaySize = cv::Size(),
+        const std::string& legend = "Image Navigator",
+        bool refreshImage = false,
+        bool showOptionsWhenAppearing = false,
+        const std::string& zoomKey = "",
+        const std::string& colorAdjustmentsKey = ""
+    );
+
+    cv::Matx33d MakeZoomMatrix(
+        const cv::Point2d & zoomCenter,
+        double zoomRatio,
+        const cv::Size displayedImageSize
+    );
+
+
+
+
+    ////////////////////////////////////////////
+    // Inspector
+    ////////////////////////////////////////////
+    void Inspector_AddImage(
+        const cv::Mat& image,
+        const std::string& legend,
+        const std::string& zoomKey = "",
+        const std::string& colorAdjustmentsKey = "",
+        const cv::Point2d & zoomCenter = cv::Point2d(),
+        double zoomRatio = -1.,
+        bool isColorOrderBGR = true
+    );
+    void Inspector_Show();
+    void Inspector_ClearImages();
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/internal_icons.h                                                //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace ImmVision
@@ -688,7 +403,7 @@ namespace ImmVision
     } // namespace Icons
 } // namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision/internal/cv_drawing_utils.h                                                  //
+//                       src/immvision/internal/cv_drawing_utils.h                                              //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <opencv2/core/core.hpp>
 
@@ -833,1447 +548,7 @@ namespace ImmVision
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision/internal/gl_texture.h                                                        //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <memory>
-
-namespace ImmVision
-{
-    /// GlTexture holds a OpenGL Texture (created via glGenTextures)
-    /// You can blit (i.e transfer) image buffer onto it.
-    /// The linked OpenGL texture lifetime is linked to this.
-    /// GlTexture is not copiable (since it holds a reference to a texture stored on the GPU)
-    struct GlTexture
-    {
-        GlTexture();
-        virtual ~GlTexture();
-
-        // non copiable
-        GlTexture(const GlTexture& ) = delete;
-        GlTexture& operator=(const GlTexture& ) = delete;
-
-        void Draw(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0)) const;
-        bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
-        void Draw_DisableDragWindow(const ImVec2& size = ImVec2(0, 0)) const;
-
-        void Blit_Buffer(
-            unsigned char *image_data,
-            int image_width,
-            int image_height,
-            int nb_channels,
-            bool flip_RedBlue
-        );
-        void Blit_RGB_Buffer(unsigned char *image_data, int image_width, int image_height);
-        void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
-        void Blit_BGR_Buffer(unsigned char *image_data, int image_width, int image_height);
-        void Blit_BGRA_Buffer(unsigned char *image_data, int image_width, int image_height);
-
-        // members
-        ImVec2 mImageSize;
-        ImTextureID mImTextureId;
-    };
-
-
-    struct GlTextureCv : public GlTexture
-    {
-        GlTextureCv() = default;
-        GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra);
-        ~GlTextureCv() override = default;
-
-        void BlitMat(const cv::Mat& mat, bool isBgrOrBgra);
-    };
-
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision/image_navigator.h                                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    struct ColorAdjustmentsValues
-    {
-        double Factor = 1., Delta = 0.;
-    };
-
-    struct ImageNavigatorParams
-    {
-        cv::Size ImageDisplaySize = cv::Size();
-        std::string Legend = "Image Navigator";
-
-        cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
-        std::string ZoomKey = "";
-
-        ColorAdjustmentsValues ColorAdjustments = {};
-        std::string ColorAdjustmentsKey = "";
-
-        // Image navigation
-        bool PanWithMouse = true;
-        bool ZoomWithMouseWheel = true;
-
-        // Input Image Color order: RGB or RGBA versus BGR or BGRA
-        // (Note: by default OpenCV uses BGR and BGRA)
-        bool IsColorOrderBGR = true;
-
-        // Image display options
-        int  SelectedChannel = -1; // if >= 0 then only this channel is displayed
-        bool ShowAlphaChannelCheckerboard = true;
-        // Image display options when zoom is high
-        bool ShowGrid = true;
-        bool DrawValuesOnZoomedPixels = true;
-
-        // Navigator display options
-        bool ShowImageInfo = true;
-        bool ShowPixelInfo = true;
-        bool ShowZoomButtons = true;
-        bool ShowLegendBorder = true;
-        bool ShowOptions = false;
-        bool ShowOptionsInTooltip = false;
-
-        // Watched Pixels
-        std::vector<cv::Point> WatchedPixels;
-        bool HighlightWatchedPixels = true;
-    };
-
-    cv::Point2d ImageNavigator(
-        const cv::Mat& image,
-        ImageNavigatorParams* params,
-        bool refreshImage = false
-        );
-
-    cv::Point2d ImageNavigator(
-        const cv::Mat& image,
-        const cv::Size& imageDisplaySize = cv::Size(),
-        const std::string& legend = "Image Navigator",
-        bool refreshImage = false,
-        bool showOptionsWhenAppearing = false,
-        const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = ""
-    );
-
-    cv::Matx33d MakeZoomMatrix(
-        const cv::Point2d & zoomCenter,
-        double zoomRatio,
-        const cv::Size displayedImageSize
-    );
-
-
-
-
-    ////////////////////////////////////////////
-    // Inspector
-    ////////////////////////////////////////////
-    void Inspector_AddImage(
-        const cv::Mat& image,
-        const std::string& legend,
-        const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
-    );
-    void Inspector_Show();
-    void Inspector_ClearImages();
-
-} // namespace ImmVision
-#include <map>
-
-
-namespace ImmVision
-{
-    namespace Icons
-    {
-        static cv::Size iconsSizeDraw(200, 200);
-        auto ScalePoint = [](cv::Point2d p) {
-            return cv::Point2d(p.x * (double) iconsSizeDraw.width, p.y * (double) iconsSizeDraw.height);
-        };
-        auto ScaleDouble = [](double v) {
-            return v * (double) iconsSizeDraw.width;
-        };
-        auto ScaleInt = [](double v) {
-            return (int) (v * (double) iconsSizeDraw.width + 0.5);
-        };
-
-        auto PointFromOther = [](cv::Point2d o, double angleDegree, double distance) {
-            double m_pi = 3.14159265358979323846;
-            double angleRadian = -angleDegree / 180. * m_pi;
-            cv::Point2d r(o.x + cos(angleRadian) * distance, o.y + sin(angleRadian) * distance);
-            return r;
-        };
-
-
-        cv::Mat MakeMagnifierImage(IconType iconType)
-        {
-            using namespace ImmVision;
-            cv::Mat m(iconsSizeDraw, CV_8UC4);
-
-
-            // Transparent background
-            m = cv::Scalar(0, 0, 0, 0);
-
-            cv::Scalar color(255, 255, 255, 255);
-            double radius = 0.3;
-            cv::Point2d center(1. - radius * 1.3, radius * 1.2);
-            // Draw shadow
-            {
-                cv::Point2d decal(radius * 0.1, radius * 0.1);
-                cv::Scalar color_shadow(127, 127, 127, 255);
-
-                CvDrawingUtils::circle(
-                    m, //image,
-                    ScalePoint(center + decal),
-                    ScaleDouble(radius), //radius
-                    color_shadow,
-                    ScaleInt(0.08)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 1.7) + decal),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.03) + decal),
-                    color_shadow,
-                    ScaleInt(0.08)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 2.3) + decal),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.5) + decal),
-                    color_shadow,
-                    ScaleInt(0.14)
-                );
-            }
-            // Draw magnifier
-            {
-                CvDrawingUtils::circle(
-                    m, //image,
-                    ScalePoint(center),
-                    ScaleDouble(radius), //radius
-                    color,
-                    ScaleInt(0.08)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 1.7)),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.03)),
-                    color,
-                    ScaleInt(0.08)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 2.3)),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.5)),
-                    color,
-                    ScaleInt(0.14)
-                );
-            }
-
-            if (iconType == IconType::ZoomPlus)
-            {
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 90., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 270., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
-            }
-            if (iconType == IconType::ZoomMinus)
-            {
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
-            }
-            if (iconType == IconType::ZoomScaleOne)
-            {
-                cv::Point2d a = PointFromOther(center, -90., radius * 0.45);
-                cv::Point2d b = PointFromOther(center, 90., radius * 0.45);
-                a.x += radius * 0.05;
-                b.x += radius * 0.05;
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(a),
-                    ScalePoint(b),
-                    color,
-                    ScaleInt(0.06)
-                );
-                cv::Point2d c(b.x - radius * 0.2, b.y + radius * 0.2);
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(b),
-                    ScalePoint(c),
-                    color,
-                    ScaleInt(0.06)
-                );
-            }
-
-            return m;
-        }
-
-
-        cv::Mat MakeFullViewImage()
-        {
-            cv::Mat m(iconsSizeDraw, CV_8UC4);
-            m = cv::Scalar(0, 0, 0, 0);
-
-            cv::Scalar color(255, 255, 255, 255);
-            double decal = 0.1;
-            double length_x = 0.3, length_y = 0.3;
-            for (int y = 0; y <= 1; ++y)
-            {
-                for (int x = 0; x <= 1; ++x)
-                {
-                    cv::Point2d corner;
-
-                    corner.x = (x == 0) ? decal : 1. - decal;
-                    corner.y = (y == 0) ? decal : 1. - decal;
-                    double moveX = (x == 0) ? length_x : -length_x;
-                    double moveY = (y == 0) ? length_y : -length_y;
-                    cv::Point2d a = corner;
-                    cv::Point2d b(a.x + moveX, a.y);
-                    cv::Point2d c(a.x, a.y + moveY);
-                    CvDrawingUtils::line(
-                        m, //image,
-                        ScalePoint(a),
-                        ScalePoint(b),
-                        color,
-                        ScaleInt(0.06)
-                    );
-                    CvDrawingUtils::line(
-                        m, //image,
-                        ScalePoint(a),
-                        ScalePoint(c),
-                        color,
-                        ScaleInt(0.06)
-                    );
-
-                }
-            }
-            return m;
-        }
-
-        cv::Mat MakeAdjustLevelsImage()
-        {
-            cv::Mat m(iconsSizeDraw, CV_8UC4);
-            m = cv::Scalar(0, 0, 0, 0);
-            cv::Scalar color(255, 255, 255, 255);
-
-            double yMin = 0.15, yMax = 0.8;
-            int nbBars = 3;
-            for (int bar = 0; bar < nbBars; ++bar)
-            {
-                double xBar = (double)bar / ((double)(nbBars) + 0.17) + 0.2;
-                cv::Point2d a(xBar, yMin);
-                cv::Point2d b(xBar, yMax);
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(a),
-                    ScalePoint(b),
-                    color,
-                    ScaleInt(0.08)
-                );
-
-                double barWidth = 0.1;
-                double yBar = 0.7 - 0.2 * (double)bar;
-                cv::Point2d c(a.x - barWidth / 2., yBar);
-                cv::Point2d d(a.x + barWidth / 2., yBar);
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(c),
-                    ScalePoint(d),
-                    color,
-                    ScaleInt(0.16)
-                );
-            }
-
-            return m;
-        }
-
-
-        ImTextureID GetIcon(IconType iconType)
-        {
-            static std::map<IconType, std::unique_ptr<GlTextureCv>> textureCache;
-            if (textureCache.find(iconType) == textureCache.end())
-            {
-                cv::Mat m;
-                if (iconType == IconType::ZoomFullView)
-                    m = MakeFullViewImage();
-                else if (iconType == IconType::AdjustLevels)
-                    m = MakeAdjustLevelsImage();
-                else
-                    m = MakeMagnifierImage(iconType);
-                auto texture = std::make_unique<GlTextureCv>(m, true);
-                textureCache[iconType] = std::move(texture);
-            }
-            return textureCache[iconType]->mImTextureId;
-        }
-
-        bool IconButton(IconType iconType, bool disabled, ImVec2 size)
-        {
-            ImGui::PushID((int)iconType);
-            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-            ImU32 backColorEnabled = ImGui::ColorConvertFloat4ToU32(ImVec4 (1.f, 1.f, 1.f, 1.f));
-            ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
-            ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
-            if (disabled)
-                ImGuiImm::PushDisabled();
-
-            // Cannot use InvisibleButton, since it does not handle "Repeat"
-            std::string spaceLabel = " ";
-            while (ImGui::CalcTextSize(spaceLabel.c_str()).x < 14.f)
-                spaceLabel += " ";
-            bool clicked = ImGui::Button(spaceLabel.c_str());
-
-            ImGui::GetWindowDrawList()->AddImage(
-                GetIcon(iconType), cursorPos, {cursorPos.x + size.x, cursorPos.y + size.y},
-                ImVec2(0.f, 0.f),
-                ImVec2(1.f, 1.f),
-                backColor
-                );
-            if (disabled)
-                ImGuiImm::PopDisabled();
-            ImGui::PopID();
-            return disabled ? false : clicked;
-        }
-
-
-        void DevelPlaygroundGui()
-        {
-            static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
-            static cv::Mat img = MakeAdjustLevelsImage();
-
-            static ImmVision::ImageNavigatorParams imageNavigatorParams1;
-            imageNavigatorParams1.ImageDisplaySize = {400, 400};
-            ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
-
-            ImGui::SameLine();
-
-            static ImmVision::ImageNavigatorParams imageNavigatorParams2;
-            imageNavigatorParams2.ImageDisplaySize = {400, 400};
-            ImmVision::ImageNavigator(img, &imageNavigatorParams2);
-
-            ImVec2 iconSize(15.f, 15.f);
-            ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
-        }
-
-    } // namespace Icons
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision/internal/cv_drawing_utils.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#include <opencv2/imgproc/imgproc.hpp>
-
-#ifndef CV_16F // for old versions of OpenCV
-#define CV_16F 7
-#endif
-
-
-namespace ImmVision
-{
-    namespace CvDrawingUtils
-    {
-        namespace
-        {
-            int drawing_shift = 3;
-            double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
-
-            std::vector<std::string> SplitString(const std::string &s, char delimiter)
-            {
-                std::vector<std::string> tokens;
-                std::string token;
-                std::istringstream tokenStream(s);
-                while (std::getline(tokenStream, token, delimiter))
-                    tokens.push_back(token);
-                return tokens;
-            }
-
-        }  // namespace
-
-        namespace MathUtils
-        {
-            int RoundInt(double v)
-            {
-                return (int) std::round(v);
-            }
-
-            double MaximumValue(const std::vector<double> &v)
-            {
-                return *std::min_element(v.begin(), v.end());
-            }
-
-            double MinimumValue(const std::vector<double> &v)
-            {
-                return *std::max_element(v.begin(), v.end());
-            }
-
-            double Lerp(double a, double b, double x) noexcept
-            {
-                return (a + (b - a) * x);
-            }
-            double UnLerp(double a, double b, double x) noexcept
-            {
-                return (x - a) / (b - a);
-            }
-
-            std::vector<double> arange(double a, double b, double step)
-            {
-                std::vector<double> r;
-                double v = a;
-                while (v < b)
-                {
-                    r.push_back(v);
-                    v += step;
-                }
-                return r;
-            }
-        } // namespace MathUtils
-
-
-        const std::unordered_map<Colors, cv::Scalar> ColorsValues{
-            {Colors::Black,  {0.,   0.,   0.,   255.}},
-            {Colors::Red,    {0.,   0.,   255., 255.}},
-            {Colors::Green,  {0.,   255., 0.,   255.}},
-            {Colors::Blue,   {255., 0.,   0.,   255.}},
-            {Colors::White,  {255., 255., 255., 255.}},
-            {Colors::Yellow, {0.,   255., 255., 255.}},
-            {Colors::Cyan,   {0.,   255., 255., 255.}},
-            {Colors::Violet, {200., 50.,  200., 255.}},
-            {Colors::Orange, {0.,   128., 255., 255.}}};
-
-        cv::Scalar ColorsToScalar(Colors value)
-        { return ColorsValues.at(value); }
-
-        cv::Point _ToCvPoint_Shift(const cv::Point2d &pt)
-        {
-            cv::Point pt_tuple;
-            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x) * drawing_shift_pow);
-            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y) * drawing_shift_pow);
-            return pt_tuple;
-        }
-
-        cv::Point _ToCvPoint_NoShift(const cv::Point2d &pt)
-        {
-            cv::Point pt_tuple;
-            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x));
-            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y));
-            return pt_tuple;
-        }
-
-        cv::Size _ToCvSize_WithShift(const cv::Size2d s)
-        {
-            return {MathUtils::RoundInt(static_cast<double>(s.width) * drawing_shift_pow),
-                    MathUtils::RoundInt(static_cast<double>(s.height) * drawing_shift_pow)};
-        }
-
-        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba, const Image_RGBA &overlay_rgba, double alpha)
-        {
-            /*
-            cf minute physics brilliant clip "Computer color is broken" :
-            https://www.youtube.com/watch?v=LKnqECcg6Gw the RGB values are square rooted by the sensor (in
-            order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
-            results that are nicer than photoshop itself !
-            */
-            assert( (background_rgb_or_rgba.type() == CV_8UC3) || (background_rgb_or_rgba.type() == CV_8UC4));
-            assert(overlay_rgba.type() == CV_8UC4);
-
-            cv::Mat background_rgb;
-            {
-                if (background_rgb_or_rgba.channels() == 4)
-                    cv::cvtColor(background_rgb_or_rgba, background_rgb, cv::COLOR_BGRA2BGR);
-                else if (background_rgb_or_rgba.channels() == 3)
-                    background_rgb = background_rgb_or_rgba;
-                else
-                    throw("Only CV_8UC3 or CV_8UC4 background are supported!");
-            }
-
-
-            std::vector<cv::Mat> overlay_rgb_channels;
-            cv::split(overlay_rgba, overlay_rgb_channels);
-
-            cv::Mat overlay_alpha_3;
-            {
-                cv::Mat overlay_alpha_int = overlay_rgb_channels[3];
-                cv::Mat overlay_alpha_float;
-                overlay_alpha_int.convertTo(overlay_alpha_float, CV_64F);
-                overlay_alpha_float = overlay_alpha_float * (alpha / 255.);
-
-                std::vector<cv::Mat> v{overlay_alpha_float, overlay_alpha_float, overlay_alpha_float};
-                cv::merge(v, overlay_alpha_3);
-            }
-
-            cv::Mat overlay_rgb_squared;
-            {
-                cv::Mat overlay_rgb_int;
-                std::vector<cv::Mat> v{overlay_rgb_channels[0], overlay_rgb_channels[1], overlay_rgb_channels[2]};
-                cv::merge(v, overlay_rgb_int);
-
-                cv::Mat overlay_rgb_float;
-                overlay_rgb_int.convertTo(overlay_rgb_float, CV_64F);
-                overlay_rgb_squared = overlay_rgb_float.mul(overlay_rgb_float);
-            }
-
-            cv::Mat background_rgb_squared;
-            {
-                cv::Mat background_rgb_float;
-                background_rgb.convertTo(background_rgb_float, CV_64F);
-                background_rgb_squared = background_rgb_float.mul(background_rgb_float);
-            }
-
-            cv::Mat out_rgb_squared;
-            {
-                out_rgb_squared = overlay_rgb_squared.mul(overlay_alpha_3) +
-                                  background_rgb_squared.mul(cv::Scalar(1., 1., 1.) - overlay_alpha_3);
-            }
-
-            cv::Mat out_rgb_float;
-            {
-                cv::sqrt(out_rgb_squared, out_rgb_float);
-            }
-
-            cv::Mat out_rgb;
-            {
-                out_rgb_float.convertTo(out_rgb, CV_8U);
-            }
-
-            if (background_rgb_or_rgba.type() == CV_8UC3)
-                return out_rgb;
-            else // background_rgb_or_rgba.type() == CV_8UC4
-            {
-                cv::Mat out_rgba;
-                cv::cvtColor(out_rgb, out_rgba, cv::COLOR_BGR2BGRA);
-                return out_rgba;
-            }
-        }
-
-
-        cv::Mat ToFloatMat(const cv::Mat &mat_uchar)
-        {
-            std::vector<cv::Mat> channels_uchar;
-            cv::split(mat_uchar, channels_uchar);
-            std::vector<cv::Mat> channels_float;
-            for (const auto &channel_uchar: channels_uchar)
-            {
-                cv::Mat channel_float;
-                channel_uchar.convertTo(channel_float, CV_32FC1);
-                channels_float.push_back(channel_float);
-            }
-            cv::Mat mat_float;
-            cv::merge(channels_float, mat_float);
-            return mat_float;
-        }
-
-        std::pair<cv::Mat, cv::Mat> split_alpha_channel(const cv::Mat img_with_alpha)
-        {
-            std::vector<cv::Mat> channels;
-            cv::split(img_with_alpha, channels);
-            cv::Mat rgb, alpha;
-            alpha = channels[3];
-            channels.pop_back();
-            cv::merge(channels, rgb);
-            return {rgb, alpha};
-        }
-
-        void line(cv::Mat &image,
-                  const cv::Point2d &a,
-                  const cv::Point2d &b,
-                  cv::Scalar color,
-                  int thickness /*= 1*/)
-        {
-            cv::line(image,
-                     _ToCvPoint_Shift(a),
-                     _ToCvPoint_Shift(b),
-                     color,
-                     thickness,
-                     cv::LINE_AA,
-                     drawing_shift);
-        }
-
-        void ellipse(cv::Mat &image,
-                     const cv::Point2d &center,
-                     const cv::Size2d &size,
-                     const cv::Scalar &color,
-                     double angle /*= 0.*/,
-                     double start_angle /*=0.*/,
-                     double end_angle /*=360.*/,
-                     int thickness /*= 1*/)
-        {
-            cv::ellipse(image,
-                        _ToCvPoint_Shift(center),
-                        _ToCvSize_WithShift(size),
-                        angle,
-                        start_angle,
-                        end_angle,
-                        color,
-                        thickness,
-                        cv::LINE_AA,
-                        drawing_shift);
-        }
-
-        void circle(cv::Mat &image,
-                    const cv::Point2d &center,
-                    double radius,
-                    cv::Scalar color,
-                    int thickness /*= 1*/)
-        {
-            ellipse(image, center, {radius, radius}, color, 0., 0., 360., thickness);
-        }
-
-        void rectangle(cv::Mat &image,
-                       const cv::Point2d &pt1,
-                       const cv::Point2d &pt2,
-                       const cv::Scalar &color,
-                       bool fill /*= false*/,
-                       int thickness /*= 1*/)
-        {
-            if (fill)
-                thickness = -1;
-            cv::rectangle(image,
-                          _ToCvPoint_Shift(pt1),
-                          _ToCvPoint_Shift(pt2),
-                          color,
-                          thickness,
-                          cv::LINE_AA,
-                          drawing_shift);
-        }
-
-        cv::Scalar _ContrastColor(const cv::Scalar &color)
-        {
-            return {255. - color[0], 255. - color[1], 255. - color[2], color[3]};
-        }
-
-        void rectangle_size(cv::Mat &img,
-                            const cv::Point2d &pt,
-                            const cv::Size2d &size,
-                            const cv::Scalar &color,
-                            bool fill /*= false*/,
-                            int thickness /*= 1*/)
-        {
-            cv::Point2d pt2(pt.x + size.width, pt.y + size.height);
-            rectangle(img, pt, pt2, color, fill, thickness);
-        }
-
-        double _text_line_height(double fontScale, int thickness)
-        {
-            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
-            int baseLine_dummy;
-            cv::Size size = cv::getTextSize("ABC", fontFace, fontScale, thickness, &baseLine_dummy);
-            return (double)size.height;
-        }
-
-        int text_oneline(cv::Mat &img,
-                         const cv::Point2d &position,
-                         const std::string &text,
-                         const cv::Scalar &color,
-                         bool center_around_point /*= false*/,
-                         bool add_cartouche /*= false*/,
-                         double fontScale /*= 0.4*/,
-                         int thickness /*= 1*/)
-        {
-            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
-            int baseLine_dummy;
-            cv::Size size = cv::getTextSize(text, fontFace, fontScale, thickness, &baseLine_dummy);
-            cv::Point position2 = _ToCvPoint_NoShift(position);
-            cv::Point position3;
-            if (center_around_point)
-                position3 = {position2.x - size.width / 2, position2.y + size.height / 2};
-            else
-                position3 = position2;
-            if (add_cartouche)
-            {
-                cv::Point position4 = {position3.x, position3.y - size.height};
-                rectangle_size(img, position4, size, _ContrastColor(color), true);
-            }
-            cv::putText(img, text, position3, fontFace, fontScale, color, thickness, cv::LINE_AA);
-            return size.height;
-        }
-
-        void text(cv::Mat &img,
-                  const cv::Point2d &position,
-                  const std::string &msg,
-                  const cv::Scalar &color,
-                  bool center_around_point /*= false*/,
-                  bool add_cartouche /*= false*/,
-                  double fontScale /*= 0.4*/,
-                  int thickness /*= 1*/)
-        {
-            auto lines = SplitString(msg, '\n');
-
-            double line_height = _text_line_height(fontScale, thickness) + 3.;
-            cv::Point2d linePosition = position;
-            linePosition.y -= line_height * (double)(lines.size() - 1.) / 2.;
-            for (const auto &line: lines)
-            {
-                text_oneline(
-                    img, linePosition, line, color, center_around_point, add_cartouche, fontScale, thickness);
-                linePosition.y += line_height;
-            }
-        }
-
-        void cross_hole(cv::Mat &img,
-                        const cv::Point2d &position,
-                        const cv::Scalar &color,
-                        double size /*= 2.*/,
-                        double size_hole /*= 2.*/,
-                        int thickness /*= 1*/)
-        {
-            for (double xSign: std::vector<double>{-1., 1.})
-            {
-                for (double ySign: std::vector<double>{-1., 1.})
-                {
-                    cv::Point2d a{position.x + xSign * size_hole, position.y + ySign * size_hole};
-                    cv::Point2d b{position.x + xSign * (size_hole + size),
-                                  position.y + ySign * (size_hole + size)};
-                    line(img, a, b, color, thickness);
-                }
-            }
-        }
-
-        void draw_ellipse(cv::Mat &img,
-                          const cv::Point2d &center,
-                          const cv::Size2d &size,
-                          const cv::Scalar &color,
-                          int thickness /*= 1*/,
-                          int lineType /*= cv::LINE_8*/,
-                          int shift /*= 0*/)
-        {
-            cv::ellipse(img, center, size, 0., 0., 360., color, thickness, lineType, shift);
-        }
-
-        void draw_named_feature(cv::Mat &img,
-                                const cv::Point2d &position,
-                                const std::string &name,
-                                const cv::Scalar &color,
-                                bool add_cartouche /*= false*/,
-                                double size /*= 3.*/,
-                                double size_hole /*= 2.*/,
-                                int thickness /*= 1*/)
-        {
-            if (add_cartouche)
-                for (auto x : std::vector<double>{-1., 1.})
-                    for (auto y : std::vector<double>{-1., 1.})
-                        cross_hole(img, position + cv::Point2d(x, y), _ContrastColor(color), size, size_hole, thickness);
-
-            cross_hole(img, position, color, size, size_hole, thickness);
-            double delta_y = size_hole + size + 6.;
-            cv::Point2d text_position = {position.x, position.y - delta_y};
-            text(img, text_position, name, color, true, add_cartouche);
-        }
-
-        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2)
-        {
-            cv::Mat img(cv::Size(img1.cols, img1.rows + img2.rows), img1.type());
-            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
-            img2.copyTo(img(cv::Rect(0, img1.rows, img2.cols, img2.rows)));
-            return img;
-        }
-
-        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2)
-        {
-            cv::Mat img(cv::Size(img1.cols + img2.cols, img1.rows), img1.type());
-            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
-            img2.copyTo(img(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
-            return img;
-        }
-
-
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
-        {
-            cv::Mat mat = inputMat;
-            if (!inputMat.isContinuous())
-                mat = inputMat.clone();
-
-            cv::Mat mat_rgba;
-            int nbChannels = mat.channels();
-            if (nbChannels == 1)
-            {
-                if ((mat.depth() == CV_8U))
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC1);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_GRAY2BGRA);
-                }
-            }
-            else if (nbChannels == 2)
-            {
-                // Add a third channel, with values = 0
-                cv::Mat mat3Channels_lastZero;
-                {
-                    std::vector<cv::Mat> channels;
-                    cv::split(inputMat, channels);
-                    cv::Mat channel3(channels.front().size(), channels.front().type());
-                    channel3 = cv::Scalar(0., 0., 0., 0.);
-                    channels.push_back(channel3);
-                    cv::merge(channels, mat3Channels_lastZero);
-                }
-                if ( mat.depth() == CV_8U)
-                    cv::cvtColor(mat3Channels_lastZero, mat_rgba, cv::COLOR_BGR2BGRA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat3Channels_lastZero * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC3);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
-                }
-            }
-            else if (nbChannels == 3)
-            {
-                if (mat.depth() == CV_8U && isBgrOrBgra)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrBgra)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_RGB2RGBA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC3);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_RGB2RGBA);
-                }
-                else
-                    throw std::runtime_error("unsupported image format");
-            }
-            else if (nbChannels == 4)
-            {
-                if (mat.depth() == CV_8U && isBgrOrBgra)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGRA2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrBgra)
-                    mat_rgba = mat;
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC4);
-                    grey_uchar.copyTo(mat_rgba);
-                }
-                else
-                    throw std::runtime_error("unsupported image format");
-            }
-            return mat_rgba;
-        }
-
-        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize)
-        {
-            cv::Mat r(size, CV_8UC3);
-            for (int x = 0; x < size.width; x++)
-            {
-                for (int y = 0; y < size.height; y++)
-                {
-                    uchar colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
-                    r.at<cv::Vec3b>(y, x) = cv::Vec3b(colorValue, colorValue, colorValue);
-                }
-            }
-            return r;
-        }
-
-
-        void draw_transparent_pixel(
-            cv::Mat &img_rgba,
-            const cv::Point2d &position,
-            const cv::Scalar &color,
-            double alpha
-        )
-        {
-            assert(img_rgba.type() == CV_8UC4);
-
-            auto fnLerpScalar = [](cv::Scalar c1, cv::Scalar c2, double k)
-            {
-                auto fnLerp = [](double x1, double x2, double k2) {
-                    return x1 + k2 * (x2 - x1);
-                };
-                cv::Scalar r(
-                    fnLerp(c1[0], c2[0], k),
-                    fnLerp(c1[1], c2[1], k),
-                    fnLerp(c1[2], c2[2], k),
-                    fnLerp(c1[3], c2[3], k)
-                );
-                return r;
-            };
-
-            double xFloor = (int)position.x;
-            double kx0 = 1. - (position.x - xFloor);
-            double kx1 = 1. - kx0;
-            double yFloor = (int)position.y;
-            double ky0 = 1. - (position.y - yFloor);
-            double ky1 = 1. - ky0;
-
-            std::vector<std::pair<cv::Point2d, double>> positionAndKs {
-                { cv::Point2d(0., 0.), kx0 * ky0 },
-                { cv::Point2d(1., 0.), kx1 * ky0 },
-                { cv::Point2d(0., 1.), kx0 * ky1 },
-                { cv::Point2d(1., 1.), kx1 * ky1 }
-            };
-
-            cv::Rect roi(cv::Point(0, 0), img_rgba.size());
-            for (const auto& kv: positionAndKs)
-            {
-                cv::Point pos;
-                {
-                    cv::Point2d delta = kv.first;
-                    pos = cv::Point((int)(position.x + delta.x), (int)(position.y + delta.y));
-                }
-                double k = kv.second;
-
-                if (!roi.contains(pos))
-                    continue;
-
-                cv::Scalar oldColor = img_rgba.at<cv::Vec4b>(pos.y, pos.x);
-                cv::Scalar dstColor = fnLerpScalar(oldColor, color, alpha * k);
-                img_rgba.at<cv::Vec4b>(pos.y, pos.x) = dstColor;
-            }
-        }
-
-
-        void draw_grid(
-            cv::Mat& img_rgba,
-            cv::Scalar lineColor,
-            double alpha,
-            double x_spacing, double y_spacing,
-            double x_start, double y_start,
-            double x_end, double y_end
-            )
-        {
-            assert(img_rgba.type() == CV_8UC4);
-
-            for (double y = y_start; y < y_end; y+= y_spacing)
-                for (double x = 0.; x < x_end; x+= 1.)
-                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
-            for (double x = x_start; x < x_end; x+= x_spacing)
-                for (double y = 0.; y < y_end; y+= 1.)
-                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
-        }
-
-    }  // namespace CvDrawingUtils
-}  // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision/internal/gl_texture.cpp //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision_gl_loader/immvision_gl_loader.h                                              //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#if defined(IMMVISION_CUSTOM_GL_INCLUDE)
-    // See https://stackoverflow.com/questions/40062883/how-to-use-a-macro-in-an-include-directive
-    #define STRINGIFY_MACRO(x) STR(x)
-    #define STR(x) #x
-    #include STRINGIFY_MACRO(IMMVISION_CUSTOM_GL_INCLUDE)
-#elif defined(IMMVISION_USE_GLAD)
-    #include <glad/glad.h>
-#elif defined(IMMVISION_USE_GLES3)
-    #if defined(IOS)
-        #include <OpenGLES/ES3/gl.h>
-        #include <OpenGLES/ES3/glext.h>
-    #elif defined(__EMSCRIPTEN__)
-        #include <GLES3/gl3.h>
-        #include <GLES3/gl2ext.h>
-    #else
-        #include <GLES3/gl3.h>
-        #include <GLES3/gl3ext.h>
-    #endif
-#elif defined(IMMVISION_USE_GLES2)
-    #ifdef IOS
-        #include <OpenGLES/ES2/gl.h>
-        #include <OpenGLES/ES2/glext.h>
-    #else
-        #include <GLES2/gl2.h>
-        #include <GLES2/gl2ext.h>
-    #endif
-#else
-    #error "immvision_include_opengl: cannot determine GL include path"
-#endif
-
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif
-
-#include <opencv2/imgproc.hpp>
-#include <iostream>
-
-namespace
-{
-    ImTextureID toImTextureID(GLuint v)
-    {
-        return (ImTextureID)(intptr_t)v;
-    }
-    GLuint toGLuint(ImTextureID v)
-    {
-        return (GLuint)(intptr_t)v;
-    }
-}
-
-namespace ImmVision
-{
-    GlTexture::GlTexture()
-    {
-        std::cout << "GlTexture::GlTexture() \n";
-        GLuint textureId_Gl;
-        glGenTextures(1, &textureId_Gl);
-        this->mImTextureId = toImTextureID(textureId_Gl);
-    }
-
-    GlTexture::~GlTexture()
-    {
-        std::cout << "GlTexture::~GlTexture() \n";
-        GLuint textureId_Gl = toGLuint(this->mImTextureId);
-        glDeleteTextures(1, &textureId_Gl);
-    }
-
-    void GlTexture::Draw(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) const
-    {
-        ImVec2 size_(size);
-        if (size.x == 0.f)
-            size_ = this->mImageSize;
-        ImGui::Image(this->mImTextureId, size_, uv0, uv1, tint_col, border_col);
-    }
-
-    bool GlTexture::DrawButton(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) const
-    {
-        ImVec2 size_(size);
-        if (size.x == 0.f)
-            size_ = this->mImageSize;
-        return ImGui::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
-    }
-
-    void GlTexture::Draw_DisableDragWindow(const ImVec2 &size) const
-    {
-        ImVec2 size_(size);
-        if (size.x == 0.f)
-            size_ = this->mImageSize;
-
-        ImVec2 imageTl = ImGui::GetCursorScreenPos();
-        ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
-        std::stringstream id;
-        id << "##" << (GLuint)(intptr_t)mImTextureId;
-        ImGui::InvisibleButton(id.str().c_str(), size);
-        ImGui::GetWindowDrawList()->AddImage(mImTextureId, imageTl, imageBr);
-    }
-
-    void GlTexture::Blit_Buffer(
-        unsigned char *image_data,
-        int image_width,
-        int image_height,
-        int nb_channels,
-        bool flip_RedBlue
-    )
-    {
-#ifdef __EMSCRIPTEN__
-        if (flip_RedBlue)
-        {
-            std::cerr << "GlTexture::Blit_Buffer does not support flip_RedBlue under emscripten!\n";
-            assert(false);
-        }
-#endif
-
-        // GL_UNPACK_ALIGNMENT needs to be changed if the amount of data per row is not a multiple of 4.
-        // For example, if you have RGB data, with 3 bytes per pixel
-        if ( (nb_channels != 4) && (image_width %4 != 0) )
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-        glBindTexture(GL_TEXTURE_2D, toGLuint(this->mImTextureId));
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-#if defined(__EMSCRIPTEN__) || defined(IMMVISION_USE_GLES2) || defined(IMMVISION_USE_GLES3)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
-
-        GLenum gl_color_flag = 0;
-        if (false)
-            ;
-#ifndef __EMSCRIPTEN__
-        else if (nb_channels == 3 && flip_RedBlue)
-            gl_color_flag = GL_BGR;
-        else if (nb_channels == 4 && flip_RedBlue)
-            gl_color_flag = GL_BGRA;
-#endif
-        else if (nb_channels == 3)
-            gl_color_flag = GL_RGB;
-        else if (nb_channels == 4)
-            gl_color_flag = GL_RGBA;
-        else
-        {
-            std::cout << "GlTexture::Blit_Buffer() bad color\n";
-            throw "GlTexture::Blit_Buffer() bad color";
-        }
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                     image_width,
-                     image_height, 0, gl_color_flag, GL_UNSIGNED_BYTE, image_data);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        mImageSize = ImVec2((float)image_width, (float) image_height);
-    }
-
-    void GlTexture::Blit_RGB_Buffer(unsigned char *image_data, int image_width, int image_height)
-    {
-        Blit_Buffer(image_data, image_width, image_height, 3, false);
-    }
-    void GlTexture::Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height)
-    {
-        Blit_Buffer(image_data, image_width, image_height, 4, false);
-    }
-    void GlTexture::Blit_BGR_Buffer(unsigned char *image_data, int image_width, int image_height)
-    {
-        Blit_Buffer(image_data, image_width, image_height, 3, true);
-    }
-    void GlTexture::Blit_BGRA_Buffer(unsigned char *image_data, int image_width, int image_height)
-    {
-        Blit_Buffer(image_data, image_width, image_height, 4, true);
-    }
-
-    //
-    // ImageTextureCv
-    //
-    GlTextureCv::GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra) : GlTextureCv()
-    {
-        BlitMat(mat, isBgrOrBgra);
-    }
-
-    void GlTextureCv::BlitMat(const cv::Mat& mat, bool isBgrOrBgra)
-    {
-        if (mat.empty())
-            return;
-        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat, isBgrOrBgra);
-
-        Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows);
-    }
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision/image.cpp               //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision/image.h                                                                      //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
-@@md#ImmVision::Image
-
- __ImmVision::Image()__ will show an image from a cv::Mat.
-
-Two signatures are provided:
-
-* `ImmVision::Image(const cv::Mat &mat, bool refresh, const cv::Size& size = cv::Size(0, 0))`:
-   * `mat` is the image to show
-   * `refresh` indicates whether this cv::Mat was updated since it was last shown.
-     If refresh is false, then the corresponding displayed texture will be fetched from a cache
-     (i.e the cv::Mat data is not transferred again to the GPU)
-     If refresh is true, then the corresponding displayed texture will be refreshed.
-   * `size` is the desired display size.
-        * If it is (0,0) then the actual cv::Mat size will be used.
-        * If it is (w,0) then the display width will be w, and the displayed image height
-          will conform to the vertical/horizontal ratio of the image size.
-        * If it is (0,h) then the display height will be h, and the displayed image width
-          will conform to the vertical/horizontal ratio of the image size.
-        * If it is (w,h) then this is the displayed size
-
-* `ImmVision::ImageStill(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0))`:
-    Same a 'ImmVision::Image` where refresh is set to false
-
-* `ImmVision::ImageAnimated(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0))`:
-    Same a 'ImmVision::Image` where refresh is set to true
-
-* `cv::Point2d ImmVision::GetImageMousePos()`: returns the position of the mouse on the last displayed image.
- This position is in *unscaled image coords*, i.e if the image was displayed with a smaller/bigger size, the returned
- mouse position is still between (0,0) and (image.cols, image.rows)
-
-* `ImmVision::ClearTextureCache()`: clear the internal GPU texture cache. You should rarely/never need to do it.
-  (the cache is handled automatically, and older GPU textures are cleared from the cache after 3 seconds if they are
-  not displayed anymore)
-@@md
-*/
-
-namespace ImmVision
-{
-    void Image(
-        const cv::Mat &mat,
-        bool refresh,
-        const cv::Size& size = cv::Size(0, 0),
-        bool isBgrOrBgra = true
-    );
-
-    inline void ImageStill(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0), bool isBgrOrBgra = true)
-        { Image(mat, false, size, isBgrOrBgra); }
-    inline void ImageAnimated(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0), bool isBgrOrBgra = true)
-        { Image(mat, true, size, isBgrOrBgra); }
-
-    cv::Point2d GetImageMousePos();
-
-    void ClearTextureCache();
-
-} // namespace ImmVision
-
-
-#include <chrono>
-
-namespace ImmVision
-{
-    namespace internal
-    {
-        double HighResTimer()
-        {
-            using chrono_second = std::chrono::duration<double, std::ratio<1>>;
-            using chrono_clock = std::chrono::high_resolution_clock;
-
-            static std::chrono::time_point<chrono_clock> startTime = chrono_clock::now();
-            double elapsed = std::chrono::duration_cast<chrono_second>(chrono_clock::now() - startTime).count();
-            return elapsed;
-        }
-
-        struct CachedTexture
-        {
-            CachedTexture() : mGlTextureCv()
-            {
-                mLastUsageTime = HighResTimer();
-            }
-            void Ping()
-            {
-                mLastUsageTime = HighResTimer();
-            }
-            bool IsUnused() const
-            {
-                double now = HighResTimer();
-                return ((now - mLastUsageTime) > 3.);
-            }
-            GlTextureCv mGlTextureCv;
-            double mLastUsageTime;
-        };
-
-        // Cache for images that are not refreshed at each frame
-        class TextureCache
-        {
-        public:
-            GlTextureCv* GetTexture(const cv::Mat *mat)
-            {
-                mTexturesMap[mat].Ping();
-                ClearNotUsedAnymoreTextures();
-                return &mTexturesMap[mat].mGlTextureCv;
-            }
-            void ClearAllTextures()
-            {
-                mTexturesMap.clear();
-            }
-        private:
-            void ClearNotUsedAnymoreTextures()
-            {
-                std::vector<const cv::Mat*> unused;
-                for (const auto& kv: mTexturesMap)
-                    if (kv.second.IsUnused())
-                        unused.push_back(kv.first);
-
-               for (auto& v: unused)
-                   mTexturesMap.erase(v);
-            }
-        private:
-            std::map<const cv::Mat *, CachedTexture> mTexturesMap;
-        };
-        static TextureCache gTextureCache;
-
-
-        struct
-        {
-            cv::Point2d lastDisplayRatio = cv::Point2d(1., 1.);
-            ImVec2      lastImageCursorPos = ImVec2(0.f, 0.f);
-        } gLastImageInfo;
-
-
-    } // namespace internal
-
-
-    void Image(
-        const cv::Mat &mat,
-        bool refresh,
-        const cv::Size& size,
-        bool isBgrOrBgra
-    )
-    {
-        GlTextureCv* glTextureCv = internal::gTextureCache.GetTexture(&mat);
-
-        // Detect if the texture was not transfered to OpenGL yet
-        if ((glTextureCv->mImageSize.x == 0.f) && (glTextureCv->mImageSize.y == 0.f))
-            refresh = true;
-
-        if (refresh)
-            glTextureCv->BlitMat(mat, isBgrOrBgra);
-
-        ImVec2 sizeImVec2((float)size.width, (float)size.height);
-        ImVec2 displaySize = ImGuiImm::ComputeDisplayImageSize(sizeImVec2, glTextureCv->mImageSize);
-
-        internal::gLastImageInfo.lastDisplayRatio = cv::Point2d(
-            (double)(glTextureCv->mImageSize.x / displaySize.x),
-            (double)(glTextureCv->mImageSize.y / displaySize.y)
-        );
-        internal::gLastImageInfo.lastImageCursorPos = ImGui::GetCursorScreenPos();
-
-        glTextureCv->Draw_DisableDragWindow(displaySize);
-    }
-
-    ImVec2 GetImageMousePos_OnScreen()
-    {
-        ImVec2 mouse = ImGui::GetMousePos();
-        ImVec2 imagePos = internal::gLastImageInfo.lastImageCursorPos;
-
-        return ImVec2(mouse.x - imagePos.x, mouse.y - imagePos.y);
-    }
-
-    cv::Point2d GetImageMousePos()
-    {
-        ImVec2 mousePos_OnScreen = GetImageMousePos_OnScreen();
-        cv::Point2d mousePositionOriginal =
-            {
-                (double)mousePos_OnScreen.x * internal::gLastImageInfo.lastDisplayRatio.x,
-                (double)mousePos_OnScreen.y * internal::gLastImageInfo.lastDisplayRatio.y
-            };
-        return mousePositionOriginal;
-    }
-
-    void ClearTextureCache()
-    {
-        internal::gTextureCache.ClearAllTextures();
-    }
-    
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision/immvision.cpp           //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision/immvision.h                                                                  //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace immvision
-{
-    void foo()
-    {
-        std::cout << "foo()" << std::endl;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision/image_navigator.cpp     //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <opencv2/imgcodecs.hpp>
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       immvision/internal/portable_file_dialogs.h                                             //
+//                       src/immvision/internal/portable_file_dialogs.h                                         //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //  Portable File Dialogs :
@@ -4021,7 +2296,9 @@ inline std::string internal::file_dialog::select_folder_vista(IFileDialog *ifd, 
 
 } // namespace pfd
 
+#include "imgui_internal.h"
 
+#include <iostream>
 
 #ifndef CV_16F // for old versions of OpenCV
 #define CV_16F 7
@@ -5465,5 +3742,1728 @@ namespace ImmVision
         s_Inspector_ImagesAndParams.clear();
     }
 
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision.cpp                                                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision.h                                                              //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace immvision
+{
+    void foo()
+    {
+        std::cout << "foo()" << std::endl;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv_drawing_utils.cpp                                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <opencv2/imgproc/imgproc.hpp>
+#include <unordered_map>
+
+#ifndef CV_16F // for old versions of OpenCV
+#define CV_16F 7
+#endif
+
+
+namespace ImmVision
+{
+    namespace CvDrawingUtils
+    {
+        namespace
+        {
+            int drawing_shift = 3;
+            double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
+
+            std::vector<std::string> SplitString(const std::string &s, char delimiter)
+            {
+                std::vector<std::string> tokens;
+                std::string token;
+                std::istringstream tokenStream(s);
+                while (std::getline(tokenStream, token, delimiter))
+                    tokens.push_back(token);
+                return tokens;
+            }
+
+        }  // namespace
+
+        namespace MathUtils
+        {
+            int RoundInt(double v)
+            {
+                return (int) std::round(v);
+            }
+
+            double MaximumValue(const std::vector<double> &v)
+            {
+                return *std::min_element(v.begin(), v.end());
+            }
+
+            double MinimumValue(const std::vector<double> &v)
+            {
+                return *std::max_element(v.begin(), v.end());
+            }
+
+            double Lerp(double a, double b, double x) noexcept
+            {
+                return (a + (b - a) * x);
+            }
+            double UnLerp(double a, double b, double x) noexcept
+            {
+                return (x - a) / (b - a);
+            }
+
+            std::vector<double> arange(double a, double b, double step)
+            {
+                std::vector<double> r;
+                double v = a;
+                while (v < b)
+                {
+                    r.push_back(v);
+                    v += step;
+                }
+                return r;
+            }
+        } // namespace MathUtils
+
+
+        const std::unordered_map<Colors, cv::Scalar> ColorsValues{
+            {Colors::Black,  {0.,   0.,   0.,   255.}},
+            {Colors::Red,    {0.,   0.,   255., 255.}},
+            {Colors::Green,  {0.,   255., 0.,   255.}},
+            {Colors::Blue,   {255., 0.,   0.,   255.}},
+            {Colors::White,  {255., 255., 255., 255.}},
+            {Colors::Yellow, {0.,   255., 255., 255.}},
+            {Colors::Cyan,   {0.,   255., 255., 255.}},
+            {Colors::Violet, {200., 50.,  200., 255.}},
+            {Colors::Orange, {0.,   128., 255., 255.}}};
+
+        cv::Scalar ColorsToScalar(Colors value)
+        { return ColorsValues.at(value); }
+
+        cv::Point _ToCvPoint_Shift(const cv::Point2d &pt)
+        {
+            cv::Point pt_tuple;
+            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x) * drawing_shift_pow);
+            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y) * drawing_shift_pow);
+            return pt_tuple;
+        }
+
+        cv::Point _ToCvPoint_NoShift(const cv::Point2d &pt)
+        {
+            cv::Point pt_tuple;
+            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x));
+            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y));
+            return pt_tuple;
+        }
+
+        cv::Size _ToCvSize_WithShift(const cv::Size2d s)
+        {
+            return {MathUtils::RoundInt(static_cast<double>(s.width) * drawing_shift_pow),
+                    MathUtils::RoundInt(static_cast<double>(s.height) * drawing_shift_pow)};
+        }
+
+        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba, const Image_RGBA &overlay_rgba, double alpha)
+        {
+            /*
+            cf minute physics brilliant clip "Computer color is broken" :
+            https://www.youtube.com/watch?v=LKnqECcg6Gw the RGB values are square rooted by the sensor (in
+            order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
+            results that are nicer than photoshop itself !
+            */
+            assert( (background_rgb_or_rgba.type() == CV_8UC3) || (background_rgb_or_rgba.type() == CV_8UC4));
+            assert(overlay_rgba.type() == CV_8UC4);
+
+            cv::Mat background_rgb;
+            {
+                if (background_rgb_or_rgba.channels() == 4)
+                    cv::cvtColor(background_rgb_or_rgba, background_rgb, cv::COLOR_BGRA2BGR);
+                else if (background_rgb_or_rgba.channels() == 3)
+                    background_rgb = background_rgb_or_rgba;
+                else
+                    throw("Only CV_8UC3 or CV_8UC4 background are supported!");
+            }
+
+
+            std::vector<cv::Mat> overlay_rgb_channels;
+            cv::split(overlay_rgba, overlay_rgb_channels);
+
+            cv::Mat overlay_alpha_3;
+            {
+                cv::Mat overlay_alpha_int = overlay_rgb_channels[3];
+                cv::Mat overlay_alpha_float;
+                overlay_alpha_int.convertTo(overlay_alpha_float, CV_64F);
+                overlay_alpha_float = overlay_alpha_float * (alpha / 255.);
+
+                std::vector<cv::Mat> v{overlay_alpha_float, overlay_alpha_float, overlay_alpha_float};
+                cv::merge(v, overlay_alpha_3);
+            }
+
+            cv::Mat overlay_rgb_squared;
+            {
+                cv::Mat overlay_rgb_int;
+                std::vector<cv::Mat> v{overlay_rgb_channels[0], overlay_rgb_channels[1], overlay_rgb_channels[2]};
+                cv::merge(v, overlay_rgb_int);
+
+                cv::Mat overlay_rgb_float;
+                overlay_rgb_int.convertTo(overlay_rgb_float, CV_64F);
+                overlay_rgb_squared = overlay_rgb_float.mul(overlay_rgb_float);
+            }
+
+            cv::Mat background_rgb_squared;
+            {
+                cv::Mat background_rgb_float;
+                background_rgb.convertTo(background_rgb_float, CV_64F);
+                background_rgb_squared = background_rgb_float.mul(background_rgb_float);
+            }
+
+            cv::Mat out_rgb_squared;
+            {
+                out_rgb_squared = overlay_rgb_squared.mul(overlay_alpha_3) +
+                                  background_rgb_squared.mul(cv::Scalar(1., 1., 1.) - overlay_alpha_3);
+            }
+
+            cv::Mat out_rgb_float;
+            {
+                cv::sqrt(out_rgb_squared, out_rgb_float);
+            }
+
+            cv::Mat out_rgb;
+            {
+                out_rgb_float.convertTo(out_rgb, CV_8U);
+            }
+
+            if (background_rgb_or_rgba.type() == CV_8UC3)
+                return out_rgb;
+            else // background_rgb_or_rgba.type() == CV_8UC4
+            {
+                cv::Mat out_rgba;
+                cv::cvtColor(out_rgb, out_rgba, cv::COLOR_BGR2BGRA);
+                return out_rgba;
+            }
+        }
+
+
+        cv::Mat ToFloatMat(const cv::Mat &mat_uchar)
+        {
+            std::vector<cv::Mat> channels_uchar;
+            cv::split(mat_uchar, channels_uchar);
+            std::vector<cv::Mat> channels_float;
+            for (const auto &channel_uchar: channels_uchar)
+            {
+                cv::Mat channel_float;
+                channel_uchar.convertTo(channel_float, CV_32FC1);
+                channels_float.push_back(channel_float);
+            }
+            cv::Mat mat_float;
+            cv::merge(channels_float, mat_float);
+            return mat_float;
+        }
+
+        std::pair<cv::Mat, cv::Mat> split_alpha_channel(const cv::Mat img_with_alpha)
+        {
+            std::vector<cv::Mat> channels;
+            cv::split(img_with_alpha, channels);
+            cv::Mat rgb, alpha;
+            alpha = channels[3];
+            channels.pop_back();
+            cv::merge(channels, rgb);
+            return {rgb, alpha};
+        }
+
+        void line(cv::Mat &image,
+                  const cv::Point2d &a,
+                  const cv::Point2d &b,
+                  cv::Scalar color,
+                  int thickness /*= 1*/)
+        {
+            cv::line(image,
+                     _ToCvPoint_Shift(a),
+                     _ToCvPoint_Shift(b),
+                     color,
+                     thickness,
+                     cv::LINE_AA,
+                     drawing_shift);
+        }
+
+        void ellipse(cv::Mat &image,
+                     const cv::Point2d &center,
+                     const cv::Size2d &size,
+                     const cv::Scalar &color,
+                     double angle /*= 0.*/,
+                     double start_angle /*=0.*/,
+                     double end_angle /*=360.*/,
+                     int thickness /*= 1*/)
+        {
+            cv::ellipse(image,
+                        _ToCvPoint_Shift(center),
+                        _ToCvSize_WithShift(size),
+                        angle,
+                        start_angle,
+                        end_angle,
+                        color,
+                        thickness,
+                        cv::LINE_AA,
+                        drawing_shift);
+        }
+
+        void circle(cv::Mat &image,
+                    const cv::Point2d &center,
+                    double radius,
+                    cv::Scalar color,
+                    int thickness /*= 1*/)
+        {
+            ellipse(image, center, {radius, radius}, color, 0., 0., 360., thickness);
+        }
+
+        void rectangle(cv::Mat &image,
+                       const cv::Point2d &pt1,
+                       const cv::Point2d &pt2,
+                       const cv::Scalar &color,
+                       bool fill /*= false*/,
+                       int thickness /*= 1*/)
+        {
+            if (fill)
+                thickness = -1;
+            cv::rectangle(image,
+                          _ToCvPoint_Shift(pt1),
+                          _ToCvPoint_Shift(pt2),
+                          color,
+                          thickness,
+                          cv::LINE_AA,
+                          drawing_shift);
+        }
+
+        cv::Scalar _ContrastColor(const cv::Scalar &color)
+        {
+            return {255. - color[0], 255. - color[1], 255. - color[2], color[3]};
+        }
+
+        void rectangle_size(cv::Mat &img,
+                            const cv::Point2d &pt,
+                            const cv::Size2d &size,
+                            const cv::Scalar &color,
+                            bool fill /*= false*/,
+                            int thickness /*= 1*/)
+        {
+            cv::Point2d pt2(pt.x + size.width, pt.y + size.height);
+            rectangle(img, pt, pt2, color, fill, thickness);
+        }
+
+        double _text_line_height(double fontScale, int thickness)
+        {
+            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
+            int baseLine_dummy;
+            cv::Size size = cv::getTextSize("ABC", fontFace, fontScale, thickness, &baseLine_dummy);
+            return (double)size.height;
+        }
+
+        int text_oneline(cv::Mat &img,
+                         const cv::Point2d &position,
+                         const std::string &text,
+                         const cv::Scalar &color,
+                         bool center_around_point /*= false*/,
+                         bool add_cartouche /*= false*/,
+                         double fontScale /*= 0.4*/,
+                         int thickness /*= 1*/)
+        {
+            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
+            int baseLine_dummy;
+            cv::Size size = cv::getTextSize(text, fontFace, fontScale, thickness, &baseLine_dummy);
+            cv::Point position2 = _ToCvPoint_NoShift(position);
+            cv::Point position3;
+            if (center_around_point)
+                position3 = {position2.x - size.width / 2, position2.y + size.height / 2};
+            else
+                position3 = position2;
+            if (add_cartouche)
+            {
+                cv::Point position4 = {position3.x, position3.y - size.height};
+                rectangle_size(img, position4, size, _ContrastColor(color), true);
+            }
+            cv::putText(img, text, position3, fontFace, fontScale, color, thickness, cv::LINE_AA);
+            return size.height;
+        }
+
+        void text(cv::Mat &img,
+                  const cv::Point2d &position,
+                  const std::string &msg,
+                  const cv::Scalar &color,
+                  bool center_around_point /*= false*/,
+                  bool add_cartouche /*= false*/,
+                  double fontScale /*= 0.4*/,
+                  int thickness /*= 1*/)
+        {
+            auto lines = SplitString(msg, '\n');
+
+            double line_height = _text_line_height(fontScale, thickness) + 3.;
+            cv::Point2d linePosition = position;
+            linePosition.y -= line_height * (double)(lines.size() - 1.) / 2.;
+            for (const auto &line: lines)
+            {
+                text_oneline(
+                    img, linePosition, line, color, center_around_point, add_cartouche, fontScale, thickness);
+                linePosition.y += line_height;
+            }
+        }
+
+        void cross_hole(cv::Mat &img,
+                        const cv::Point2d &position,
+                        const cv::Scalar &color,
+                        double size /*= 2.*/,
+                        double size_hole /*= 2.*/,
+                        int thickness /*= 1*/)
+        {
+            for (double xSign: std::vector<double>{-1., 1.})
+            {
+                for (double ySign: std::vector<double>{-1., 1.})
+                {
+                    cv::Point2d a{position.x + xSign * size_hole, position.y + ySign * size_hole};
+                    cv::Point2d b{position.x + xSign * (size_hole + size),
+                                  position.y + ySign * (size_hole + size)};
+                    line(img, a, b, color, thickness);
+                }
+            }
+        }
+
+        void draw_ellipse(cv::Mat &img,
+                          const cv::Point2d &center,
+                          const cv::Size2d &size,
+                          const cv::Scalar &color,
+                          int thickness /*= 1*/,
+                          int lineType /*= cv::LINE_8*/,
+                          int shift /*= 0*/)
+        {
+            cv::ellipse(img, center, size, 0., 0., 360., color, thickness, lineType, shift);
+        }
+
+        void draw_named_feature(cv::Mat &img,
+                                const cv::Point2d &position,
+                                const std::string &name,
+                                const cv::Scalar &color,
+                                bool add_cartouche /*= false*/,
+                                double size /*= 3.*/,
+                                double size_hole /*= 2.*/,
+                                int thickness /*= 1*/)
+        {
+            if (add_cartouche)
+                for (auto x : std::vector<double>{-1., 1.})
+                    for (auto y : std::vector<double>{-1., 1.})
+                        cross_hole(img, position + cv::Point2d(x, y), _ContrastColor(color), size, size_hole, thickness);
+
+            cross_hole(img, position, color, size, size_hole, thickness);
+            double delta_y = size_hole + size + 6.;
+            cv::Point2d text_position = {position.x, position.y - delta_y};
+            text(img, text_position, name, color, true, add_cartouche);
+        }
+
+        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2)
+        {
+            cv::Mat img(cv::Size(img1.cols, img1.rows + img2.rows), img1.type());
+            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
+            img2.copyTo(img(cv::Rect(0, img1.rows, img2.cols, img2.rows)));
+            return img;
+        }
+
+        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2)
+        {
+            cv::Mat img(cv::Size(img1.cols + img2.cols, img1.rows), img1.type());
+            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
+            img2.copyTo(img(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
+            return img;
+        }
+
+
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
+        {
+            cv::Mat mat = inputMat;
+            if (!inputMat.isContinuous())
+                mat = inputMat.clone();
+
+            cv::Mat mat_rgba;
+            int nbChannels = mat.channels();
+            if (nbChannels == 1)
+            {
+                if ((mat.depth() == CV_8U))
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC1);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_GRAY2BGRA);
+                }
+            }
+            else if (nbChannels == 2)
+            {
+                // Add a third channel, with values = 0
+                cv::Mat mat3Channels_lastZero;
+                {
+                    std::vector<cv::Mat> channels;
+                    cv::split(inputMat, channels);
+                    cv::Mat channel3(channels.front().size(), channels.front().type());
+                    channel3 = cv::Scalar(0., 0., 0., 0.);
+                    channels.push_back(channel3);
+                    cv::merge(channels, mat3Channels_lastZero);
+                }
+                if ( mat.depth() == CV_8U)
+                    cv::cvtColor(mat3Channels_lastZero, mat_rgba, cv::COLOR_BGR2BGRA);
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat3Channels_lastZero * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC3);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
+                }
+            }
+            else if (nbChannels == 3)
+            {
+                if (mat.depth() == CV_8U && isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2RGBA);
+                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_RGB2RGBA);
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC3);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_RGB2RGBA);
+                }
+                else
+                    throw std::runtime_error("unsupported image format");
+            }
+            else if (nbChannels == 4)
+            {
+                if (mat.depth() == CV_8U && isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGRA2RGBA);
+                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                    mat_rgba = mat;
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC4);
+                    grey_uchar.copyTo(mat_rgba);
+                }
+                else
+                    throw std::runtime_error("unsupported image format");
+            }
+            return mat_rgba;
+        }
+
+        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize)
+        {
+            cv::Mat r(size, CV_8UC3);
+            for (int x = 0; x < size.width; x++)
+            {
+                for (int y = 0; y < size.height; y++)
+                {
+                    uchar colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
+                    r.at<cv::Vec3b>(y, x) = cv::Vec3b(colorValue, colorValue, colorValue);
+                }
+            }
+            return r;
+        }
+
+
+        void draw_transparent_pixel(
+            cv::Mat &img_rgba,
+            const cv::Point2d &position,
+            const cv::Scalar &color,
+            double alpha
+        )
+        {
+            assert(img_rgba.type() == CV_8UC4);
+
+            auto fnLerpScalar = [](cv::Scalar c1, cv::Scalar c2, double k)
+            {
+                auto fnLerp = [](double x1, double x2, double k2) {
+                    return x1 + k2 * (x2 - x1);
+                };
+                cv::Scalar r(
+                    fnLerp(c1[0], c2[0], k),
+                    fnLerp(c1[1], c2[1], k),
+                    fnLerp(c1[2], c2[2], k),
+                    fnLerp(c1[3], c2[3], k)
+                );
+                return r;
+            };
+
+            double xFloor = (int)position.x;
+            double kx0 = 1. - (position.x - xFloor);
+            double kx1 = 1. - kx0;
+            double yFloor = (int)position.y;
+            double ky0 = 1. - (position.y - yFloor);
+            double ky1 = 1. - ky0;
+
+            std::vector<std::pair<cv::Point2d, double>> positionAndKs {
+                { cv::Point2d(0., 0.), kx0 * ky0 },
+                { cv::Point2d(1., 0.), kx1 * ky0 },
+                { cv::Point2d(0., 1.), kx0 * ky1 },
+                { cv::Point2d(1., 1.), kx1 * ky1 }
+            };
+
+            cv::Rect roi(cv::Point(0, 0), img_rgba.size());
+            for (const auto& kv: positionAndKs)
+            {
+                cv::Point pos;
+                {
+                    cv::Point2d delta = kv.first;
+                    pos = cv::Point((int)(position.x + delta.x), (int)(position.y + delta.y));
+                }
+                double k = kv.second;
+
+                if (!roi.contains(pos))
+                    continue;
+
+                cv::Scalar oldColor = img_rgba.at<cv::Vec4b>(pos.y, pos.x);
+                cv::Scalar dstColor = fnLerpScalar(oldColor, color, alpha * k);
+                img_rgba.at<cv::Vec4b>(pos.y, pos.x) = dstColor;
+            }
+        }
+
+
+        void draw_grid(
+            cv::Mat& img_rgba,
+            cv::Scalar lineColor,
+            double alpha,
+            double x_spacing, double y_spacing,
+            double x_start, double y_start,
+            double x_end, double y_end
+            )
+        {
+            assert(img_rgba.type() == CV_8UC4);
+
+            for (double y = y_start; y < y_end; y+= y_spacing)
+                for (double x = 0.; x < x_end; x+= 1.)
+                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
+            for (double x = x_start; x < x_end; x+= x_spacing)
+                for (double y = 0.; y < y_end; y+= 1.)
+                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
+        }
+
+    }  // namespace CvDrawingUtils
+}  // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/gl_texture.cpp                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision_gl_loader/immvision_gl_loader.h                                          //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if defined(IMMVISION_CUSTOM_GL_INCLUDE)
+    // See https://stackoverflow.com/questions/40062883/how-to-use-a-macro-in-an-include-directive
+    #define STRINGIFY_MACRO(x) STR(x)
+    #define STR(x) #x
+    #include STRINGIFY_MACRO(IMMVISION_CUSTOM_GL_INCLUDE)
+#elif defined(IMMVISION_USE_GLAD)
+    #include <glad/glad.h>
+#elif defined(IMMVISION_USE_GLES3)
+    #if defined(IOS)
+        #include <OpenGLES/ES3/gl.h>
+        #include <OpenGLES/ES3/glext.h>
+    #elif defined(__EMSCRIPTEN__)
+        #include <GLES3/gl3.h>
+        #include <GLES3/gl2ext.h>
+    #else
+        #include <GLES3/gl3.h>
+        #include <GLES3/gl3ext.h>
+    #endif
+#elif defined(IMMVISION_USE_GLES2)
+    #ifdef IOS
+        #include <OpenGLES/ES2/gl.h>
+        #include <OpenGLES/ES2/glext.h>
+    #else
+        #include <GLES2/gl2.h>
+        #include <GLES2/gl2ext.h>
+    #endif
+#else
+    #error "immvision_include_opengl: cannot determine GL include path"
+#endif
+
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
+
+#include <sstream>
+
+namespace
+{
+    ImTextureID toImTextureID(GLuint v)
+    {
+        return (ImTextureID)(intptr_t)v;
+    }
+    GLuint toGLuint(ImTextureID v)
+    {
+        return (GLuint)(intptr_t)v;
+    }
+}
+
+namespace ImmVision
+{
+    GlTexture::GlTexture()
+    {
+        std::cout << "GlTexture::GlTexture() \n";
+        GLuint textureId_Gl;
+        glGenTextures(1, &textureId_Gl);
+        this->mImTextureId = toImTextureID(textureId_Gl);
+    }
+
+    GlTexture::~GlTexture()
+    {
+        std::cout << "GlTexture::~GlTexture() \n";
+        GLuint textureId_Gl = toGLuint(this->mImTextureId);
+        glDeleteTextures(1, &textureId_Gl);
+    }
+
+    void GlTexture::Draw(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) const
+    {
+        ImVec2 size_(size);
+        if (size.x == 0.f)
+            size_ = this->mImageSize;
+        ImGui::Image(this->mImTextureId, size_, uv0, uv1, tint_col, border_col);
+    }
+
+    bool GlTexture::DrawButton(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) const
+    {
+        ImVec2 size_(size);
+        if (size.x == 0.f)
+            size_ = this->mImageSize;
+        return ImGui::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
+    }
+
+    void GlTexture::Draw_DisableDragWindow(const ImVec2 &size) const
+    {
+        ImVec2 size_(size);
+        if (size.x == 0.f)
+            size_ = this->mImageSize;
+
+        ImVec2 imageTl = ImGui::GetCursorScreenPos();
+        ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
+        std::stringstream id;
+        id << "##" << (GLuint)(intptr_t)mImTextureId;
+        ImGui::InvisibleButton(id.str().c_str(), size);
+        ImGui::GetWindowDrawList()->AddImage(mImTextureId, imageTl, imageBr);
+    }
+
+    void GlTexture::Blit_Buffer(
+        unsigned char *image_data,
+        int image_width,
+        int image_height,
+        int nb_channels,
+        bool flip_RedBlue
+    )
+    {
+#ifdef __EMSCRIPTEN__
+        if (flip_RedBlue)
+        {
+            std::cerr << "GlTexture::Blit_Buffer does not support flip_RedBlue under emscripten!\n";
+            assert(false);
+        }
+#endif
+
+        // GL_UNPACK_ALIGNMENT needs to be changed if the amount of data per row is not a multiple of 4.
+        // For example, if you have RGB data, with 3 bytes per pixel
+        if ( (nb_channels != 4) && (image_width %4 != 0) )
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+        glBindTexture(GL_TEXTURE_2D, toGLuint(this->mImTextureId));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#if defined(__EMSCRIPTEN__) || defined(IMMVISION_USE_GLES2) || defined(IMMVISION_USE_GLES3)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+
+        GLenum gl_color_flag = 0;
+        if (false)
+            ;
+#ifndef __EMSCRIPTEN__
+        else if (nb_channels == 3 && flip_RedBlue)
+            gl_color_flag = GL_BGR;
+        else if (nb_channels == 4 && flip_RedBlue)
+            gl_color_flag = GL_BGRA;
+#endif
+        else if (nb_channels == 3)
+            gl_color_flag = GL_RGB;
+        else if (nb_channels == 4)
+            gl_color_flag = GL_RGBA;
+        else
+        {
+            std::cout << "GlTexture::Blit_Buffer() bad color\n";
+            throw "GlTexture::Blit_Buffer() bad color";
+        }
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                     image_width,
+                     image_height, 0, gl_color_flag, GL_UNSIGNED_BYTE, image_data);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        mImageSize = ImVec2((float)image_width, (float) image_height);
+    }
+
+    void GlTexture::Blit_RGB_Buffer(unsigned char *image_data, int image_width, int image_height)
+    {
+        Blit_Buffer(image_data, image_width, image_height, 3, false);
+    }
+    void GlTexture::Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height)
+    {
+        Blit_Buffer(image_data, image_width, image_height, 4, false);
+    }
+    void GlTexture::Blit_BGR_Buffer(unsigned char *image_data, int image_width, int image_height)
+    {
+        Blit_Buffer(image_data, image_width, image_height, 3, true);
+    }
+    void GlTexture::Blit_BGRA_Buffer(unsigned char *image_data, int image_width, int image_height)
+    {
+        Blit_Buffer(image_data, image_width, image_height, 4, true);
+    }
+
+    //
+    // ImageTextureCv
+    //
+    GlTextureCv::GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra) : GlTextureCv()
+    {
+        BlitMat(mat, isBgrOrBgra);
+    }
+
+    void GlTextureCv::BlitMat(const cv::Mat& mat, bool isBgrOrBgra)
+    {
+        if (mat.empty())
+            return;
+        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat, isBgrOrBgra);
+
+        Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows);
+    }
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/imgui_imm.cpp                                                   //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#define IMGUI_DEFINE_MATH_OPERATORS
+
+#include <stack>
+
+namespace ImGuiImm
+{
+    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags)
+    {
+        float vf = (float)*v;
+        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, format, flags);
+        if (changed)
+            *v = (double)vf;
+        return changed;
+    }
+
+    ImVec2 ComputeDisplayImageSize(
+        ImVec2 askedImageSize,
+        ImVec2 realImageSize
+    )
+    {
+        if ((askedImageSize.x == 0.f) && (askedImageSize.y == 0.f))
+            return realImageSize;
+        else if ((askedImageSize.x == 0.f) && (realImageSize.y >= 1.f))
+            return ImVec2(askedImageSize.y * realImageSize.x / realImageSize.y, askedImageSize.y);
+        else if ((askedImageSize.y == 0.f) && (realImageSize.x >= 1.f))
+            return ImVec2(askedImageSize.x, askedImageSize.x * realImageSize.y / realImageSize.x);
+        else
+            return askedImageSize;
+    }
+    cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize)
+    {
+        auto toSize = [](ImVec2 v) { return cv::Size((int)((double)v.x + 0.5), (int)((double)v.y + 0.5)); };
+        auto toImVec2 = [](cv::Size v) { return ImVec2((float)v.width, (float)v.height); };
+        return toSize( ComputeDisplayImageSize(toImVec2(askedImageSize), toImVec2(realImageSize)) );
+    }
+
+    void PushDisabled()
+    {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.7f);
+
+    }
+    void PopDisabled()
+    {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleVar();
+    }
+
+    void SameLineAlignRight(float rightMargin, float alignRegionWidth)
+    {
+        auto window = ImGui::GetCurrentWindow();
+        if (alignRegionWidth < 0.f)
+            alignRegionWidth = window->Size.x;
+
+        // Formulas taken from ImGui::ItemSize() code
+        float xLineStart = IM_FLOOR(window->Pos.x + window->DC.Indent.x + window->DC.ColumnsOffset.x);
+        float y = window->DC.CursorPosPrevLine.y;
+
+        float x = xLineStart + alignRegionWidth - rightMargin;
+        ImGui::SetCursorScreenPos({x, y});
+    }
+
+
+    bool CollapsingHeaderFixedWidth(const char* name, float width, ImGuiTreeNodeFlags flags)
+    {
+        ImVec2 oldItemSpacing = ImGui::GetStyle().ItemSpacing;
+        ImGui::GetStyle().ItemSpacing = ImVec2(0.f, 0.f);
+        std::string tableId = std::string("dummytable_") + name;
+        ImGui::BeginTable(tableId.c_str(), 1, 0, ImVec2(width, 0.f));
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+
+        bool opened = ImGui::CollapsingHeader(name, flags);
+        ImGui::EndTable();
+        ImGui::GetStyle().ItemSpacing = oldItemSpacing;
+        return opened;
+    }
+
+
+    // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
+    static ImVector<ImRect> s_GroupPanelLabelStack;
+    void BeginGroupPanel(const char* name, const ImVec2& size)
+    {
+        ImGui::BeginGroup();
+
+        auto itemSpacing = ImGui::GetStyle().ItemSpacing;
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+        auto frameHeight = ImGui::GetFrameHeight();
+        ImGui::BeginGroup();
+
+        ImVec2 effectiveSize = size;
+        if (size.x < 0.0f)
+            effectiveSize.x = ImGui::GetWindowContentRegionWidth();
+        else
+            effectiveSize.x = size.x;
+        ImGui::Dummy(ImVec2(effectiveSize.x, 0.0f));
+
+        ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
+        ImGui::SameLine(0.0f, 0.0f);
+        ImGui::BeginGroup();
+        ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
+        ImGui::SameLine(0.0f, 0.0f);
+        if (strlen(name) > 0)
+            ImGui::TextUnformatted(name);
+
+        auto labelMin = ImGui::GetItemRectMin();
+        auto labelMax = ImGui::GetItemRectMax();
+        ImGui::SameLine(0.0f, 0.0f);
+        ImGui::Dummy(ImVec2(0.0, frameHeight + itemSpacing.y));
+        ImGui::BeginGroup();
+
+        //ImGui::GetWindowDrawList()->AddRect(labelMin, labelMax, IM_COL32(255, 0, 255, 255));
+
+        ImGui::PopStyleVar(2);
+
+#if IMGUI_VERSION_NUM >= 17301
+        ImGui::GetCurrentWindow()->ContentRegionRect.Max.x -= frameHeight * 0.5f;
+        ImGui::GetCurrentWindow()->WorkRect.Max.x          -= frameHeight * 0.5f;
+        ImGui::GetCurrentWindow()->InnerRect.Max.x         -= frameHeight * 0.5f;
+#else
+        ImGui::GetCurrentWindow()->ContentsRegionRect.Max.x -= frameHeight * 0.5f;
+#endif
+        ImGui::GetCurrentWindow()->Size.x                   -= frameHeight;
+
+        auto itemWidth = ImGui::CalcItemWidth();
+        ImGui::PushItemWidth(ImMax(0.0f, itemWidth - frameHeight));
+
+        s_GroupPanelLabelStack.push_back(ImRect(labelMin, labelMax));
+    }
+
+    void EndGroupPanel()
+    {
+        ImGui::PopItemWidth();
+
+        auto itemSpacing = ImGui::GetStyle().ItemSpacing;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+        auto frameHeight = ImGui::GetFrameHeight();
+
+        ImGui::EndGroup();
+
+        //ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), IM_COL32(0, 255, 0, 64), 4.0f);
+
+        ImGui::EndGroup();
+
+        ImGui::SameLine(0.0f, 0.0f);
+        ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
+        ImGui::Dummy(ImVec2(0.0, frameHeight - frameHeight * 0.5f - itemSpacing.y));
+
+        ImGui::EndGroup();
+
+        auto itemMin = ImGui::GetItemRectMin();
+        auto itemMax = ImGui::GetItemRectMax();
+        //ImGui::GetWindowDrawList()->AddRectFilled(itemMin, itemMax, IM_COL32(255, 0, 0, 64), 4.0f);
+
+        auto labelRect = s_GroupPanelLabelStack.back();
+        s_GroupPanelLabelStack.pop_back();
+
+        ImVec2 halfFrame = ImVec2(frameHeight * 0.25f * 0.5f, frameHeight * 0.5f);
+        ImRect frameRect = ImRect(ImVec2(itemMin.x + halfFrame.x, itemMin.y + halfFrame.y), ImVec2(itemMax.x - halfFrame.x, itemMax.y));
+        labelRect.Min.x -= itemSpacing.x;
+        labelRect.Max.x += itemSpacing.x;
+
+        for (int i = 0; i < 4; ++i)
+        {
+            switch (i)
+            {
+                // left half-plane
+                case 0: ImGui::PushClipRect(ImVec2(-FLT_MAX, -FLT_MAX), ImVec2(labelRect.Min.x, FLT_MAX), true); break;
+                    // right half-plane
+                case 1: ImGui::PushClipRect(ImVec2(labelRect.Max.x, -FLT_MAX), ImVec2(FLT_MAX, FLT_MAX), true); break;
+                    // top
+                case 2: ImGui::PushClipRect(ImVec2(labelRect.Min.x, -FLT_MAX), ImVec2(labelRect.Max.x, labelRect.Min.y), true); break;
+                    // bottom
+                case 3: ImGui::PushClipRect(ImVec2(labelRect.Min.x, labelRect.Max.y), ImVec2(labelRect.Max.x, FLT_MAX), true); break;
+            }
+
+            ImGui::GetWindowDrawList()->AddRect(
+                frameRect.Min, frameRect.Max,
+                ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border)),
+                halfFrame.x);
+
+            ImGui::PopClipRect();
+        }
+
+        ImGui::PopStyleVar(2);
+
+#if IMGUI_VERSION_NUM >= 17301
+        ImGui::GetCurrentWindow()->ContentRegionRect.Max.x += frameHeight * 0.5f;
+        ImGui::GetCurrentWindow()->WorkRect.Max.x          += frameHeight * 0.5f;
+        ImGui::GetCurrentWindow()->InnerRect.Max.x         += frameHeight * 0.5f;
+#else
+        ImGui::GetCurrentWindow()->ContentsRegionRect.Max.x += frameHeight * 0.5f;
+#endif
+        ImGui::GetCurrentWindow()->Size.x                   += frameHeight;
+
+        ImGui::Dummy(ImVec2(0.0f, 0.0f));
+
+        ImGui::EndGroup();
+    }
+
+
+    static std::stack<bool> s_GroupPanel_FlagBorder_DrawBorder;
+    static std::stack<std::string> s_GroupPanel_FlagBorder_Names;
+    static std::unordered_map<std::string, ImVec2> s_GroupPanel_FlagBorder_Sizes;
+
+    void BeginGroupPanel_FlagBorder(const char* name, bool draw_border, const ImVec2& size)
+    {
+        std::string name_s(name);
+        std::string name_displayed;
+        {
+            auto pos = name_s.find("##");
+            if (pos != std::string::npos)
+                name_displayed =  name_s.substr(0, pos);
+            else
+                name_displayed = name_s;
+        }
+
+        ImGui::BeginGroup();
+        s_GroupPanel_FlagBorder_DrawBorder.push(draw_border);
+        s_GroupPanel_FlagBorder_Names.push(name);
+        if (draw_border)
+            BeginGroupPanel(name_displayed.c_str(), size);
+        else
+        {
+            ImGui::BeginGroup();
+            if (strlen(name) > 0)
+                ImGui::Text("%s", name_displayed.c_str());
+        }
+    }
+
+    void EndGroupPanel_FlagBorder()
+    {
+        bool drawBorder = s_GroupPanel_FlagBorder_DrawBorder.top();
+        s_GroupPanel_FlagBorder_DrawBorder.pop();
+        if (drawBorder)
+            EndGroupPanel();
+        else
+            ImGui::EndGroup();
+
+        ImGui::EndGroup();
+
+        // Store size
+        {
+            std::string name = s_GroupPanel_FlagBorder_Names.top();
+            s_GroupPanel_FlagBorder_Names.pop();
+            s_GroupPanel_FlagBorder_Sizes[name] = ImGui::GetItemRectSize();
+        }
+    }
+
+    ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name)
+    {
+        if (s_GroupPanel_FlagBorder_Sizes.find(name) == s_GroupPanel_FlagBorder_Sizes.end())
+            return ImVec2(3.f, 3.f);
+        else
+            return s_GroupPanel_FlagBorder_Sizes.at(name);
+    }
+
+    void Theme_Debug()
+    {
+        ImGuiStyle &style = ImGui::GetStyle();
+        style.Colors[ImGuiCol_Text] = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
+        style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.21f, 0.25f, 0.21f, 0.70f);
+        style.Colors[ImGuiCol_PopupBg] = ImVec4(0.05f, 0.05f, 0.10f, 0.90f);
+        style.Colors[ImGuiCol_Border] = ImVec4(0.70f, 0.70f, 0.70f, 0.40f);
+        style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+        style.Colors[ImGuiCol_FrameBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.30f);
+        style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.90f, 0.80f, 0.80f, 0.40f);
+        style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.65f, 0.90f, 0.70f, 0.45f);
+        style.Colors[ImGuiCol_TitleBg] = ImVec4(0.27f, 0.54f, 0.28f, 0.83f);
+        style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.40f, 0.80f, 0.43f, 0.20f);
+        style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.32f, 0.63f, 0.33f, 0.87f);
+        style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.40f, 0.55f, 0.45f, 0.80f);
+        style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.20f, 0.25f, 0.30f, 0.60f);
+        style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.40f, 0.80f, 0.53f, 0.30f);
+        style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.40f, 0.80f, 0.48f, 0.40f);
+        style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.50f, 0.80f, 0.54f, 0.40f);
+        style.Colors[ImGuiCol_CheckMark] = ImVec4(0.90f, 0.90f, 0.90f, 0.50f);
+        style.Colors[ImGuiCol_SliderGrab] = ImVec4(1.00f, 1.00f, 1.00f, 0.30f);
+        style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.80f, 0.50f, 0.50f, 1.00f);
+        style.Colors[ImGuiCol_Button] = ImVec4(0.40f, 0.67f, 0.47f, 0.60f);
+        style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.40f, 0.50f, 0.67f, 1.00f);
+        style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.05f, 0.20f, 0.51f, 1.00f);
+        style.Colors[ImGuiCol_Header] = ImVec4(0.38f, 0.76f, 0.17f, 0.45f);
+        style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.45f, 0.90f, 0.47f, 0.80f);
+        style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.55f, 0.87f, 0.53f, 0.80f);
+        style.Colors[ImGuiCol_Separator] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+        style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.60f, 0.60f, 0.70f, 1.00f);
+        style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.70f, 0.70f, 0.90f, 1.00f);
+        style.Colors[ImGuiCol_ResizeGrip] = ImVec4(1.00f, 1.00f, 1.00f, 0.30f);
+        style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.00f, 1.00f, 1.00f, 0.60f);
+        style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(1.00f, 1.00f, 1.00f, 0.90f);
+        style.Colors[ImGuiCol_PlotLines] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+        style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+        style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+        style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+        style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.00f, 0.00f, 1.00f, 0.35f);
+    }
+
+
+    // Theme CorporateGrey: https://github.com/ocornut/imgui/issues/707#issuecomment-468798935
+    void Theme_CorporateGrey()
+    {
+        ImGuiStyle & style = ImGui::GetStyle();
+        ImVec4 * colors = style.Colors;
+
+        /// 0 = FLAT APPEARENCE
+        /// 1 = MORE "3D" LOOK
+        int is3D = 0;
+
+        colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[ImGuiCol_TextDisabled]           = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+        colors[ImGuiCol_ChildBg]                = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_WindowBg]               = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_PopupBg]                = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_Border]                 = ImVec4(0.12f, 0.12f, 0.12f, 0.71f);
+        colors[ImGuiCol_BorderShadow]           = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
+        colors[ImGuiCol_FrameBg]                = ImVec4(0.42f, 0.42f, 0.42f, 0.54f);
+        colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.42f, 0.42f, 0.42f, 0.40f);
+        colors[ImGuiCol_FrameBgActive]          = ImVec4(0.56f, 0.56f, 0.56f, 0.67f);
+        colors[ImGuiCol_TitleBg]                = ImVec4(0.19f, 0.19f, 0.19f, 1.00f);
+        colors[ImGuiCol_TitleBgActive]          = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
+        colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(0.17f, 0.17f, 0.17f, 0.90f);
+        colors[ImGuiCol_MenuBarBg]              = ImVec4(0.335f, 0.335f, 0.335f, 1.000f);
+        colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.24f, 0.24f, 0.24f, 0.53f);
+        colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4(0.52f, 0.52f, 0.52f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4(0.76f, 0.76f, 0.76f, 1.00f);
+        colors[ImGuiCol_CheckMark]              = ImVec4(0.65f, 0.65f, 0.65f, 1.00f);
+        colors[ImGuiCol_SliderGrab]             = ImVec4(0.52f, 0.52f, 0.52f, 1.00f);
+        colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.64f, 0.64f, 0.64f, 1.00f);
+        colors[ImGuiCol_Button]                 = ImVec4(0.54f, 0.54f, 0.54f, 0.35f);
+        colors[ImGuiCol_ButtonHovered]          = ImVec4(0.52f, 0.52f, 0.52f, 0.59f);
+        colors[ImGuiCol_ButtonActive]           = ImVec4(0.76f, 0.76f, 0.76f, 1.00f);
+        colors[ImGuiCol_Header]                 = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
+        colors[ImGuiCol_HeaderHovered]          = ImVec4(0.47f, 0.47f, 0.47f, 1.00f);
+        colors[ImGuiCol_HeaderActive]           = ImVec4(0.76f, 0.76f, 0.76f, 0.77f);
+        colors[ImGuiCol_Separator]              = ImVec4(0.000f, 0.000f, 0.000f, 0.137f);
+        colors[ImGuiCol_SeparatorHovered]       = ImVec4(0.700f, 0.671f, 0.600f, 0.290f);
+        colors[ImGuiCol_SeparatorActive]        = ImVec4(0.702f, 0.671f, 0.600f, 0.674f);
+        colors[ImGuiCol_ResizeGrip]             = ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
+        colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+        colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+        colors[ImGuiCol_PlotLines]              = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+        colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+        colors[ImGuiCol_PlotHistogram]          = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+        colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+        colors[ImGuiCol_TextSelectedBg]         = ImVec4(0.73f, 0.73f, 0.73f, 0.35f);
+        colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+        colors[ImGuiCol_DragDropTarget]         = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+        colors[ImGuiCol_NavHighlight]           = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+        colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+
+        style.PopupRounding = 3;
+
+        style.WindowPadding = ImVec2(4, 4);
+        style.FramePadding  = ImVec2(6, 4);
+        style.ItemSpacing   = ImVec2(6, 2);
+
+        style.ScrollbarSize = 18;
+
+        style.WindowBorderSize = 1;
+        style.ChildBorderSize  = 1;
+        style.PopupBorderSize  = 1;
+        style.FrameBorderSize  = (float)is3D;
+
+        style.WindowRounding    = 3;
+        style.ChildRounding     = 3;
+        style.FrameRounding     = 3;
+        style.ScrollbarRounding = 2;
+        style.GrabRounding      = 3;
+
+#ifdef IMGUI_HAS_DOCK
+        style.TabBorderSize = (float)is3D;
+        style.TabRounding   = 3;
+
+        colors[ImGuiCol_DockingEmptyBg]     = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
+        colors[ImGuiCol_Tab]                = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_TabHovered]         = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+        colors[ImGuiCol_TabActive]          = ImVec4(0.33f, 0.33f, 0.33f, 1.00f);
+        colors[ImGuiCol_TabUnfocused]       = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.33f, 0.33f, 0.33f, 1.00f);
+        colors[ImGuiCol_DockingPreview]     = ImVec4(0.85f, 0.85f, 0.85f, 0.28f);
+
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        }
+#endif
+    }
+
+    void Theme_Dark()
+    {
+        //ImGui::GetIO().Fonts->AddFontFromFileTTF("../data/Fonts/Ruda-Bold.ttf", 15.0f, &config);
+        ImGui::GetStyle().FrameRounding = 4.0f;
+        ImGui::GetStyle().GrabRounding = 4.0f;
+
+        ImVec4* colors = ImGui::GetStyle().Colors;
+        colors[ImGuiCol_Text] = ImVec4(0.95f, 0.96f, 0.98f, 1.00f);
+        colors[ImGuiCol_TextDisabled] = ImVec4(0.36f, 0.42f, 0.47f, 1.00f);
+        colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
+        colors[ImGuiCol_ChildBg] = ImVec4(0.15f, 0.18f, 0.22f, 1.00f);
+        colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
+        colors[ImGuiCol_Border] = ImVec4(0.08f, 0.10f, 0.12f, 1.00f);
+        colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[ImGuiCol_FrameBg] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
+        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.12f, 0.20f, 0.28f, 1.00f);
+        colors[ImGuiCol_FrameBgActive] = ImVec4(0.09f, 0.12f, 0.14f, 1.00f);
+        colors[ImGuiCol_TitleBg] = ImVec4(0.09f, 0.12f, 0.14f, 0.65f);
+        colors[ImGuiCol_TitleBgActive] = ImVec4(0.08f, 0.10f, 0.12f, 1.00f);
+        colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+        colors[ImGuiCol_MenuBarBg] = ImVec4(0.15f, 0.18f, 0.22f, 1.00f);
+        colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.39f);
+        colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.18f, 0.22f, 0.25f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.09f, 0.21f, 0.31f, 1.00f);
+        colors[ImGuiCol_CheckMark] = ImVec4(0.28f, 0.56f, 1.00f, 1.00f);
+        colors[ImGuiCol_SliderGrab] = ImVec4(0.28f, 0.56f, 1.00f, 1.00f);
+        colors[ImGuiCol_SliderGrabActive] = ImVec4(0.37f, 0.61f, 1.00f, 1.00f);
+        colors[ImGuiCol_Button] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
+        colors[ImGuiCol_ButtonHovered] = ImVec4(0.28f, 0.56f, 1.00f, 1.00f);
+        colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
+        colors[ImGuiCol_Header] = ImVec4(0.20f, 0.25f, 0.29f, 0.55f);
+        colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+        colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_Separator] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
+        colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
+        colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
+        colors[ImGuiCol_ResizeGrip] = ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
+        colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+        colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+        colors[ImGuiCol_Tab] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
+        colors[ImGuiCol_TabHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+        colors[ImGuiCol_TabActive] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
+        colors[ImGuiCol_TabUnfocused] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
+        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
+        colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+        colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+        colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+        colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+        colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+        colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+        colors[ImGuiCol_NavHighlight] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+        colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+        colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+
+    }
+
+    void Theme_EmbraceTheDarkness()
+    {
+        ImVec4* colors = ImGui::GetStyle().Colors;
+        colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[ImGuiCol_TextDisabled]           = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+        colors[ImGuiCol_WindowBg]               = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+        colors[ImGuiCol_ChildBg]                = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[ImGuiCol_PopupBg]                = ImVec4(0.19f, 0.19f, 0.19f, 0.92f);
+        colors[ImGuiCol_Border]                 = ImVec4(0.19f, 0.19f, 0.19f, 0.29f);
+        colors[ImGuiCol_BorderShadow]           = ImVec4(0.00f, 0.00f, 0.00f, 0.24f);
+        colors[ImGuiCol_FrameBg]                = ImVec4(0.05f, 0.05f, 0.05f, 0.54f);
+        colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
+        colors[ImGuiCol_FrameBgActive]          = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
+        colors[ImGuiCol_TitleBg]                = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+        colors[ImGuiCol_TitleBgActive]          = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+        colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+        colors[ImGuiCol_MenuBarBg]              = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+        colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.05f, 0.05f, 0.05f, 0.54f);
+        colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.34f, 0.34f, 0.34f, 0.54f);
+        colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4(0.40f, 0.40f, 0.40f, 0.54f);
+        colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4(0.56f, 0.56f, 0.56f, 0.54f);
+        colors[ImGuiCol_CheckMark]              = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
+        colors[ImGuiCol_SliderGrab]             = ImVec4(0.34f, 0.34f, 0.34f, 0.54f);
+        colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.56f, 0.56f, 0.56f, 0.54f);
+        colors[ImGuiCol_Button]                 = ImVec4(0.05f, 0.05f, 0.05f, 0.54f);
+        colors[ImGuiCol_ButtonHovered]          = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
+        colors[ImGuiCol_ButtonActive]           = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
+        colors[ImGuiCol_Header]                 = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+        colors[ImGuiCol_HeaderHovered]          = ImVec4(0.00f, 0.00f, 0.00f, 0.36f);
+        colors[ImGuiCol_HeaderActive]           = ImVec4(0.20f, 0.22f, 0.23f, 0.33f);
+        colors[ImGuiCol_Separator]              = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
+        colors[ImGuiCol_SeparatorHovered]       = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
+        colors[ImGuiCol_SeparatorActive]        = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
+        colors[ImGuiCol_ResizeGrip]             = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
+        colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
+        colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
+        colors[ImGuiCol_Tab]                    = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+        colors[ImGuiCol_TabHovered]             = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+        colors[ImGuiCol_TabActive]              = ImVec4(0.20f, 0.20f, 0.20f, 0.36f);
+        colors[ImGuiCol_TabUnfocused]           = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+        colors[ImGuiCol_TabUnfocusedActive]     = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+        colors[ImGuiCol_DockingPreview]         = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
+        colors[ImGuiCol_DockingEmptyBg]         = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+        colors[ImGuiCol_PlotLines]              = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+        colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+        colors[ImGuiCol_PlotHistogram]          = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+        colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+        colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+        colors[ImGuiCol_TableBorderStrong]      = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+        colors[ImGuiCol_TableBorderLight]       = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
+        colors[ImGuiCol_TableRowBg]             = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[ImGuiCol_TableRowBgAlt]          = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
+        colors[ImGuiCol_TextSelectedBg]         = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
+        colors[ImGuiCol_DragDropTarget]         = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
+        colors[ImGuiCol_NavHighlight]           = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+        colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 0.00f, 0.00f, 0.70f);
+        colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(1.00f, 0.00f, 0.00f, 0.20f);
+        colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(1.00f, 0.00f, 0.00f, 0.35f);
+
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.WindowPadding                     = ImVec2(8.00f, 8.00f);
+        style.FramePadding                      = ImVec2(5.00f, 2.00f);
+        style.CellPadding                       = ImVec2(6.00f, 6.00f);
+        style.ItemSpacing                       = ImVec2(6.00f, 6.00f);
+        style.ItemInnerSpacing                  = ImVec2(6.00f, 6.00f);
+        style.TouchExtraPadding                 = ImVec2(0.00f, 0.00f);
+        style.IndentSpacing                     = 25;
+        style.ScrollbarSize                     = 15;
+        style.GrabMinSize                       = 10;
+        style.WindowBorderSize                  = 1;
+        style.ChildBorderSize                   = 1;
+        style.PopupBorderSize                   = 1;
+        style.FrameBorderSize                   = 1;
+        style.TabBorderSize                     = 1;
+        style.WindowRounding                    = 7;
+        style.ChildRounding                     = 4;
+        style.FrameRounding                     = 3;
+        style.PopupRounding                     = 4;
+        style.ScrollbarRounding                 = 9;
+        style.GrabRounding                      = 3;
+        style.LogSliderDeadzone                 = 4;
+        style.TabRounding                       = 4;
+    }
+
+    // https://github.com/ocornut/imgui/issues/707#issuecomment-226993714
+    void Theme_Binks( bool bStyleDark_, float alpha_  )
+    {
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        // light style from Pacôme Danhiez (user itamago) https://github.com/ocornut/imgui/pull/511#issuecomment-175719267
+        style.Alpha = 1.0f;
+        style.FrameRounding = 3.0f;
+        style.Colors[ImGuiCol_Text]                  = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+        style.Colors[ImGuiCol_TextDisabled]          = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+        style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.94f, 0.94f, 0.94f, 0.94f);
+        style.Colors[ImGuiCol_WindowBg]         = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+        style.Colors[ImGuiCol_PopupBg]               = ImVec4(1.00f, 1.00f, 1.00f, 0.94f);
+        style.Colors[ImGuiCol_Border]                = ImVec4(0.00f, 0.00f, 0.00f, 0.39f);
+        style.Colors[ImGuiCol_BorderShadow]          = ImVec4(1.00f, 1.00f, 1.00f, 0.10f);
+        style.Colors[ImGuiCol_FrameBg]               = ImVec4(1.00f, 1.00f, 1.00f, 0.94f);
+        style.Colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
+        style.Colors[ImGuiCol_FrameBgActive]         = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+        style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.96f, 0.96f, 0.96f, 1.00f);
+        style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(1.00f, 1.00f, 1.00f, 0.51f);
+        style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.82f, 0.82f, 0.82f, 1.00f);
+        style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
+        style.Colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.98f, 0.98f, 0.98f, 0.53f);
+        style.Colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.69f, 0.69f, 0.69f, 1.00f);
+        style.Colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.59f, 0.59f, 0.59f, 1.00f);
+        style.Colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+        style.Colors[ImGuiCol_CheckMark]             = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        style.Colors[ImGuiCol_SliderGrab]            = ImVec4(0.24f, 0.52f, 0.88f, 1.00f);
+        style.Colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        style.Colors[ImGuiCol_Button]                = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
+        style.Colors[ImGuiCol_ButtonHovered]         = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        style.Colors[ImGuiCol_ButtonActive]          = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
+        style.Colors[ImGuiCol_Header]                = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
+        style.Colors[ImGuiCol_HeaderHovered]         = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+        style.Colors[ImGuiCol_HeaderActive]          = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        style.Colors[ImGuiCol_ResizeGrip]            = ImVec4(1.00f, 1.00f, 1.00f, 0.50f);
+        style.Colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+        style.Colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+        style.Colors[ImGuiCol_PlotLines]             = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
+        style.Colors[ImGuiCol_PlotLinesHovered]      = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+        style.Colors[ImGuiCol_PlotHistogram]         = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+        style.Colors[ImGuiCol_PlotHistogramHovered]  = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+        style.Colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+
+        if( bStyleDark_ )
+        {
+            for (int i = 0; i <= ImGuiCol_COUNT; i++)
+            {
+                ImVec4& col = style.Colors[i];
+                float H, S, V;
+                ImGui::ColorConvertRGBtoHSV( col.x, col.y, col.z, H, S, V );
+
+                if( S < 0.1f )
+                {
+                    V = 1.0f - V;
+                }
+                ImGui::ColorConvertHSVtoRGB( H, S, V, col.x, col.y, col.z );
+                if( col.w < 1.00f )
+                {
+                    col.w *= alpha_;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i <= ImGuiCol_COUNT; i++)
+            {
+                ImVec4& col = style.Colors[i];
+                if( col.w < 1.00f )
+                {
+                    col.x *= alpha_;
+                    col.y *= alpha_;
+                    col.z *= alpha_;
+                    col.w *= alpha_;
+                }
+            }
+        }
+    }
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/internal_icons.cpp                                              //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+namespace ImmVision
+{
+    namespace Icons
+    {
+        static cv::Size iconsSizeDraw(200, 200);
+        auto ScalePoint = [](cv::Point2d p) {
+            return cv::Point2d(p.x * (double) iconsSizeDraw.width, p.y * (double) iconsSizeDraw.height);
+        };
+        auto ScaleDouble = [](double v) {
+            return v * (double) iconsSizeDraw.width;
+        };
+        auto ScaleInt = [](double v) {
+            return (int) (v * (double) iconsSizeDraw.width + 0.5);
+        };
+
+        auto PointFromOther = [](cv::Point2d o, double angleDegree, double distance) {
+            double m_pi = 3.14159265358979323846;
+            double angleRadian = -angleDegree / 180. * m_pi;
+            cv::Point2d r(o.x + cos(angleRadian) * distance, o.y + sin(angleRadian) * distance);
+            return r;
+        };
+
+
+        cv::Mat MakeMagnifierImage(IconType iconType)
+        {
+            using namespace ImmVision;
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+
+
+            // Transparent background
+            m = cv::Scalar(0, 0, 0, 0);
+
+            cv::Scalar color(255, 255, 255, 255);
+            double radius = 0.3;
+            cv::Point2d center(1. - radius * 1.3, radius * 1.2);
+            // Draw shadow
+            {
+                cv::Point2d decal(radius * 0.1, radius * 0.1);
+                cv::Scalar color_shadow(127, 127, 127, 255);
+
+                CvDrawingUtils::circle(
+                    m, //image,
+                    ScalePoint(center + decal),
+                    ScaleDouble(radius), //radius
+                    color_shadow,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 1.7) + decal),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.03) + decal),
+                    color_shadow,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 2.3) + decal),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.5) + decal),
+                    color_shadow,
+                    ScaleInt(0.14)
+                );
+            }
+            // Draw magnifier
+            {
+                CvDrawingUtils::circle(
+                    m, //image,
+                    ScalePoint(center),
+                    ScaleDouble(radius), //radius
+                    color,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 1.7)),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.03)),
+                    color,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 2.3)),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.5)),
+                    color,
+                    ScaleInt(0.14)
+                );
+            }
+
+            if (iconType == IconType::ZoomPlus)
+            {
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 90., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 270., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+            if (iconType == IconType::ZoomMinus)
+            {
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+            if (iconType == IconType::ZoomScaleOne)
+            {
+                cv::Point2d a = PointFromOther(center, -90., radius * 0.45);
+                cv::Point2d b = PointFromOther(center, 90., radius * 0.45);
+                a.x += radius * 0.05;
+                b.x += radius * 0.05;
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(a),
+                    ScalePoint(b),
+                    color,
+                    ScaleInt(0.06)
+                );
+                cv::Point2d c(b.x - radius * 0.2, b.y + radius * 0.2);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(b),
+                    ScalePoint(c),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+
+            return m;
+        }
+
+
+        cv::Mat MakeFullViewImage()
+        {
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+            m = cv::Scalar(0, 0, 0, 0);
+
+            cv::Scalar color(255, 255, 255, 255);
+            double decal = 0.1;
+            double length_x = 0.3, length_y = 0.3;
+            for (int y = 0; y <= 1; ++y)
+            {
+                for (int x = 0; x <= 1; ++x)
+                {
+                    cv::Point2d corner;
+
+                    corner.x = (x == 0) ? decal : 1. - decal;
+                    corner.y = (y == 0) ? decal : 1. - decal;
+                    double moveX = (x == 0) ? length_x : -length_x;
+                    double moveY = (y == 0) ? length_y : -length_y;
+                    cv::Point2d a = corner;
+                    cv::Point2d b(a.x + moveX, a.y);
+                    cv::Point2d c(a.x, a.y + moveY);
+                    CvDrawingUtils::line(
+                        m, //image,
+                        ScalePoint(a),
+                        ScalePoint(b),
+                        color,
+                        ScaleInt(0.06)
+                    );
+                    CvDrawingUtils::line(
+                        m, //image,
+                        ScalePoint(a),
+                        ScalePoint(c),
+                        color,
+                        ScaleInt(0.06)
+                    );
+
+                }
+            }
+            return m;
+        }
+
+        cv::Mat MakeAdjustLevelsImage()
+        {
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+            m = cv::Scalar(0, 0, 0, 0);
+            cv::Scalar color(255, 255, 255, 255);
+
+            double yMin = 0.15, yMax = 0.8;
+            int nbBars = 3;
+            for (int bar = 0; bar < nbBars; ++bar)
+            {
+                double xBar = (double)bar / ((double)(nbBars) + 0.17) + 0.2;
+                cv::Point2d a(xBar, yMin);
+                cv::Point2d b(xBar, yMax);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(a),
+                    ScalePoint(b),
+                    color,
+                    ScaleInt(0.08)
+                );
+
+                double barWidth = 0.1;
+                double yBar = 0.7 - 0.2 * (double)bar;
+                cv::Point2d c(a.x - barWidth / 2., yBar);
+                cv::Point2d d(a.x + barWidth / 2., yBar);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(c),
+                    ScalePoint(d),
+                    color,
+                    ScaleInt(0.16)
+                );
+            }
+
+            return m;
+        }
+
+
+        ImTextureID GetIcon(IconType iconType)
+        {
+            static std::map<IconType, std::unique_ptr<GlTextureCv>> textureCache;
+            if (textureCache.find(iconType) == textureCache.end())
+            {
+                cv::Mat m;
+                if (iconType == IconType::ZoomFullView)
+                    m = MakeFullViewImage();
+                else if (iconType == IconType::AdjustLevels)
+                    m = MakeAdjustLevelsImage();
+                else
+                    m = MakeMagnifierImage(iconType);
+                auto texture = std::make_unique<GlTextureCv>(m, true);
+                textureCache[iconType] = std::move(texture);
+            }
+            return textureCache[iconType]->mImTextureId;
+        }
+
+        bool IconButton(IconType iconType, bool disabled, ImVec2 size)
+        {
+            ImGui::PushID((int)iconType);
+            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+            ImU32 backColorEnabled = ImGui::ColorConvertFloat4ToU32(ImVec4 (1.f, 1.f, 1.f, 1.f));
+            ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
+            ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
+            if (disabled)
+                ImGuiImm::PushDisabled();
+
+            // Cannot use InvisibleButton, since it does not handle "Repeat"
+            std::string spaceLabel = " ";
+            while (ImGui::CalcTextSize(spaceLabel.c_str()).x < 14.f)
+                spaceLabel += " ";
+            bool clicked = ImGui::Button(spaceLabel.c_str());
+
+            ImGui::GetWindowDrawList()->AddImage(
+                GetIcon(iconType), cursorPos, {cursorPos.x + size.x, cursorPos.y + size.y},
+                ImVec2(0.f, 0.f),
+                ImVec2(1.f, 1.f),
+                backColor
+                );
+            if (disabled)
+                ImGuiImm::PopDisabled();
+            ImGui::PopID();
+            return disabled ? false : clicked;
+        }
+
+
+        void DevelPlaygroundGui()
+        {
+            static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
+            static cv::Mat img = MakeAdjustLevelsImage();
+
+            static ImmVision::ImageNavigatorParams imageNavigatorParams1;
+            imageNavigatorParams1.ImageDisplaySize = {400, 400};
+            ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
+
+            ImGui::SameLine();
+
+            static ImmVision::ImageNavigatorParams imageNavigatorParams2;
+            imageNavigatorParams2.ImageDisplaySize = {400, 400};
+            ImmVision::ImageNavigator(img, &imageNavigatorParams2);
+
+            ImVec2 iconSize(15.f, 15.f);
+            ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
+        }
+
+    } // namespace Icons
 } // namespace ImmVision
 
