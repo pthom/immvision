@@ -18,7 +18,7 @@ BUILD_COMMANDS = """
             mkdir -p build &&\\
             cd build &&\\
             echo '2. Run cmake and build' &&\\
-            cmake ../sources -DCMAKE_BUILD_TYPE=Release -DCMAKE_UNITY_BUILD=ON &&\\
+            ../sources/scripts/build_utilities.py run -run_cmake &&\\
             make -j &&\\
             echo '3. Deploy binaries to the host machine inside scripts/linux_docker_clang_build/bin_docker/' &&\\
             cp -a bin/ ../sources/scripts/linux_docker_clang_build/bin_docker

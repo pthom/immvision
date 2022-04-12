@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-
-CMAKE_BUILD_TYPE="Release"
-
 import os
 import subprocess
 import datetime
 import sys
 import dataclasses
 import typing
+
+
+CMAKE_BUILD_TYPE="Release"
+
 
 @dataclasses.dataclass
 class Option:
@@ -17,28 +18,28 @@ class Option:
 
 @dataclasses.dataclass
 class Options:
-    ONLY_ECHO_COMMAND:Option = Option(True, "Only echo shell command, but do nothing")
+    only_echo_command:Option = Option(True, "Only echo shell command, but do nothing")
 
-    USE_VCPKG: Option = Option(False, "Use vcpkg package manager")
-    USE_CONAN: Option = Option(False, "Use Conan package manager")
+    use_vcpkg: Option = Option(False, "Use vcpkg package manager")
+    use_conan: Option = Option(False, "Use Conan package manager")
 
-    USE_POWERSAVE: Option = Option(True, "Use imgui powersave version")
-    ACTIVATE_ALL_WARNINGS:Option = Option(True, "Activate all warnings, as errors")
+    use_powersave: Option = Option(True, "Use imgui powersave version")
+    activate_all_warnings:Option = Option(True, "Activate all warnings, as errors")
 
-    WINDOWS_VCPKG_STATIC: Option = Option(True, "Let vcpkg build static libraries under windows")
-    BUILD_32BITS: Option = Option(False, "Build 32 bits version (only possible under windows)")
-
-    SHOW_ADVANCED_FUNCTIONS:Option = Option(False, "Show advanced options (used while developing this library)")
+    windows_vcpkg_static: Option = Option(True, "Let vcpkg build static libraries under windows")
+    build_32bits: Option = Option(False, "Build 32 bits version (only possible under windows)")
+    vcpkg_bypass_install: Option = Option(False, "Bypass vcpkg install (advanced option, for CI only)")
 
 
 OPTIONS = Options()
 
 # Directory global variables
-INVOKE_DIR=os.getcwd()
-THIS_DIR=os.path.dirname(os.path.realpath(__file__))
-REPO_DIR=THIS_DIR + "/.."
-EXTERNAL_DIR=REPO_DIR + "/external"
+INVOKE_DIR = os.getcwd()
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+REPO_DIR = os.path.realpath(THIS_DIR + "/..")
+EXTERNAL_DIR = REPO_DIR + "/external"
 INVOKE_DIR_IS_REPO_DIR = False
+HOME_FOLDER = os.environ['HOME']
 if (os.path.realpath(INVOKE_DIR) == os.path.realpath(REPO_DIR)):
     INVOKE_DIR_IS_REPO_DIR = True
 if (os.path.realpath(INVOKE_DIR) == os.path.realpath(THIS_DIR)):
@@ -64,29 +65,40 @@ def my_chdir(folder):
     try:
         os.chdir(folder)
     except FileNotFoundError as e:
-        if OPTIONS.ONLY_ECHO_COMMAND.Value:
+        if OPTIONS.only_echo_command.Value:
             print(f"# Warning, folder {folder} does not yet exist")
         else:
             raise FileNotFoundError(f"# Cannot chdir to folder {folder} !")
-    if OPTIONS.ONLY_ECHO_COMMAND.Value and folder != CHDIR_LAST_DIRECTORY:
+    if OPTIONS.only_echo_command.Value and folder != CHDIR_LAST_DIRECTORY:
         print(f"cd {folder}")
     CHDIR_LAST_DIRECTORY = folder
 
 
 def run(cmd):
-    if OPTIONS.ONLY_ECHO_COMMAND.Value:
+    if OPTIONS.only_echo_command.Value:
         print(cmd)
     else:
-        print("#####################################################")
-        print("# Running shell command:")
+        print(f"###### {sys.argv[0]}: Running shell command ######")
         print(cmd)
-        print("#####################################################")
         subprocess.check_call(cmd, shell=True)
+
+
+def decorate_loudly_echo_function_name(fn):
+    def wrapper_func(*args, **kwargs):
+        print(f"""
+# ==================================================================
+#                {fn.__name__}
+# ==================================================================""")
+        return fn(*args, **kwargs)
+    wrapper_func.__doc__ = fn.__doc__
+    wrapper_func.__name__ = fn.__name__
+    return wrapper_func
 
 
 ######################################################################
 # cmake and build
 ######################################################################
+@decorate_loudly_echo_function_name
 def run_cmake():
     """
     Run cmake with correct flags:
@@ -98,52 +110,99 @@ def run_cmake():
     * If using conan: `conan install` will be launched
     Run this script from your desired build dir.
     """
-    print("# run_cmake")
     if INVOKE_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
     my_chdir(INVOKE_DIR)
 
-    if OPTIONS.USE_CONAN.Value:
+    if OPTIONS.use_conan.Value:
         print("# Install dependencies via conan")
         run(f"conan install {REPO_DIR}")
 
+    new_line = "    \\\n     "
     cmake_cmd = f"cmake {REPO_DIR}"
 
-    if OPTIONS.USE_VCPKG.Value:
-        cmake_cmd = cmake_cmd + f" -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    if OPTIONS.use_vcpkg.Value:
+        cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
         triplet = _vcpkg_optional_triplet_name()
         if len(triplet) > 0:
-            cmake_cmd = cmake_cmd + f" -DVCPKG_TARGET_TRIPLET={triplet}"
+            cmake_cmd = cmake_cmd + f"{new_line} -DVCPKG_TARGET_TRIPLET={triplet}"
 
-    if OPTIONS.USE_POWERSAVE.Value:
-        cmake_cmd = cmake_cmd + " -DIMMVISION_USE_POWERSAVE=ON"
+    if OPTIONS.use_powersave.Value:
+        cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_USE_POWERSAVE=ON"
 
-    if OPTIONS.ACTIVATE_ALL_WARNINGS.Value:
-        cmake_cmd = cmake_cmd + " -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
+    if OPTIONS.activate_all_warnings.Value:
+        cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
 
-    cmake_cmd = cmake_cmd + f" -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
-    cmake_cmd = cmake_cmd + " -B ."
+    cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
+    cmake_cmd = cmake_cmd + f"{new_line} -B ."
 
     if os.name == 'nt':
-        arch = "win32" if OPTIONS.BUILD_32BITS.Value else "x64"
-        cmake_cmd = cmake_cmd + f" -A {arch}"
+        arch = "win32" if OPTIONS.build_32bits.Value else "x64"
+        cmake_cmd = cmake_cmd + f"{new_line} -A {arch}"
 
     run(cmake_cmd)
+
+@decorate_loudly_echo_function_name
+def run_build():
+    """
+    Build the project using:
+    * "make -j" under Linux and MacOS
+    * "cmake --build . --config {CMAKE_BUILD_TYPE}" under Windows
+    """
+    if INVOKE_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
+        return
+    my_chdir(INVOKE_DIR)
+    if os.name == "nt":
+        run(f"cmake --build . --config {CMAKE_BUILD_TYPE}")
+    else:
+        run("make -j")
+
+
+def run_build_all():
+    """
+    All in one build process:
+    * Install third parties imgui and hello_imgui
+    * Install opencv and SDL (via vcpkg, conan, or via apt packages)
+        (Do set --use_vcpkg=True or --use_conan=True to activate vcpkg or conan)
+    * Run cmake
+    * Launch the build
+    """
+    if INVOKE_DIR_IS_REPO_DIR:
+        print("Run this from your build dir!")
+        return
+    my_chdir(INVOKE_DIR)
+
+    # Install third parties imgui and hello_imgui
+    all_imgui_downloads()
+
+    # Install opencv and SDL (via vcpkg, conan, or via apt packages)
+    if OPTIONS.use_vcpkg.Value and not OPTIONS.vcpkg_bypass_install.Value:
+        vcpkg_install_thirdparties()
+    elif not OPTIONS.use_conan.Value:
+        _propose_install_opencv_sdl_for_ubuntu()
+
+    # Run cmake
+    run_cmake()
+
+    # Launch the build
+    run_build()
 
 
 ######################################################################
 # imgui and hello_imgui
 ######################################################################
 def _do_clone_repo(git_repo, folder, branch):
-    my_chdir(EXTERNAL_DIR)
-    if not os.path.isdir(folder):
+    if not os.path.isdir(f"{EXTERNAL_DIR}/{folder}"):
+        my_chdir(EXTERNAL_DIR)
         run(f"git clone {git_repo} {folder}")
-    my_chdir(folder)
+    my_chdir(f"{EXTERNAL_DIR}/{folder}")
     run(f"git checkout {branch}")
     run(f"git pull")
 
 
+@decorate_loudly_echo_function_name
 def imgui_download():
     """
     Download imgui into external/imgui/
@@ -153,37 +212,42 @@ def imgui_download():
       This PR was adapted to imgui docking version of March 2022 here:
       https://github.com/pthom/imgui/tree/docking_powersave
     """
-    print("# imgui_download")
-    git_repo = "https://github.com/pthom/imgui.git" if OPTIONS.USE_POWERSAVE.Value else "https://github.com/ocornut/imgui.git"
-    branch = "docking_powersave" if OPTIONS.USE_POWERSAVE.Value else "master"
-    my_chdir(EXTERNAL_DIR)
+    git_repo = "https://github.com/pthom/imgui.git" if OPTIONS.use_powersave.Value else "https://github.com/ocornut/imgui.git"
+    branch = "docking_powersave" if OPTIONS.use_powersave.Value else "docking"
 
     # Check if we changed to/from powersave mode
-    if os.path.isdir("imgui"):
-        my_chdir("imgui")
+    if os.path.isdir(f"{EXTERNAL_DIR}/imgui"):
+        previous_dir = os.getcwd()
+        os.chdir(f"{EXTERNAL_DIR}/imgui")
         cmd_result = subprocess.check_output("git branch", shell=True).decode("utf-8")
         cmd_result_lines = cmd_result.split("\n")
+        os.chdir(previous_dir)
         need_reset_repo = False
-        if OPTIONS.USE_POWERSAVE.Value and "* docking_powersave" not in cmd_result_lines:
+        if OPTIONS.use_powersave.Value and "* docking_powersave" not in cmd_result_lines:
             need_reset_repo = True
-        if not OPTIONS.USE_POWERSAVE.Value and "* master" not in cmd_result_lines:
+        if not OPTIONS.use_powersave.Value and "* docking" not in cmd_result_lines:
             need_reset_repo = True
         if need_reset_repo:
             my_chdir(EXTERNAL_DIR)
-            print("Need to re-download imgui (changed powersave mode)")
-            print("Please remove external/imgui manually")
+            print("# Need to re-download imgui (changed powersave mode)")
+            print(f"""
+            # Please remove external/imgui manually:
+                cd {EXTERNAL_DIR}
+                rm -rf imgui
+                cd -
+            """)
             sys.exit(1)
 
     _do_clone_repo(git_repo, "imgui", branch)
 
 
+@decorate_loudly_echo_function_name
 def hello_imgui_download():
     """
     Download hello_imgui into external/hello_imgui (optional)
     hello_imgui is not required, and is only used to build the demos
     and the standalone image debug viewer.
     """
-    print("# hello_imgui_download")
     _do_clone_repo("https://github.com/pthom/hello_imgui.git", "hello_imgui", "master")
 
 
@@ -199,13 +263,14 @@ def all_imgui_downloads():
 ######################################################################
 def _vcpkg_optional_triplet_name():
     if os.name == 'nt':
-        if OPTIONS.WINDOWS_VCPKG_STATIC.Value:
-            return "x86-windows-static-md" if OPTIONS.BUILD_32BITS.Value else "x64-windows-static-md"
+        if OPTIONS.windows_vcpkg_static.Value:
+            return "x86-windows-static-md" if OPTIONS.build_32bits.Value else "x64-windows-static-md"
         else:
-            return "x86-windows" if OPTIONS.BUILD_32BITS.Value else "x64-windows"
+            return "x86-windows" if OPTIONS.build_32bits.Value else "x64-windows"
     return ""
 
 
+@decorate_loudly_echo_function_name
 def vcpkg_install_thirdparties():
     """
     Install vcpkg + opencv and sdl (for desktop builds) into external/vcpkg
@@ -214,49 +279,45 @@ def vcpkg_install_thirdparties():
     """
     vcpkg_exe = ".\\vcpkg" if os.name == "nt" else "./vcpkg"
 
-    print("# install_vcpkg_thirdparties")
-    my_chdir(EXTERNAL_DIR)
-
-    if not os.path.isdir("vcpkg"):
+    if not os.path.isdir(f"{EXTERNAL_DIR}/vcpkg"):
+        my_chdir(EXTERNAL_DIR)
         run("git clone https://github.com/Microsoft/vcpkg.git")
+        if os.name == 'nt':
+            run(".\\bootstrap-vcpkg.bat")
+        else:
+            run("./bootstrap-vcpkg.sh")
 
-    my_chdir("vcpkg")
+    my_chdir(f"{EXTERNAL_DIR}/vcpkg")
     run("git pull")
-
-    if os.name == 'nt':
-        run(".\\bootstrap-vcpkg.bat")
-    else:
-        run("./bootstrap-vcpkg.sh")
 
     packages = ["sdl2", "opencv4[core,jpeg,png]" ]
     for package in packages:
         triplet = _vcpkg_optional_triplet_name()
         if len(triplet) >0:
-            cmd = f"{vcpkg_exe} install {package}:{triplet}"
+            cmd = f'{vcpkg_exe} install "{package}:{triplet}"'
         else:
-            cmd = f"{vcpkg_exe} install {package}"
+            cmd = f'{vcpkg_exe} install "{package}"'
         run(cmd)
 
 
 def vcpkg_export():
     """
-    Create a compressed archive of the vcpkg folder.
+    (Advanced function) Create a compressed archive of the vcpkg folder
+    where build and temporary folder are excluded.
     Used mainly for CI where vcpkg is deployed by downloading a precompiled vcpkg folder.
     """
-    # vcpkg_osx_intel.tgz created with
-    # tar --exclude=vcpkg/.git  --exclude=vcpkg/downloads --exclude=vcpkg/buildtrees  -zcvf "vcpkg_osx_intel.tgz" vcpkg
     my_chdir(EXTERNAL_DIR)
     
     # Build vcpkg libraries
     if os.name != "nt":
         vcpkg_install_thirdparties()
     else:
-        old_win32 = OPTIONS.BUILD_32BITS.Value
-        OPTIONS.BUILD_32BITS.Value = True
+        old_win32 = OPTIONS.build_32bits.Value
+        OPTIONS.build_32bits.Value = True
         vcpkg_install_thirdparties()
-        OPTIONS.BUILD_32BITS.Value = False
+        OPTIONS.build_32bits.Value = False
         vcpkg_install_thirdparties()
-        OPTIONS.BUILD_32BITS.Value = old_win32
+        OPTIONS.build_32bits.Value = old_win32
 
     my_chdir(EXTERNAL_DIR)
     if os.path.exists("vcpkg.7z"):
@@ -266,25 +327,114 @@ def vcpkg_export():
 
 
 ######################################################################
+# ubuntu
+######################################################################
+def _is_ubuntu():
+    lsb_file = "/etc/lsb-release"
+    if not os.path.isfile(lsb_file):
+        return False
+    with open(lsb_file, "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            if "Ubuntu" in line:
+                return True
+    return False
+
+
+def _has_ubuntu_package_opencv_sdl():
+    if not _is_ubuntu():
+        return False
+    try:
+        subprocess.check_call("dpkg -L libopencv-dev > /dev/null", shell=True)
+        subprocess.check_call("dpkg -L libsdl2-dev > /dev/null", shell=True)
+    except subprocess.CalledProcessError:
+        return False
+    return True
+
+
+def _propose_install_opencv_sdl_for_ubuntu():
+    if not _is_ubuntu():
+        return
+    if not _has_ubuntu_package_opencv_sdl():
+        print("""
+        #
+        # You need to install opencv and sdl2:
+        # * Either use Conan (--use_conan=True) or Vcpkg (--use_vcpkg=True)
+        # * Or install opencv and sdl2 packages:
+        #        Under Ubuntu, run:
+        #            sudo apt-get update && sudo apt-get install -y libopencv-dev libsdl2-dev
+        #
+        """)
+
+
+######################################################################
 # emscripten
 ######################################################################
+def _complain_and_exit_if_emscripten_absent():
+    if not HAS_EMSCRIPTEN:
+        if os.path.isdir(f"{HOME_FOLDER}/emsdk"):
+            print(f"""
+            Emscripten is not activated! Before running this script, call
+                source {HOME_FOLDER}/emsdk/emsdk_env.sh
+            .
+            """)
+            exit(1)
+        else:
+            print(f"""
+            Emscripten is not installed or not activated.
+
+            1. First, install emscripten :
+                * Either using this script, which will install it in one step inside {HOME_FOLDER}/emsdk. Run:
+                        {sys.argv[0]} -install_emscripten  
+                * Or following the official docs: https://emscripten.org/docs/getting_started/downloads.html
+
+            2. Then, activate emscripten: before running this script. Call:
+                    source {HOME_FOLDER}/emsdk/emsdk_env.sh
+            """)
+            exit(1)
+
+
+@decorate_loudly_echo_function_name
+def install_emscripten():
+    f"""
+    Will install emscripten into {HOME_FOLDER}/emsdk
+    """
+    if os.name == "nt":
+        print("This was not tested under Windows!")
+        exit(1)
+    if not os.path.isdir(f"{HOME_FOLDER}/emsdk"):
+        my_chdir(HOME_FOLDER)
+        run("git clone https://github.com/emscripten-core/emsdk.git")
+    my_chdir(f"{HOME_FOLDER}/emsdk")
+    # Fetch the latest version of the emsdk (not needed the first time you clone)
+    run("git pull")
+    # Download and install the latest SDK tools.
+    run ("./emsdk install latest")
+    # Make the "latest" SDK "active" for the current user. (writes .emscripten file)
+    run("./emsdk activate latest")
+
+
+
+@decorate_loudly_echo_function_name
 def opencv_build_emscripten():
     """
     Download and build opencv for emscripten (into external/opencv and external/external/opencv_build_emscripten)
     (only used for emscripten builds, where OpenCV is not available through vcpkg)
     Will clone opencv code into external/opencv, then build it for emscripten into external/opencv_build_emscripten
     """
-    print("# opencv_build_emscripten")
-    my_chdir(EXTERNAL_DIR)
+    _complain_and_exit_if_emscripten_absent()
 
     # Git clone
-    if not os.path.isdir("opencv"):
+    if not os.path.isdir(f"{EXTERNAL_DIR}/opencv"):
+        my_chdir(EXTERNAL_DIR)
         run("git clone https://github.com/opencv/opencv.git")
 
     # build
-    if not os.path.isdir("opencv_build_emscripten"):
-        os.makedirs("opencv_build_emscripten")
-    my_chdir("opencv_build_emscripten")
+    if not os.path.isdir(f"{EXTERNAL_DIR}/opencv_build_emscripten"):
+        my_chdir(EXTERNAL_DIR)
+        run("mkdir -p opencv_build_emscripten")
+
+    my_chdir(f"{EXTERNAL_DIR}/opencv_build_emscripten")
 
     cmd = """emcmake cmake ../opencv \
     -DCMAKE_INSTALL_PREFIX=../opencv_install_emscripten \
@@ -319,13 +469,14 @@ def opencv_build_emscripten():
     run("make install")
 
 
+@decorate_loudly_echo_function_name
 def cmake_emscripten_build():
     """
     Run cmake with correct flags for a build with emscripten.
     OpenCV_DIR will point to external/opencv_build_emscripten. 
     Run this script from your desired build dir.
     """
-    print("# cmake_emscripten_build")
+    _complain_and_exit_if_emscripten_absent()
     if INVOKE_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
@@ -334,6 +485,7 @@ def cmake_emscripten_build():
     run(cmd)
 
 
+@decorate_loudly_echo_function_name
 def build_emscripten_with_timestamp():
     """
     Helper to build the emscripten version
@@ -341,7 +493,7 @@ def build_emscripten_with_timestamp():
     (this date is displayed in the javascript console at startup to help diagnose issues) 
     You can safely run `make` manually instead.
     """
-    print("# build_emscripten_with_timestamp")
+    _complain_and_exit_if_emscripten_absent()
     if INVOKE_DIR_IS_REPO_DIR:
         print("Run this from your build dir!")
         return
@@ -352,12 +504,17 @@ def build_emscripten_with_timestamp():
         f.write(f"#define datestr \"{now}\"")
     run("make -j")
 
-# TODO: add install_emscripten!
-
 ######################################################################
 # Main
 ######################################################################
 def get_all_function_categories():
+    function_list_all_in_one = {
+        "name": "All in one build process",
+        "functions": [
+            run_build_all,
+        ]
+    }
+
     function_list_third_parties = {
         "name": "Install imgui third parties",
         "functions": [
@@ -367,22 +524,23 @@ def get_all_function_categories():
         ]
     }
 
-    function_list_cmake = {
-        "name": "Build with cmake",
+    function_list_build = {
+        "name": "Run cmake and build project",
         "functions": [
             run_cmake,
+            run_build
         ]
     }
 
     function_list_vcpkg = {
-        "name": "Build with vcpkg",
+        "name": "Build vcpkg packages (if --use_vcpkg=True)",
         "functions": [
             vcpkg_install_thirdparties,
         ]
     }
 
     function_list_emscripten = {
-        "name": "Build for emscripten",
+        "name": """Build for emscripten (activate your emscripten environment before!)""",
         "functions": [
             opencv_build_emscripten,
             cmake_emscripten_build,
@@ -397,13 +555,12 @@ def get_all_function_categories():
         ]
     }
 
-    all_function_categories = [function_list_cmake, function_list_third_parties]
-    if OPTIONS.USE_VCPKG.Value:
-        all_function_categories.append(function_list_vcpkg)
-    if HAS_EMSCRIPTEN:
-        all_function_categories.append(function_list_emscripten)
-    if OPTIONS.SHOW_ADVANCED_FUNCTIONS.Value:
-        all_function_categories.append(function_list_advanced)
+    all_function_categories = [
+        function_list_all_in_one,
+        function_list_build, function_list_third_parties,
+        function_list_vcpkg, function_list_emscripten,
+        function_list_advanced
+    ]
     return all_function_categories
 
 
@@ -438,7 +595,7 @@ def help_commands():
     print("Available commands: (specify at least one of these commands)")
     for category in get_all_function_categories():
         print(f"\t{category['name']}")
-        print("\t=================================================")
+        print("\t==================================================================================================")
         for fn in category['functions']:
             doc_lines = fn.__doc__.split("\n")[1:]
             def indent_doc_line(line):
@@ -455,6 +612,10 @@ def help():
     if not HAS_EMSCRIPTEN:
         print("Emscripten: activate emscripten in order to get related utilities, first : for example\n\
         source ~/emsdk/emsdk_env.sh")
+    if OPTIONS.only_echo_command.Value:
+        print(f"""
+        Currently, commands are only output to the terminal. To run them, add 'run' as first param i.e {sys.argv[0]} run ...
+        """)
 
 
 def display_current_options():
@@ -484,6 +645,10 @@ def parse_args_options():
         if not found_corresponding_option:
             raise ValueError(f"Bad option: {arg}")
 
+    if OPTIONS.use_conan.Value and not has_program("conan"):
+        print("You need to install conan! See https://conan.io/ for instructions")
+        exit(1)
+
 
 def parse_args_commands() -> typing.List[str] :
     commands = []
@@ -503,6 +668,9 @@ def parse_args_commands() -> typing.List[str] :
 
 
 def main():
+    if len(sys.argv) >= 2 and sys.argv[1].lower() == "run":
+        OPTIONS.only_echo_command.Value = False
+        sys.argv = sys.argv[0:1] + sys.argv[2:]
     for arg in sys.argv[1:]:
         if not arg.startswith("-"):
             print(f"Bad argument: {arg}")
