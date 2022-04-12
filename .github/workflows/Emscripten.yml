@@ -18,10 +18,10 @@ jobs:
 
       - name: Clone imgui and hello_imgui
         run: |
-          ./scripts/build_utilities.py --only_echo_command=False -all_imgui_downloads
+          ./scripts/build_utilities.py run -all_imgui_downloads
 
       - name: Install emscripten
-        run: ./scripts/emscripten/install_emscripten.sh
+        run: ./scripts/build_utilities.py run -install_emscripten
 
 #      - name: Compile OpenCV (about 12 minutes)
 #        run: source ~/emsdk/emsdk_env.sh && ./scripts/build_utilities.py --opencv_build_emscripten

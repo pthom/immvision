@@ -396,7 +396,7 @@ def _complain_and_exit_if_emscripten_absent():
 
 @decorate_loudly_echo_function_name
 def install_emscripten():
-    f"""
+    """
     Will install emscripten into {HOME_FOLDER}/emsdk
     """
     if os.name == "nt":
@@ -542,6 +542,7 @@ def get_all_function_categories():
     function_list_emscripten = {
         "name": """Build for emscripten (activate your emscripten environment before!)""",
         "functions": [
+            install_emscripten,
             opencv_build_emscripten,
             cmake_emscripten_build,
             build_emscripten_with_timestamp
