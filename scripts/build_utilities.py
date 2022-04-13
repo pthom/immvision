@@ -522,20 +522,14 @@ def pybind_make_venv():
     my_chdir(f"{REPO_DIR}/immvision_pybind")
     if not os.path.isdir("venv"):
         run("python3 -m venv venv")
-    packages = ["setuptools>=42",
-                "pybind11>=2.9.2",
-                "cmake>=3.22",
-                "scikit-build>=0.14.1"
-                ]
-    cmd = "pip install " + " ".join(packages)
+    cmd = f"pip install -v -r {REPO_DIR}/scripts/requirements_dev_pybind.txt"
     run(f"{SOURCE_PYBIND_VENV} {cmd}")
+
     print(f"""
     Now, activate your python venv with:
     
         source {REPO_DIR}/immvision_pybind/venv/bin/activate 
     """)
-
-
 
 
 ######################################################################

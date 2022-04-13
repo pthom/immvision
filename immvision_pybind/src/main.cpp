@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include "immvision/immvision.h"
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -9,10 +10,19 @@ int add(int i, int j) {
 
 namespace py = pybind11;
 
+void Image(
+    const cv::Mat &mat,
+    bool refresh,
+    const cv::Size& size = cv::Size(0, 0),
+    bool isBgrOrBgra = true
+);
+
+
 PYBIND11_MODULE(_core, m) {
     m.doc() = R"pbdoc(
-        Pybind11 example plugin
+        immvision: immediate image debugger and insights
         -----------------------
+        https://github.com/pthom/immvision/
 
         .. currentmodule:: immvision
 
@@ -34,6 +44,8 @@ PYBIND11_MODULE(_core, m) {
 
         Some other explanation about the subtract function.
     )pbdoc");
+
+    m.def("Image", ImmVision::Image);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
