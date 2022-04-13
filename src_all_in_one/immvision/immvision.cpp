@@ -2965,18 +2965,18 @@ namespace ImmVision
         bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false)
         {
             static std::map<std::string, bool> collapsingHeadersState;
+            bool shallOpen = forceOpen;
             if (s_CollapsingHeader_CacheState_Sync)
             {
-                bool shallOpen = forceOpen;
                 if (collapsingHeadersState.find(name) != collapsingHeadersState.end())
                 {
                     bool wasOpenedLastTime = collapsingHeadersState.at(name);
                     if (wasOpenedLastTime)
                         shallOpen = true;
                 }
-                if (shallOpen)
-                    ImGui::SetNextItemOpen(shallOpen, ImGuiCond_Always);
             }
+            if (shallOpen)
+                ImGui::SetNextItemOpen(shallOpen, ImGuiCond_Always);
             bool opened = ImGui::CollapsingHeader(name);
             collapsingHeadersState[name] = opened;
             return opened;
