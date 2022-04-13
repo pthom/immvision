@@ -146,8 +146,6 @@ namespace ImGuiImm
     void PopDisabled();
     void SameLineAlignRight(float rightMargin = 0.f, float alignRegionWidth = -1.f);
 
-    bool CollapsingHeaderFixedWidth(const char* name, float width, ImGuiTreeNodeFlags flags = 0);
-
     // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
     void BeginGroupPanel(const char* name, const ImVec2& size = ImVec2(0.0f, 0.0f));
     void EndGroupPanel();
@@ -156,6 +154,8 @@ namespace ImGuiImm
     void EndGroupPanel_FlagBorder();
     ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name);
 
+    void BeginGroupFixedWidth(float width);
+    void EndGroupFixedWidth();
 }
 
 
@@ -3225,14 +3225,13 @@ namespace ImmVision
         //
         auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded]()
         {
-            // We create a dummy table in order to force the collapsing headers width
             float optionsWidth = 330.f;
-            ImGui::BeginTable("##OptionsTable", 1, 0, ImVec2(optionsWidth, 0.f));
-            ImGui::TableNextColumn();
-
+            // Group with fixed width, so that Collapsing headers stop at optionsWidth
+            ImGuiImm::BeginGroupFixedWidth(optionsWidth);
 
             // Adjust float values
             bool hasAdjustFloatValues = true; // ((image.depth() == CV_32F) || (image.depth() == CV_64F));
+
             if (hasAdjustFloatValues && ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
@@ -3353,7 +3352,7 @@ namespace ImmVision
                 }
             }
 
-            ImGui::EndTable();
+            ImGuiImm::EndGroupFixedWidth();
 
         };
         auto fnToggleShowOptions = [&params]()
@@ -4661,21 +4660,6 @@ namespace ImGuiImm
     }
 
 
-    bool CollapsingHeaderFixedWidth(const char* name, float width, ImGuiTreeNodeFlags flags)
-    {
-        ImVec2 oldItemSpacing = ImGui::GetStyle().ItemSpacing;
-        ImGui::GetStyle().ItemSpacing = ImVec2(0.f, 0.f);
-        std::string tableId = std::string("dummytable_") + name;
-        ImGui::BeginTable(tableId.c_str(), 1, 0, ImVec2(width, 0.f));
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-
-        bool opened = ImGui::CollapsingHeader(name, flags);
-        ImGui::EndTable();
-        ImGui::GetStyle().ItemSpacing = oldItemSpacing;
-        return opened;
-    }
-
 
     // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
     static ImVector<ImRect> s_GroupPanelLabelStack;
@@ -4859,6 +4843,30 @@ namespace ImGuiImm
         else
             return s_GroupPanel_FlagBorder_Sizes.at(name);
     }
+
+    std::stack<ImRect> s_OldWorkRects;
+    void BeginGroupFixedWidth(float width)
+    {
+        ImGui::BeginGroup();
+        ImGui::Dummy(ImVec2(width, 1.f));
+        ImRect oldWorkRect = ImGui::GetCurrentWindow()->WorkRect;
+        {
+            ImRect newRect = oldWorkRect;
+            newRect.Max.x = ImGui::GetCursorScreenPos().x + width - ImGui::GetStyle().ItemSpacing.x;
+            ImGui::GetCurrentWindow()->WorkRect = newRect;
+            s_OldWorkRects.push(oldWorkRect);
+        }
+    }
+
+    void EndGroupFixedWidth()
+    {
+        ImGui::EndGroup();
+        assert(!s_OldWorkRects.empty());
+        ImRect oldWorkRect = s_OldWorkRects.top();
+        s_OldWorkRects.pop();
+        ImGui::GetCurrentWindow()->WorkRect = oldWorkRect;
+    }
+
 
     void Theme_Debug()
     {

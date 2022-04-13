@@ -15,8 +15,6 @@ namespace ImGuiImm
     void PopDisabled();
     void SameLineAlignRight(float rightMargin = 0.f, float alignRegionWidth = -1.f);
 
-    bool CollapsingHeaderFixedWidth(const char* name, float width, ImGuiTreeNodeFlags flags = 0);
-
     // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
     void BeginGroupPanel(const char* name, const ImVec2& size = ImVec2(0.0f, 0.0f));
     void EndGroupPanel();
@@ -25,6 +23,8 @@ namespace ImGuiImm
     void EndGroupPanel_FlagBorder();
     ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name);
 
+    void BeginGroupFixedWidth(float width);
+    void EndGroupFixedWidth();
 }
 
 

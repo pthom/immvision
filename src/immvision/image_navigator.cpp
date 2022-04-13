@@ -903,14 +903,13 @@ namespace ImmVision
         //
         auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded]()
         {
-            // We create a dummy table in order to force the collapsing headers width
             float optionsWidth = 330.f;
-            ImGui::BeginTable("##OptionsTable", 1, 0, ImVec2(optionsWidth, 0.f));
-            ImGui::TableNextColumn();
-
+            // Group with fixed width, so that Collapsing headers stop at optionsWidth
+            ImGuiImm::BeginGroupFixedWidth(optionsWidth);
 
             // Adjust float values
             bool hasAdjustFloatValues = true; // ((image.depth() == CV_32F) || (image.depth() == CV_64F));
+
             if (hasAdjustFloatValues && ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
@@ -1031,7 +1030,7 @@ namespace ImmVision
                 }
             }
 
-            ImGui::EndTable();
+            ImGuiImm::EndGroupFixedWidth();
 
         };
         auto fnToggleShowOptions = [&params]()
