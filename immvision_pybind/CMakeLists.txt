@@ -27,26 +27,33 @@ pybind11_add_module(${target_name} MODULE src/main.cpp)
 # do not use targets from the main project, since pip install will run from this subfolder!
 #
 # 1. Add sources
+# 1.1 Sources / immvision
 set(immvision_src_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src/immvision)
 file(GLOB_RECURSE sources_immvision ${immvision_src_DIRS}/*.h ${immvision_src_DIRS}/*.cpp)
 target_sources(${target_name} PRIVATE ${sources_immvision})
 target_include_directories(${target_name} PRIVATE ${immvision_src_DIRS}/..)
+# 1.2 Sources / glad
+set(GLAD_DIR ${CMAKE_CURRENT_LIST_DIR}/src/glad CACHE INTERNAL "Directory of glad")
+set(glad_files ${GLAD_DIR}/src/glad.c ${GLAD_DIR}/include/glad/glad.h ${GLAD_DIR}/include/KHR/khrplatform.h)
+target_sources(${target_name} PRIVATE ${glad_files})
+target_include_directories(${target_name} PRIVATE ${GLAD_DIR}/include)
+#
 # 2. Add include dirs
+#
+# 2.1 Find OpenCV include dir
 find_package(OpenCV)
 if (NOT OpenCV_FOUND)
   message(WARN "find_package(OpenCV) failed, using default (and probably bad) location:
           set(OpenCV_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include) ")
   set(OpenCV_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include)
 endif()
-
+# 2.1 Other include dir
 set(imgui_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
-set(glad_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../src/immvision_gl_loader/glad/include")
-target_include_directories(${target_name} PRIVATE
-    ${OpenCV_INCLUDE_DIRS}
-    ${imgui_INCLUDE_DIRS}
-    ${glad_INCLUDE_DIRS})
+target_include_directories(${target_name} PRIVATE ${OpenCV_INCLUDE_DIRS} ${imgui_INCLUDE_DIRS})
+#
 # 3. Set OpenGL loader
-set(IMMVISION_CUSTOM_GL_INCLUDE "${glad_INCLUDE_DIRS}/glad/glad.h")
+#
+set(IMMVISION_CUSTOM_GL_INCLUDE "${GLAD_DIR}/include/glad/glad.h")
 target_compile_definitions(${target_name} PRIVATE
     IMMVISION_CUSTOM_GL_INCLUDE=${IMMVISION_CUSTOM_GL_INCLUDE})
 
