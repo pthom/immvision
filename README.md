@@ -1,5 +1,5 @@
-tools/vcpkg_install_third_parties.py
+![Ubuntu](https://github.com/pthom/imvision/workflows/Ubuntu/badge.svg)
+![Windows](https://github.com/pthom/imvision/workflows/Windows/badge.svg)
+![MacOS](https://github.com/pthom/imvision/workflows/MacOS/badge.svg)
+![Emscripten](https://github.com/pthom/imvision/workflows/Emscripten/badge.svg)
 
-mkdir build
-cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake
