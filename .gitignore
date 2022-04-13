@@ -2,3 +2,4 @@ build*/
 cmake-build*/
 .idea/
 *.7z
+venv/
