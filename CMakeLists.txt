@@ -13,6 +13,7 @@ option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
 option(IMMVISION_USE_POWERSAVE "use powersave mode for imgui" OFF)
 
 option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
+option(IMMVISION_BUILD_PYTHON_BINDINGS "Build Python bindings for immvision" OFF)
 
 # For conan, add binary dir to module search path
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})

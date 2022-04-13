@@ -32,7 +32,7 @@ class Options:
     build_32bits: Option = Option(False, "Build 32 bits version (only possible under windows)")
     vcpkg_bypass_install: Option = Option(False, "Bypass vcpkg install (advanced option, for CI only)")
     emscripten_bypass_opencv_compil: Option = Option(False, "Bypass opencv compil for emscripten (advanced option, for CI only)")
-
+    build_python_bindings: Option = Option(False, "Build python library using pybind11")
 
 OPTIONS = Options()
 
@@ -148,6 +148,9 @@ def run_cmake():
     if OPTIONS.activate_all_warnings.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
 
+    if OPTIONS.build_python_bindings.Value:
+        cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_BUILD_PYTHON_BINDINGS=ON"
+
     cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
     cmake_cmd = cmake_cmd + f"{new_line} -B ."
 
@@ -156,6 +159,7 @@ def run_cmake():
         cmake_cmd = cmake_cmd + f"{new_line} -A {arch}"
 
     run(cmake_cmd)
+
 
 @decorate_loudly_echo_function_name
 def run_build():
