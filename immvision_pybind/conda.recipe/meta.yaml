@@ -1,5 +1,5 @@
 package:
-  name: imvision
+  name: immvision
   version: 0.0.1
 
 source:
@@ -27,7 +27,7 @@ requirements:
 
 test:
   imports:
-    - imvision
+    - immvision
   requires:
     - pytest
   source_files:

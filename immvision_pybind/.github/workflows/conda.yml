@@ -38,7 +38,7 @@ jobs:
         run: conda build conda.recipe
 
       - name: Install
-        run: conda install -c ${CONDA_PREFIX}/conda-bld/ imvision
+        run: conda install -c ${CONDA_PREFIX}/conda-bld/ immvision
 
       - name: Test
         run: pytest tests

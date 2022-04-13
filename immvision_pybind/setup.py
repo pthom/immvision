@@ -13,14 +13,14 @@ except ImportError:
 from setuptools import find_packages
 
 setup(
-    name="imvision",
+    name="immvision",
     version="0.0.1",
-    description="a minimal example package (with pybind11)",
-    author="Henry Schreiner",
-    license="MIT",
+    description="immvision: immediate image debugger and insights",
+    author="Pascal Thomet",
+    license="",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    cmake_install_dir="src/imvision",
+    cmake_install_dir="src/immvision",
     include_package_data=True,
     extras_require={"test": ["pytest"]},
     python_requires=">=3.6",

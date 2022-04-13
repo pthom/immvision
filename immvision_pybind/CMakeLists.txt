@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.15...3.22)
 
-project(imvision VERSION "0.0.1")
+project(immvision VERSION "0.0.1")
 
-if(SKBUILD)
+
+if(SKBUILD OR IMMVISION_BUILD_PYTHON_BINDINGS)
   # Scikit-Build does not add your site-packages to the search path
   # automatically, so we need to add it _or_ the pybind11 specific directory
   # here.

@@ -150,6 +150,7 @@ def run_cmake():
 
     if OPTIONS.build_python_bindings.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_BUILD_PYTHON_BINDINGS=ON"
+        cmake_cmd = cmake_cmd + f"{new_line} -DPYTHON_EXECUTABLE={REPO_DIR}/immvision_pybind/venv/bin/python"
 
     cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
     cmake_cmd = cmake_cmd + f"{new_line} -B ."
@@ -194,6 +195,10 @@ def run_build_all():
 
     # Install third parties imgui and hello_imgui
     all_imgui_downloads()
+
+    # Create virtual env for pybind
+    if OPTIONS.build_python_bindings.Value:
+        pybind_make_venv()
 
     # Install opencv and SDL (via vcpkg, conan, or via apt packages)
     if OPTIONS.use_vcpkg.Value and not OPTIONS.vcpkg_bypass_install.Value:
@@ -502,6 +507,37 @@ def emscripten_update_timestamp():
     with open(datestr_file, "w") as f:
         f.write(f"#define datestr \"{now}\"")
 
+
+######################################################################
+# pybind
+######################################################################
+SOURCE_PYBIND_VENV = f"source {REPO_DIR}/immvision_pybind/venv/bin/activate && "
+
+@decorate_loudly_echo_function_name
+def pybind_make_venv():
+    """
+    Creates a python virtual environment used to build python bindings,
+    inside immvision_pybind/venv
+    """
+    my_chdir(f"{REPO_DIR}/immvision_pybind")
+    if not os.path.isdir("venv"):
+        run("python3 -m venv venv")
+    packages = ["setuptools>=42",
+                "pybind11>=2.9.2",
+                "cmake>=3.22",
+                "scikit-build>=0.14.1"
+                ]
+    cmd = "pip install " + " ".join(packages)
+    run(f"{SOURCE_PYBIND_VENV} {cmd}")
+    print(f"""
+    Now, activate your python venv with:
+    
+        source {REPO_DIR}/immvision_pybind/venv/bin/activate 
+    """)
+
+
+
+
 ######################################################################
 # Main
 ######################################################################
@@ -553,11 +589,19 @@ def get_all_function_categories():
         ]
     }
 
+    function_list_pybind = {
+        "name": "Functions to build python bindings (immvision_pybind)",
+        "functions": [
+            pybind_make_venv
+        ]
+    }
+
     all_function_categories = [
         function_list_all_in_one,
         function_list_build, function_list_third_parties,
         function_list_vcpkg, function_list_emscripten,
-        function_list_advanced
+        function_list_advanced,
+        function_list_pybind
     ]
     return all_function_categories
 

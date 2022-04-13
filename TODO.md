@@ -1,10 +1,12 @@
 * [ ] ImGui manual: build release!
 * [ ] Deploy
-  * [ ] Github release (search actions artifacts to release : https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
+  * [ ] Python module 
+    * [ ] Test https://github.com/pybind/scikit_build_example ou https://github.com/pybind/cmake_example  
   * [ ] All in one version
     * [X] All in one immvision
     * [ ] All in one immdebug
       * [ ] functions and methods inline or macro #IMMDEBUG_IMPL (test avec plusieurs fichiers qui l'incluent)
+  * [ ] Github release (search actions artifacts to release : https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
   * [x] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
   * [N] Static link linux. Dead end
     use ldd to see links. Read https://insanecoding.blogspot.com/2012/07/creating-portable-linux-binaries.html and https://www.systutorials.com/how-to-statically-link-c-and-c-programs-on-linux-with-gcc/

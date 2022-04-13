@@ -14,7 +14,7 @@ PYBIND11_MODULE(_core, m) {
         Pybind11 example plugin
         -----------------------
 
-        .. currentmodule:: imvision
+        .. currentmodule:: immvision
 
         .. autosummary::
            :toctree: _generate

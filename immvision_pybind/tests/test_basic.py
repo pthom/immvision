@@ -1,4 +1,4 @@
-import imvision as m
+import immvision as m
 
 
 def test_version():
