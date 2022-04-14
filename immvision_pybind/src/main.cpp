@@ -9,6 +9,10 @@
 
 namespace py = pybind11;
 
+int add(int a, int b)
+{
+    return a + b;
+}
 
 //template<typename T>
 //void Image(
@@ -22,40 +26,6 @@ namespace py = pybind11;
 //    cv::Size cv_size(size[0], size[1]);
 //    ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
 //}
-//
-//
-//template<typename T>
-//std::string np_array_info(const pybind11::array_t<T>& array)
-//{
-//    return numpy_opencv_convert::np_array_info(array);
-//}
-//
-//
-//template<typename T>
-//void Truc(const pybind11::array_t<T>& image_rgba)
-//{
-//    // Use Python to make our directories
-//    py::object python_module = py::module_::import("gl_provider_python");
-//    py::object Blit_RGBA_Buffer = python_module.attr("Blit_RGBA_Buffer");
-//    py::object GenTexture = python_module.attr("GenTexture");
-//    py::object DeleteTexture = python_module.attr("DeleteTexture");
-//
-//    std::cout << "C++ About to call GenTexture\n";
-//    py::object id_object = GenTexture();
-//    auto texture_id = id_object.cast<unsigned int>();
-//    std::cout << "C++ After calling GenTexture, texture_id=%i" << texture_id << "\n";
-//
-//
-//    std::cout << "C++ About to call Blit_RGBA_Buffer with image\n";
-//    std::cout << np_array_info(image_rgba);
-//    Blit_RGBA_Buffer(image_rgba, texture_id);
-//    std::cout << "C++ After calling Blit_RGBA_Buffer\n";
-//
-//    std::cout << "C++ About to call DeleteTexture\n";
-//    py::object q = DeleteTexture(texture_id);
-//    std::cout << "C++ After calling DeleteTexture\n";
-//}
-//
 //
 //
 //void Truc2(const cv::Mat& image_rgba)
@@ -87,10 +57,10 @@ namespace py = pybind11;
 
 // This function will call the 2 casters defined in opencv_pybind_converter
 // The unit tests check that the values and types are unmodified
-cv::Mat RoundTrip_Mat_To_BufferInfo_To_Mat(const cv::Mat& m)
-{
-    return m;
-}
+//cv::Mat RoundTrip_Mat_To_BufferInfo_To_Mat(const cv::Mat& m)
+//{
+//    return m;
+//}
 
 PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
     m.doc() = R"pbdoc(
@@ -107,19 +77,12 @@ PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
            subtract
     )pbdoc";
 
-//    m.def("add", &add, R"pbdoc(
-//        Add two numbers
-//
-//        Some other explanation about the add function.
-//    )pbdoc");
+    m.def("add", &add, R"pbdoc(
+        Add two numbers
+    )pbdoc");
 
-    //m.def("InitGladGLLoader", InitGladGLLoader);
-//    MODULE_DEF_FUNCTION_ALL_DEPTHS(m, "np_array_info", np_array_info);
-//    MODULE_DEF_FUNCTION_ALL_DEPTHS(m, "Image", Image);
-//    //m.def("Truc", Truc);
-//    MODULE_DEF_FUNCTION_ALL_DEPTHS(m, "Truc", Truc);
 //    m.def("Truc2", Truc2);
-    m.def("RoundTrip_Mat_To_BufferInfo_To_Mat", RoundTrip_Mat_To_BufferInfo_To_Mat);
+//    m.def("RoundTrip_Mat_To_BufferInfo_To_Mat", RoundTrip_Mat_To_BufferInfo_To_Mat);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
