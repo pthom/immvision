@@ -21,9 +21,14 @@ image = cv2.imread("/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvisi
 
 def _test_gui_function(params: imgui_runner.ImguiAppParams):
     imgui.text("Hello there!")
-    immvision.Image(image, True, (600, 600), True)
+    # immvision.Image(image, True, (600, 600), True)
     if imgui.button("Exit"):
         params.app_shall_exit = True
+    if (imgui.button("Test")):
+        m4 = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
+        immvision.Truc(m4)
+
+
 
 
 if __name__ == "__main__":

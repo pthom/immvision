@@ -73,11 +73,29 @@ def run(imgui_app_params: ImguiAppParams):
     SDL_DestroyWindow(window)
     SDL_Quit()
 
+# def TRY_INIT_GL_LOADER_FROM_PYTHON():
+#     import cv2
+#     import numpy
+#     DEV_MODE = True
+#     if DEV_MODE:
+#         import os
+#         import sys
+#         sys.path.append(os.getcwd())
+#         import _core_immvision_pybind as immvision;
+#     else:
+#         import immvision;
+#     import sdl2
+#     print(f"In python: sdl2.SDL_GL_GetProcAddress={sdl2.SDL_GL_GetProcAddress} id={id(sdl2.SDL_GL_GetProcAddress)}")
+#     immvision.InitGladGLLoader(id(sdl2.SDL_GL_GetProcAddress))
+#
 
 def _impl_pysdl2_init(imgui_app_params: ImguiAppParams):
     if SDL_Init(SDL_INIT_EVERYTHING) < 0:
         print("Error: SDL could not initialize! SDL Error: " + SDL_GetError().decode("utf-8"))
         exit(1)
+
+    # out = SDL_GL_LoadLibrary([])
+    # print(f"SDL_GL_LoadLibrary returned {out}")
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24)
