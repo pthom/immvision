@@ -27,6 +27,14 @@ namespace ImmVision
 {
     GlTexture::GlTexture()
     {
+        size_t glGenTexturesAddress = (size_t)glGenTextures;
+        if (glGenTexturesAddress == 0)
+        {
+            const char* err_msg = "glGenTextures address not initialized. Did you initialize your OpenGL Loader?";
+            std::cerr << err_msg;
+            throw std::runtime_error(err_msg);
+        }
+
         std::cout << "GlTexture::GlTexture() \n";
         GLuint textureId_Gl;
         glGenTextures(1, &textureId_Gl);
