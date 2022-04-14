@@ -67,7 +67,6 @@ void Image(
 }
 
 
-
 template<typename T>
 std::string np_array_info(const pybind11::array_t<T>& array)
 {

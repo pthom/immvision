@@ -1317,7 +1317,7 @@ namespace ImmVision
                 float imageRatio = cache.GlTexture.mImageSize.x / cache.GlTexture.mImageSize.y;
                 ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
-                ImGui::GetWindowDrawList()->AddImage(cache.GlTexture.mImTextureId, image_tl, image_br);
+                ImGui::GetWindowDrawList()->AddImage(cache.GlTexture.TextureId_AsVoid(), image_tl, image_br);
 
             }
             ImGui::EndListBox();

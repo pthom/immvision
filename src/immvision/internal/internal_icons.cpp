@@ -243,7 +243,7 @@ namespace ImmVision
                 auto texture = std::make_unique<GlTextureCv>(m, true);
                 textureCache[iconType] = std::move(texture);
             }
-            return textureCache[iconType]->mImTextureId;
+            return toImTextureID(textureCache[iconType]->mImTextureId);
         }
 
         bool IconButton(IconType iconType, bool disabled, ImVec2 size)

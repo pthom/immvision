@@ -5,6 +5,8 @@
 
 namespace ImmVision
 {
+    inline ImTextureID toImTextureID(unsigned int v) { return (ImTextureID)(intptr_t)v; }
+
     /// GlTexture holds a OpenGL Texture (created via glGenTextures)
     /// You can blit (i.e transfer) image buffer onto it.
     /// The linked OpenGL texture lifetime is linked to this.
@@ -22,21 +24,13 @@ namespace ImmVision
         bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
         void Draw_DisableDragWindow(const ImVec2& size = ImVec2(0, 0)) const;
 
-        void Blit_Buffer(
-            unsigned char *image_data,
-            int image_width,
-            int image_height,
-            int nb_channels,
-            bool flip_RedBlue
-        );
-        void Blit_RGB_Buffer(unsigned char *image_data, int image_width, int image_height);
         void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
-        void Blit_BGR_Buffer(unsigned char *image_data, int image_width, int image_height);
-        void Blit_BGRA_Buffer(unsigned char *image_data, int image_width, int image_height);
+
+        void *TextureId_AsVoid() { return toImTextureID(mImTextureId); }
 
         // members
         ImVec2 mImageSize;
-        ImTextureID mImTextureId;
+        unsigned int mImTextureId;
     };
 
 
