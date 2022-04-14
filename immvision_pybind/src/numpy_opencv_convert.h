@@ -1,0 +1,8 @@
+//
+// Created by Pascal Thomet on 14/04/2022.
+//
+
+#ifndef IMMVISION_NUMPY_OPENCV_CONVERT_H
+#define IMMVISION_NUMPY_OPENCV_CONVERT_H
+
+#endif //IMMVISION_NUMPY_OPENCV_CONVERT_H
