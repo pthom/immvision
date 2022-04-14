@@ -19,8 +19,9 @@ endif()
 # Now we can find pybind11
 find_package(pybind11 CONFIG REQUIRED)
 
-set(target_name _core)
-pybind11_add_module(${target_name} MODULE src/main.cpp)
+set(IMMVISION_PYBIND_BIN_MODULE_NAME _core_immvision_pybind) # was initially _core (can it be changed?)
+file(GLOB_RECURSE sources_immvision_pybind src/*.cpp src/*.h)
+pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvision_pybind})
 
 #
 # Define specific settings for immvision:
@@ -30,33 +31,45 @@ pybind11_add_module(${target_name} MODULE src/main.cpp)
 # 1.1 Sources / immvision
 set(immvision_src_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src/immvision)
 file(GLOB_RECURSE sources_immvision ${immvision_src_DIRS}/*.h ${immvision_src_DIRS}/*.cpp)
-target_sources(${target_name} PRIVATE ${sources_immvision})
-target_include_directories(${target_name} PRIVATE ${immvision_src_DIRS}/..)
+target_sources(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${sources_immvision})
+target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${immvision_src_DIRS}/..)
 # 1.2 Sources / glad
 set(GLAD_DIR ${CMAKE_CURRENT_LIST_DIR}/src/glad CACHE INTERNAL "Directory of glad")
-set(glad_files ${GLAD_DIR}/src/glad.c ${GLAD_DIR}/include/glad/glad.h ${GLAD_DIR}/include/KHR/khrplatform.h)
-target_sources(${target_name} PRIVATE ${glad_files})
-target_include_directories(${target_name} PRIVATE ${GLAD_DIR}/include)
+file(GLOB_RECURSE sources_glad ${GLAD_DIR}/*.h ${GLAD_DIR}/*.c)
+target_sources(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${sources_glad})
+target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${GLAD_DIR}/include)
 #
 # 2. Add include dirs
 #
+set(default_include_dir ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include)
 # 2.1 Find OpenCV include dir
 find_package(OpenCV)
 if (NOT OpenCV_FOUND)
   message(WARN "find_package(OpenCV) failed, using default (and probably bad) location:
-          set(OpenCV_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include) ")
-  set(OpenCV_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include)
+          set(OpenCV_INCLUDE_DIRS ${default_include_dir}) ")
+  set(OpenCV_INCLUDE_DIRS ${default_include_dir})
 endif()
-# 2.1 Other include dir
+# 2.2 SDL2 include dir
+find_package(SDL2 CONFIG)
+if (NOT SDL2_FOUND)
+  message(WARN "find_package(SDL2) failed, using default (and probably bad) location:
+          set(SDL2_INCLUDE_DIRS ${default_include_dir} ${default_include_dir}/SDL2) ")
+  set(SDL2_INCLUDE_DIRS ${default_include_dir} ${default_include_dir}/SDL2)
+endif()
+target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME}  PUBLIC ${SDL2_INCLUDE_DIRS})
+# 2.3 imgui include dir
 set(imgui_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
-target_include_directories(${target_name} PRIVATE ${OpenCV_INCLUDE_DIRS} ${imgui_INCLUDE_DIRS})
+target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${imgui_INCLUDE_DIRS})
 #
 # 3. Set OpenGL loader
 #
 set(IMMVISION_CUSTOM_GL_INCLUDE "${GLAD_DIR}/include/glad/glad.h")
-target_compile_definitions(${target_name} PRIVATE
+target_compile_definitions(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
     IMMVISION_CUSTOM_GL_INCLUDE=${IMMVISION_CUSTOM_GL_INCLUDE})
 
 
-target_compile_definitions(${target_name} PRIVATE VERSION_INFO=${PROJECT_VERSION})
-install(TARGETS ${target_name} DESTINATION .)
+target_compile_definitions(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
+    VERSION_INFO=${PROJECT_VERSION}
+    IMMVISION_PYBIND_BIN_MODULE_NAME=${IMMVISION_PYBIND_BIN_MODULE_NAME}
+    )
+install(TARGETS ${IMMVISION_PYBIND_BIN_MODULE_NAME} DESTINATION .)

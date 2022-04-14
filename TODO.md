@@ -13,7 +13,8 @@
     use ldd to see links. Read https://insanecoding.blogspot.com/2012/07/creating-portable-linux-binaries.html and https://www.systutorials.com/how-to-statically-link-c-and-c-programs-on-linux-with-gcc/
   * [N] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact
     Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
-    
+
+
 
 * [ ] immvision
   * [ ] Compat Eigen ?
@@ -54,3 +55,14 @@
   * [X] Wheel zoom : eat event (i.e avoid scroll)
   * [N] Copy image to clipboard => voir https://github.com/dacap/clip / Non: rend compilation complexe !
   * [ ] Add param zoomCenter & zoomRatio
+
+
+    ImGuiWindow* outer_window = GetCurrentWindow();
+    const ImVec2 avail_size = GetContentRegionAvail();
+    ImVec2 actual_outer_size = CalcItemSize(outer_size, ImMax(avail_size.x, 1.0f), use_child_window ? ImMax(avail_size.y, 1.0f) : 0.0f);
+    ImRect outer_rect(outer_window->DC.CursorPos, outer_window->DC.CursorPos + actual_outer_size);
+
+    ...
+    // For non-scrolling tables, WorkRect == OuterRect == InnerRect.
+    // But at this point we do NOT have a correct value for .Max.y (unless a height has been explicitly passed in). It will only be updated in EndTable().
+    table->WorkRect = table->OuterRect = table->InnerRect = outer_rect;
