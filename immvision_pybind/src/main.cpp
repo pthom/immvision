@@ -6,7 +6,7 @@
 #include <pybind11/stl.h>
 
 #include "glad/glad.h"
-#include <SDL.h>
+#include "immvision/internal/opencv_pybind_converter.h"
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -78,21 +78,31 @@ template<typename T>
 void Truc(const pybind11::array_t<T>& image_rgba)
 {
     // Use Python to make our directories
-    py::object os = py::module_::import("image_rgba_to_texture");
-    py::object image_rgba_to_texture = os.attr("image_rgba_to_texture");
-    py::object delete_texture = os.attr("delete_texture");
+    py::object python_module = py::module_::import("gl_provider_python");
+    py::object Blit_RGBA_Buffer = python_module.attr("Blit_RGBA_Buffer");
+    py::object GenTexture = python_module.attr("GenTexture");
+    py::object DeleteTexture = python_module.attr("DeleteTexture");
 
-    std::cout << "C++ About to call image_rgba_to_texture with image\n";
+    std::cout << "C++ About to call GenTexture\n";
+    py::object id_object = GenTexture();
+    auto texture_id = id_object.cast<unsigned int>();
+    std::cout << "C++ After calling GenTexture, texture_id=%i" << texture_id << "\n";
+
+
+    std::cout << "C++ About to call Blit_RGBA_Buffer with image\n";
     std::cout << np_array_info(image_rgba);
-    py::object id_object = image_rgba_to_texture(image_rgba);
-    auto id_uint = id_object.cast<unsigned int>();
-    std::cout << "C++ After calling image_rgba_to_texture, id_uint=%i" << id_uint << "\n";
+    Blit_RGBA_Buffer(image_rgba, texture_id);
+    std::cout << "C++ After calling Blit_RGBA_Buffer\n";
 
-    std::cout << "C++ About to call delete_texture\n";
-    py::object q = delete_texture(id_uint);
-    std::cout << "C++ After calling delete_texture\n";
+    std::cout << "C++ About to call DeleteTexture\n";
+    py::object q = DeleteTexture(texture_id);
+    std::cout << "C++ After calling DeleteTexture\n";
 }
 
+void Muche(const cv::Mat& m)
+{
+    std::cout << "Muche size " << m.cols << " " << m.rows << "\n";
+}
 
 PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
     m.doc() = R"pbdoc(
@@ -120,6 +130,7 @@ PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
     MODULE_DEF_FUNCTION_ALL_DEPTHS(m, "Image", Image);
     //m.def("Truc", Truc);
     MODULE_DEF_FUNCTION_ALL_DEPTHS(m, "Truc", Truc);
+    m.def("Muche", Muche);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

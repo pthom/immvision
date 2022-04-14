@@ -7,17 +7,10 @@ def hello():
     print("hello")
 
 
-def image_rgba_to_texture(img_rgba):
-    """
-    Performs the actual transfer to the gpu and returns a texture_id
-    """
-    # inspired from https://www.programcreek.com/python/example/95539/OpenGL.GL.glPixelStorei (example 3)
-    print(f"Python, entering image_rgba_to_texture, shape={img_rgba.shape}")
-
+def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
+    print(f"Python, entering Blit_RGBA_Buffer, shape={img_rgba.shape} texture_id={texture_id}")
     width = img_rgba.shape[1]
     height = img_rgba.shape[0]
-    texture_id = gl.glGenTextures(1)
-    print(f"Python, image_rgba_to_texture, texture_id={texture_id}")
     gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
     gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
     gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
@@ -35,14 +28,19 @@ def image_rgba_to_texture(img_rgba):
         img_rgba,
     )
     gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-    print(f"Python, exiting image_rgba_to_texture texture_id={texture_id}")
+    print(f"Python, exiting Blit_RGBA_Buffer texture_id={texture_id}")
+
+
+
+def GenTexture() -> int:
+    texture_id = gl.glGenTextures(1)
+    print(f"Python GenTexture return texture_id={texture_id}")
     return texture_id
 
 
-def delete_texture(texture_id):
-    print(f"Python, entering delete_texture texture_id={texture_id}")
+def DeleteTexture(texture_id: int):
     gl.glDeleteTextures([texture_id])
-    print(f"Python, exiting delete_texture texture_id={texture_id}")
+    print(f"Python DeleteTexture texture_id={texture_id}")
 
 
 ##############################
@@ -99,9 +97,10 @@ def test_main():
     m = cv2.imread("Smiley.png")
     m2 = cv2.cvtColor(m, cv2.COLOR_BGR2BGRA)
     print(m2.shape)
-    texture_id = image_rgba_to_texture(m2)
+    texture_id = GenTexture()
     print(f"texture_id={texture_id}")
-    delete_texture(texture_id)
+    Blit_RGBA_Buffer(m2, texture_id)
+    DeleteTexture(texture_id)
 
 
 if __name__ == "__main__":

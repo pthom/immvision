@@ -1,3 +1,5 @@
+#ifndef IMMVISION_PYBIND
+
 #include "immvision/internal/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
 #include <iostream>
@@ -49,3 +51,5 @@ namespace ImmVision_GlProvider
         glDeleteTextures(1, &texture_id);
     }
 }
+
+#endif // #ifndef IMMVISION_PYBIND

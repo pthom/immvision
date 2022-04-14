@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+#  export PYTHONPATH="/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/cmake-build-debug/immvision_pybind:src/immvision/
+
 import imgui
 import imgui_runner
 import imgui
