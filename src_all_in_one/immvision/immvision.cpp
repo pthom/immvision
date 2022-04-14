@@ -4514,174 +4514,89 @@ namespace ImmVision_GlProvider
 
 #include <stdexcept>
 
-// Taken from
-// https://github.com/pybind/pybind11/issues/538#issuecomment-273981569
+namespace opencv_pybind_converter
+{
+    int PybindFormat_to_CvDepth(const std::string& format);
+    std::string PybindFormat_to_CvDepth_string(const std::string& format);
+    std::string CvDepth_to_string(int cv_depth);
+    std::string CvDepth_to_PybindFormat(int cv_depth);
+
+    std::string BufferInfoDescription(const pybind11::buffer_info& buffer_info);
+    std::string CvMatDescription(const cv::Mat& m);
+
+    cv::Mat BufferInfoToCvMat(const pybind11::buffer_info& bufferInfo);
+    pybind11::buffer_info CvMatToBufferInfo(const cv::Mat& m);
+
+} // namespace opencv_pybind_converter
+
 
 namespace pybind11
 {
-namespace detail
-{
-  template <>
-  struct type_caster<cv::Mat>
-  {
-   public:
-    PYBIND11_TYPE_CASTER(cv::Mat, _("numpy.ndarray"));
-
-    /**
-     * Conversion part 1 (Python->C++):
-     * Return false upon failure.
-     * The second argument indicates whether implicit conversions should be applied.
-     */
-    bool load(handle src, bool)
+    // Inspired (and heavily modified) from https://github.com/pybind/pybind11/issues/538#issuecomment-273981569
+    namespace detail
     {
-      /* Try a default converting into a Python */
-      // array b(src, true);
-      auto b = reinterpret_borrow<array>(src);  // true);
-      buffer_info info = b.request();
 
-      int ndims = static_cast<int>(info.ndim);
-
-      decltype(CV_32F) dtype;
-      size_t elemsize;
-      if (info.format == format_descriptor<float>::format())
-      {
-        if (ndims == 3)
+        template<>
+        struct type_caster<cv::Mat>
         {
-          dtype = CV_32FC3;
-        }
-        else
+        public:
+        PYBIND11_TYPE_CASTER(cv::Mat, _("numpy.ndarray"));
+
+            /**
+             * Conversion part 1 (Python->C++):
+             * Return false upon failure.
+             * The second argument indicates whether implicit conversions should be applied.
+             */
+            bool load(handle src, bool)
+            {
+                auto b = reinterpret_borrow<array>(src);
+                buffer_info bufferInfo = b.request();
+                value = opencv_pybind_converter::BufferInfoToCvMat(bufferInfo);
+                return true;
+            }
+
+            /**
+             * Conversion part 2 (C++ -> Python):
+             * The second and third arguments are used to indicate the return value policy and parent object
+             * (for ``return_value_policy::reference_internal``) and are generally
+             * ignored by implicit casters.
+             */
+            static handle cast(const cv::Mat &m, return_value_policy, handle defval)
+            {
+                auto bufferInfo = opencv_pybind_converter::CvMatToBufferInfo(m);
+                return array(bufferInfo).release();
+            }
+        };
+
+
+        template<typename _Tp, int _rows, int _cols>
+        struct type_caster<cv::Matx<_Tp, _rows, _cols> >
         {
-          dtype = CV_32FC1;
-        }
-        elemsize = sizeof(float);
-      }
-      else if (info.format == format_descriptor<double>::format())
-      {
-        if (ndims == 3)
-        {
-          dtype = CV_64FC3;
-        }
-        else
-        {
-          dtype = CV_64FC1;
-        }
-        elemsize = sizeof(double);
-      }
-      else if (info.format == format_descriptor<unsigned char>::format())
-      {
-        if (ndims == 3)
-        {
-          dtype = CV_8UC3;
-        }
-        else
-        {
-          dtype = CV_8UC1;
-        }
-        elemsize = sizeof(unsigned char);
-      }
-      else
-      {
-        throw std::logic_error("Unsupported type");
-        return false;
-      }
-      (void)elemsize;
-      std::vector<int> shape = {static_cast<int>(info.shape[0]), static_cast<int>(info.shape[1])};
+            using Matxxx = cv::Matx<_Tp, _rows, _cols>;
 
-      value = cv::Mat(cv::Size(shape[1], shape[0]), dtype, info.ptr, cv::Mat::AUTO_STEP);
-      return true;
-    }
+        public:
+        PYBIND11_TYPE_CASTER(Matxxx, _("numpy.ndarray"));
 
-    /**
-     * Conversion part 2 (C++ -> Python):
-     * The second and third arguments are used to indicate the return value policy and parent object
-     * (for ``return_value_policy::reference_internal``) and are generally
-     * ignored by implicit casters.
-     */
-    static handle cast(const cv::Mat &m, return_value_policy, handle defval)
-    {
-      // std::cout << "m.cols : " << m.cols << std::endl;
-      // std::cout << "m.rows : " << m.rows << std::endl;
-      std::string format = format_descriptor<unsigned char>::format();
-      size_t elemsize = sizeof(unsigned char);
-      int dim;
-      switch (m.type())
-      {
-        case CV_8U:
-          format = format_descriptor<unsigned char>::format();
-          elemsize = sizeof(unsigned char);
-          dim = 2;
-          break;
-        case CV_8UC3:
-          format = format_descriptor<unsigned char>::format();
-          elemsize = sizeof(unsigned char);
-          dim = 3;
-          break;
-        case CV_32F:
-          format = format_descriptor<float>::format();
-          elemsize = sizeof(float);
-          dim = 2;
-          break;
-        case CV_64F:
-          format = format_descriptor<double>::format();
-          elemsize = sizeof(double);
-          dim = 2;
-          break;
-        default:
-          throw std::logic_error("Unsupported type");
-      }
+            // Conversion part 1 (Python->C++)
+            bool load(handle src, bool)
+            {
+                auto as_array = reinterpret_borrow<array>(src);
+                cv::Mat asMat = as_array.cast<cv::Mat>();
+                Matxxx asMatx(asMat);
+                value = asMatx;
+                return true;
+            }
 
-      std::vector<size_t> bufferdim;
-      std::vector<size_t> strides;
-      if (dim == 2)
-      {
-        bufferdim = {(size_t)m.rows, (size_t)m.cols};
-        strides = {elemsize * (size_t)m.cols, elemsize};
-      }
-      else if (dim == 3)
-      {
-        bufferdim = {(size_t)m.rows, (size_t)m.cols, (size_t)3};
-        strides = {(size_t)elemsize * m.cols * 3, (size_t)elemsize * 3, (size_t)elemsize};
-      }
-      return array(buffer_info(m.data,    /* Pointer to buffer */
-                               elemsize,  /* Size of one scalar */
-                               format,    /* Python struct-style format descriptor */
-                               dim,       /* Number of dimensions */
-                               bufferdim, /* Buffer dimensions */
-                               strides    /* Strides (in bytes) for each index */
-                               ))
-          .release();
-    }
-  };
+            // Conversion part 2 (C++ -> Python)
+            static handle cast(const Matxxx &value, return_value_policy, handle defval)
+            {
+                cv::Mat asMat(value);
+                auto result = pybind11::cast(asMat);
+                return result.release();
+            }
+        };
 
-
-  template <typename _Tp, int _rows, int _cols>
-  struct type_caster<cv::Matx<_Tp, _rows, _cols> >
-  {
-    using Matxxx = cv::Matx<_Tp, _rows, _cols>;
-
-   public:
-    PYBIND11_TYPE_CASTER(Matxxx, _("numpy.ndarray"));
-
-    // Conversion part 1 (Python->C++)
-    bool load(handle src, bool)
-    {
-      auto as_array = reinterpret_borrow<array>(src);
-      cv::Mat asMat = as_array.cast<cv::Mat>();
-      Matxxx asMatx(asMat);
-      value = asMatx;
-      return true;
-    }
-
-    // Conversion part 2 (C++ -> Python)
-    static handle cast(const Matxxx &value, return_value_policy, handle defval)
-    {
-      cv::Mat asMat(value);
-      auto result = pybind11::cast(asMat);
-      return result.release();
-    }
-  };
-
-}  // namespace detail
+    }  // namespace detail
 }  // namespace pybind11
 
 #endif // #ifdef IMMVISION_PYBIND
@@ -5742,4 +5657,196 @@ namespace ImmVision
 
     } // namespace Icons
 } // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/opencv_pybind_converter.cpp                                     //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef IMMVISION_PYBIND
+
+
+
+// #define OPENCV_PYBIND_CONVERTER_LOG_ACTIVE
+
+namespace opencv_pybind_converter
+{
+    struct ScalarTypeSynonyms
+    {
+        int cv_depth = -1;
+        std::string pybind_format;
+        std::string cv_depth_name;
+    };
+
+
+    std::vector<ScalarTypeSynonyms> sScalarTypeSynonyms{
+        { CV_8U, pybind11::format_descriptor<uint8_t>::format(), "CV_8U" },
+        { CV_8S, pybind11::format_descriptor<int8_t>::format(), "CV_8S" },
+        { CV_16U, pybind11::format_descriptor<uint16_t>::format(), "CV_16U" },
+        { CV_16S, pybind11::format_descriptor<int16_t>::format(), "CV_16S" },
+        { CV_32S, pybind11::format_descriptor<int32_t>::format(), "CV_32S" },
+        { CV_32F, pybind11::format_descriptor<float>::format(), "CV_32F" },
+        { CV_64F, pybind11::format_descriptor<double>::format(), "CV_64F" },
+        { CV_16F, pybind11::format_descriptor<cv::int16_t>::format(), "CV_16F" },
+    };
+
+    int PybindFormat_to_CvDepth(const std::string& format)
+    {
+        for (const auto& v : sScalarTypeSynonyms)
+            if (v.pybind_format == format)
+                return v.cv_depth;
+        std::stringstream msg;
+        msg << "PybindFormat_to_CvDepth: Unsupported type " << format;
+        throw std::logic_error(msg.str().c_str());
+    }
+    std::string PybindFormat_to_CvDepth_string(const std::string& format)
+    {
+        for (const auto& v : sScalarTypeSynonyms)
+            if (v.pybind_format == format)
+                return v.cv_depth_name;
+        std::stringstream msg;
+        msg << "PybindFormat_to_CvDepth_string: Unsupported type " << format;
+        throw std::logic_error(msg.str().c_str());
+    }
+    std::string CvDepth_to_PybindFormat(int cv_depth)
+    {
+        for (const auto& v : sScalarTypeSynonyms)
+            if (v.cv_depth == cv_depth)
+                return v.pybind_format;
+        std::stringstream msg;
+        msg << "CvDepth_to_PybindFormat: Unsupported cv_depth " << cv_depth;
+        throw std::logic_error(msg.str().c_str());
+    }
+    std::string CvDepth_to_string(int cv_depth)
+    {
+        for (const auto& v : sScalarTypeSynonyms)
+            if (v.cv_depth == cv_depth)
+                return v.cv_depth_name;
+        std::stringstream msg;
+        msg << "CvDepth_to_string: Unsupported cv_depth " << cv_depth;
+        throw std::logic_error(msg.str().c_str());
+    }
+
+
+    std::string BufferInfoDescription(const pybind11::buffer_info& buffer_info)
+    {
+        auto fnDumpVector = [](const std::vector<ssize_t>& xs) {
+            std::string r = "[";
+            for(ssize_t x : xs)
+                r = r + std::to_string(x) + " ";
+            r = r + "]";
+            return r;
+        };
+        char msg[2000];
+        snprintf(msg, 2000, R"(
+             ptr = %p
+             itemsize = %i
+             size = %i
+             format = %s (i.e %s for OpenCV)
+             ndim = %i
+             shape = %s
+             strides = %s
+         )",
+             buffer_info.ptr,
+             (int)buffer_info.itemsize,
+             (int)buffer_info.size,
+             buffer_info.format.c_str(), PybindFormat_to_CvDepth_string(buffer_info.format).c_str(),
+             (int)buffer_info.ndim,
+             fnDumpVector(buffer_info.shape).c_str(),
+             fnDumpVector(buffer_info.strides).c_str()
+        );
+        std::string r(msg);
+        return r;
+    }
+
+    std::string CvMatDescription(const cv::Mat& m)
+    {
+        char msg[2000];
+        snprintf(msg, 2000, R"(
+                elemSize1 (aka itemsize): %zu
+                size (aka row*cols*channels): %i
+                depth (aka format): %s,
+                [rows, cols, channels] (aka shape): %i, %i, %i
+        )",
+                 m.elemSize1(),
+                 m.rows * m.cols * m.channels(),
+                 CvDepth_to_string(m.depth()).c_str(),
+                 m.rows, m.cols, m.channels()
+        );
+        return msg;
+    }
+
+    cv::Mat BufferInfoToCvMat(const pybind11::buffer_info& bufferInfo)
+    {
+#ifdef OPENCV_PYBIND_CONVERTER_LOG_ACTIVE
+        std::cout << "Conversion python-> C++\n";
+        std::cout << "========================\n";
+        std::cout << "Input bufferInfo \n"
+                  << opencv_pybind_converter::BufferInfoDescription(bufferInfo) << std::endl;
+#endif
+
+        int nb_channels = bufferInfo.ndim > 2 ? (int)bufferInfo.shape[2] : 1;
+        int cv_depth = opencv_pybind_converter::PybindFormat_to_CvDepth(bufferInfo.format);
+        int cv_type = CV_MAKETYPE(cv_depth, nb_channels);
+        cv::Mat m = cv::Mat(cv::Size((int)bufferInfo.shape[1], (int)bufferInfo.shape[0]), cv_type, bufferInfo.ptr, cv::Mat::AUTO_STEP);
+
+#ifdef OPENCV_PYBIND_CONVERTER_LOG_ACTIVE
+        std::cout << "Output cv::Mat \n"
+                  << opencv_pybind_converter::CvMatDescription(m) << std::endl;
+#endif
+        return m;
+    }
+
+    pybind11::buffer_info CvMatToBufferInfo(const cv::Mat& m_maybe_discontinuous)
+    {
+        cv::Mat m = m_maybe_discontinuous;
+        if (!m_maybe_discontinuous.isContinuous() || m_maybe_discontinuous.isSubmatrix())
+            m = m_maybe_discontinuous.clone();
+
+#ifdef OPENCV_PYBIND_CONVERTER_LOG_ACTIVE
+        std::cout << "Conversion C++-> Python\n";
+        std::cout << "========================\n";
+        std::cout << "Input cv::Mat \n"
+                  << opencv_pybind_converter::CvMatDescription(m) << std::endl;
+#endif
+
+        std::string format = opencv_pybind_converter::CvDepth_to_PybindFormat(m.depth());
+        size_t elemsize = m.elemSize1();
+        int ndim = m.channels() > 1 ? 3 : 2;
+
+        std::vector<size_t> bufferdim;
+        std::vector<size_t> strides;
+        if (ndim == 2)
+        {
+            bufferdim = {(size_t) m.rows, (size_t) m.cols};
+            strides = {elemsize * (size_t) m.cols, elemsize};
+        }
+        else if (ndim == 3)
+        {
+            size_t nb_channels = (size_t)m.channels();
+            bufferdim = {(size_t) m.rows, (size_t) m.cols, nb_channels};
+            strides = {elemsize * m.cols * nb_channels, elemsize * nb_channels, elemsize};
+        }
+
+        auto bufferInfo = pybind11::buffer_info(
+            m.data,    /* Pointer to buffer */
+            elemsize,  /* Size of one scalar */
+            format,    /* Python struct-style format descriptor */
+            ndim,       /* Number of dimensions */
+            bufferdim, /* Buffer dimensions */
+            strides    /* Strides (in bytes) for each index */
+        );
+
+#ifdef OPENCV_PYBIND_CONVERTER_LOG_ACTIVE
+        std::cout << "Output buffer_info \n"
+                  << opencv_pybind_converter::BufferInfoDescription(bufferInfo) << std::endl;
+#endif
+        return bufferInfo;
+    }
+
+
+} // namespace opencv_pybind_converter
+
+
+
+#endif // #ifdef IMMVISION_PYBIND
 

@@ -26,9 +26,12 @@ def _test_gui_function(params: imgui_runner.ImguiAppParams):
     # immvision.Image(image, True, (600, 600), True)
     if imgui.button("Exit"):
         params.app_shall_exit = True
-    if (imgui.button("Test")):
+    if (imgui.button("Truc")):
         m4 = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
         immvision.Truc(m4)
+    if (imgui.button("Truc2")):
+        m4 = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
+        immvision.Truc2(m4)
 
 
 
