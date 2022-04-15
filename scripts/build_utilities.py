@@ -534,15 +534,14 @@ def pybind_make_venv():
 
 
 @decorate_loudly_echo_function_name
-def pybind_optional_clone_pyimgui():
+def pybind_clone_pyimgui():
     """
     (Optional, for pybind building only) Clone pyimgui
     pyimgui's pip version includes a version of imgui that is too old.
-    scripts/requirements_dev_pybind.txt will install the correct version,
-    from a fork a pyimgui: https://github.com/pthom/pyimgui.git@pthom/docking_2022_04_05
-
-    proposed as a PR here: https://github.com/pyimgui/pyimgui/pull/274
+    For development only, since scripts/requirements_dev_pybind.txt will install the correct version,
     """
+    # We use a fork of pyimgui: https://github.com/pthom/pyimgui.git@pthom/docking_2022_04_05
+    # proposed as a PR here: https://github.com/pyimgui/pyimgui/pull/274
     my_chdir(EXTERNAL_DIR)
     _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", "pthom/docking_2022_04_05")
     my_chdir("pyimgui")
