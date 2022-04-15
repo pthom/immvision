@@ -3,8 +3,13 @@ import OpenGL.GL as gl
 import cv2
 import numpy as np
 
-def hello():
-    print("hello")
+
+COUNTER = 0
+
+def IncCounter():
+    global COUNTER
+    COUNTER += 1
+    print(f"COUNTER = {COUNTER}")
 
 
 def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
