@@ -14,7 +14,7 @@ if DEV_MODE:
     import os
     import sys
     sys.path.append(os.getcwd())
-    import _core_immvision_pybind as immvision;
+    import _core_immvision_pybind as immvision
 else:
     import immvision;
 
@@ -23,7 +23,8 @@ image = cv2.imread("/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvisi
 
 def _test_gui_function(params: imgui_runner.ImguiAppParams):
     imgui.text("Hello there!")
-    # immvision.Image(image, True, (600, 600), True)
+    #immvision.Image(image, True, [300, 300], True)
+    immvision.ImageNavigator(image)
     if imgui.button("Exit"):
         params.app_shall_exit = True
     if (imgui.button("Truc")):
@@ -44,4 +45,3 @@ if __name__ == "__main__":
 
     params.gui_function = my_gui
     imgui_runner.run(params)
-

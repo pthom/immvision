@@ -1,6 +1,7 @@
 #include "immvision/immvision.h"
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include "immvision/internal/opencv_pybind_converter.h"
 
 
@@ -9,23 +10,39 @@
 
 namespace py = pybind11;
 
+namespace ImmVision_GlProvider
+{
+    void IncCounter();
+    // InitGlProvider must be called after the OpenGl Loader is initialized
+    void InitGlProvider();
+    // InitGlProvider must be called before the OpenGl Loader is reset
+    void ResetGlProvider();
+}
+
 int add(int a, int b)
 {
     return a + b;
 }
 
-//template<typename T>
-//void Image(
-//    const pybind11::array_t<T>& image,
-//    bool refresh,
-//    const std::array<int, 2> size = {0, 0},
-//    bool isBgrOrBgra = true
-//)
-//{
-//    cv::Mat m = numpy_opencv_convert::np_array_to_cv_mat(image);
-//    cv::Size cv_size(size[0], size[1]);
-//    ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
-//}
+void Image(
+    const cv::Mat& m,
+    bool refresh,
+    const std::array<int, 2> size = {0, 0},
+    bool isBgrOrBgra = true
+)
+{
+    cv::Size cv_size(size[0], size[1]);
+    ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
+}
+
+
+
+cv::Point2d ImageNavigator(const cv::Mat& image)
+{
+    cv::Size cv_size(300, 300);
+    return ImmVision::ImageNavigator(image, cv_size);
+}
+
 //
 //
 //void Truc2(const cv::Mat& image_rgba)
@@ -57,10 +74,10 @@ int add(int a, int b)
 
 // This function will call the 2 casters defined in opencv_pybind_converter
 // The unit tests check that the values and types are unmodified
-//cv::Mat RoundTrip_Mat_To_BufferInfo_To_Mat(const cv::Mat& m)
-//{
-//    return m;
-//}
+cv::Mat RoundTrip_Mat_To_BufferInfo_To_Mat(const cv::Mat& m)
+{
+    return m;
+}
 
 PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
     m.doc() = R"pbdoc(
@@ -83,6 +100,19 @@ PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
 
 //    m.def("Truc2", Truc2);
 //    m.def("RoundTrip_Mat_To_BufferInfo_To_Mat", RoundTrip_Mat_To_BufferInfo_To_Mat);
+
+    m.def("Image", Image);
+    m.def("ImageNavigator", ImageNavigator);
+
+    m.def("IncCounter", ImmVision_GlProvider::IncCounter);
+    m.def("InitGlProvider", ImmVision_GlProvider::InitGlProvider);
+    m.def("ResetGlProvider", ImmVision_GlProvider::ResetGlProvider);
+
+    py::class_<cv::Point2d>(m, "cv.Point2d") // TODO : transform into array!
+        .def(py::init<>())
+        .def_readwrite("x", &cv::Point2d::x)
+        .def_readwrite("y", &cv::Point2d::y);
+
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
