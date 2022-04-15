@@ -2,6 +2,7 @@
 
 #include "immvision/internal/cv_drawing_utils.h"
 #include "immvision/internal/gl_provider.h"
+#include "immvision/internal/imgui_imm_gl_image.h"
 
 namespace ImmVision
 {
@@ -21,7 +22,7 @@ namespace ImmVision
         ImVec2 size_(size);
         if (size.x == 0.f)
             size_ = this->mImageSize;
-        ImGui::Image(toImTextureID(this->mImTextureId), size_, uv0, uv1, tint_col, border_col);
+        ImGuiImmGlImage::Image(this->mImTextureId, size_, uv0, uv1, tint_col, border_col);
     }
 
     bool GlTexture::DrawButton(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) const
@@ -29,7 +30,7 @@ namespace ImmVision
         ImVec2 size_(size);
         if (size.x == 0.f)
             size_ = this->mImageSize;
-        return ImGui::ImageButton(toImTextureID(this->mImTextureId), size_, uv0, uv1, frame_padding, bg_col, tint_col);
+        return ImGuiImmGlImage::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
     }
 
     void GlTexture::Draw_DisableDragWindow(const ImVec2 &size) const
@@ -43,7 +44,7 @@ namespace ImmVision
         std::stringstream id;
         id << "##" << mImTextureId;
         ImGui::InvisibleButton(id.str().c_str(), size);
-        ImGui::GetWindowDrawList()->AddImage(toImTextureID(mImTextureId), imageTl, imageBr);
+        ImGuiImmGlImage::GetWindowDrawList_AddImage(mImTextureId, imageTl, imageBr);
     }
 
     void GlTexture::Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height)

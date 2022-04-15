@@ -8,6 +8,7 @@
 #include "immvision/internal/imgui_imm.h"
 #include "immvision/internal/cv_drawing_utils.h"
 #include "immvision/internal/portable_file_dialogs.h"
+#include "immvision/internal/imgui_imm_gl_image.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -1326,8 +1327,8 @@ namespace ImmVision
                 float imageRatio = cache.GlTexture.mImageSize.x / cache.GlTexture.mImageSize.y;
                 ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
-                ImGui::GetWindowDrawList()->AddImage(cache.GlTexture.TextureId_AsVoid(), image_tl, image_br);
 
+                ImGuiImmGlImage::GetWindowDrawList_AddImage(cache.GlTexture.mImTextureId, image_tl, image_br);
             }
             ImGui::EndListBox();
         }

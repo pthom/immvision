@@ -3,6 +3,7 @@
 #include "immvision/internal/gl_texture.h"
 #include "immvision/image_navigator.h"
 #include "immvision/internal/imgui_imm.h"
+#include "immvision/internal/imgui_imm_gl_image.h"
 #include <opencv2/core/core.hpp>
 #include "imgui_internal.h"
 #include <map>
@@ -230,7 +231,7 @@ namespace ImmVision
 
         static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
 
-        ImTextureID GetIcon(IconType iconType)
+        unsigned int GetIcon(IconType iconType)
         {
             if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
             {
@@ -244,7 +245,7 @@ namespace ImmVision
                 auto texture = std::make_unique<GlTextureCv>(m, true);
                 sIconsTextureCache[iconType] = std::move(texture);
             }
-            return toImTextureID(sIconsTextureCache[iconType]->mImTextureId);
+            return sIconsTextureCache[iconType]->mImTextureId;
         }
 
         bool IconButton(IconType iconType, bool disabled, ImVec2 size)
@@ -263,12 +264,13 @@ namespace ImmVision
                 spaceLabel += " ";
             bool clicked = ImGui::Button(spaceLabel.c_str());
 
-            ImGui::GetWindowDrawList()->AddImage(
+            ImGuiImmGlImage::GetWindowDrawList_AddImage(
                 GetIcon(iconType), cursorPos, {cursorPos.x + size.x, cursorPos.y + size.y},
                 ImVec2(0.f, 0.f),
                 ImVec2(1.f, 1.f),
                 backColor
                 );
+
             if (disabled)
                 ImGuiImm::PopDisabled();
             ImGui::PopID();
@@ -292,11 +294,11 @@ namespace ImmVision
             ImmVision::ImageNavigator(img, &imageNavigatorParams2);
 
             ImVec2 iconSize(15.f, 15.f);
-            ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
         }
 
         void ClearIconsTextureCache()

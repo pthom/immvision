@@ -13,7 +13,7 @@ namespace ImmVision
             ZoomFullView,
             AdjustLevels,
         };
-        ImTextureID GetIcon(IconType iconType);
+        unsigned int GetIcon(IconType iconType);
 
         bool IconButton(IconType iconType, bool disabled = false, ImVec2 size = ImVec2(20.,  20.));
 

@@ -5,8 +5,6 @@
 
 namespace ImmVision
 {
-    inline ImTextureID toImTextureID(unsigned int v) { return (ImTextureID)(intptr_t)v; }
-
     /// GlTexture holds a OpenGL Texture (created via glGenTextures)
     /// You can blit (i.e transfer) image buffer onto it.
     /// The linked OpenGL texture lifetime is linked to this.
@@ -25,8 +23,6 @@ namespace ImmVision
         void Draw_DisableDragWindow(const ImVec2& size = ImVec2(0, 0)) const;
 
         void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
-
-        void *TextureId_AsVoid() { return toImTextureID(mImTextureId); }
 
         // members
         ImVec2 mImageSize;
