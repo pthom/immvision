@@ -1,5 +1,5 @@
 #pragma once
-#ifdef IMMVISION_PYBIND
+#ifdef IMMVISION_BUILDING_PYBIND
 
 #include <opencv2/core/core.hpp>
 #include <pybind11/numpy.h>
@@ -93,4 +93,4 @@ namespace pybind11
     }  // namespace detail
 }  // namespace pybind11
 
-#endif // #ifdef IMMVISION_PYBIND
+#endif // #ifdef IMMVISION_BUILDING_PYBIND

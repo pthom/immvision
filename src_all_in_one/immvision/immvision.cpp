@@ -63,7 +63,8 @@ namespace ImmVision
 
     cv::Point2d GetImageMousePos();
 
-    void ClearTextureCache();
+    void ClearImageTextureCache();
+    void ClearAllTextureCaches();
 
 } // namespace ImmVision
 
@@ -153,6 +154,139 @@ namespace ImGuiImm
 }
 
 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/image.cpp continued                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision.h included by src/immvision/image.cpp                          //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/image_navigator.h included by src/immvision/immvision.h                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <vector>
+
+namespace ImmVision
+{
+    struct ColorAdjustmentsValues
+    {
+        double Factor = 1., Delta = 0.;
+    };
+
+    struct ImageNavigatorParams
+    {
+        cv::Size ImageDisplaySize = cv::Size();
+        std::string Legend = "Image Navigator";
+
+        cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
+        std::string ZoomKey = "";
+
+        ColorAdjustmentsValues ColorAdjustments = {};
+        std::string ColorAdjustmentsKey = "";
+
+        // Image navigation
+        bool PanWithMouse = true;
+        bool ZoomWithMouseWheel = true;
+
+        // Input Image Color order: RGB or RGBA versus BGR or BGRA
+        // (Note: by default OpenCV uses BGR and BGRA)
+        bool IsColorOrderBGR = true;
+
+        // Image display options
+        int  SelectedChannel = -1; // if >= 0 then only this channel is displayed
+        bool ShowAlphaChannelCheckerboard = true;
+        // Image display options when zoom is high
+        bool ShowGrid = true;
+        bool DrawValuesOnZoomedPixels = true;
+
+        // Navigator display options
+        bool ShowImageInfo = true;
+        bool ShowPixelInfo = true;
+        bool ShowZoomButtons = true;
+        bool ShowLegendBorder = true;
+        bool ShowOptions = false;
+        bool ShowOptionsInTooltip = false;
+
+        // Watched Pixels
+        std::vector<cv::Point> WatchedPixels;
+        bool HighlightWatchedPixels = true;
+    };
+
+    cv::Point2d ImageNavigator(
+        const cv::Mat& image,
+        ImageNavigatorParams* params,
+        bool refreshImage = false
+        );
+
+    cv::Point2d ImageNavigator(
+        const cv::Mat& image,
+        const cv::Size& imageDisplaySize = cv::Size(),
+        const std::string& legend = "Image Navigator",
+        bool refreshImage = false,
+        bool showOptionsWhenAppearing = false,
+        const std::string& zoomKey = "",
+        const std::string& colorAdjustmentsKey = ""
+    );
+
+    cv::Matx33d MakeZoomMatrix(
+        const cv::Point2d & zoomCenter,
+        double zoomRatio,
+        const cv::Size displayedImageSize
+    );
+
+    void ClearNavigatorTextureCache();
+
+
+    ////////////////////////////////////////////
+    // Inspector
+    ////////////////////////////////////////////
+    void Inspector_AddImage(
+        const cv::Mat& image,
+        const std::string& legend,
+        const std::string& zoomKey = "",
+        const std::string& colorAdjustmentsKey = "",
+        const cv::Point2d & zoomCenter = cv::Point2d(),
+        double zoomRatio = -1.,
+        bool isColorOrderBGR = true
+    );
+    void Inspector_Show();
+    void Inspector_ClearImages();
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/image.cpp continued                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/internal_icons.h included by src/immvision/image.cpp            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace Icons
+    {
+        enum class IconType
+        {
+            ZoomPlus,
+            ZoomMinus,
+            ZoomScaleOne,
+            ZoomFullView,
+            AdjustLevels,
+        };
+        ImTextureID GetIcon(IconType iconType);
+
+        bool IconButton(IconType iconType, bool disabled = false, ImVec2 size = ImVec2(20.,  20.));
+
+        void ClearIconsTextureCache();
+
+        void DevelPlaygroundGui();
+
+    } // namespace Icons
+} // namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -282,9 +416,16 @@ namespace ImmVision
         return mousePositionOriginal;
     }
 
-    void ClearTextureCache()
+    void ClearImageTextureCache()
     {
         internal::gTextureCache.ClearAllTextures();
+    }
+
+    void ClearAllTextureCaches()
+    {
+        ClearImageTextureCache();
+        Icons::ClearIconsTextureCache();
+        ClearNavigatorTextureCache();
     }
     
 } // namespace ImmVision
@@ -296,133 +437,6 @@ namespace ImmVision
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/image_navigator.h included by src/immvision/image_navigator.cpp          //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#include <vector>
-
-namespace ImmVision
-{
-    struct ColorAdjustmentsValues
-    {
-        double Factor = 1., Delta = 0.;
-    };
-
-    struct ImageNavigatorParams
-    {
-        cv::Size ImageDisplaySize = cv::Size();
-        std::string Legend = "Image Navigator";
-
-        cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
-        std::string ZoomKey = "";
-
-        ColorAdjustmentsValues ColorAdjustments = {};
-        std::string ColorAdjustmentsKey = "";
-
-        // Image navigation
-        bool PanWithMouse = true;
-        bool ZoomWithMouseWheel = true;
-
-        // Input Image Color order: RGB or RGBA versus BGR or BGRA
-        // (Note: by default OpenCV uses BGR and BGRA)
-        bool IsColorOrderBGR = true;
-
-        // Image display options
-        int  SelectedChannel = -1; // if >= 0 then only this channel is displayed
-        bool ShowAlphaChannelCheckerboard = true;
-        // Image display options when zoom is high
-        bool ShowGrid = true;
-        bool DrawValuesOnZoomedPixels = true;
-
-        // Navigator display options
-        bool ShowImageInfo = true;
-        bool ShowPixelInfo = true;
-        bool ShowZoomButtons = true;
-        bool ShowLegendBorder = true;
-        bool ShowOptions = false;
-        bool ShowOptionsInTooltip = false;
-
-        // Watched Pixels
-        std::vector<cv::Point> WatchedPixels;
-        bool HighlightWatchedPixels = true;
-    };
-
-    cv::Point2d ImageNavigator(
-        const cv::Mat& image,
-        ImageNavigatorParams* params,
-        bool refreshImage = false
-        );
-
-    cv::Point2d ImageNavigator(
-        const cv::Mat& image,
-        const cv::Size& imageDisplaySize = cv::Size(),
-        const std::string& legend = "Image Navigator",
-        bool refreshImage = false,
-        bool showOptionsWhenAppearing = false,
-        const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = ""
-    );
-
-    cv::Matx33d MakeZoomMatrix(
-        const cv::Point2d & zoomCenter,
-        double zoomRatio,
-        const cv::Size displayedImageSize
-    );
-
-
-
-
-    ////////////////////////////////////////////
-    // Inspector
-    ////////////////////////////////////////////
-    void Inspector_AddImage(
-        const cv::Mat& image,
-        const std::string& legend,
-        const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
-    );
-    void Inspector_Show();
-    void Inspector_ClearImages();
-
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/image_navigator.cpp continued                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/internal_icons.h included by src/immvision/image_navigator.cpp  //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace Icons
-    {
-        enum class IconType
-        {
-            ZoomPlus,
-            ZoomMinus,
-            ZoomScaleOne,
-            ZoomFullView,
-            AdjustLevels,
-        };
-        ImTextureID GetIcon(IconType iconType);
-
-        bool IconButton(IconType iconType, bool disabled = false, ImVec2 size = ImVec2(20.,  20.));
-
-        void DevelPlaygroundGui();
-
-    } // namespace Icons
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/image_navigator.cpp continued                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv_drawing_utils.h included by src/immvision/image_navigator.cpp//
@@ -3090,6 +3104,11 @@ namespace ImmVision
                 return mCache.at(&image);
             }
 
+            void ClearCache()
+            {
+                mCache.clear();
+            }
+
         private:
             // Methods
             void UpdateLinkedZooms(const cv::Mat& image)
@@ -3120,6 +3139,10 @@ namespace ImmVision
         static ImageNavigatorTextureCache gImageNavigatorTextureCache;
     } // namespace ImageNavigatorUtils
 
+    void ClearNavigatorTextureCache()
+    {
+        ImageNavigatorUtils::gImageNavigatorTextureCache.ClearCache();
+    }
 
     cv::Point2d ImageNavigator(
         const cv::Mat& image,
@@ -3134,7 +3157,6 @@ namespace ImmVision
 
         ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
         auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
-
         //
         // Lambda / panel Title
         //
@@ -3494,6 +3516,7 @@ namespace ImmVision
             ImageNavigatorWidgets::ShowPixelColorWidget(image, mouseLoc, *params);
         };
 
+
         //
         // GUI
         //
@@ -3502,7 +3525,8 @@ namespace ImmVision
 
         // BeginGroupPanel
         bool drawBorder = params->ShowLegendBorder || (! params->ShowOptionsInTooltip);
-        ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
+        //ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);     // KK
+        ImGui::BeginGroup();
         {
             ImGui::BeginGroup();
             // Show image
@@ -3515,15 +3539,18 @@ namespace ImmVision
             fnHandleMouseDragging();
             fnHandleMouseWheel(mouseLocation_originalImage);
 
-            // Zoom+ / Zoom- buttons
-            fnShowZoomButtons();
-            // adjust button
+            if (true) // KK
             {
-                if (!params->ShowZoomButtons)
-                    ImGui::NewLine();
-                ImGuiImm::SameLineAlignRight(20.f, (float)params->ImageDisplaySize.width);
-                if (Icons::IconButton(Icons::IconType::AdjustLevels))
-                    fnToggleShowOptions();
+                // Zoom+ / Zoom- buttons
+                fnShowZoomButtons(); // Broken ???
+                // adjust button
+                {
+//                    if (!params->ShowZoomButtons)
+//                        ImGui::NewLine();
+//                    ImGuiImm::SameLineAlignRight(20.f, (float)params->ImageDisplaySize.width);
+//                    if (Icons::IconButton(Icons::IconType::AdjustLevels))
+//                        fnToggleShowOptions();
+                }
             }
 
             // Show infos
@@ -3536,7 +3563,9 @@ namespace ImmVision
             // Show Options
             fnOptionGui();
         }
-        ImGuiImm::EndGroupPanel_FlagBorder();
+        // ImGuiImm::EndGroupPanel_FlagBorder();
+        ImGui::EndGroup();
+
         ImGui::PopID(); ImGui::PopID();
 
         return mouseLocation_originalImage;
@@ -3777,14 +3806,6 @@ namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/immvision.cpp                                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/immvision.h included by src/immvision/immvision.cpp                      //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/immvision.cpp continued                                                  //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace immvision
@@ -4391,7 +4412,7 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl_provider.cpp                                                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef IMMVISION_PYBIND
+#ifndef IMMVISION_BUILDING_PYBIND
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4400,11 +4421,15 @@ namespace ImmVision
 
 namespace ImmVision_GlProvider
 {
+    // InitGlProvider must be called after the OpenGl Loader is initialized
+    void InitGlProvider();
+    // InitGlProvider must be called before the OpenGl Loader is reset
+    void ResetGlProvider();
+
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId);
     unsigned int GenTexture();
     void DeleteTexture(unsigned int texture_id);
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl_provider.cpp continued                                       //
@@ -4448,12 +4473,35 @@ namespace ImmVision_GlProvider
 //                       src/immvision/internal/gl_provider.cpp continued                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//#ifdef __APPLE__
-//#include "TargetConditionals.h"
-//#endif
-
 namespace ImmVision_GlProvider
 {
+    void _AssertOpenGlLoaderWorking()
+    {
+        size_t glGenTexturesAddress = (size_t)glGenTextures;
+        size_t glDeleteTexturesAddress = (size_t)glDeleteTextures;
+
+        if ((glGenTexturesAddress == 0) || (glDeleteTexturesAddress == 0))
+        {
+            const char* err_msg = "glGenTextures/glDeleteTexturesAddress address not initialized. Is your your OpenGL Loader initialized?";
+            std::cerr << err_msg;
+            assert(false);
+            throw std::runtime_error(err_msg);
+        }
+    }
+
+    void InitGlProvider()
+    {
+        // InitGlProvider must be called after the OpenGl Loader is initialized
+        _AssertOpenGlLoaderWorking();
+    }
+
+    void ResetGlProvider()
+    {
+        // InitGlProvider must be called before the OpenGl Loader is reset
+        _AssertOpenGlLoaderWorking();
+        ImmVision::ClearAllTextureCaches();
+    }
+
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)
     {
         // std::cout << "Blit_RGBA_Buffer()\n";
@@ -4476,14 +4524,7 @@ namespace ImmVision_GlProvider
     unsigned int GenTexture()
     {
         std::cout << "GenTexture()\n";
-        size_t glGenTexturesAddress = (size_t)glGenTextures;
-        if (glGenTexturesAddress == 0)
-        {
-            const char* err_msg = "glGenTextures address not initialized. Did you initialize your OpenGL Loader?";
-            std::cerr << err_msg;
-            throw std::runtime_error(err_msg);
-        }
-
+        _AssertOpenGlLoaderWorking();
         GLuint textureId_Gl;
         glGenTextures(1, &textureId_Gl);
         return textureId_Gl;
@@ -4492,23 +4533,24 @@ namespace ImmVision_GlProvider
     void DeleteTexture(unsigned int texture_id)
     {
         std::cout << "DeleteTexture()\n";
+        _AssertOpenGlLoaderWorking();
         glDeleteTextures(1, &texture_id);
     }
 }
 
-#endif // #ifndef IMMVISION_PYBIND
+#endif // #ifndef IMMVISION_BUILDING_PYBIND
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl_provider_python.cpp                                          //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef IMMVISION_PYBIND
+#ifdef IMMVISION_BUILDING_PYBIND
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/opencv_pybind_converter.h included by src/immvision/internal/gl_provider_python.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef IMMVISION_PYBIND
+#ifdef IMMVISION_BUILDING_PYBIND
 
 #include <pybind11/numpy.h>
 
@@ -4599,7 +4641,7 @@ namespace pybind11
     }  // namespace detail
 }  // namespace pybind11
 
-#endif // #ifdef IMMVISION_PYBIND
+#endif // #ifdef IMMVISION_BUILDING_PYBIND
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4618,20 +4660,33 @@ namespace ImmVision_GlProvider
             Blit_RGBA_Buffer = PythonModule.attr("Blit_RGBA_Buffer");
             GenTexture = PythonModule.attr("GenTexture");
             DeleteTexture = PythonModule.attr("DeleteTexture");
+            IncCounter = PythonModule.attr("IncCounter");
         }
-
         pybind11::object PythonModule;
         pybind11::object Blit_RGBA_Buffer;
         pybind11::object GenTexture;
         pybind11::object DeleteTexture;
-
-        static PythonFunctions Instance()
-        {
-            static PythonFunctions instance;
-            return instance;
-        }
+        pybind11::object IncCounter;
     };
 
+    std::unique_ptr<PythonFunctions> gPythonFunctions; // = std::make_unique<PythonFunctions>();
+
+    void InitGlProvider()
+    {
+        // InitGlProvider must be called after the OpenGl Loader is initialized
+        if (!gPythonFunctions)
+            gPythonFunctions = std::make_unique<PythonFunctions>();
+    }
+
+    void ResetGlProvider()
+    {
+        // InitGlProvider must be called before the OpenGl Loader is reset
+        ImmVision::ClearAllTextureCaches();
+        gPythonFunctions.release();
+    }
+
+
+    bool gEnableOpenGl = true;
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)
     {
@@ -4639,42 +4694,56 @@ namespace ImmVision_GlProvider
 //        pybind11::object python_module = pybind11::module_::import("gl_provider_python");
 //        (void)python_module;
 
-        //PythonFunctions gPythonFunctions;
+        assert(gPythonFunctions);
 
-        std::cout << "C++ : Blit_RGBA_Buffer about to create Mat\n";
-        cv::Mat m(image_height, image_width, CV_8UC4, image_data);
-        std::cout << "C++ : Blit_RGBA_Buffer about to call PythonFunctions::Blit_RGBA_Buffer\n";
-        PythonFunctions::Instance().Blit_RGBA_Buffer(m, textureId);
-        std::cout << "C++ : Blit_RGBA_Buffer done!\n";
+        if (gEnableOpenGl)
+        {
+            std::cout << "C++ : Blit_RGBA_Buffer about to create Mat\n";
+            cv::Mat m(image_height, image_width, CV_8UC4, image_data);
+            std::cout << "C++ : Blit_RGBA_Buffer about to call PythonFunctions::Blit_RGBA_Buffer\n";
+            gPythonFunctions->Blit_RGBA_Buffer(m, textureId);
+            std::cout << "C++ : Blit_RGBA_Buffer done!\n";
+        }
     }
 
     unsigned int GenTexture()
     {
-        //PythonFunctions gPythonFunctions;
+        assert(gPythonFunctions);
 
-        std::cout << "C++ About to call GenTexture\n";
-        pybind11::object id_object = PythonFunctions::Instance().GenTexture();
-        auto texture_id = id_object.cast<unsigned int>();
-        std::cout << "C++ After calling GenTexture, texture_id=%i" << texture_id << "\n";
-        return  texture_id;
+        if (gEnableOpenGl)
+        {
+            std::cout << "C++ About to call GenTexture\n";
+            pybind11::object id_object = gPythonFunctions->GenTexture();
+            auto texture_id = id_object.cast<unsigned int>();
+            std::cout << "C++ After calling GenTexture, texture_id=%i" << texture_id << "\n";
+            return  texture_id;
+        }
+        else
+            return 0;
     }
 
     void DeleteTexture(unsigned int texture_id)
     {
-        //PythonFunctions gPythonFunctions;
+        assert(gPythonFunctions);
+        if (gEnableOpenGl)
+        {
+            std::cout << "C++ About to call DeleteTexture\n";
+            gPythonFunctions->DeleteTexture(texture_id);
+            std::cout << "C++ After calling DeleteTexture\n";
+        }
+    }
 
-        std::cout << "C++ About to call DeleteTexture\n";
-        PythonFunctions::Instance().DeleteTexture(texture_id);
-        std::cout << "C++ After calling DeleteTexture\n";
+    void IncCounter()
+    {
+        gPythonFunctions->IncCounter();
     }
 }
 
-#endif // #ifdef IMMVISION_PYBIND
+#endif // #ifdef IMMVISION_BUILDING_PYBIND
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl_texture.cpp                                                  //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 namespace ImmVision
 {
@@ -4694,7 +4763,8 @@ namespace ImmVision
         ImVec2 size_(size);
         if (size.x == 0.f)
             size_ = this->mImageSize;
-        ImGui::Image(toImTextureID(this->mImTextureId), size_, uv0, uv1, tint_col, border_col);
+        ImGui::Text("GlTexture::Draw");
+        //ImGui::Image(toImTextureID(this->mImTextureId), size_, uv0, uv1, tint_col, border_col);
     }
 
     bool GlTexture::DrawButton(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) const
@@ -4702,7 +4772,10 @@ namespace ImmVision
         ImVec2 size_(size);
         if (size.x == 0.f)
             size_ = this->mImageSize;
-        return ImGui::ImageButton(toImTextureID(this->mImTextureId), size_, uv0, uv1, frame_padding, bg_col, tint_col);
+        //bool r = ImGui::ImageButton(toImTextureID(this->mImTextureId), size_, uv0, uv1, frame_padding, bg_col, tint_col);
+        bool r = false;
+        ImGui::Text("ImageButton(%i) / in DrawButton ", mImTextureId);
+        return r;
     }
 
     void GlTexture::Draw_DisableDragWindow(const ImVec2 &size) const
@@ -4716,7 +4789,8 @@ namespace ImmVision
         std::stringstream id;
         id << "##" << mImTextureId;
         ImGui::InvisibleButton(id.str().c_str(), size);
-        ImGui::GetWindowDrawList()->AddImage(toImTextureID(mImTextureId), imageTl, imageBr);
+        ImGui::Text("WindowDrawList()->AddImage(%i) / in Draw_DisableDragWindow ", mImTextureId);
+        //ImGui::GetWindowDrawList()->AddImage(toImTextureID(mImTextureId), imageTl, imageBr);
     }
 
     void GlTexture::Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height)
@@ -4792,8 +4866,8 @@ namespace ImGuiImm
     }
     void PopDisabled()
     {
-        ImGui::PopItemFlag();
         ImGui::PopStyleVar();
+        ImGui::PopItemFlag();
     }
 
     void SameLineAlignRight(float rightMargin, float alignRegionWidth)
@@ -5605,10 +5679,11 @@ namespace ImmVision
         }
 
 
+        static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
+
         ImTextureID GetIcon(IconType iconType)
         {
-            static std::map<IconType, std::unique_ptr<GlTextureCv>> textureCache;
-            if (textureCache.find(iconType) == textureCache.end())
+            if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
             {
                 cv::Mat m;
                 if (iconType == IconType::ZoomFullView)
@@ -5618,9 +5693,9 @@ namespace ImmVision
                 else
                     m = MakeMagnifierImage(iconType);
                 auto texture = std::make_unique<GlTextureCv>(m, true);
-                textureCache[iconType] = std::move(texture);
+                sIconsTextureCache[iconType] = std::move(texture);
             }
-            return toImTextureID(textureCache[iconType]->mImTextureId);
+            return toImTextureID(sIconsTextureCache[iconType]->mImTextureId);
         }
 
         bool IconButton(IconType iconType, bool disabled, ImVec2 size)
@@ -5634,17 +5709,20 @@ namespace ImmVision
                 ImGuiImm::PushDisabled();
 
             // Cannot use InvisibleButton, since it does not handle "Repeat"
-            std::string spaceLabel = " ";
+            //std::string spaceLabel = " ";
+            std::string spaceLabel = "[" + std::to_string((int)(intptr_t)GetIcon(iconType)) + "]";
             while (ImGui::CalcTextSize(spaceLabel.c_str()).x < 14.f)
                 spaceLabel += " ";
             bool clicked = ImGui::Button(spaceLabel.c_str());
 
-            ImGui::GetWindowDrawList()->AddImage(
-                GetIcon(iconType), cursorPos, {cursorPos.x + size.x, cursorPos.y + size.y},
-                ImVec2(0.f, 0.f),
-                ImVec2(1.f, 1.f),
-                backColor
-                );
+//            ImGui::GetWindowDrawList()->AddImage(
+//                GetIcon(iconType), cursorPos, {cursorPos.x + size.x, cursorPos.y + size.y},
+//                ImVec2(0.f, 0.f),
+//                ImVec2(1.f, 1.f),
+//                backColor
+//                );
+            //ImGui::Text("[%i]", (int)(intptr_t)GetIcon(iconType));
+
             if (disabled)
                 ImGuiImm::PopDisabled();
             ImGui::PopID();
@@ -5675,14 +5753,21 @@ namespace ImmVision
             ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
         }
 
-    } // namespace Icons
+        void ClearIconsTextureCache()
+        {
+            Icons::sIconsTextureCache.clear();
+        }
+
+} // namespace Icons
+
+
 } // namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/opencv_pybind_converter.cpp                                     //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef IMMVISION_PYBIND
+#ifdef IMMVISION_BUILDING_PYBIND
 
 
 
@@ -5868,5 +5953,5 @@ namespace opencv_pybind_converter
 
 
 
-#endif // #ifdef IMMVISION_PYBIND
+#endif // #ifdef IMMVISION_BUILDING_PYBIND
 

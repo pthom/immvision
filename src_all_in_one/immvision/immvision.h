@@ -63,7 +63,8 @@ namespace ImmVision
 
     cv::Point2d GetImageMousePos();
 
-    void ClearTextureCache();
+    void ClearImageTextureCache();
+    void ClearAllTextureCaches();
 
 } // namespace ImmVision
 
@@ -145,7 +146,7 @@ namespace ImmVision
         const cv::Size displayedImageSize
     );
 
-
+    void ClearNavigatorTextureCache();
 
 
     ////////////////////////////////////////////

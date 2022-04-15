@@ -1,4 +1,4 @@
-#ifndef IMMVISION_PYBIND
+#ifndef IMMVISION_BUILDING_PYBIND
 
 #include "immvision/internal/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
@@ -12,11 +12,11 @@ namespace ImmVision_GlProvider
         size_t glGenTexturesAddress = (size_t)glGenTextures;
         size_t glDeleteTexturesAddress = (size_t)glDeleteTextures;
 
-        if ((glGenTexturesAddress == 0) || (glDeleteTextures == 0))
+        if ((glGenTexturesAddress == 0) || (glDeleteTexturesAddress == 0))
         {
             const char* err_msg = "glGenTextures/glDeleteTexturesAddress address not initialized. Is your your OpenGL Loader initialized?";
             std::cerr << err_msg;
-            assert(false;)
+            assert(false);
             throw std::runtime_error(err_msg);
         }
     }
@@ -70,4 +70,4 @@ namespace ImmVision_GlProvider
     }
 }
 
-#endif // #ifndef IMMVISION_PYBIND
+#endif // #ifndef IMMVISION_BUILDING_PYBIND

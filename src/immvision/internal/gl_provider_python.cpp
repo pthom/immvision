@@ -1,6 +1,7 @@
-#ifdef IMMVISION_PYBIND
+#ifdef IMMVISION_BUILDING_PYBIND
 
 #include "immvision/internal/gl_provider.h"
+#include "immvision/image.h"
 #include "immvision/internal/opencv_pybind_converter.h"
 
 #include <opencv2/core.hpp>
@@ -98,4 +99,4 @@ namespace ImmVision_GlProvider
     }
 }
 
-#endif // #ifdef IMMVISION_PYBIND
+#endif // #ifdef IMMVISION_BUILDING_PYBIND
