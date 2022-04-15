@@ -72,7 +72,7 @@ namespace ImmVision
         const cv::Size displayedImageSize
     );
 
-
+    void ClearNavigatorTextureCache();
 
 
     ////////////////////////////////////////////

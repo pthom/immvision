@@ -2,6 +2,8 @@
 
 #include "immvision/internal/gl_texture.h"
 #include "immvision/internal/imgui_imm.h"
+#include "immvision/immvision.h"
+#include "immvision/internal/internal_icons.h"
 
 #include <map>
 #include <chrono>
@@ -127,9 +129,16 @@ namespace ImmVision
         return mousePositionOriginal;
     }
 
-    void ClearTextureCache()
+    void ClearImageTextureCache()
     {
         internal::gTextureCache.ClearAllTextures();
+    }
+
+    void ClearAllTextureCaches()
+    {
+        ClearImageTextureCache();
+        Icons::ClearIconsTextureCache();
+        ClearNavigatorTextureCache();
     }
     
 } // namespace ImmVision

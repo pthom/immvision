@@ -17,6 +17,8 @@ namespace ImmVision
 
         bool IconButton(IconType iconType, bool disabled = false, ImVec2 size = ImVec2(20.,  20.));
 
+        void ClearIconsTextureCache();
+
         void DevelPlaygroundGui();
 
     } // namespace Icons

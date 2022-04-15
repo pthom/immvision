@@ -774,6 +774,11 @@ namespace ImmVision
                 return mCache.at(&image);
             }
 
+            void ClearCache()
+            {
+                mCache.clear();
+            }
+
         private:
             // Methods
             void UpdateLinkedZooms(const cv::Mat& image)
@@ -804,6 +809,10 @@ namespace ImmVision
         static ImageNavigatorTextureCache gImageNavigatorTextureCache;
     } // namespace ImageNavigatorUtils
 
+    void ClearNavigatorTextureCache()
+    {
+        ImageNavigatorUtils::gImageNavigatorTextureCache.ClearCache();
+    }
 
     cv::Point2d ImageNavigator(
         const cv::Mat& image,
@@ -818,7 +827,6 @@ namespace ImmVision
 
         ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
         auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
-
         //
         // Lambda / panel Title
         //
@@ -1177,6 +1185,7 @@ namespace ImmVision
             }
             ImageNavigatorWidgets::ShowPixelColorWidget(image, mouseLoc, *params);
         };
+
 
         //
         // GUI

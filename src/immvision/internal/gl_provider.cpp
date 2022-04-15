@@ -2,14 +2,38 @@
 
 #include "immvision/internal/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
+#include "immvision/image.h"
 #include <iostream>
-
-//#ifdef __APPLE__
-//#include "TargetConditionals.h"
-//#endif
 
 namespace ImmVision_GlProvider
 {
+    void _AssertOpenGlLoaderWorking()
+    {
+        size_t glGenTexturesAddress = (size_t)glGenTextures;
+        size_t glDeleteTexturesAddress = (size_t)glDeleteTextures;
+
+        if ((glGenTexturesAddress == 0) || (glDeleteTextures == 0))
+        {
+            const char* err_msg = "glGenTextures/glDeleteTexturesAddress address not initialized. Is your your OpenGL Loader initialized?";
+            std::cerr << err_msg;
+            assert(false;)
+            throw std::runtime_error(err_msg);
+        }
+    }
+
+    void InitGlProvider()
+    {
+        // InitGlProvider must be called after the OpenGl Loader is initialized
+        _AssertOpenGlLoaderWorking();
+    }
+
+    void ResetGlProvider()
+    {
+        // InitGlProvider must be called before the OpenGl Loader is reset
+        _AssertOpenGlLoaderWorking();
+        ImmVision::ClearAllTextureCaches();
+    }
+
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)
     {
         // std::cout << "Blit_RGBA_Buffer()\n";
@@ -32,14 +56,7 @@ namespace ImmVision_GlProvider
     unsigned int GenTexture()
     {
         std::cout << "GenTexture()\n";
-        size_t glGenTexturesAddress = (size_t)glGenTextures;
-        if (glGenTexturesAddress == 0)
-        {
-            const char* err_msg = "glGenTextures address not initialized. Did you initialize your OpenGL Loader?";
-            std::cerr << err_msg;
-            throw std::runtime_error(err_msg);
-        }
-
+        _AssertOpenGlLoaderWorking();
         GLuint textureId_Gl;
         glGenTextures(1, &textureId_Gl);
         return textureId_Gl;
@@ -48,6 +65,7 @@ namespace ImmVision_GlProvider
     void DeleteTexture(unsigned int texture_id)
     {
         std::cout << "DeleteTexture()\n";
+        _AssertOpenGlLoaderWorking();
         glDeleteTextures(1, &texture_id);
     }
 }

@@ -33,13 +33,21 @@ def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
 
 
 def GenTexture() -> int:
-    texture_id = gl.glGenTextures(1)
+    try:
+        texture_id = gl.glGenTextures(1)
+    except Exception as e:
+        print(f"gl_provider_python.py: glGenTextures failed : {e}")
+
     print(f"Python GenTexture return texture_id={texture_id}")
     return texture_id
 
 
 def DeleteTexture(texture_id: int):
-    gl.glDeleteTextures([texture_id])
+    try:
+        gl.glDeleteTextures([texture_id])
+    except Exception as e:
+        print(f"gl_provider_python.py: glDeleteTextures failed : {e}")
+
     print(f"Python DeleteTexture texture_id={texture_id}")
 
 

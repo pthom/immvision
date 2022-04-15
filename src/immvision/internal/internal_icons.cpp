@@ -228,10 +228,11 @@ namespace ImmVision
         }
 
 
+        static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
+
         ImTextureID GetIcon(IconType iconType)
         {
-            static std::map<IconType, std::unique_ptr<GlTextureCv>> textureCache;
-            if (textureCache.find(iconType) == textureCache.end())
+            if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
             {
                 cv::Mat m;
                 if (iconType == IconType::ZoomFullView)
@@ -241,9 +242,9 @@ namespace ImmVision
                 else
                     m = MakeMagnifierImage(iconType);
                 auto texture = std::make_unique<GlTextureCv>(m, true);
-                textureCache[iconType] = std::move(texture);
+                sIconsTextureCache[iconType] = std::move(texture);
             }
-            return toImTextureID(textureCache[iconType]->mImTextureId);
+            return toImTextureID(sIconsTextureCache[iconType]->mImTextureId);
         }
 
         bool IconButton(IconType iconType, bool disabled, ImVec2 size)
@@ -298,5 +299,12 @@ namespace ImmVision
             ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
         }
 
-    } // namespace Icons
+        void ClearIconsTextureCache()
+        {
+            Icons::sIconsTextureCache.clear();
+        }
+
+} // namespace Icons
+
+
 } // namespace ImmVision
