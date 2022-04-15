@@ -12,16 +12,8 @@ namespace py = pybind11;
 
 namespace ImmVision_GlProvider
 {
-    void IncCounter();
-    // InitGlProvider must be called after the OpenGl Loader is initialized
     void InitGlProvider();
-    // InitGlProvider must be called before the OpenGl Loader is reset
     void ResetGlProvider();
-}
-
-int add(int a, int b)
-{
-    return a + b;
 }
 
 void Image(
@@ -35,41 +27,11 @@ void Image(
     ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
 }
 
-
-
 cv::Point2d ImageNavigator(const cv::Mat& image)
 {
-    cv::Size cv_size(300, 300);
+    cv::Size cv_size(600, 600);
     return ImmVision::ImageNavigator(image, cv_size);
 }
-
-//
-//
-//void Truc2(const cv::Mat& image_rgba)
-//{
-//    // Use Python to make our directories
-//    py::object python_module = py::module_::import("gl_provider_python");
-//    py::object Blit_RGBA_Buffer = python_module.attr("Blit_RGBA_Buffer");
-//    py::object GenTexture = python_module.attr("GenTexture");
-//    py::object DeleteTexture = python_module.attr("DeleteTexture");
-//
-//    std::cout << "Entering Truc2 with image of size " << image_rgba.cols << "*" << image_rgba.rows
-//              << " and type=" << image_rgba.type() << " (CV_8UC4=" << CV_8UC4 <<")\n";
-//
-//    std::cout << "C++ About to call GenTexture\n";
-//    py::object id_object = GenTexture();
-//    auto texture_id = id_object.cast<unsigned int>();
-//    std::cout << "C++ After calling GenTexture, texture_id=%i" << texture_id << "\n";
-//
-//
-//    std::cout << "C++ About to call Blit_RGBA_Buffer with image\n";
-//    Blit_RGBA_Buffer(image_rgba, texture_id);
-//    std::cout << "C++ After calling Blit_RGBA_Buffer\n";
-//
-//    std::cout << "C++ About to call DeleteTexture\n";
-//    py::object q = DeleteTexture(texture_id);
-//    std::cout << "C++ After calling DeleteTexture\n";
-//}
 
 
 // This function will call the 2 casters defined in opencv_pybind_converter
@@ -84,27 +46,15 @@ PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
         immvision: immediate image debugger and insights
         -----------------------
         https://github.com/pthom/immvision/
-
-        .. currentmodule:: immvision
-
-        .. autosummary::
-           :toctree: _generate
-
-           add
-           subtract
     )pbdoc";
 
-    m.def("add", &add, R"pbdoc(
-        Add two numbers
-    )pbdoc");
-
-//    m.def("Truc2", Truc2);
-//    m.def("RoundTrip_Mat_To_BufferInfo_To_Mat", RoundTrip_Mat_To_BufferInfo_To_Mat);
+    m.def("add", [](int a, int b) { return a + b; },
+          R"pbdoc(Add two numbers)pbdoc"
+          );
 
     m.def("Image", Image);
     m.def("ImageNavigator", ImageNavigator);
 
-    m.def("IncCounter", ImmVision_GlProvider::IncCounter);
     m.def("InitGlProvider", ImmVision_GlProvider::InitGlProvider);
     m.def("ResetGlProvider", ImmVision_GlProvider::ResetGlProvider);
 

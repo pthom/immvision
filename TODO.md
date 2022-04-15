@@ -1,8 +1,6 @@
 * [ ] imgui_datascience: use sdl2?
 * [ ] ImGui manual: build release!
 * [ ] Deploy
-  * [ ] Python module 
-    * [ ] Test https://github.com/pybind/scikit_build_example ou https://github.com/pybind/cmake_example  
   * [ ] All in one version
     * [X] All in one immvision
     * [ ] All in one immdebug
@@ -14,6 +12,16 @@
   * [N] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact
     Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
 
+* [ ] Python module
+    * [ ] Remaining bugs (sameline_align et cie)
+    * [ ] rename native module to cimmvision
+    * [ ] classify code & add missing signatures
+    * [ ] test fresh pip install
+    * [ ] CI
+      * [ ] test fresh install sous docker
+    * [ ] publish opencv_converter: add unit tests
+    * [X] Plantage lors du Draw ImGui... Trouver un moyen de le faire par appel a python ?
+    * [ ] Plantage meme sans Draw Image => probleme de compatibilité de versions ImGui probable...
 
 
 * [ ] immvision

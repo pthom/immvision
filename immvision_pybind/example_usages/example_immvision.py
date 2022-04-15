@@ -18,22 +18,15 @@ if DEV_MODE:
 else:
     import immvision;
 
-
-image = cv2.imread("/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision_demos/inspector_demo/assets/reddit_place_2022.png")
+folder = "/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision_demos/inspector_demo/assets/"
+image = cv2.imread(f"{folder}/reddit_place_2022.png")
 
 def _test_gui_function(params: imgui_runner.ImguiAppParams):
     imgui.text("Hello there!")
-    #immvision.Image(image, True, [300, 300], True)
+    # immvision.Image(image, True, (150, 150), True)
     immvision.ImageNavigator(image)
     if imgui.button("Exit"):
         params.app_shall_exit = True
-    if (imgui.button("Truc")):
-        m4 = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
-        immvision.Truc(m4)
-    if (imgui.button("Truc2")):
-        m4 = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
-        immvision.Truc2(m4)
-
 
 
 

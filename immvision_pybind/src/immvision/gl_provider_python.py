@@ -2,14 +2,8 @@
 import OpenGL.GL as gl
 import cv2
 import numpy as np
-
-
-COUNTER = 0
-
-def IncCounter():
-    global COUNTER
-    COUNTER += 1
-    print(f"COUNTER = {COUNTER}")
+import imgui
+import typing
 
 
 def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
@@ -56,65 +50,37 @@ def DeleteTexture(texture_id: int):
     print(f"Python DeleteTexture texture_id={texture_id}")
 
 
-##############################
-
-from sdl2 import *
-
-def sdl_gl_init():
-    if SDL_Init(SDL_INIT_EVERYTHING) < 0:
-        print("Error: SDL could not initialize! SDL Error: " + SDL_GetError().decode("utf-8"))
-        exit(1)
-
-    # out = SDL_GL_LoadLibrary([])
-    # print(f"SDL_GL_LoadLibrary returned {out}")
-
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24)
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8)
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1)
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1)
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE)
-
-    SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, b"1")
-    SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, b"1")
-
-    window = SDL_CreateWindow("hello".encode('utf-8'),
-                              SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              300, 200,
-                              SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE)
-
-    if window is None:
-        print("Error: Window could not be created! SDL Error: " + SDL_GetError().decode("utf-8"))
-        exit(1)
-
-    gl_context = SDL_GL_CreateContext(window)
-    if gl_context is None:
-        print("Error: Cannot create OpenGL Context! SDL Error: " + SDL_GetError().decode("utf-8"))
-        exit(1)
-
-    SDL_GL_MakeCurrent(window, gl_context)
-    if SDL_GL_SetSwapInterval(1) < 0:
-        print("Warning: Unable to set VSync! SDL Error: " + SDL_GetError().decode("utf-8"))
-        exit(1)
-
-    return window, gl_context
+def image(
+        texture_id: int,
+        float_width: float,
+        float_height: float,
+        tuple_uv0: typing.Tuple[float, float]= (0., 0.),
+        tuple_uv1: typing.Tuple[float, float]= (1., 1.),
+        tuple_tint_color: typing.Tuple[float, float, float, float] =(1., 1., 1., 1.),
+        tuple_border_color: typing.Tuple[float, float, float, float] =(0., 0., 0., 0.)
+          ):
+    imgui.image(texture_id, float_width, float_height, tuple_uv0, tuple_uv1, tuple_tint_color, tuple_border_color)
 
 
+def image_button(
+        texture_id: int,
+        float_width: float,
+        float_height: float,
+        tuple_uv0: typing.Tuple[float, float]= (0., 0.),
+        tuple_uv1: typing.Tuple[float, float]= (1., 1.),
+        tuple_tint_color: typing.Tuple[float, float, float, float] =(1., 1., 1., 1.),
+        tuple_border_color: typing.Tuple[float, float, float, float] =(0., 0., 0., 0.),
+        int_frame_padding: int = -1
+        ):
+    imgui.image_button(texture_id, float_width, float_height, tuple_uv0, tuple_uv1, tuple_tint_color, tuple_border_color, int_frame_padding)
 
-def test_main():
-    window, gl_context = sdl_gl_init()
-    m = cv2.imread("Smiley.png")
-    m2 = cv2.cvtColor(m, cv2.COLOR_BGR2BGRA)
-    print(m2.shape)
-    texture_id = GenTexture()
-    print(f"texture_id={texture_id}")
-    Blit_RGBA_Buffer(m2, texture_id)
-    DeleteTexture(texture_id)
 
-
-if __name__ == "__main__":
-    test_main()
+def get_window_draw_list_add_image(
+        texture_id,
+        p_min: typing.Tuple[float, float],  # 2 values (top left corner)
+        p_max: typing.Tuple[float, float],  # 2 values (bottom right corner)
+        uv_a: typing.Tuple[float, float] = (0,0),
+        uv_b: typing.Tuple[float, float] = (1,1),
+        col: int = 0xffffffff
+        ):
+    imgui.get_window_draw_list().add_image(texture_id, p_min, p_max, uv_a, uv_b, col)

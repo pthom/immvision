@@ -5,6 +5,7 @@
 // Wrappers for ImGui::Image, ImGui::ImageButton and ImGui::GetWindowDrawList()->AddImage
 //
 // They have the same behavior under C++, but under python this is transferred to the python interpreter
+// (see gl_provider_python.cpp for their python definition)
 //
 namespace ImGuiImmGlImage
 {
