@@ -48,8 +48,8 @@ namespace ImGuiImm
     }
     void PopDisabled()
     {
-        ImGui::PopItemFlag();
         ImGui::PopStyleVar();
+        ImGui::PopItemFlag();
     }
 
     void SameLineAlignRight(float rightMargin, float alignRegionWidth)
