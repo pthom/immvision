@@ -218,12 +218,12 @@ def run_build_all():
 ######################################################################
 # imgui and hello_imgui
 ######################################################################
-def _do_clone_repo(git_repo, folder, branch):
+def _do_clone_repo(git_repo, folder, branch_or_tag):
     if not os.path.isdir(f"{EXTERNAL_DIR}/{folder}"):
         my_chdir(EXTERNAL_DIR)
         run(f"git clone {git_repo} {folder}")
     my_chdir(f"{EXTERNAL_DIR}/{folder}")
-    run(f"git checkout {branch}")
+    run(f"git checkout {branch_or_tag}")
     run(f"git pull")
 
 
@@ -513,6 +513,7 @@ def emscripten_update_timestamp():
 ######################################################################
 SOURCE_PYBIND_VENV = f"source {REPO_DIR}/immvision_pybind/venv/bin/activate && "
 
+
 @decorate_loudly_echo_function_name
 def pybind_make_venv():
     """
@@ -530,6 +531,23 @@ def pybind_make_venv():
     
         source {REPO_DIR}/immvision_pybind/venv/bin/activate 
     """)
+
+
+@decorate_loudly_echo_function_name
+def pybind_optional_clone_pyimgui():
+    """
+    (Optional, for pybind building only) Clone pyimgui
+    pyimgui's pip version includes a version of imgui that is too old.
+    scripts/requirements_dev_pybind.txt will install the correct version,
+    from a fork a pyimgui: https://github.com/pthom/pyimgui.git@pthom/docking_2022_04_05
+
+    proposed as a PR here: https://github.com/pyimgui/pyimgui/pull/274
+    """
+    my_chdir(EXTERNAL_DIR)
+    _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", "pthom/docking_2022_04_05")
+    my_chdir("pyimgui")
+    run("git submodule update --init")
+    run(f"{SOURCE_PYBIND_VENV} pip install .")
 
 
 ######################################################################
@@ -586,7 +604,8 @@ def get_all_function_categories():
     function_list_pybind = {
         "name": "Functions to build python bindings (immvision_pybind)",
         "functions": [
-            pybind_make_venv
+            pybind_make_venv,
+            pybind_clone_pyimgui
         ]
     }
 
