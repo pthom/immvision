@@ -18,9 +18,8 @@ setup(
     description="immvision: immediate image debugger and insights",
     author="Pascal Thomet",
     license="",
-    # install_requires=['sdl2', 'opencv-python', 'imgui[sdl2]'],
-    # install_requires=['sdl2', 'opencv-python', 'git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0'],
-    install_requires=['sdl2', 'opencv-python'], # + manually: pip install git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
+    # install_requires=['pysdl2', 'opencv-python', 'imgui[sdl2]'],
+    install_requires=['pysdl2', 'opencv-python', 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_2022_04_05'], # + manually: pip install git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     cmake_install_dir="src/immvision",
