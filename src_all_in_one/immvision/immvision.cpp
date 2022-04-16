@@ -3541,7 +3541,7 @@ namespace ImmVision
         cv::Point2d mouseLocation_originalImage;
 
         // BeginGroupPanel
-        bool drawBorder = params->ShowLegendBorder || (! params->ShowOptionsInTooltip);
+        bool drawBorder = params->ShowLegendBorder;
         ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
         {
             ImGui::BeginGroup();

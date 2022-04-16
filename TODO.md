@@ -24,8 +24,6 @@
   * [ ] publish opencv_converter: add unit tests
   * [N?] pyimgui / version official
 
-ShowLegendBorder or ShowLegend
-
 * [ ] immvision
   * [ ] Compat Eigen ?
   * [ ] doc
