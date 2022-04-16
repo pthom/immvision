@@ -4797,14 +4797,14 @@ namespace
     {
         PythonFunctions()
         {
-            PythonModule = pybind11::module_::import("gl_provider_python");
-            Blit_RGBA_Buffer = PythonModule.attr("Blit_RGBA_Buffer");
-            GenTexture = PythonModule.attr("GenTexture");
-            DeleteTexture = PythonModule.attr("DeleteTexture");
+            PythonModule = pybind11::module_::import("immvision._gl_provider_python");
+            Blit_RGBA_Buffer = PythonModule.attr("_Blit_RGBA_Buffer");
+            GenTexture = PythonModule.attr("_GenTexture");
+            DeleteTexture = PythonModule.attr("_DeleteTexture");
 
-            Image = PythonModule.attr("image");
-            ImageButton = PythonModule.attr("image_button");
-            GetWindowDrawList_AddImage = PythonModule.attr("get_window_draw_list_add_image");
+            Image = PythonModule.attr("_image");
+            ImageButton = PythonModule.attr("_image_button");
+            GetWindowDrawList_AddImage = PythonModule.attr("_get_window_draw_list_add_image");
         }
         pybind11::object PythonModule;
         pybind11::object Blit_RGBA_Buffer;
@@ -6173,6 +6173,7 @@ namespace opencv_pybind_converter
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/short_lived_cache.cpp                                           //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 namespace ImmVision
 {

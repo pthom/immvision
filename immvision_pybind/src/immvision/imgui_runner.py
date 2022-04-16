@@ -1,4 +1,4 @@
-import gl_provider_sentinel
+from . import _gl_provider_sentinel
 from sdl2 import *
 import ctypes
 import OpenGL.GL as gl

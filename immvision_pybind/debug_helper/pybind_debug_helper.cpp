@@ -27,12 +27,12 @@ int main()
     std::string THIS_DIR = std::filesystem::path(__FILE__).parent_path().string();
 
     py::scoped_interpreter guard{};
+
     std::string cmd = R"(
 import sys
 sys.path.append("THIS_DIR")
 import pybind_debug_helper
     )";
     cmd = string_replace(cmd, "THIS_DIR", THIS_DIR);
-
     py::exec(cmd);
 }

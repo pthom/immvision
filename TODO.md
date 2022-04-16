@@ -15,7 +15,7 @@
 
 * [ ] Python module
   * [X] provide power_save
-  * [ ] do not blit if data unchanged
+  * [X] do not blit if data unchanged
   * [ ] classify code & add missing signatures
     * [ ] Provide imgui_runner in the package
   * [ ] CI

@@ -7,7 +7,7 @@ import typing
 
 COUNTER_Blit_RGBA_Buffer = 0
 
-def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
+def _Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
     global COUNTER_Blit_RGBA_Buffer
     COUNTER_Blit_RGBA_Buffer += 1
     print(f"py Blit_RGBA_Buffer {COUNTER_Blit_RGBA_Buffer=}")
@@ -33,22 +33,22 @@ def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
 
 
 
-def GenTexture() -> int:
+def _GenTexture() -> int:
     try:
         texture_id = gl.glGenTextures(1)
     except Exception as e:
-        print(f"gl_provider_python.py: glGenTextures failed : {e}")
+        print(f"_gl_provider_python.py: glGenTextures failed : {e}")
     return texture_id
 
 
-def DeleteTexture(texture_id: int):
+def _DeleteTexture(texture_id: int):
     try:
         gl.glDeleteTextures([texture_id])
     except Exception as e:
-        print(f"gl_provider_python.py: glDeleteTextures failed : {e}")
+        print(f"_gl_provider_python.py: glDeleteTextures failed : {e}")
 
 
-def image(
+def _image(
         texture_id: int,
         float_width: float,
         float_height: float,
@@ -60,7 +60,7 @@ def image(
     imgui.image(texture_id, float_width, float_height, tuple_uv0, tuple_uv1, tuple_tint_color, tuple_border_color)
 
 
-def image_button(
+def _image_button(
         texture_id: int,
         float_width: float,
         float_height: float,
@@ -73,7 +73,7 @@ def image_button(
     imgui.image_button(texture_id, float_width, float_height, tuple_uv0, tuple_uv1, tuple_tint_color, tuple_border_color, int_frame_padding)
 
 
-def get_window_draw_list_add_image(
+def _get_window_draw_list_add_image(
         texture_id,
         p_min: typing.Tuple[float, float],  # 2 values (top left corner)
         p_max: typing.Tuple[float, float],  # 2 values (bottom right corner)

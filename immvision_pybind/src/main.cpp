@@ -27,10 +27,10 @@ void Image(
     ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
 }
 
-cv::Point2d ImageNavigator(const cv::Mat& image)
+void ImageNavigator(const cv::Mat& image)
 {
     cv::Size cv_size(500, 500);
-    return ImmVision::ImageNavigator(image, cv_size);
+    ImmVision::ImageNavigator(image, cv_size);
 }
 
 
@@ -57,12 +57,6 @@ PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
 
     m.def("InitGlProvider", ImmVision_GlProvider::InitGlProvider);
     m.def("ResetGlProvider", ImmVision_GlProvider::ResetGlProvider);
-
-    py::class_<cv::Point2d>(m, "cv.Point2d") // TODO : transform into array!
-        .def(py::init<>())
-        .def_readwrite("x", &cv::Point2d::x)
-        .def_readwrite("y", &cv::Point2d::y);
-
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

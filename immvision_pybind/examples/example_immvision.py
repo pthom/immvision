@@ -1,30 +1,21 @@
 #!/usr/bin/env python3
-
-#  export PYTHONPATH="/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/cmake-build-debug/immvision_pybind:src/immvision/
+import _pybind_libs_path
 
 import imgui
-import imgui_runner
+import immvision
+import immvision.imgui_runner as imgui_runner
 import imgui
 import cv2
 import sdl2
 import numpy as np
 import time
 
-
-DEV_MODE = True
-if DEV_MODE:
-    import os
-    import sys
-    sys.path.append(os.getcwd())
-    import cpp_immvision as immvision
-else:
-    import immvision
-
 folder = "/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision_demos/inspector_demo/assets/"
 image = cv2.imread(f"{folder}/reddit_place_2022.png")
 video_capture = cv2.VideoCapture(0)
 show_video = True
 start_time = time.time_ns()
+
 
 def _test_gui_function(params: imgui_runner.ImguiAppParams):
     global show_video

@@ -54,6 +54,19 @@ target_compile_definitions(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
     )
 install(TARGETS ${IMMVISION_PYBIND_BIN_MODULE_NAME} DESTINATION .)
 
+#
+# Post build: deploy library to ${CMAKE_BINARY_DIR}/_pybind/,
+# so that we can use it as a python package name immvision
+message(WARNING "CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}")
+
+add_custom_command(
+    TARGET ${IMMVISION_PYBIND_BIN_MODULE_NAME}
+    POST_BUILD
+    COMMAND
+    ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/build_utils/postbuild_deploy.py
+      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR}
+    )
+
 
 #
 # immvision_debug_pybind
