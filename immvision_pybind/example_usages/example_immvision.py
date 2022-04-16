@@ -37,7 +37,7 @@ def _test_gui_function(params: imgui_runner.ImguiAppParams):
             imgui.same_line()
             imgui_runner.power_save.set_max_wait_before_next_frame(1/50)
 
-
+    immvision.Image(image, False, (10, 0), True); imgui.same_line()
     immvision.ImageNavigator(image)
     if imgui.button("Exit"):
         params.app_shall_exit = True
