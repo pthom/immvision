@@ -6,7 +6,7 @@ sys.path.append(os.getcwd())
 import imgui
 import cv2
 import numpy as np
-import _core_immvision_pybind as immvision;
+import cpp_immvision as immvision;
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))

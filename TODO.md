@@ -15,23 +15,13 @@
 
 * [ ] Python module
     * [ ] les icones sont moches
-    * [ ] pyimgui
-      * [ ] version docking_powersave: 
-        * [X] correct tests
-        * [X] push
-        * [ ] use in build
-      * [ ] version official
-    * [ ] Remaining bugs (sameline_align et cie)
-        Probablement un probleme de version différentes de imgui (ABI Break)
-        Check si necessaire garder code specif OpenGL
-    * [ ] rename native module to cimmvision
+    * [X] rename native module to cpp_immvision
     * [ ] classify code & add missing signatures
-    * [ ] test fresh pip install
     * [ ] CI
       * [ ] test fresh install sous docker
     * [ ] publish opencv_converter: add unit tests
-    * [X] Plantage lors du Draw ImGui... Trouver un moyen de le faire par appel a python ?
-    * [ ] Plantage meme sans Draw Image => probleme de compatibilité de versions ImGui probable...
+    * [N?] pyimgui / version official
+
 
 
 * [ ] immvision

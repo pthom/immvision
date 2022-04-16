@@ -14,9 +14,9 @@ if DEV_MODE:
     import os
     import sys
     sys.path.append(os.getcwd())
-    import _core_immvision_pybind as immvision
+    import cpp_immvision as immvision
 else:
-    import immvision;
+    import immvision
 
 folder = "/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision_demos/inspector_demo/assets/"
 image = cv2.imread(f"{folder}/reddit_place_2022.png")

@@ -73,21 +73,6 @@ def run(imgui_app_params: ImguiAppParams):
     SDL_DestroyWindow(window)
     SDL_Quit()
 
-# def TRY_INIT_GL_LOADER_FROM_PYTHON():
-#     import cv2
-#     import numpy
-#     DEV_MODE = True
-#     if DEV_MODE:
-#         import os
-#         import sys
-#         sys.path.append(os.getcwd())
-#         import _core_immvision_pybind as immvision;
-#     else:
-#         import immvision;
-#     import sdl2
-#     print(f"In python: sdl2.SDL_GL_GetProcAddress={sdl2.SDL_GL_GetProcAddress} id={id(sdl2.SDL_GL_GetProcAddress)}")
-#     immvision.InitGladGLLoader(id(sdl2.SDL_GL_GetProcAddress))
-#
 
 def _impl_pysdl2_init(imgui_app_params: ImguiAppParams):
     if SDL_Init(SDL_INIT_EVERYTHING) < 0:

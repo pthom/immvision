@@ -19,7 +19,7 @@ endif()
 # Now we can find pybind11
 find_package(pybind11 CONFIG REQUIRED)
 
-set(IMMVISION_PYBIND_BIN_MODULE_NAME _core_immvision_pybind) # was initially _core (can it be changed?)
+set(IMMVISION_PYBIND_BIN_MODULE_NAME cpp_immvision)
 file(GLOB_RECURSE sources_immvision_pybind src/*.cpp src/*.h)
 pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvision_pybind})
 
