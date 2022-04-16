@@ -67,7 +67,7 @@ add_custom_command(
     TARGET ${IMMVISION_PYBIND_BIN_MODULE_NAME}
     POST_BUILD
     COMMAND
-    ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/build_utils/postbuild_deploy.py
+    ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/src/postbuild_deploy.py
       ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR}
     )
 

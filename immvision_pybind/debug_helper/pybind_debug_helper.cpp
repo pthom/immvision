@@ -30,6 +30,7 @@ int main()
 
     std::string cmd = R"(
 import sys
+sys.argv = [sys.argv[0], '-dev']
 sys.path.append("THIS_DIR")
 import pybind_debug_helper
     )";

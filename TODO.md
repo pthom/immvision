@@ -16,13 +16,13 @@
 * [ ] Python module
   * [X] provide power_save
   * [X] do not blit if data unchanged
-  * [ ] Rendre possible de fonctionner avec ou sans hack _pybinds_lib
+  * [X] Rendre possible de fonctionner avec ou sans hack _pybinds_lib
+  * [ ] test fresh install sous docker
+  * [ ] CI
   * [X] classify code
     * [X] Provide imgui_runner in the package
   * [ ] Add missing signatures / cpp
   * [ ] Add nice signatures / python
-  * [ ] CI
-    * [ ] test fresh install sous docker
   * [ ] publish opencv_converter: add unit tests
   * [N?] pyimgui / version official
 

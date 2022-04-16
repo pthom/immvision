@@ -4,7 +4,6 @@
 #include <pybind11/stl.h>
 #include "immvision/internal/opencv_pybind_converter.h"
 
-
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
