@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <vector>
 
 #include "immvision/internal/short_lived_cache.h"
 

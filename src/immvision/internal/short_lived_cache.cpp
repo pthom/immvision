@@ -1,5 +1,7 @@
 #include "immvision/internal/short_lived_cache.h"
 
+#include <chrono>
+
 namespace ImmVision
 {
     namespace internal
