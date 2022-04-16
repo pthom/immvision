@@ -16,7 +16,10 @@
 * [ ] Python module
     * [ ] les icones sont moches
     * [ ] pyimgui
-      * [ ] version docking_powersave: correct tests
+      * [ ] version docking_powersave: 
+        * [X] correct tests
+        * [X] push
+        * [ ] use in build
       * [ ] version official
     * [ ] Remaining bugs (sameline_align et cie)
         Probablement un probleme de version différentes de imgui (ABI Break)

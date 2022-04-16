@@ -543,7 +543,7 @@ def pybind_clone_pyimgui():
     # We use a fork of pyimgui: https://github.com/pthom/pyimgui.git@pthom/docking_2022_04_05
     # proposed as a PR here: https://github.com/pyimgui/pyimgui/pull/274
     my_chdir(EXTERNAL_DIR)
-    _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", "pthom/docking_2022_04_05")
+    _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", "pthom/docking_powsersave")
     my_chdir("pyimgui")
     run("git submodule update --init")
     run(f"{SOURCE_PYBIND_VENV} pip install .")

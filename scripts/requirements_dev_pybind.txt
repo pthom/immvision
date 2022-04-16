@@ -4,4 +4,11 @@ cmake>=3.22
 pysdl2
 scikit-build>=0.14.1
 opencv-contrib-python
-git+https://github.com/pthom/pyimgui.git@pthom/docking_2022_04_05
+
+#
+# this will `pip install imgui` (provided by pyimgui)
+# This is a fork of pyimgui where imgui is a specific version that includes settings for powersave
+#
+# power save version: see PR https://github.com/ocornut/imgui/pull/4076
+# This PR was adapted to imgui docking version of March 2022 here: https://github.com/pthom/imgui/tree/docking_powersave
+git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave
