@@ -128,6 +128,7 @@ struct AppState
     }
 
     cv::Mat Image;
+    bool ShowImageFiltered = true;
     cv::Mat ImageFiltered;
     cv::Size DisplaySize = cv::Size(0, 400);
     SobelParamsValues SobelParams;
@@ -147,10 +148,15 @@ static void guiFunction()
     bool changed  = false;
 
     ImGui::Text("FPS: %.1lf", (double)ImGui::GetIO().Framerate);
-
-    changed |= GuiSobelParams(gAppState.SobelParams);
     ImGui::SameLine();
-    changed |= GuiDisplaySize(gAppState.DisplaySize);
+    ImGui::Checkbox("Show filtered image", &gAppState.ShowImageFiltered);
+
+    if (gAppState.ShowImageFiltered)
+    {
+        changed |= GuiSobelParams(gAppState.SobelParams);
+        ImGui::SameLine();
+        changed |= GuiDisplaySize(gAppState.DisplaySize);
+    }
 
     {
         ImmVision::ImageNavigator(
@@ -164,29 +170,30 @@ static void guiFunction()
         );
 
     }
-    ImGui::SameLine();
-
+    if (gAppState.ShowImageFiltered)
     {
-        static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter;
-        imageNavigatorParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
-        imageNavigatorParamsFilter.ZoomKey = "i";
-        imageNavigatorParamsFilter.ColorAdjustmentsKey = "c";
-        imageNavigatorParamsFilter.Legend = "X & Y Gradients (see channels 0 & 1)";
-
-        ImmVision::ImageNavigator(
-            gAppState.ImageFiltered,
-            &imageNavigatorParamsFilter,
-            changed);
-
-        static bool zoomApplied = false;
-        if (!zoomApplied)
+        ImGui::SameLine();
         {
-            imageNavigatorParamsFilter.ZoomMatrix = ImmVision::MakeZoomMatrix(
-                cv::Point2d(1004., 953.), 40., imageNavigatorParamsFilter.ImageDisplaySize);
+            static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter;
+            imageNavigatorParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
+            imageNavigatorParamsFilter.ZoomKey = "i";
+            imageNavigatorParamsFilter.ColorAdjustmentsKey = "c";
+            imageNavigatorParamsFilter.Legend = "X & Y Gradients (see channels 0 & 1)";
 
-            zoomApplied = true;
+            ImmVision::ImageNavigator(
+                gAppState.ImageFiltered,
+                &imageNavigatorParamsFilter,
+                changed);
+
+            static bool zoomApplied = false;
+            if (!zoomApplied)
+            {
+                imageNavigatorParamsFilter.ZoomMatrix = ImmVision::MakeZoomMatrix(
+                    cv::Point2d(1004., 953.), 40., imageNavigatorParamsFilter.ImageDisplaySize);
+
+                zoomApplied = true;
+            }
         }
-
     }
 
     if (changed)

@@ -2358,6 +2358,149 @@ namespace ImGuiImmGlImage
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/image_navigator.cpp continued                                            //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/short_lived_cache.h included by src/immvision/image_navigator.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+namespace ImmVision
+{
+    namespace internal
+    {
+        double TimerSeconds();
+
+        template<typename Key, typename Value>
+        class Cache
+        {
+        public:
+            bool Contains(const Key& k)
+            {
+                return mDict.find(k) != mDict.end();
+            }
+
+            Value& Get(const Key& k)
+            {
+                assert(mDict.find(k) != mDict.end());
+                return mDict.at(k);
+            }
+
+            void AddKey(const Key& k)
+            {
+                assert(mDict.find(k) == mDict.end());
+                mDict.insert({k, Value()});
+            }
+
+            void RemoveKey(const Key& k)
+            {
+                mDict.erase(k);
+            }
+
+            void Clear()
+            {
+                mDict.clear();
+            }
+
+            std::vector<Key> Keys() const
+            {
+                std::vector<Key> r;
+                for (const auto& kv: mDict)
+                    r.push_back(kv.first);
+                return r;
+            }
+        private:
+            std::map<Key, Value> mDict;
+        };
+
+
+        template<typename Value>
+        class ShortLivedValue
+        {
+        public:
+            ShortLivedValue()
+            {
+                mLastAccessTime = TimerSeconds();
+            }
+            Value& Get()
+            {
+                mLastAccessTime = TimerSeconds();
+                return mValue;
+            }
+            const Value& Get() const
+            {
+                mLastAccessTime = TimerSeconds();
+                return mValue;
+            }
+            double LastAccessTime() const
+            {
+                return mLastAccessTime;
+            }
+        private:
+            mutable double mLastAccessTime = TimerSeconds();
+            Value mValue;
+        };
+
+
+        template<typename Key, typename Value>
+        class ShortLivedCache
+        {
+        public:
+            ShortLivedCache(double timeToLive) : mTimeToLiveSeconds(timeToLive) {}
+            bool Contains(const Key& k)
+            {
+                return mCache.Contains(k);
+            }
+            Value& Get(const Key& k)
+            {
+                auto& cached = mCache.Get(k);
+                // double now = TimerSeconds();
+                // printf("now=%.1f Get %p Last Access Time=%.1f Age=%.1f\n", now, k, cached.LastAccessTime(), now - cached.LastAccessTime());
+                return cached.Get();
+            }
+            const Value& Get(const Key& k) const
+            {
+                return Get(k);
+            }
+            void AddKey(const Key& k)
+            {
+                mCache.AddKey(k);
+            }
+            void RemoveKey(const Key& k)
+            {
+                mCache.RemoveKey(k);
+            }
+            std::vector<Key> Keys() const
+            {
+                return mCache.Keys();
+            }
+
+            void ClearOldEntries()
+            {
+                double now = TimerSeconds();
+                std::vector<Key> oldEntries;
+                for (const auto& key: Keys())
+                    if ((now - mCache.Get(key).LastAccessTime()) > mTimeToLiveSeconds)
+                        oldEntries.push_back(key);
+
+                for (auto& key: oldEntries)
+                    mCache.RemoveKey(key);
+            }
+
+            void Clear()
+            {
+                mCache.Clear();
+            }
+        private:
+            double mTimeToLiveSeconds = 1.;
+            Cache< Key, ShortLivedValue<Value> > mCache;
+        };
+    } // namespace internal
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/image_navigator.cpp continued                                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "imgui_internal.h"
 
 #include <iostream>
@@ -3063,37 +3206,55 @@ namespace ImmVision
         {
         public:
             // members
-            struct CachedData
+            struct CachedParams
             {
+                // This caches are small and will persist during the application lifetime
                 ImageNavigatorParams* NavigatorParams = nullptr;
-                cv::Mat     ImageRgbaCache;
-                GlTextureCv GlTexture;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
                 struct ImageNavigatorParams  PreviousParams;
             };
+            struct CachedImages
+            {
+                // This caches are heavy and will be destroyed
+                // if not used (after about 5 seconds)
+                cv::Mat     ImageRgbaCache;
+                std::unique_ptr<GlTextureCv> GlTexture;
+            };
 
             void UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
             {
+                auto cacheKey = &image;
                 params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
                 bool needsRefreshTexture = refresh;
                 bool shallRefreshRgbaCache = false;
 
-                if (mCache.find(&image) == mCache.end())
+                if (! mCacheParams.Contains(cacheKey))
                 {
                     InitializeMissingParams(params, image);
                     needsRefreshTexture = true;
                     shallRefreshRgbaCache = true;
+                    mCacheParams.AddKey(cacheKey);
                 }
-                mCache[&image].NavigatorParams = params;
+                if (! mCacheImages.Contains(cacheKey))
+                {
+                    mCacheImages.AddKey(cacheKey);
+                    needsRefreshTexture = true;
+                    shallRefreshRgbaCache = true;
+                    mCacheImages.Get(cacheKey).GlTexture = std::make_unique<GlTextureCv>();
+                }
 
-                auto& cachedData = mCache.at(&image);
+                auto& cachedParams = mCacheParams.Get(cacheKey);
+                auto& cachedImages = mCacheImages.Get(cacheKey);
+                cachedParams.NavigatorParams = params;
 
-                ImageNavigatorParams oldParams = cachedData.PreviousParams;
-                *cachedData.NavigatorParams = *params;
+                ImageNavigatorParams oldParams = cachedParams.PreviousParams;
+                *cachedParams.NavigatorParams = *params;
 
+                if (cachedImages.GlTexture->mImageSize.x == 0.f)
+                    needsRefreshTexture = true;
                 if (ShallRefreshTexture(oldParams, *params))
                     needsRefreshTexture = true;
                 if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
@@ -3104,7 +3265,7 @@ namespace ImmVision
                     if (ShallRefreshRgbaCache(oldParams, *params))
                         shallRefreshRgbaCache = true;
                     ImageNavigatorDrawing::BlitImageNavigatorTexture(
-                        *params, image, cachedData.ImageRgbaCache, shallRefreshRgbaCache, &cachedData.GlTexture);
+                        *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
                 }
 
                 if (! ZoomMatrix::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
@@ -3112,53 +3273,68 @@ namespace ImmVision
                 if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
                     UpdateLinkedColorAdjustments(image);
 
-                cachedData.PreviousParams = *params;
+                cachedParams.PreviousParams = *params;
+
+                mCacheImages.ClearOldEntries();
             }
 
-            CachedData& GetCache(const cv::Mat& image)
+            CachedParams& GetCacheParams(const cv::Mat& image)
             {
-                assert(mCache.find(&image) != mCache.end());
-                return mCache.at(&image);
+                return mCacheParams.Get(&image);
+            }
+            CachedImages& GetCacheImages(const cv::Mat& image)
+            {
+                return mCacheImages.Get(&image);
             }
 
-            void ClearCache()
+            void ClearImagesCache()
             {
-                mCache.clear();
+                mCacheImages.Clear();
             }
 
         private:
             // Methods
             void UpdateLinkedZooms(const cv::Mat& image)
             {
-                assert(mCache.find(&image) != mCache.end());
-                std::string key = mCache[&image].NavigatorParams->ZoomKey;
-                if (key.empty())
+                auto currentCacheKey = &image;
+                auto & currentCache = mCacheParams.Get(&image);
+                std::string zoomKey = currentCache.NavigatorParams->ZoomKey;
+                if (zoomKey.empty())
                     return;
-                ZoomMatrix::ZoomMatrixType newZoom = mCache[&image].NavigatorParams->ZoomMatrix;
-                for (auto& kv : mCache)
-                    if ((kv.second.NavigatorParams->ZoomKey == key) && (kv.first != &image))
-                        kv.second.NavigatorParams->ZoomMatrix = newZoom;
+                ZoomMatrix::ZoomMatrixType newZoom = currentCache.NavigatorParams->ZoomMatrix;
+                for (auto& otherCacheKey : mCacheParams.Keys())
+                {
+                    CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
+                    if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ZoomKey == zoomKey))
+                        otherCache.NavigatorParams->ZoomMatrix = newZoom;
+                }
             }
             void UpdateLinkedColorAdjustments(const cv::Mat& image)
             {
-                assert(mCache.find(&image) != mCache.end());
-                std::string key = mCache[&image].NavigatorParams->ColorAdjustmentsKey;
-                if (key.empty())
+                auto currentCacheKey = &image;
+                auto & currentCache = mCacheParams.Get(&image);
+                std::string colorKey = currentCache.NavigatorParams->ColorAdjustmentsKey;
+                if (colorKey.empty())
                     return;
-                ColorAdjustmentsValues newColorAdjustments = mCache[&image].NavigatorParams->ColorAdjustments;
-                for (auto& kv : mCache)
-                    if ((kv.second.NavigatorParams->ColorAdjustmentsKey == key) && (kv.first != &image))
-                        kv.second.NavigatorParams->ColorAdjustments = newColorAdjustments;
+                ColorAdjustmentsValues newColorAdjustments = currentCache.NavigatorParams->ColorAdjustments;
+                for (auto& otherCacheKey : mCacheParams.Keys())
+                {
+                    CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
+                    if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ColorAdjustmentsKey == colorKey))
+                        otherCache.NavigatorParams->ColorAdjustments = newColorAdjustments;
+                }
             }
 
-            std::map<const cv::Mat*, CachedData> mCache;
+            internal::Cache<const cv::Mat *, CachedParams> mCacheParams;
+            double mCachedImagesTimeToLive = 5.;
+            internal::ShortLivedCache<const cv::Mat *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
         };
         static ImageNavigatorTextureCache gImageNavigatorTextureCache;
     } // namespace ImageNavigatorUtils
 
     void ClearNavigatorTextureCache()
     {
-        ImageNavigatorUtils::gImageNavigatorTextureCache.ClearCache();
+        ImageNavigatorUtils::gImageNavigatorTextureCache.ClearImagesCache();
     }
 
     cv::Point2d ImageNavigator(
@@ -3173,7 +3349,8 @@ namespace ImmVision
         }
 
         ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
-        auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(image);
+        auto &cacheParams = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheParams(image);
+        auto &cacheImages = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheImages(image);
         //
         // Lambda / panel Title
         //
@@ -3256,7 +3433,7 @@ namespace ImmVision
         //
         // Lambdas / Options & Adjustments
         //
-        auto fnOptionsInnerGui = [&params, &cache, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded]()
+        auto fnOptionsInnerGui = [&params, &cacheParams, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded]()
         {
             float optionsWidth = 330.f;
             // Group with fixed width, so that Collapsing headers stop at optionsWidth
@@ -3374,7 +3551,7 @@ namespace ImmVision
                 else
                 {
                     ImGui::Text("File name");
-                    char *filename = cache.FilenameEditBuffer.data();
+                    char *filename = cacheParams.FilenameEditBuffer.data();
                     ImGui::SetNextItemWidth(200.f);
                     ImGui::InputText("##filename", filename, 1000);
                     //ImGui::SetNextItemWidth(200.f);
@@ -3419,25 +3596,25 @@ namespace ImmVision
         // Lambdas / Handle Zoom
         //
         // Mouse dragging
-        auto fnHandleMouseDragging = [&cache, &params]()
+        auto fnHandleMouseDragging = [&cacheParams, &params]()
         {
             ZoomMatrix::ZoomMatrixType& zoomMatrix = params->ZoomMatrix;
 
             int mouseDragButton = 0;
             bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && ImGui::IsItemHovered();
             if (isMouseDraggingInside)
-                cache.IsMouseDragging = true;
+                cacheParams.IsMouseDragging = true;
             if (! ImGui::IsMouseDown(mouseDragButton))
             {
-                cache.IsMouseDragging = false;
-                cache.LastDragDelta = ImVec2(0.f, 0.f);
+                cacheParams.IsMouseDragging = false;
+                cacheParams.LastDragDelta = ImVec2(0.f, 0.f);
             }
-            if (cache.IsMouseDragging && params->PanWithMouse )
+            if (cacheParams.IsMouseDragging && params->PanWithMouse )
             {
                 ImVec2 dragDelta = ImGui::GetMouseDragDelta(mouseDragButton);
-                ImVec2 dragDeltaDelta(dragDelta.x - cache.LastDragDelta.x, dragDelta.y - cache.LastDragDelta.y);
+                ImVec2 dragDeltaDelta(dragDelta.x - cacheParams.LastDragDelta.x, dragDelta.y - cacheParams.LastDragDelta.y);
                 zoomMatrix = zoomMatrix * ZoomMatrix::ComputePanMatrix(dragDeltaDelta, zoomMatrix(0, 0));
-                cache.LastDragDelta = dragDelta;
+                cacheParams.LastDragDelta = dragDelta;
             }
         };
         auto fnHandleMouseWheel = [&params](const cv::Point2d& mouseLocation)
@@ -3506,9 +3683,9 @@ namespace ImmVision
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params, &cache]()
+        auto fnShowImage = [&params, &cacheImages]()
         {
-            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(cache.GlTexture, ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
+            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(*cacheImages.GlTexture, ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
             cv::Point2d mouseLocation_originalImage =
                 ImGui::IsItemHovered() ? ZoomMatrix::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
             return mouseLocation_originalImage;
@@ -3661,7 +3838,7 @@ namespace ImmVision
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
                 std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
-                auto &cache = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCache(
+                auto &cacheImage = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheImages(
                     s_Inspector_ImagesAndParams[i].Image);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
@@ -3670,11 +3847,11 @@ namespace ImmVision
                 if (ImGui::Selectable(id.c_str(), is_selected, 0, itemSize))
                     s_Inspector_CurrentIndex = i;
 
-                float imageRatio = cache.GlTexture.mImageSize.x / cache.GlTexture.mImageSize.y;
+                float imageRatio = cacheImage.GlTexture->mImageSize.x / cacheImage.GlTexture->mImageSize.y;
                 ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
 
-                ImGuiImmGlImage::GetWindowDrawList_AddImage(cache.GlTexture.mImTextureId, image_tl, image_br);
+                ImGuiImmGlImage::GetWindowDrawList_AddImage(cacheImage.GlTexture->mImTextureId, image_tl, image_br);
             }
             ImGui::EndListBox();
         }
@@ -4515,7 +4692,9 @@ namespace ImmVision_GlProvider
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)
     {
-        // std::cout << "Blit_RGBA_Buffer()\n";
+        static int counter = 0;
+        ++counter;
+        std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
         glBindTexture(GL_TEXTURE_2D, textureId);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -6038,4 +6217,26 @@ namespace opencv_pybind_converter
 
 
 #endif // #ifdef IMMVISION_BUILDING_PYBIND
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/short_lived_cache.cpp                                           //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace internal
+    {
+        double TimerSeconds()
+        {
+            using chrono_second = std::chrono::duration<double, std::ratio<1>>;
+            using chrono_clock = std::chrono::steady_clock;
+
+            static std::chrono::time_point<chrono_clock> startTime = chrono_clock::now();
+            double elapsed = std::chrono::duration_cast<chrono_second>(chrono_clock::now() - startTime).count();
+            return elapsed;
+        }
+
+    } // namespace internal
+} // namespace ImmVision
 

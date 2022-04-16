@@ -5,8 +5,12 @@ import numpy as np
 import imgui
 import typing
 
+COUNTER_Blit_RGBA_Buffer = 0
 
 def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
+    global COUNTER_Blit_RGBA_Buffer
+    COUNTER_Blit_RGBA_Buffer += 1
+    print(f"py Blit_RGBA_Buffer {COUNTER_Blit_RGBA_Buffer=}")
     width = img_rgba.shape[1]
     height = img_rgba.shape[0]
     gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)

@@ -36,7 +36,9 @@ namespace ImmVision_GlProvider
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)
     {
-        // std::cout << "Blit_RGBA_Buffer()\n";
+        static int counter = 0;
+        ++counter;
+        std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
         glBindTexture(GL_TEXTURE_2D, textureId);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
