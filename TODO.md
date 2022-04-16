@@ -14,15 +14,15 @@
     Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
 
 * [ ] Python module
-    * [ ] les icones sont moches
-    * [X] rename native module to cpp_immvision
-    * [ ] classify code & add missing signatures
-    * [ ] CI
-      * [ ] test fresh install sous docker
-    * [ ] publish opencv_converter: add unit tests
-    * [N?] pyimgui / version official
-
-
+  * [ ] use power_save
+  * [ ] les icones sont moches
+  * [X] rename native module to cpp_immvision
+  * [ ] classify code & add missing signatures
+  * [ ] CI
+    * [ ] test fresh install sous docker
+  * [ ] publish opencv_converter: add unit tests
+  * [N?] pyimgui / version official
+  
 
 * [ ] immvision
   * [ ] Compat Eigen ?

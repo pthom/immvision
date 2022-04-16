@@ -7,7 +7,6 @@ import typing
 
 
 def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
-    print(f"Python, entering Blit_RGBA_Buffer, shape={img_rgba.shape} texture_id={texture_id}")
     width = img_rgba.shape[1]
     height = img_rgba.shape[0]
     gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
@@ -27,7 +26,6 @@ def Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
         img_rgba,
     )
     gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-    print(f"Python, exiting Blit_RGBA_Buffer texture_id={texture_id}")
 
 
 
@@ -36,8 +34,6 @@ def GenTexture() -> int:
         texture_id = gl.glGenTextures(1)
     except Exception as e:
         print(f"gl_provider_python.py: glGenTextures failed : {e}")
-
-    print(f"Python GenTexture return texture_id={texture_id}")
     return texture_id
 
 
@@ -46,8 +42,6 @@ def DeleteTexture(texture_id: int):
         gl.glDeleteTextures([texture_id])
     except Exception as e:
         print(f"gl_provider_python.py: glDeleteTextures failed : {e}")
-
-    print(f"Python DeleteTexture texture_id={texture_id}")
 
 
 def image(
