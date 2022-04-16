@@ -3542,13 +3542,7 @@ namespace ImmVision
 
         // BeginGroupPanel
         bool drawBorder = params->ShowLegendBorder || (! params->ShowOptionsInTooltip);
-
-        //ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);     // KK
-
-        ImGui::Text("%s", fnPanelTitle().c_str());
-        ImGui::BeginGroup();
-        (void) drawBorder;
-
+        ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
         {
             ImGui::BeginGroup();
             // Show image
@@ -3582,9 +3576,7 @@ namespace ImmVision
             // Show Options
             fnOptionGui();
         }
-        // ImGuiImm::EndGroupPanel_FlagBorder();
-        ImGui::EndGroup();
-
+        ImGuiImm::EndGroupPanel_FlagBorder();
         ImGui::PopID(); ImGui::PopID();
 
         return mouseLocation_originalImage;
@@ -4939,14 +4931,6 @@ namespace ImGuiImm
 
     void SameLineAlignRight(float rightMargin, float alignRegionWidth)
     {
-//        static bool firstCallEver = true;
-//        if (firstCallEver)
-//        {
-//            ImGui::SameLine();
-//            firstCallEver = false;
-//        }
-        ImGui::SameLine(); return;
-
         auto window = ImGui::GetCurrentWindow();
         if (alignRegionWidth < 0.f)
             alignRegionWidth = window->Size.x;

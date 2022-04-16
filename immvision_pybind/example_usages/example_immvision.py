@@ -29,8 +29,7 @@ def _test_gui_function(params: imgui_runner.ImguiAppParams):
         params.app_shall_exit = True
 
 
-
-if __name__ == "__main__":
+def main():
     params = imgui_runner.ImguiAppParams()
 
     def my_gui():
@@ -38,3 +37,7 @@ if __name__ == "__main__":
 
     params.gui_function = my_gui
     imgui_runner.run(params)
+
+
+if __name__ == "__main__":
+    main()

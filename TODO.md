@@ -2,6 +2,7 @@
 * [ ] ImGui manual: build release!
 * [ ] Deploy
   * [ ] All in one version
+    * [ ] Run script at cmake time instead of build? Via build_script ? Add pre-commit ?
     * [X] All in one immvision
     * [ ] All in one immdebug
       * [ ] functions and methods inline or macro #IMMDEBUG_IMPL (test avec plusieurs fichiers qui l'incluent)
@@ -13,7 +14,13 @@
     Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
 
 * [ ] Python module
+    * [ ] les icones sont moches
+    * [ ] pyimgui
+      * [ ] version docking_powersave: correct tests
+      * [ ] version official
     * [ ] Remaining bugs (sameline_align et cie)
+        Probablement un probleme de version différentes de imgui (ABI Break)
+        Check si necessaire garder code specif OpenGL
     * [ ] rename native module to cimmvision
     * [ ] classify code & add missing signatures
     * [ ] test fresh pip install

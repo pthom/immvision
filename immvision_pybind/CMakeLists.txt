@@ -53,3 +53,12 @@ target_compile_definitions(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
     IMMVISION_BUILDING_PYBIND
     )
 install(TARGETS ${IMMVISION_PYBIND_BIN_MODULE_NAME} DESTINATION .)
+
+
+#
+# immvision_debug_pybind
+#
+find_package(pybind11 CONFIG REQUIRED)
+add_executable(pybind_debug_helper debug_helper/pybind_debug_helper.cpp)
+target_link_libraries(pybind_debug_helper PRIVATE pybind11::embed)
+target_include_directories(pybind_debug_helper PRIVATE ${pybind11_INCLUDE_DIRS})
