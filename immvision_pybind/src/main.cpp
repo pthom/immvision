@@ -29,7 +29,7 @@ void Image(
 
 cv::Point2d ImageNavigator(const cv::Mat& image)
 {
-    cv::Size cv_size(600, 600);
+    cv::Size cv_size(500, 500);
     return ImmVision::ImageNavigator(image, cv_size);
 }
 

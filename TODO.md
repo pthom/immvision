@@ -14,11 +14,10 @@
     Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
 
 * [ ] Python module
-  * [ ] use power_save
-  * [ ] les icones sont moches
-  * [ ] Provide imgui_runner in the package
-  * [X] rename native module to cpp_immvision
+  * [X] provide power_save
+  * [ ] do not blit if data unchanged
   * [ ] classify code & add missing signatures
+    * [ ] Provide imgui_runner in the package
   * [ ] CI
     * [ ] test fresh install sous docker
   * [ ] publish opencv_converter: add unit tests
@@ -27,7 +26,6 @@
 * [ ] immvision
   * [ ] Compat Eigen ?
   * [ ] doc
-
   
 * [ ] Inspector:
   * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
@@ -74,3 +72,5 @@
     // For non-scrolling tables, WorkRect == OuterRect == InnerRect.
     // But at this point we do NOT have a correct value for .Max.y (unless a height has been explicitly passed in). It will only be updated in EndTable().
     table->WorkRect = table->OuterRect = table->InnerRect = outer_rect;
+
+* [?] (Much Later) Plugin python / lldb and gdb 

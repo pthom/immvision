@@ -4,14 +4,29 @@ import ctypes
 import OpenGL.GL as gl
 
 import imgui
+
 from imgui.integrations.sdl2 import SDL2Renderer
 from dataclasses import dataclass
 import typing
 
 
-WINDOWS_TASKBAR_HEIGHT = 60
-WINDOWS_TITLE_HEIGHT = 32
-WINDOWED_FULL_SCREEN_X_MARGIN = 20
+class _PowerSave:
+    USE_POWER_SAVE = True
+    _idle_wait_time = 1. / 4. # 4 fps if idle
+    _max_wait_before_next_frame_seconds: float = _idle_wait_time
+
+    def on_new_frame(self):
+        self._max_wait_before_next_frame_seconds = _PowerSave._idle_wait_time
+
+    def set_max_wait_before_next_frame(self, time_seconds):
+        assert(time_seconds >= 0)
+        self._max_wait_before_next_frame_seconds = time_seconds
+
+    def get_event_waiting_time(self):
+        return self._max_wait_before_next_frame_seconds
+
+
+power_save =  _PowerSave()
 
 
 @dataclass
@@ -27,6 +42,9 @@ class ImguiAppParams:
     windowed_full_screen: bool = False
     # Change this bool to True when you want to exit
     app_shall_exit: bool = False
+    # Use power save: if this is true, you can increase manually the idle FPS by calling
+    # imgui_runner.power_save.set_max_wait_before_next_frame( 1 / desired_fps)
+    use_power_save: bool = True
 
 
 def run(imgui_app_params: ImguiAppParams):
@@ -35,8 +53,13 @@ def run(imgui_app_params: ImguiAppParams):
     impl = SDL2Renderer(window)
 
     running = True
+    power_save.USE_POWER_SAVE = imgui_app_params.use_power_save
     event = SDL_Event()
     while running:
+
+        if power_save.USE_POWER_SAVE:
+            _impl_sdl2_wait_for_event_power_save(window)
+
         while SDL_PollEvent(ctypes.byref(event)) != 0:
             if event.type == SDL_QUIT:
                 running = False
@@ -45,6 +68,7 @@ def run(imgui_app_params: ImguiAppParams):
         impl.process_inputs()
 
         imgui.new_frame()
+        power_save.on_new_frame()
 
         def gui_handler():
             nonlocal running
@@ -118,10 +142,20 @@ def _impl_pysdl2_init(imgui_app_params: ImguiAppParams):
     return window, gl_context
 
 
+def _impl_sdl2_wait_for_event_power_save(window):
+    window_flags = SDL_GetWindowFlags(window)
+    window_is_hidden = window_flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED) > 0
+    waiting_time = power_save._idle_wait_time if window_is_hidden else power_save._max_wait_before_next_frame_seconds
+    if waiting_time > 0:
+        waiting_time_ms = int(1000.0 * waiting_time)
+        SDL_WaitEventTimeout(None, waiting_time_ms)
+
+
 def _test_gui_function(params: ImguiAppParams):
     imgui.text("Hello there!")
     if imgui.button("Exit"):
         params.app_shall_exit = True
+
 
 
 if __name__ == "__main__":
