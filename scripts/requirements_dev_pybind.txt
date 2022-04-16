@@ -4,6 +4,7 @@ cmake>=3.22
 pysdl2
 scikit-build>=0.14.1
 opencv-contrib-python
+PyOpenGL
 
 #
 # this will `pip install imgui` (provided by pyimgui)

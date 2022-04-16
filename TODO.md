@@ -16,8 +16,11 @@
 * [ ] Python module
   * [X] provide power_save
   * [X] do not blit if data unchanged
-  * [ ] classify code & add missing signatures
-    * [ ] Provide imgui_runner in the package
+  * [ ] Rendre possible de fonctionner avec ou sans hack _pybinds_lib
+  * [X] classify code
+    * [X] Provide imgui_runner in the package
+  * [ ] Add missing signatures / cpp
+  * [ ] Add nice signatures / python
   * [ ] CI
     * [ ] test fresh install sous docker
   * [ ] publish opencv_converter: add unit tests
