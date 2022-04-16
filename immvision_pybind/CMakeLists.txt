@@ -41,7 +41,11 @@ if (NOT OpenCV_FOUND)
   message(WARN "find_package(OpenCV) failed, using default (and probably bad) location:
           set(OpenCV_INCLUDE_DIRS ${default_include_dir}) ")
   set(OpenCV_INCLUDE_DIRS ${default_include_dir})
+else()
+  # Hack for broken vcpkg naming
+  set(OpenCV_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS} ${opencv_INCLUDE_DIRS})
 endif()
+
 # 2.2 imgui include dir
 set(imgui_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
 target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${imgui_INCLUDE_DIRS})
