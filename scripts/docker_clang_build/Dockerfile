@@ -37,7 +37,7 @@ RUN echo "Xvfb -screen 0 1280x1024x16 & sleep 1 && icewm & x11vnc -forever  -nca
     chmod +x /start_x_vnc.sh
 
 
-RUN apt-get install -y libopencv-dev libsdl2-dev
+RUN apt-get install -y libopencv-dev libsdl2-dev python3-pip
 
 # Clear package cache
 #RUN rm -rf /var/lib/apt/lists/*
