@@ -4,7 +4,8 @@
 #include "immvision/image_navigator.h"
 #include "immvision/internal/imgui_imm.h"
 #include "immvision/internal/imgui_imm_gl_image.h"
-#include <opencv2/core/core.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 #include "imgui_internal.h"
 #include <map>
 
@@ -230,6 +231,7 @@ namespace ImmVision
 
 
         static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
+        static cv::Size gIconSize(20,  20);
 
         unsigned int GetIcon(IconType iconType)
         {
@@ -242,13 +244,16 @@ namespace ImmVision
                     m = MakeAdjustLevelsImage();
                 else
                     m = MakeMagnifierImage(iconType);
-                auto texture = std::make_unique<GlTextureCv>(m, true);
+
+                cv::Mat resized = m;
+                cv::resize(m, resized, cv::Size(gIconSize.width * 2, gIconSize.height * 2), 0., 0., cv::INTER_AREA);
+                auto texture = std::make_unique<GlTextureCv>(resized, true);
                 sIconsTextureCache[iconType] = std::move(texture);
             }
             return sIconsTextureCache[iconType]->mImTextureId;
         }
 
-        bool IconButton(IconType iconType, bool disabled, ImVec2 size)
+        bool IconButton(IconType iconType, bool disabled)
         {
             ImGui::PushID((int)iconType);
             ImVec2 cursorPos = ImGui::GetCursorScreenPos();
@@ -265,7 +270,9 @@ namespace ImmVision
             bool clicked = ImGui::Button(spaceLabel.c_str());
 
             ImGuiImmGlImage::GetWindowDrawList_AddImage(
-                GetIcon(iconType), cursorPos, {cursorPos.x + size.x, cursorPos.y + size.y},
+                GetIcon(iconType),
+                cursorPos,
+                {cursorPos.x + (float)gIconSize.width, cursorPos.y + (float)gIconSize.height},
                 ImVec2(0.f, 0.f),
                 ImVec2(1.f, 1.f),
                 backColor

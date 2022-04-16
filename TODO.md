@@ -1,5 +1,5 @@
 * [ ] imgui_datascience: use sdl2?
-* [ ] ImGui manual: build release!
+
 * [ ] Deploy
   * [ ] All in one version
     * [ ] Run script at cmake time instead of build? Via build_script ? Add pre-commit ?
@@ -16,13 +16,15 @@
 * [ ] Python module
   * [ ] use power_save
   * [ ] les icones sont moches
+  * [ ] Provide imgui_runner in the package
   * [X] rename native module to cpp_immvision
   * [ ] classify code & add missing signatures
   * [ ] CI
     * [ ] test fresh install sous docker
   * [ ] publish opencv_converter: add unit tests
   * [N?] pyimgui / version official
-  
+
+ShowLegendBorder or ShowLegend
 
 * [ ] immvision
   * [ ] Compat Eigen ?

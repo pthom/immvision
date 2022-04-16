@@ -15,7 +15,7 @@ namespace ImmVision
         };
         unsigned int GetIcon(IconType iconType);
 
-        bool IconButton(IconType iconType, bool disabled = false, ImVec2 size = ImVec2(20.,  20.));
+        bool IconButton(IconType iconType, bool disabled = false);
 
         void ClearIconsTextureCache();
 
