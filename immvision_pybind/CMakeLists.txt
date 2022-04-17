@@ -82,6 +82,17 @@ target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_
 target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
 if (UNIX AND NOT APPLE)
+  message(WARNING "calling
+      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
+      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} symlink_imgui_libs
+      OUTPUT_VARIABLE imgui_libs_folder
+  ")
+  execute_process(COMMAND
+      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
+      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "symlink_imgui_libs"
+      OUTPUT_VARIABLE imgui_libs_folder
+      )
+
   execute_process(COMMAND
       ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
       ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "symlink_imgui_libs"

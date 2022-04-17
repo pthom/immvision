@@ -55,7 +55,7 @@ IS_DOCKER_BUILDER = os.path.isfile("/IMMVISION_DOCKER_BUILDER")
 VENV_NAME = "venv" if not IS_DOCKER_BUILDER else "venv_docker"
 VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
 # use "source" for bash, but for docker we may get "sh" which uses "." instead
-SOURCE_PYBIND_VENV = f"source {VENV_DIR}/bin/activate && " if not IS_DOCKER_BUILDER else f".  {VENV_DIR}/bin/activate && "
+SOURCE_PYBIND_VENV = f". {VENV_DIR}/bin/activate && " if not IS_DOCKER_BUILDER else f".  {VENV_DIR}/bin/activate && "
 
 VCPKG_BASENAME = "vcpkg" if not IS_DOCKER_BUILDER else "vcpkg_docker"
 VCPKG_DIR = f"{REPO_DIR}/external/{VCPKG_BASENAME}"
