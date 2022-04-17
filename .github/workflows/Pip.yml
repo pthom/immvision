@@ -54,6 +54,6 @@ jobs:
     #  ImportError: /dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/immvision/cpp_immvision.cpython-310-x86_64-linux-gnu.so:
     #  undefined symbol: GImGui
     #
-    # - name: pip test import
-    #  run:  |
-    #    python3 -c "import immvision"
+     - name: pip test import
+      run:  |
+        python3 -c "import immvision"
