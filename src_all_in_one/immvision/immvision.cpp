@@ -4805,6 +4805,7 @@ namespace
             Image = PythonModule.attr("_image");
             ImageButton = PythonModule.attr("_image_button");
             GetWindowDrawList_AddImage = PythonModule.attr("_get_window_draw_list_add_image");
+            GetImGuiContextId = PythonModule.attr("_get_imgui_context_id");
         }
         pybind11::object PythonModule;
         pybind11::object Blit_RGBA_Buffer;
@@ -4813,6 +4814,7 @@ namespace
         pybind11::object Image;
         pybind11::object ImageButton;
         pybind11::object GetWindowDrawList_AddImage;
+        pybind11::object GetImGuiContextId;
     };
 
     std::unique_ptr<PythonFunctions> gPythonFunctions; // = std::make_unique<PythonFunctions>();
@@ -4921,6 +4923,14 @@ namespace ImGuiImmGlImage
 
 } // namespace ImGuiImmGlImage
 
+
+size_t GetPythonImGuiContextPointer()
+{
+    assert(gPythonFunctions);
+    pybind11::object r = gPythonFunctions->GetImGuiContextId();
+    size_t ptr = r.cast<size_t>();
+    return ptr;
+}
 
 #endif // #ifdef IMMVISION_BUILDING_PYBIND
 

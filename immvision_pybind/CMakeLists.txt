@@ -78,6 +78,34 @@ else()
 endif()
 target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})
 
+# Link
+target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
+
+#set(imgui_lib_folder "/dvp/sources/immvision_pybind/venv_docker/lib64/python3.10/site-packages/imgui/")
+#target_link_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_lib_folder})
+#target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
+#    core.cpython.so
+#    internal.cpython.so # manually created symlink !!!
+#    )
+
+# Dans
+# /dvp/sources/immvision_pybind/venv_docker/lib64/python3.10/site-packages/imgui#
+# symlinks
+# libcore.cpython.so -> core.cpython-310-x86_64-linux-gnu.so
+# libinternal.cpython.so -> internal.cpython-310-x86_64-linux-gnu.so
+#
+# COMMENT FAIRE
+#pip show imgui
+#Name: imgui
+#Version: 2.0.0
+#Summary: Cython-based Python bindings for dear imgui
+#Home-page: https://github.com/swistakm/pyimgui
+#Author: Michał Jaworski
+#Author-email: swistakm@gmail.com
+#License: BSD
+#Location: /dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages
+
+
 
 # 3. Compile definitions and install
 target_compile_definitions(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE

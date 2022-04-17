@@ -82,3 +82,13 @@ def _get_window_draw_list_add_image(
         col: int = 0xffffffff
         ):
     imgui.get_window_draw_list().add_image(texture_id, p_min, p_max, uv_a, uv_b, col)
+
+
+def _get_imgui_context_id():
+    imgui_context_id = None
+    if len(imgui.core._contexts) == 0:
+        print("get_imgui_context_id ==> No Context !")
+    for nb, ctx in imgui.core._contexts.items():
+        imgui_context_id = id(ctx)
+        break
+    return imgui_context_id

@@ -17,6 +17,27 @@
   * [X] provide power_save
   * [X] do not blit if data unchanged
   * [X] Rendre possible de fonctionner avec ou sans hack _pybinds_lib
+  * [ ] Pb link GImGui: 
+Voir imgui.cpp:1015
+// - Heaps and globals are not shared across DLL boundaries!
+// - You will need to call SetCurrentContext() + SetAllocatorFunctions() for each static/DLL boundary you are calling from.
+
+// Context
+>>> imgui.create_context()
+<imgui.core._ImGuiContext object at 0x10d288f70>
+>>> imgui.core._contexts
+{140717003419648: <imgui.core._ImGuiContext object at 0x10d288f70>}
+for nb, ctx in imgui.core._contexts.items(): print(id(ctx))
+
+// Allocators
+static void*   MallocWrapper(size_t size, void* user_data)    { IM_UNUSED(user_data); return malloc(size); }
+static void    FreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user_data); free(ptr); }
+SetAllocatorFunctions(ImGuiMemAllocFunc alloc_func, ImGuiMemFreeFunc free_func, void* user_data = NULL);
+static ImGuiMemAllocFunc    GImAllocatorAllocFunc = MallocWrapper;
+static ImGuiMemFreeFunc     GImAllocatorFreeFunc = FreeWrapper;
+static void*                GImAllocatorUserData = NULL;
+
+
   * [ ] test fresh install sous docker
   * [ ] CI
   * [X] classify code

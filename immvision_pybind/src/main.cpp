@@ -3,9 +3,13 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "immvision/internal/opencv_pybind_converter.h"
+#include "imgui.h"
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
+
+size_t GetPythonImGuiContextPointer();
+
 
 namespace py = pybind11;
 
@@ -15,6 +19,39 @@ namespace ImmVision_GlProvider
     void ResetGlProvider();
 }
 
+
+static void*   MyMallocWrapper(size_t size, void* user_data)    { IM_UNUSED(user_data); return malloc(size); }
+static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user_data); free(ptr); }
+
+// For linux only!!!
+#if !defined(__APPLE__) && !defined(WIN32)
+#define CREATE_GIMGUI_POINTER
+#endif
+
+#ifdef CREATE_GIMGUI_POINTER
+ImGuiContext*   GImGui = NULL;
+#endif
+
+void SetImGuiContext()
+{
+    if (ImGui::GetCurrentContext() == NULL)
+    {
+        printf("SetImGuiContext detected null context!\n");
+        size_t ctx = GetPythonImGuiContextPointer();
+        printf("SetImGuiContext ctx=%zu\n", ctx);
+
+        ImGuiContext* imGuiContext = (ImGuiContext*) ctx;
+        ImGui::SetCurrentContext(imGuiContext);
+#ifdef CREATE_GIMGUI_POINTER
+        GImGui = imGuiContext;
+#endif
+        ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
+        printf("SetImGuiContext done\n");
+    }
+    printf("SetImGuiContext: nothing to do!\n");
+}
+
+
 void Image(
     const cv::Mat& m,
     bool refresh,
@@ -22,12 +59,15 @@ void Image(
     bool isBgrOrBgra = true
 )
 {
+    SetImGuiContext();
+
     cv::Size cv_size(size[0], size[1]);
     ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
 }
 
 void ImageNavigator(const cv::Mat& image)
 {
+    SetImGuiContext();
     cv::Size cv_size(500, 500);
     ImmVision::ImageNavigator(image, cv_size);
 }
