@@ -33,6 +33,10 @@ jobs:
         cp -a ../external/imgui/ src_copy_cpp/
 
 
+
+    - name: Setup interactive tmate session
+      uses: mxschmitt/action-tmate@v2
+
     # Alternatively we could prepare a venv like this:
     #     pip3 install --upgrade pip
     #     python3 -m venv venv
