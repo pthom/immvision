@@ -65,43 +65,5 @@
   * [N] Copy image to clipboard => voir https://github.com/dacap/clip / Non: rend compilation complexe !
   * [ ] Add param zoomCenter & zoomRatio
 
-
-    ImGuiWindow* outer_window = GetCurrentWindow();
-    const ImVec2 avail_size = GetContentRegionAvail();
-    ImVec2 actual_outer_size = CalcItemSize(outer_size, ImMax(avail_size.x, 1.0f), use_child_window ? ImMax(avail_size.y, 1.0f) : 0.0f);
-    ImRect outer_rect(outer_window->DC.CursorPos, outer_window->DC.CursorPos + actual_outer_size);
-
-    ...
-    // For non-scrolling tables, WorkRect == OuterRect == InnerRect.
-    // But at this point we do NOT have a correct value for .Max.y (unless a height has been explicitly passed in). It will only be updated in EndTable().
-    table->WorkRect = table->OuterRect = table->InnerRect = outer_rect;
-
 * [?] (Much Later) Plugin python / lldb and gdb 
 
-
-
-cd /dvp/sources/immvision_pybind
-python3 -m venv venv_docker
-source /dvp/sources/immvision_pybind/venv_docker/bin/activate &&  pip install -v -r /dvp/sources/scripts/requirements_dev_pybind.txt
-
-    Now, activate your python venv with:
-    
-        source /dvp/sources/immvision_pybind/venv_docker/bin/activate 
-
-
-# ==================================================================
-#                run_cmake
-# ==================================================================
-cd /dvp/build
-cmake /dvp/sources    \
--DIMMVISION_USE_POWERSAVE=ON    \
--DIMMVISION_ACTIVATE_ALL_WARNINGS=ON    \
--DIMMVISION_BUILD_PYTHON_BINDINGS=ON    \
--DPYTHON_EXECUTABLE=/dvp/sources/immvision_pybind/venv/bin/python    \
--DCMAKE_BUILD_TYPE=Release    \
--B .
-
-# ==================================================================
-#                run_build
-# ==================================================================
-make -j

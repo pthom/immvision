@@ -4,6 +4,10 @@ project(immvision VERSION "0.0.1")
 
 set(CMAKE_CXX_STANDARD 17)
 
+if (NOT DEFINED PYTHON_EXECUTABLE)
+  set(PYTHON_EXECUTABLE "python")
+endif()
+
 if(SKBUILD OR IMMVISION_BUILD_PYTHON_BINDINGS)
   # Scikit-Build does not add your site-packages to the search path
   # automatically, so we need to add it _or_ the pybind11 specific directory
@@ -15,7 +19,6 @@ if(SKBUILD OR IMMVISION_BUILD_PYTHON_BINDINGS)
     OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ECHO STDOUT)
   list(APPEND CMAKE_PREFIX_PATH "${_tmp_dir}")
 endif()
-
 # Now we can find pybind11
 find_package(pybind11 CONFIG REQUIRED)
 
@@ -28,14 +31,42 @@ pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvisi
 # do not use targets from the main project, since pip install will run from this subfolder!
 #
 # 1. Add sources
-set(immvision_src_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src/immvision)
+if (IS_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../src/immvision")
+  set(immvision_src_DIRS "${CMAKE_CURRENT_LIST_DIR}/../src/immvision")
+else()
+  # When building the pip package, sometimes we are in a bare copy of this folder
+  # and ".." does not point inside the repository.
+  # So, the pip.yml Github workflow starts by copying imgui and immvision to src_copy_cpp/
+  #
+  # Is it mandatory to copy all the pip building related scripts and settings to the root of the repository?
+  #
+  set(immvision_src_DIRS "${CMAKE_CURRENT_LIST_DIR}/src_copy_cpp/immvision")
+  message(WARNING "Trying to use immvision_src_DIRS=${immvision_src_DIRS}")
+endif()
+if (NOT IS_DIRECTORY ${immvision_src_DIRS})
+  message(FATAL_ERROR "Cannot set immvision_src_DIRS")
+endif()
 file(GLOB_RECURSE sources_immvision ${immvision_src_DIRS}/*.h ${immvision_src_DIRS}/*.cpp)
 target_sources(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${sources_immvision})
 target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${immvision_src_DIRS}/..)
 
 # 2. Add include dirs
 set(default_include_dir ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include)
-# 2.1 Find OpenCV include dir
+# 2.1 imgui include dir
+if (IS_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
+  set(imgui_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
+else()
+  # When building the pip package, sometimes we are in a bare copy of this folder
+  # and ".." does not point inside the repository.
+  # So, the pip.yml Github workflow starts by copying imgui and immvision to src_copy_cpp/
+  set(imgui_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/src_copy_cpp/imgui")
+  message(WARNING "Trying to use imgui_INCLUDE_DIRS=${imgui_INCLUDE_DIRS}")
+endif()
+if (NOT IS_DIRECTORY ${imgui_INCLUDE_DIRS})
+  message(FATAL_ERROR "Cannot set imgui_INCLUDE_DIRS")
+endif()
+target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_INCLUDE_DIRS})
+# 2.2 Find OpenCV include dir
 find_package(OpenCV)
 if (NOT OpenCV_FOUND)
   message(WARN "find_package(OpenCV) failed, using default (and probably bad) location:
@@ -45,10 +76,8 @@ else()
   # Hack for broken vcpkg naming
   set(OpenCV_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS} ${opencv_INCLUDE_DIRS})
 endif()
+target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})
 
-# 2.2 imgui include dir
-set(imgui_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
-target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${imgui_INCLUDE_DIRS})
 
 # 3. Compile definitions and install
 target_compile_definitions(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
@@ -61,8 +90,6 @@ install(TARGETS ${IMMVISION_PYBIND_BIN_MODULE_NAME} DESTINATION .)
 #
 # Post build: deploy library to ${CMAKE_BINARY_DIR}/_pybind/,
 # so that we can use it as a python package name immvision
-message(WARNING "CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}")
-
 add_custom_command(
     TARGET ${IMMVISION_PYBIND_BIN_MODULE_NAME}
     POST_BUILD

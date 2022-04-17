@@ -1,0 +1,59 @@
+name: pip
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+
+    - name: Install needed libraries
+      run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
+
+    - name: Install OpenCV and SDL via apt
+      run: sudo apt-get install -y libopencv-dev libsdl2-dev
+
+    - name: Download imgui
+      run: ./scripts/build_utilities.py run -imgui_download
+
+    # When building the pip package, sometimes we are in a bare copy of the immvision_pybind/ folder
+    # and ".." does not point inside the repository.
+    # So, the pip.yml Github workflow starts by copying imgui and immvision to src_copy_cpp/
+    # and immvision_pybind/CMakeLists will use this
+    - name: Hum... copy immvision and imgui sources to src_copy_cpp
+      run: |
+        cd immvision_pybind
+        mkdir src_copy_cpp
+        cp -a ../src/immvision src_copy_cpp/
+        cp -a ../external/imgui/ src_copy_cpp/
+
+
+    # Alternatively we could prepare a venv like this:
+    #     pip3 install --upgrade pip
+    #     python3 -m venv venv
+    #     source venv/bin/activate
+    - name: pip install
+      run:  |
+        cd immvision_pybind
+        pip3 install -v .
+
+
+    # The built pip fails to import at this moment :
+    # See error below
+    # >>> import immvision
+    #  In init immvision
+    #  Traceback (most recent call last):
+    #    File "<stdin>", line 1, in <module>
+    #    File "/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/immvision/__init__.py", line 4, in <module>
+    #      from .cpp_immvision import __doc__, __version__
+    #  ImportError: /dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/immvision/cpp_immvision.cpython-310-x86_64-linux-gnu.so:
+    #  undefined symbol: GImGui
+    #
+    # - name: pip test import
+    #  run:  |
+    #    python3 -c "import immvision"

@@ -57,6 +57,8 @@ VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
 # use "source" for bash, but for docker we may get "sh" which uses "." instead
 SOURCE_PYBIND_VENV = f"source {VENV_DIR}/bin/activate && " if not IS_DOCKER_BUILDER else f".  {VENV_DIR}/bin/activate && "
 
+VCPKG_BASENAME = "vcpkg" if not IS_DOCKER_BUILDER else "vcpkg_docker"
+VCPKG_DIR = f"{REPO_DIR}/external/{VCPKG_BASENAME}"
 
 def has_program(program_name):
     paths = os.environ['PATH'].split(":")
@@ -141,7 +143,7 @@ def run_cmake():
     cmake_cmd = cmake_cmd + f" {REPO_DIR}"
 
     if OPTIONS.use_vcpkg.Value:
-        cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_TOOLCHAIN_FILE={EXTERNAL_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_TOOLCHAIN_FILE={VCPKG_DIR}/scripts/buildsystems/vcpkg.cmake"
         triplet = _vcpkg_optional_triplet_name()
         if len(triplet) > 0:
             cmake_cmd = cmake_cmd + f"{new_line} -DVCPKG_TARGET_TRIPLET={triplet}"
@@ -313,16 +315,16 @@ def vcpkg_install_thirdparties():
     """
     vcpkg_exe = ".\\vcpkg" if os.name == "nt" else "./vcpkg"
 
-    if not os.path.isdir(f"{EXTERNAL_DIR}/vcpkg"):
+    if not os.path.isdir(f"{VCPKG_DIR}"):
         my_chdir(EXTERNAL_DIR)
-        run("git clone https://github.com/Microsoft/vcpkg.git")
-        my_chdir(f"{EXTERNAL_DIR}/vcpkg")
+        _do_clone_repo("https://github.com/Microsoft/vcpkg.git", VCPKG_BASENAME, "master")
+        my_chdir(f"{VCPKG_DIR}")
         if os.name == 'nt':
             run(".\\bootstrap-vcpkg.bat")
         else:
             run("./bootstrap-vcpkg.sh")
 
-    my_chdir(f"{EXTERNAL_DIR}/vcpkg")
+    my_chdir(f"{VCPKG_DIR}")
     run("git pull")
 
     packages = ["sdl2", "opencv4[core,jpeg,png]" ]
