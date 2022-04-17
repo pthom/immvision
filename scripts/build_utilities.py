@@ -50,6 +50,13 @@ if (os.path.realpath(INVOKE_DIR) == os.path.realpath(THIS_DIR)):
 if (os.path.realpath(INVOKE_DIR) == os.path.realpath(EXTERNAL_DIR)):
     INVOKE_DIR_IS_REPO_DIR = True
 
+VENV_PARENT_DIR = f"{REPO_DIR}/immvision_pybind"
+IS_DOCKER_BUILDER = os.path.isfile("/IMMVISION_DOCKER_BUILDER")
+VENV_NAME = "venv" if not IS_DOCKER_BUILDER else "venv_docker"
+VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
+# use "source" for bash, but for docker we may get "sh" which uses "." instead
+SOURCE_PYBIND_VENV = f"source {VENV_DIR}/bin/activate && " if not IS_DOCKER_BUILDER else f".  {VENV_DIR}/bin/activate && "
+
 
 def has_program(program_name):
     paths = os.environ['PATH'].split(":")
@@ -150,7 +157,7 @@ def run_cmake():
 
     if OPTIONS.build_python_bindings.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_BUILD_PYTHON_BINDINGS=ON"
-        cmake_cmd = cmake_cmd + f"{new_line} -DPYTHON_EXECUTABLE={REPO_DIR}/immvision_pybind/venv/bin/python"
+        cmake_cmd = cmake_cmd + f"{new_line} -DPYTHON_EXECUTABLE={VENV_DIR}/bin/python"
 
     cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
     cmake_cmd = cmake_cmd + f"{new_line} -B ."
@@ -159,6 +166,8 @@ def run_cmake():
         arch = "win32" if OPTIONS.build_32bits.Value else "x64"
         cmake_cmd = cmake_cmd + f"{new_line} -A {arch}"
 
+    if OPTIONS.build_python_bindings.Value:
+        cmake_cmd = f"{SOURCE_PYBIND_VENV} {cmake_cmd}"
     run(cmake_cmd)
 
 
@@ -511,7 +520,6 @@ def emscripten_update_timestamp():
 ######################################################################
 # pybind
 ######################################################################
-SOURCE_PYBIND_VENV = f"source {REPO_DIR}/immvision_pybind/venv/bin/activate && "
 
 
 @decorate_loudly_echo_function_name
@@ -520,16 +528,16 @@ def pybind_make_venv():
     Creates a python virtual environment used to build python bindings,
     inside immvision_pybind/venv
     """
-    my_chdir(f"{REPO_DIR}/immvision_pybind")
-    if not os.path.isdir("venv"):
-        run("python3 -m venv venv")
-    cmd = f"pip install -v -r {REPO_DIR}/scripts/requirements_dev_pybind.txt"
-    run(f"{SOURCE_PYBIND_VENV} {cmd}")
+    my_chdir(f"{VENV_PARENT_DIR}")
+    if not os.path.isdir(VENV_NAME):
+        run(f"python3 -m venv {VENV_NAME}")
+    cmd = f"{SOURCE_PYBIND_VENV} pip install -v -r {REPO_DIR}/scripts/requirements_dev_pybind.txt"
+    run(cmd)
 
     print(f"""
     Now, activate your python venv with:
     
-        source {REPO_DIR}/immvision_pybind/venv/bin/activate 
+        source {VENV_DIR}/bin/activate 
     """)
 
 
@@ -547,6 +555,8 @@ def pybind_clone_pyimgui():
     my_chdir("pyimgui")
     run("git submodule update --init")
     run(f"{SOURCE_PYBIND_VENV} pip install .")
+
+
 
 
 ######################################################################

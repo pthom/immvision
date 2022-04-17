@@ -18,10 +18,10 @@ BUILD_COMMANDS = """
             mkdir -p build &&\\
             cd build &&\\
             echo 'Running cmake and build' &&\\
-            ../sources/scripts/build_utilities.py run -run_cmake &&\\
-            make -j &&\\
+            ../sources/scripts/build_utilities.py run --build_python_bindings=True -run_build_all &&\\
             echo 'Deploying binaries to the host machine inside scripts/docker_clang_build/bin_docker/' &&\\
-            cp -a bin/ ../sources/scripts/docker_clang_build/bin_docker
+            cp -a bin/ ../sources/scripts/docker_clang_build/bin_docker &&\\
+            cp -a _pybind_libs/ ../sources/scripts/docker_clang_build/bin_docker 
             """
 
 CHDIR_LAST_DIRECTORY = INVOKE_DIR

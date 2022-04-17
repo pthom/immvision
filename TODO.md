@@ -77,3 +77,31 @@
     table->WorkRect = table->OuterRect = table->InnerRect = outer_rect;
 
 * [?] (Much Later) Plugin python / lldb and gdb 
+
+
+
+cd /dvp/sources/immvision_pybind
+python3 -m venv venv_docker
+source /dvp/sources/immvision_pybind/venv_docker/bin/activate &&  pip install -v -r /dvp/sources/scripts/requirements_dev_pybind.txt
+
+    Now, activate your python venv with:
+    
+        source /dvp/sources/immvision_pybind/venv_docker/bin/activate 
+
+
+# ==================================================================
+#                run_cmake
+# ==================================================================
+cd /dvp/build
+cmake /dvp/sources    \
+-DIMMVISION_USE_POWERSAVE=ON    \
+-DIMMVISION_ACTIVATE_ALL_WARNINGS=ON    \
+-DIMMVISION_BUILD_PYTHON_BINDINGS=ON    \
+-DPYTHON_EXECUTABLE=/dvp/sources/immvision_pybind/venv/bin/python    \
+-DCMAKE_BUILD_TYPE=Release    \
+-B .
+
+# ==================================================================
+#                run_build
+# ==================================================================
+make -j
