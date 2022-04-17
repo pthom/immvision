@@ -42,18 +42,6 @@ jobs:
         cd immvision_pybind
         pip3 install -v .
 
-
-    # The built pip fails to import at this moment :
-    # See error below
-    # >>> import immvision
-    #  In init immvision
-    #  Traceback (most recent call last):
-    #    File "<stdin>", line 1, in <module>
-    #    File "/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/immvision/__init__.py", line 4, in <module>
-    #      from .cpp_immvision import __doc__, __version__
-    #  ImportError: /dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/immvision/cpp_immvision.cpython-310-x86_64-linux-gnu.so:
-    #  undefined symbol: GImGui
-    #
-     - name: pip test import
+    - name: pip test import
       run:  |
         python3 -c "import immvision"
