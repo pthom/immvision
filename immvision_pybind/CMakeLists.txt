@@ -81,30 +81,20 @@ target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_
 # Link
 target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
-#set(imgui_lib_folder "/dvp/sources/immvision_pybind/venv_docker/lib64/python3.10/site-packages/imgui/")
-#target_link_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_lib_folder})
-#target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
-#    core.cpython.so
-#    internal.cpython.so # manually created symlink !!!
-#    )
+if (UNIX AND NOT APPLE)
+  execute_process(COMMAND
+      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
+      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "symlink_imgui_libs"
+      OUTPUT_VARIABLE imgui_libs_folder
+      )
+  message(WARNING "from CMakeUtilities.py: imgui_libs_folder=${imgui_libs_folder}")
+  target_link_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_libs_folder})
 
-# Dans
-# /dvp/sources/immvision_pybind/venv_docker/lib64/python3.10/site-packages/imgui#
-# symlinks
-# libcore.cpython.so -> core.cpython-310-x86_64-linux-gnu.so
-# libinternal.cpython.so -> internal.cpython-310-x86_64-linux-gnu.so
-#
-# COMMENT FAIRE
-#pip show imgui
-#Name: imgui
-#Version: 2.0.0
-#Summary: Cython-based Python bindings for dear imgui
-#Home-page: https://github.com/swistakm/pyimgui
-#Author: Michał Jaworski
-#Author-email: swistakm@gmail.com
-#License: BSD
-#Location: /dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages
-
+  target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
+      imgui_core.cpython.so #  symlinks created by CMakeUtilties.py !!!
+      imgui_internal.cpython.so
+      )
+endif()
 
 
 # 3. Compile definitions and install
@@ -122,10 +112,9 @@ add_custom_command(
     TARGET ${IMMVISION_PYBIND_BIN_MODULE_NAME}
     POST_BUILD
     COMMAND
-    ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/src/postbuild_deploy.py
-      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR}
+    ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
+      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "post_build_deploy"
     )
-
 
 #
 # immvision_debug_pybind
