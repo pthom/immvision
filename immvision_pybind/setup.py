@@ -18,7 +18,7 @@ setup(
     description="immvision: immediate image debugger and insights",
     author="Pascal Thomet",
     license="",
-    install_requires=['PyOpenGL','pysdl2', 'opencv-python', 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'],
+    install_requires=['PyOpenGL','pysdl2', 'opencv-python'], # 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'],
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     cmake_install_dir="src/immvision",

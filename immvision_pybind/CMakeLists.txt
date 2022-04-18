@@ -22,24 +22,20 @@ endif()
 # Now we can find pybind11
 find_package(pybind11 CONFIG REQUIRED)
 
+#
+# Main target: cpp_imvision python module
+#
 set(IMMVISION_PYBIND_BIN_MODULE_NAME cpp_immvision)
 file(GLOB_RECURSE sources_immvision_pybind src/*.cpp src/*.h)
 pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvision_pybind})
-
-#
-# Define specific settings for immvision:
-# do not use targets from the main project, since pip install will run from this subfolder!
-#
+# Define specific settings for immvision (do not use targets from the main project, since pip install will run from this subfolder!)
 # 1. Add sources
 if (IS_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../src/immvision")
   set(immvision_src_DIRS "${CMAKE_CURRENT_LIST_DIR}/../src/immvision")
 else()
-  # When building the pip package, sometimes we are in a bare copy of this folder
+  # When building the pip package, we are in a bare copy of this folder
   # and ".." does not point inside the repository.
-  # So, the pip.yml Github workflow starts by copying imgui and immvision to src_copy_cpp/
-  #
-  # Is it mandatory to copy all the pip building related scripts and settings to the root of the repository?
-  #
+  # So, we copying imgui and immvision to src_copy_cpp/
   set(immvision_src_DIRS "${CMAKE_CURRENT_LIST_DIR}/src_copy_cpp/immvision")
   message(WARNING "Trying to use immvision_src_DIRS=${immvision_src_DIRS}")
 endif()
@@ -50,25 +46,12 @@ file(GLOB_RECURSE sources_immvision ${immvision_src_DIRS}/*.h ${immvision_src_DI
 target_sources(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${sources_immvision})
 target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${immvision_src_DIRS}/..)
 
-# 2. Add include dirs
-set(default_include_dir ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include)
-# 2.1 imgui include dir
-if (IS_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
-  set(imgui_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
-else()
-  # When building the pip package, sometimes we are in a bare copy of this folder
-  # and ".." does not point inside the repository.
-  # So, the pip.yml Github workflow starts by copying imgui and immvision to src_copy_cpp/
-  set(imgui_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/src_copy_cpp/imgui")
-  message(WARNING "Trying to use imgui_INCLUDE_DIRS=${imgui_INCLUDE_DIRS}")
-endif()
-if (NOT IS_DIRECTORY ${imgui_INCLUDE_DIRS})
-  message(FATAL_ERROR "Cannot set imgui_INCLUDE_DIRS")
-endif()
-target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_INCLUDE_DIRS})
-# 2.2 Find OpenCV include dir
+#
+# Link with OpenCV
+#
 find_package(OpenCV)
 if (NOT OpenCV_FOUND)
+  set(default_opencv_include_dir ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include)
   message(WARN "find_package(OpenCV) failed, using default (and probably bad) location:
           set(OpenCV_INCLUDE_DIRS ${default_include_dir}) ")
   set(OpenCV_INCLUDE_DIRS ${default_include_dir})
@@ -77,35 +60,56 @@ else()
   set(OpenCV_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS} ${opencv_INCLUDE_DIRS})
 endif()
 target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})
-
 # Link
 target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
-if (UNIX AND NOT APPLE)
-  message(WARNING "calling
-      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
-      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} symlink_imgui_libs
-      OUTPUT_VARIABLE imgui_libs_folder
-  ")
-  execute_process(COMMAND
-      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
-      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "symlink_imgui_libs"
-      OUTPUT_VARIABLE imgui_libs_folder
-      )
 
-  execute_process(COMMAND
-      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
-      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "symlink_imgui_libs"
-      OUTPUT_VARIABLE imgui_libs_folder
-      )
-  message(WARNING "from CMakeUtilities.py: imgui_libs_folder=${imgui_libs_folder}")
-  target_link_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_libs_folder})
-
-  target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
-      imgui_core.cpython.so #  symlinks created by CMakeUtilties.py !!!
-      imgui_internal.cpython.so
-      )
+#
+# Link with imgui
+#
+# 2.1 imgui source dir
+if (IS_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
+  set(imgui_source_dir "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
+else()
+  # When building the pip package, sometimes we are in a bare copy of this folder
+  # and ".." does not point inside the repository.
+  # So, the pip.yml Github workflow starts by copying imgui and immvision to src_copy_cpp/
+  set(imgui_source_dir "${CMAKE_CURRENT_LIST_DIR}/src_copy_cpp/imgui")
+  message(WARNING "Trying to use imgui_source_dir=${imgui_source_dir}")
 endif()
+if (NOT IS_DIRECTORY ${imgui_source_dir})
+  message(FATAL_ERROR "Cannot set imgui_source_dir")
+endif()
+file(GLOB imgui_sources ${imgui_source_dir}/*.h ${imgui_source_dir}/*.cpp)
+
+pybind11_add_module(imgui_shared_pybind SHARED ${imgui_sources})
+target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
+
+target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE imgui_shared_pybind)
+
+#target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_source_dir})
+
+
+#if (UNIX AND NOT APPLE)
+#  message(WARNING "calling
+#      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CMakeUtilities.py
+#      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} symlink_imgui_libs
+#      OUTPUT_VARIABLE imgui_libs_folder
+#  ")
+#  execute_process(COMMAND
+#      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CMakeUtilities.py
+#      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "symlink_imgui_libs"
+#      OUTPUT_VARIABLE imgui_libs_folder
+#      )
+#
+#  message(WARNING "from CMakeUtilities.py: imgui_libs_folder=${imgui_libs_folder}")
+#  target_link_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_libs_folder})
+#
+#  target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
+#      imgui_core.cpython.so #  symlinks created by CMakeUtilties.py !!!
+#      imgui_internal.cpython.so
+#      )
+#endif()
 
 
 # 3. Compile definitions and install
@@ -115,7 +119,7 @@ target_compile_definitions(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
     IMMVISION_BUILDING_PYBIND
     )
 install(TARGETS ${IMMVISION_PYBIND_BIN_MODULE_NAME} DESTINATION .)
-
+install(TARGETS imgui_shared_pybind DESTINATION .)
 #
 # Post build: deploy library to ${CMAKE_BINARY_DIR}/_pybind/,
 # so that we can use it as a python package name immvision
@@ -123,7 +127,7 @@ add_custom_command(
     TARGET ${IMMVISION_PYBIND_BIN_MODULE_NAME}
     POST_BUILD
     COMMAND
-    ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CmakeUtilities.py
+    ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CMakeUtilities.py
       ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "post_build_deploy"
     )
 
