@@ -25,7 +25,7 @@ static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user
 
 // For linux only!!!
 #if !defined(__APPLE__) && !defined(WIN32)
-#define CREATE_GIMGUI_POINTER
+//#define CREATE_GIMGUI_POINTER
 #endif
 
 #ifdef CREATE_GIMGUI_POINTER
@@ -34,6 +34,7 @@ ImGuiContext*   GImGui = NULL;
 
 void SetImGuiContext()
 {
+#ifdef CREATE_GIMGUI_POINTER
     if (ImGui::GetCurrentContext() == NULL)
     {
         printf("SetImGuiContext detected null context!\n");
@@ -42,13 +43,12 @@ void SetImGuiContext()
 
         ImGuiContext* imGuiContext = (ImGuiContext*) ctx;
         ImGui::SetCurrentContext(imGuiContext);
-#ifdef CREATE_GIMGUI_POINTER
         GImGui = imGuiContext;
-#endif
         ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
         printf("SetImGuiContext done\n");
     }
     printf("SetImGuiContext: nothing to do!\n");
+#endif
 }
 
 
