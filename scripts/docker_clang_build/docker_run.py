@@ -48,13 +48,21 @@ BUILD_COMMANDS = chain_and_echo_commands("""
             """)
 
 #LD_LIBRARY_PATH=/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/immvision python3 -c 'import immvision'
-BUILD_PIP_COMMANDS = chain_and_echo_commands("""
+#        python3 -c 'import immvision.imgui_shared_pybind'
+PACK_DIR="/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages"
+BUILD_PIP_COMMANDS = chain_and_echo_commands(f"""
+        
         cd /dvp/sources/immvision_pybind
+        rm -rf _skbuild
         python3 -m venv venv_docker
         source venv_docker/bin/activate
-        pip install . -v
-        # pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
+        #pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
+
+        #rm -rf {PACK_DIR}/immvision &&  pip install . -v && ls -al {PACK_DIR}/immvision
+        # 
         python3 -c 'import immvision'
+        python3 -c 'import immvision.test'
+#        LD_LIBRARY_PATH={PACK_DIR}/immvision python3 -c 'import immvision.test'
         """)
 
 
