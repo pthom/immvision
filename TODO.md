@@ -17,7 +17,19 @@
   * [X] provide power_save
   * [X] do not blit if data unchanged
   * [X] Rendre possible de fonctionner avec ou sans hack _pybinds_lib
-  * [ ] Pb link GImGui: 
+  * [ ] pip install
+    Pb / build isolé : pip pas disponible. Regarder si skbuild peut aider. Question sur stackoverflow ?
+
+Test install opencv via conan dans pip
+Test mode editable
+
+Lire doc / pip install: https://pip.pypa.io/en/stable/cli/pip_install/
+    https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs
+
+Test en mode no-isolation:
+  pip install scikit-build
+
+* [ ] Pb link GImGui: 
 Voir imgui.cpp:1015
 // - Heaps and globals are not shared across DLL boundaries!
 // - You will need to call SetCurrentContext() + SetAllocatorFunctions() for each static/DLL boundary you are calling from.
@@ -88,3 +100,8 @@ static void*                GImAllocatorUserData = NULL;
 
 * [?] (Much Later) Plugin python / lldb and gdb 
 
+
+/home/runner/work/immvision/immvision/immvision_pybind/venv/bin/python3 /tmp/pip-req-build-cvnykr_f/CmakeUtilities.py \
+/tmp/pip-req-build-cvnykr_f /tmp/pip-req-build-cvnykr_f/_skbuild/linux-x86_64-3.8/cmake-build \
+/tmp/pip-req-build-cvnykr_f/_skbuild/linux-x86_64-3.8/cmake-build \
+symlink_imgui_libs

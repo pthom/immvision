@@ -12,21 +12,53 @@ DOCKER_CONTAINER_NAME = "immvision_docker_builder"
 SOURCES_MOUNT_DIR = "/dvp/sources"
 VNC_PORT = 5900
 ONLY_SHOW_COMMAND = False
-BUILD_COMMANDS = """
-            echo 'Making build dir in the container' &&\\
-            cd /dvp &&\\
-            mkdir -p build &&\\
-            cd build &&\\
-            echo 'Running cmake and build' &&\\
-            ../sources/scripts/build_utilities.py run --build_python_bindings=True -run_build_all &&\\
-            echo 'Deploying binaries to the host machine inside scripts/docker_clang_build/bin_docker/' &&\\
-            cp -a bin/ ../sources/scripts/docker_clang_build/bin_docker &&\\
-            cp -a _pybind_libs/ ../sources/scripts/docker_clang_build/bin_docker 
-            """
+
+
+def chain_and_echo_commands(commands):
+    lines = commands.split("\n")
+     # strip lines
+    lines = map(lambda s : s.strip(), lines)
+    # suppress empty lines and comments
+    lines = filter(lambda s : not s.startswith("#") and not len(s) == 0, lines)
+
+    # End of line joiner
+    end_line = " &&         \\\n"
+
+    lines_with_echo = []
+    for line in lines:
+        lines_with_echo.append(f"echo '####################################'")
+        lines_with_echo.append(f"echo '{line}'")
+        lines_with_echo.append(f"echo ''")
+        lines_with_echo.append(line)
+
+    r = end_line.join(lines_with_echo)
+    return r
+
+
+BUILD_COMMANDS = chain_and_echo_commands("""
+        echo 'Making build dir in the container'
+        cd /dvp
+        mkdir -p build
+        cd build
+        echo 'Running cmake and build'
+        ../sources/scripts/build_utilities.py run --build_python_bindings=True -run_build_all
+        echo 'Deploying binaries to the host machine inside scripts/docker_clang_build/bin_docker/'
+        cp -a bin/ ../sources/scripts/docker_clang_build/bin_docker
+        cp -a _pybind_libs/ ../sources/scripts/docker_clang_build/bin_docker 
+            """)
+
+#LD_LIBRARY_PATH=/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/immvision python3 -c 'import immvision'
+BUILD_PIP_COMMANDS = chain_and_echo_commands("""
+        cd /dvp/sources/immvision_pybind
+        python3 -m venv venv_docker
+        source venv_docker/bin/activate
+        pip install . -v
+        # pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
+        python3 -c 'import immvision'
+        """)
+
 
 CHDIR_LAST_DIRECTORY = INVOKE_DIR
-
-
 def my_chdir(folder):
     global CHDIR_LAST_DIRECTORY
     os.chdir(folder)
@@ -35,20 +67,18 @@ def my_chdir(folder):
     CHDIR_LAST_DIRECTORY = folder
 
 
-def run(cmd):
+def run_local_command(cmd, quiet = False):
     if ONLY_SHOW_COMMAND:
         print(cmd)
     else:
-        print("#####################################################")
-        print("# Running shell command:")
-        print(cmd)
-        print("#####################################################")
+        if not quiet:
+            print(f"\n{cmd}\n")
         subprocess.check_call(cmd, shell=True)
 
 
 def help():
     print(f"""
-        Usage: {sys.argv[0]} -build_image|-create_container|-bash|-remove_container|-remove_image|-run [any command and args] [--show_command]
+        Usage: {sys.argv[0]} -build_image|-create_container|-bash|-remove_container|-remove_image|exec [any command and args] [--show_command]
         
             {sys.argv[0]} -build_image 
         Will build the image (call this first). It will be called {DOCKER_IMAGE_NAME}
@@ -60,19 +90,21 @@ def help():
             {sys.argv[0]} -bash 
         Will log you into a bash session in the previously created container.
 
-            {sys.argv[0]} -run [any command and args]
-        Will start the container and run the commands given after "-run".
-        For example, "{sys.argv[0]} -run ls -al" will list the files.  
-
             {sys.argv[0]} -build
-        Will start the container and build the project using the following commands:
-        {BUILD_COMMANDS}
+        Will start the container and build the project.
+
+            {sys.argv[0]} -build_pip
+        Will start the container and build the pip project
 
             {sys.argv[0]} -remove_container 
         Will remove the container (you will lose all modifications in the Docker container)
         
             {sys.argv[0]} -remove_image 
         Will remove the image
+
+            {sys.argv[0]} exec [any command and args]
+        Will start the container and run the commands given after "exec".
+        For example, "{sys.argv[0]} exec ls -al" will list the files.  
 
             --show_command 
         Will not run the command, but show you its command line.
@@ -97,6 +129,11 @@ def help_vnc():
     print(msg)
 
 
+def run_docker_command(commands, quiet):
+    in_bash_commands = f'/bin/bash -c "{commands}"'
+    run_local_command(f"docker start {DOCKER_CONTAINER_NAME} && docker exec -it {DOCKER_CONTAINER_NAME} {in_bash_commands}", quiet)
+
+
 def main():
     global ONLY_SHOW_COMMAND
     os.chdir(THIS_DIR)
@@ -111,23 +148,24 @@ def main():
     arg1 = sys.argv[1].lower()
     if arg1 == "-build_image":
         my_chdir(THIS_DIR)
-        run(f"docker build -t {DOCKER_IMAGE_NAME} .")
+        run_local_command(f"docker build -t {DOCKER_IMAGE_NAME} .")
     elif arg1 == "-create_container":
-        run(f"docker run --name {DOCKER_CONTAINER_NAME} -p {VNC_PORT}:{VNC_PORT} -it -d -v {REPO_DIR}:{SOURCES_MOUNT_DIR} {DOCKER_IMAGE_NAME}  /bin/bash")
+        run_local_command(f"docker run --name {DOCKER_CONTAINER_NAME} -p {VNC_PORT}:{VNC_PORT} -it -d -v {REPO_DIR}:{SOURCES_MOUNT_DIR} {DOCKER_IMAGE_NAME}  /bin/bash")
     elif arg1 == "-bash":
         help_vnc()
-        run(f"docker start {DOCKER_CONTAINER_NAME} && docker exec -it {DOCKER_CONTAINER_NAME} /bin/bash")
+        run_local_command(f"docker start {DOCKER_CONTAINER_NAME} && docker exec -it {DOCKER_CONTAINER_NAME} /bin/bash")
     elif arg1 == "-remove_container":
-        run(f"docker stop {DOCKER_CONTAINER_NAME}")
-        run(f"docker rm {DOCKER_CONTAINER_NAME}")
+        run_local_command(f"docker stop {DOCKER_CONTAINER_NAME}")
+        run_local_command(f"docker rm {DOCKER_CONTAINER_NAME}")
     elif arg1 == "-remove_image":
-        run(f"docker rmi {DOCKER_IMAGE_NAME}")
-    elif arg1 == "-run":
-        command = " ".join(sys.argv[2:])
-        run(f"docker start {DOCKER_CONTAINER_NAME} && docker exec -it {DOCKER_CONTAINER_NAME} {command}")
+        run_local_command(f"docker rmi {DOCKER_IMAGE_NAME}")
     elif arg1 == "-build":
-        commands = f'/bin/bash -c "{BUILD_COMMANDS}"'
-        run(f"docker start {DOCKER_CONTAINER_NAME} && docker exec -it {DOCKER_CONTAINER_NAME} {commands}")
+        run_docker_command(BUILD_COMMANDS, True)
+    elif arg1 == "-build_pip":
+        run_docker_command(BUILD_PIP_COMMANDS, True)
+    elif arg1 == "exec":
+        bash_commands = " ".join(sys.argv[2:])
+        run_docker_command(bash_commands, False)
     else:
         help()
 
