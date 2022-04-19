@@ -26,7 +26,7 @@ find_package(pybind11 CONFIG REQUIRED)
 # Main target: cpp_imvision python module
 #
 set(IMMVISION_PYBIND_BIN_MODULE_NAME cpp_immvision)
-file(GLOB_RECURSE sources_immvision_pybind src/*.cpp src/*.h)
+file(GLOB_RECURSE sources_immvision_pybind src_pybind/*.cpp src_pybind/*.h)
 pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvision_pybind})
 # Define specific settings for immvision (do not use targets from the main project, since pip install will run from this subfolder!)
 # 1. Add sources
