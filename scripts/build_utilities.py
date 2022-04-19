@@ -50,7 +50,7 @@ if (os.path.realpath(INVOKE_DIR) == os.path.realpath(THIS_DIR)):
 if (os.path.realpath(INVOKE_DIR) == os.path.realpath(EXTERNAL_DIR)):
     INVOKE_DIR_IS_REPO_DIR = True
 
-VENV_PARENT_DIR = f"{REPO_DIR}/immvision_pybind"
+VENV_PARENT_DIR = f"{REPO_DIR}"
 IS_DOCKER_BUILDER = os.path.isfile("/IMMVISION_DOCKER_BUILDER")
 VENV_NAME = "venv" if not IS_DOCKER_BUILDER else "venv_docker"
 VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
@@ -533,7 +533,7 @@ def pybind_make_venv():
     my_chdir(f"{VENV_PARENT_DIR}")
     if not os.path.isdir(VENV_NAME):
         run(f"python3 -m venv {VENV_NAME}")
-    cmd = f"{SOURCE_PYBIND_VENV} pip install -v -r {REPO_DIR}/scripts/requirements_dev_pybind.txt"
+    cmd = f"{SOURCE_PYBIND_VENV} pip install -v -r {REPO_DIR}/pybind/requirements_dev_pybind.txt"
     run(cmd)
 
     print(f"""

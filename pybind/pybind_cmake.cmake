@@ -1,32 +1,25 @@
-cmake_minimum_required(VERSION 3.15...3.22)
+# Note: this file is *included* (not add_subidrectory) via the main CMakeList (parent folder)
+# Out current directory is thus ".." i.e the main repo dir
 
-project(immvision VERSION "0.0.1")
-
-set(CMAKE_CXX_STANDARD 17)
-
+#
+# Find pydinb11 location via python (probably in a virtual env)
+#
 if (NOT DEFINED PYTHON_EXECUTABLE)
   set(PYTHON_EXECUTABLE "python")
 endif()
-
-if(SKBUILD OR IMMVISION_BUILD_PYTHON_BINDINGS)
-  # Scikit-Build does not add your site-packages to the search path
-  # automatically, so we need to add it _or_ the pybind11 specific directory
-  # here.
-  execute_process(
-    COMMAND "${PYTHON_EXECUTABLE}" -c
-            "import pybind11; print(pybind11.get_cmake_dir())"
-    OUTPUT_VARIABLE _tmp_dir
-    OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ECHO STDOUT)
-  list(APPEND CMAKE_PREFIX_PATH "${_tmp_dir}")
-endif()
-# Now we can find pybind11
+execute_process(
+  COMMAND "${PYTHON_EXECUTABLE}" -c
+          "import pybind11; print(pybind11.get_cmake_dir())"
+  OUTPUT_VARIABLE _tmp_dir
+  OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ECHO STDOUT)
+list(APPEND CMAKE_PREFIX_PATH "${_tmp_dir}")
 find_package(pybind11 CONFIG REQUIRED)
 
 #
 # Main target: cpp_imvision python module
 #
 set(IMMVISION_PYBIND_BIN_MODULE_NAME cpp_immvision)
-file(GLOB_RECURSE sources_immvision_pybind pybind_src/*.cpp pybind_src/*.h)
+file(GLOB_RECURSE sources_immvision_pybind pybind/pybind_src/*.cpp pybind/pybind_src/*.h)
 pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvision_pybind})
 # Define specific settings for immvision (do not use targets from the main project, since pip install will run from this subfolder!)
 # 1. Add sources
