@@ -1,5 +1,6 @@
 # Note: this file is *included* (not add_subidrectory) via the main CMakeList (parent folder)
-# Out current directory is thus ".." i.e the main repo dir
+# CMAKE_CURRENT_LIST_DIR is thus ".." i.e the main repo dir
+set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
 #
 # Find pydinb11 location via python (probably in a virtual env)
@@ -19,25 +20,10 @@ find_package(pybind11 CONFIG REQUIRED)
 # Main target: cpp_imvision python module
 #
 set(IMMVISION_PYBIND_BIN_MODULE_NAME cpp_immvision)
-file(GLOB_RECURSE sources_immvision_pybind pybind/pybind_src/*.cpp pybind/pybind_src/*.h)
-pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvision_pybind})
-# Define specific settings for immvision (do not use targets from the main project, since pip install will run from this subfolder!)
-# 1. Add sources
-if (IS_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../src/immvision")
-  set(immvision_src_DIRS "${CMAKE_CURRENT_LIST_DIR}/../src/immvision")
-else()
-  # When building the pip package, we are in a bare copy of this folder
-  # and ".." does not point inside the repository.
-  # So, we copying imgui and immvision to src_copy_cpp/
-  set(immvision_src_DIRS "${CMAKE_CURRENT_LIST_DIR}/src_copy_cpp/immvision")
-  message(WARNING "Trying to use immvision_src_DIRS=${immvision_src_DIRS}")
-endif()
-if (NOT IS_DIRECTORY ${immvision_src_DIRS})
-  message(FATAL_ERROR "Cannot set immvision_src_DIRS")
-endif()
-file(GLOB_RECURSE sources_immvision ${immvision_src_DIRS}/*.h ${immvision_src_DIRS}/*.cpp)
-target_sources(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${sources_immvision})
-target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${immvision_src_DIRS}/..)
+file(GLOB_RECURSE sources_immvision_pybind ${THIS_DIR}/pybind_src/*.cpp ${THIS_DIR}/pybind_src/*.h)
+file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PROJECT_SOURCE_DIR}/src/immvision/*.cpp)
+pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvision_pybind} ${sources_immvision})
+target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 #
 # Compile definitions and install
@@ -70,22 +56,9 @@ target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE opencv_core op
 #
 # Link with imgui
 #
-# 2.1 imgui source dir
-if (IS_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
-  set(imgui_source_dir "${CMAKE_CURRENT_LIST_DIR}/../external/imgui")
-else()
-  # When building the pip package, sometimes we are in a bare copy of this folder
-  # and ".." does not point inside the repository.
-  # So, the pip.yml Github workflow starts by copying imgui and immvision to src_copy_cpp/
-  set(imgui_source_dir "${CMAKE_CURRENT_LIST_DIR}/src_copy_cpp/imgui")
-  message(WARNING "Trying to use imgui_source_dir=${imgui_source_dir}")
-endif()
-if (NOT IS_DIRECTORY ${imgui_source_dir})
-  message(FATAL_ERROR "Cannot set imgui_source_dir")
-endif()
+set(imgui_source_dir ${PROJECT_SOURCE_DIR}/external/imgui)
 file(GLOB imgui_sources ${imgui_source_dir}/*.h ${imgui_source_dir}/*.cpp)
 target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_source_dir})
-
 
 
 # Methode sans rien linker
@@ -130,18 +103,18 @@ install(TARGETS imgui_shared_pybind DESTINATION .)
 #
 # Post build: deploy library to ${CMAKE_BINARY_DIR}/_pybind/,
 # so that we can use it as a python package name immvision
-add_custom_command(
-    TARGET ${IMMVISION_PYBIND_BIN_MODULE_NAME}
-    POST_BUILD
-    COMMAND
-    ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CMakeUtilities.py
-      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "post_build_deploy"
-    )
+# add_custom_command(
+#     TARGET ${IMMVISION_PYBIND_BIN_MODULE_NAME}
+#     POST_BUILD
+#     COMMAND
+#     ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CMakeUtilities.py
+#       ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "post_build_deploy"
+#     )
 
 #
 # immvision_debug_pybind
 #
 find_package(pybind11 CONFIG REQUIRED)
-add_executable(pybind_debug_helper debug_helper/pybind_debug_helper.cpp)
+add_executable(pybind_debug_helper ${THIS_DIR}/pybind_debug_helper/pybind_debug_helper.cpp)
 target_link_libraries(pybind_debug_helper PRIVATE pybind11::embed)
 target_include_directories(pybind_debug_helper PRIVATE ${pybind11_INCLUDE_DIRS})
