@@ -36,79 +36,12 @@ SILENT = True
 # print(f"{current_bin_dir=}")
 # print(f"{bin_dir=}")
 
-# python CmakeUtilities.py /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/immvision_pybind /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/cmake-build-debug/immvision_pybind /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/cmake-build-debug symlink_imgui_libs
-
 def main():
     if COMMAND == "post_build_deploy":
         post_build_deploy()
-    elif COMMAND == "symlink_imgui_libs":
-        symlink_imgui_libs()
     else:
         raise Exception("Bad command \n" + s)
         exit(1)
-
-
-def find_imgui_pip_lib_path():
-    # print(f"{VENV_DIR=} {SOURCE_PYBIND_VENV=}")
-    cmd = f"{SOURCE_PYBIND_VENV} pip show imgui"
-    out = subprocess.check_output(cmd, shell=True).decode("UTF-8")
-    lines = out.split("\n")
-    result = ""
-    for line in lines:
-        token = "Location: "
-        if line.startswith(token):
-            result = line[len(token):] + "/imgui"
-    return result
-
-
-def symlink_imgui_libs():
-    """
-    Dans
-    /dvp/sources/immvision_pybind/venv_docker/lib64/python3.10/site-packages/imgui#
-    symlinks
-    libcore.cpython.so -> core.cpython-310-x86_64-linux-gnu.so
-    libinternal.cpython.so -> internal.cpython-310-x86_64-linux-gnu.so
-
-    COMMENT FAIRE
-    pip show imgui
-    Name: imgui
-    Version: 2.0.0
-    Summary: Cython-based Python bindings for dear imgui
-    Home-page: https://github.com/swistakm/pyimgui
-    Author: Michał Jaworski
-    Author-email: swistakm@gmail.com
-    License: BSD
-    Location: /dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages
-    """
-    if os.name == "nt":
-        msg = "symlink_imgui_libs : can't work for nt!"
-        print(msg)
-        raise Exception(msg)
-
-    if not SILENT:
-        print("symlink_imgui_libs")
-    imgui_pip_lib_path=  find_imgui_pip_lib_path()
-    if not SILENT:
-        print(f"{imgui_pip_lib_path=}")
-
-    for filename in os.listdir(imgui_pip_lib_path):
-        # print(filename)
-        if filename.startswith("core.cpython") and filename.endswith(".so"):
-            out_link = f"{imgui_pip_lib_path}/libimgui_core.cpython.so"
-            if not os.path.isfile(out_link):
-                cmd = f"ln -s {imgui_pip_lib_path}/{filename} {out_link}"
-                if not SILENT:
-                    print(cmd)
-                run(cmd)
-        if filename.startswith("internal.cpython") and filename.endswith(".so"):
-            out_link = f"{imgui_pip_lib_path}/libimgui_internal.cpython.so"
-            if not os.path.isfile(out_link):
-                cmd = f"ln -s {imgui_pip_lib_path}/{filename} {out_link}"
-                if not SILENT:
-                    print(cmd)
-                run(cmd)
-
-    print(imgui_pip_lib_path, end="")
 
 
 def run(cmd):

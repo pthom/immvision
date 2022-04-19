@@ -134,28 +134,6 @@ install(TARGETS imgui_shared_pybind DESTINATION .)
 
 
 
-#if (UNIX AND NOT APPLE)
-#  message(WARNING "calling
-#      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CMakeUtilities.py
-#      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} symlink_imgui_libs
-#      OUTPUT_VARIABLE imgui_libs_folder
-#  ")
-#  execute_process(COMMAND
-#      ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/CMakeUtilities.py
-#      ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR} "symlink_imgui_libs"
-#      OUTPUT_VARIABLE imgui_libs_folder
-#      )
-#
-#  message(WARNING "from CMakeUtilities.py: imgui_libs_folder=${imgui_libs_folder}")
-#  target_link_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_libs_folder})
-#
-#  target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
-#      imgui_core.cpython.so #  symlinks created by CMakeUtilties.py !!!
-#      imgui_internal.cpython.so
-#      )
-#endif()
-
-
 #
 # Post build: deploy library to ${CMAKE_BINARY_DIR}/_pybind/,
 # so that we can use it as a python package name immvision
