@@ -4,3 +4,4 @@ cmake-build*/
 *.7z
 venv/
 install/
+.vscode/
