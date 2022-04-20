@@ -50,12 +50,15 @@ if (os.path.realpath(INVOKE_DIR) == os.path.realpath(THIS_DIR)):
 if (os.path.realpath(INVOKE_DIR) == os.path.realpath(EXTERNAL_DIR)):
     INVOKE_DIR_IS_REPO_DIR = True
 
-VENV_PARENT_DIR = f"{REPO_DIR}"
 IS_DOCKER_BUILDER = os.path.isfile("/IMMVISION_DOCKER_BUILDER")
+
+VENV_PARENT_DIR = f"{REPO_DIR}"
 VENV_NAME = "venv" if not IS_DOCKER_BUILDER else "venv_docker"
 VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
 # use "source" for bash, but for docker we may get "sh" which uses "." instead
-SOURCE_PYBIND_VENV = f". {VENV_DIR}/bin/activate && " if not IS_DOCKER_BUILDER else f".  {VENV_DIR}/bin/activate && "
+source_cmd = ". "
+VENV_RUN_SOURCE = f"{source_cmd} {VENV_DIR}/bin/activate && " if not IS_DOCKER_BUILDER else f"{source_cmd}  {VENV_DIR}/bin/activate && "
+VENV_PACKAGES_DIR = f"{VENV_DIR}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
 
 VCPKG_BASENAME = "vcpkg" if not IS_DOCKER_BUILDER else "vcpkg_docker"
 VCPKG_DIR = f"{REPO_DIR}/external/{VCPKG_BASENAME}"
@@ -93,6 +96,34 @@ def run(cmd):
         print(f"###### {sys.argv[0]}: Running shell command ######")
         print(cmd)
         subprocess.check_call(cmd, shell=True)
+
+
+def chain_and_echo_commands(commands: str):
+    """
+    Take a series of shell command on a multiline string (one command per line)
+    and returns a shell command that will execute each of them in sequence,
+    while echoing them, and ignoring commented lines (with a #)    
+    """
+    lines = commands.split("\n")
+     # strip lines
+    lines = map(lambda s : s.strip(), lines)
+    # suppress empty lines and comments
+    lines = filter(lambda s : not s.startswith("#") and not len(s) == 0, lines)
+
+    # End of line joiner
+    end_line = " &&         \\\n"
+
+    lines_with_echo = []
+    for line in lines:
+        lines_with_echo.append(f"echo '####################################'")
+        lines_with_echo.append(f"echo '{line}'")
+        lines_with_echo.append(f"echo ''")
+        lines_with_echo.append(line)
+
+    r = end_line.join(lines_with_echo)
+    r = r.replace("&& &&", "&& ")
+    return r
+
 
 
 def decorate_loudly_echo_function_name(fn):
@@ -169,7 +200,7 @@ def run_cmake():
         cmake_cmd = cmake_cmd + f"{new_line} -A {arch}"
 
     if OPTIONS.build_python_bindings.Value:
-        cmake_cmd = f"{SOURCE_PYBIND_VENV} {cmake_cmd}"
+        cmake_cmd = f"{VENV_RUN_SOURCE} {cmake_cmd}"
     run(cmake_cmd)
 
 
@@ -533,7 +564,7 @@ def pybind_make_venv():
     my_chdir(f"{VENV_PARENT_DIR}")
     if not os.path.isdir(VENV_NAME):
         run(f"python3 -m venv {VENV_NAME}")
-    cmd = f"{SOURCE_PYBIND_VENV} pip install -v -r {REPO_DIR}/pybind/requirements_dev_pybind.txt"
+    cmd = f"{VENV_RUN_SOURCE} pip install -v -r {REPO_DIR}/pybind/requirements_dev_pybind.txt"
     run(cmd)
 
     print(f"""
@@ -556,9 +587,31 @@ def pybind_clone_pyimgui():
     _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", "pthom/docking_powsersave")
     my_chdir("pyimgui")
     run("git submodule update --init")
-    run(f"{SOURCE_PYBIND_VENV} pip install .")
+    run(f"{VENV_RUN_SOURCE} pip install .")
 
 
+@decorate_loudly_echo_function_name
+def pybind_pip_install():
+    """
+    Runs `pip install` in the main directory and checks that the module works
+    """
+    my_chdir(REPO_DIR)
+    commands = f"""
+#        rm -rf _skbuild
+        python3 -m venv {VENV_NAME}
+        {VENV_RUN_SOURCE}
+#        ls {VENV_PACKAGES_DIR}/
+        pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
+
+        rm -rf {VENV_PACKAGES_DIR}/immvision &&  pip install . -v && ls -alh {VENV_PACKAGES_DIR}/immvision
+
+#        python3 -c 'import immvision'
+#        python3 -c 'import immvision.test'
+#        LD_LIBRARY_PATH={VENV_PACKAGES_DIR}/immvision python3 -c 'import immvision.test'
+    """
+    commands = chain_and_echo_commands(commands)
+    # print(chain_and_echo_commands(commands))
+    run(commands)
 
 
 ######################################################################
@@ -616,7 +669,8 @@ def get_all_function_categories():
         "name": "Functions to build python bindings (immvision_pybind)",
         "functions": [
             pybind_make_venv,
-            pybind_clone_pyimgui
+            pybind_clone_pyimgui,
+            pybind_pip_install
         ]
     }
 
