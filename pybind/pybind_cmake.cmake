@@ -25,31 +25,17 @@ find_package(pybind11 CONFIG REQUIRED)
 #
 # Main target: cpp_imvision python module
 #
-set(IMMVISION_PYBIND_BIN_MODULE_NAME cpp_immvision)
 file(GLOB_RECURSE sources_immvision_pybind ${THIS_DIR}/pybind_src/*.cpp ${THIS_DIR}/pybind_src/*.h)
 file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PROJECT_SOURCE_DIR}/src/immvision/*.cpp)
-pybind11_add_module(${IMMVISION_PYBIND_BIN_MODULE_NAME} MODULE ${sources_immvision_pybind} ${sources_immvision})
-target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+pybind11_add_module(cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
+target_include_directories(cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 # Compile definitions
-target_compile_definitions(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE
+target_compile_definitions(cpp_immvision PRIVATE
     VERSION_INFO=${PROJECT_VERSION}
     IMMVISION_COMPILATION_TIMESTAMP="${IMMVISION_COMPILATION_TIMESTAMP}"
-    IMMVISION_PYBIND_BIN_MODULE_NAME=${IMMVISION_PYBIND_BIN_MODULE_NAME}
     IMMVISION_BUILDING_PYBIND
 )
-
-# Install and deploy to source dir (for pip editable mode)
-install(TARGETS ${IMMVISION_PYBIND_BIN_MODULE_NAME} DESTINATION .)
-# To be continued...
-add_custom_command(
-        TARGET ${IMMVISION_PYBIND_BIN_MODULE_NAME}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:${IMMVISION_PYBIND_BIN_MODULE_NAME}>
-        ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:${IMMVISION_PYBIND_BIN_MODULE_NAME}>
-)
-
 
 #
 # Link with OpenCV
@@ -64,9 +50,9 @@ else()
   # Hack for broken vcpkg naming
   set(OpenCV_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS} ${opencv_INCLUDE_DIRS})
 endif()
-target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_include_directories(cpp_immvision PRIVATE ${OpenCV_INCLUDE_DIRS})
 # Link
-target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
+target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
 
 #
@@ -74,7 +60,7 @@ target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE opencv_core op
 #
 set(imgui_source_dir ${PROJECT_SOURCE_DIR}/external/imgui)
 file(GLOB imgui_sources ${imgui_source_dir}/*.h ${imgui_source_dir}/*.cpp)
-target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_source_dir})
+target_include_directories(cpp_immvision PRIVATE ${imgui_source_dir})
 
 
 # Methode sans rien linker
@@ -82,40 +68,65 @@ target_include_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_s
 
 # Methode avec link statique:
 # => les import semblent fonctionner, mais est ce
-# => Seg fault a localiser...
+# => ensuite segfault dans GImGui
 add_library(imgui_shared_pybind STATIC ${imgui_sources})
 target_compile_options(imgui_shared_pybind PRIVATE -fPIC)
 target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE imgui_shared_pybind)
+target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+
+
+#
+# Methode avec lib shared pybind:
+#  ==> undefined symbol: GImGui (pb classique, solution connue cf main.cpp)
+#  ==> puis undefined symbol: _ZN5ImGui11PopStyleVarEi (ImGui::PopStyleVar(int))
+#pybind11_add_module(imgui_shared_pybind SHARED ${imgui_sources})
+#target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
+#target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+#install(TARGETS imgui_shared_pybind DESTINATION .)
+
 
 
 # Methode avec lib shared classique:
 # => libimgui_shared_pybind.so: cannot open shared object file: No such file or directory
 # bien que present dans package dir...
-# => marche avec LD_LIBRARY_PATH=/home/pascal/dvp/immvision/venv/lib/python3.8/site-packages/immvision python
-# add_library(imgui_shared_pybind SHARED ${imgui_sources})
-# target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-# target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE imgui_shared_pybind)
-# install(TARGETS imgui_shared_pybind DESTINATION .)
+# => import marche avec LD_LIBRARY_PATH=/home/pascal/dvp/immvision/venv/lib/python3.8/site-packages/immvision python
+# => mais ensuite segfault dans GImGui
+#add_library(imgui_shared_pybind SHARED ${imgui_sources})
+#target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
+#target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+#install(TARGETS imgui_shared_pybind DESTINATION .)
 
-
-
-# Methode avec lib shared pybind:
-#  ==> undefined symbol: GImGui (pb classique, solution connue cf main.cpp)
-# pybind11_add_module(imgui_shared_pybind SHARED ${imgui_sources})
-# target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-# target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE imgui_shared_pybind)
-# install(TARGETS imgui_shared_pybind DESTINATION .)
 
 
 # Methode / Hack link pip imgui on docker
 # ==> Semi-ok, avec LD_LIBRARY_PATH avant appel python
 # LD_LIBRARY_PATH=/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/imgui
 #set(imgui_docker_lib_dir "/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/imgui/")
-#target_link_directories(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE ${imgui_docker_lib_dir})
-#target_link_libraries(${IMMVISION_PYBIND_BIN_MODULE_NAME} PRIVATE core internal)
+#target_link_directories(cpp_immvision PRIVATE ${imgui_docker_lib_dir})
+#target_link_libraries(cpp_immvision PRIVATE core internal)
 #install(TARGETS imgui_shared_pybind DESTINATION .)
 
+
+
+#
+# Install and deploy to source dir (for pip editable mode)
+#
+install(TARGETS cpp_immvision DESTINATION .)
+install(TARGETS imgui_shared_pybind DESTINATION .)
+add_custom_command(
+        TARGET cpp_immvision
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:cpp_immvision>
+        ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:cpp_immvision>
+)
+add_custom_command(
+        TARGET imgui_shared_pybind
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:imgui_shared_pybind>
+        ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:imgui_shared_pybind>
+)
 
 
 #

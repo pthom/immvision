@@ -24,9 +24,9 @@ static void*   MyMallocWrapper(size_t size, void* user_data)    { IM_UNUSED(user
 static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user_data); free(ptr); }
 
 // For linux only!!!
-// #if !defined(__APPLE__) && !defined(WIN32)
-// #define CREATE_GIMGUI_POINTER
-// #endif
+#if !defined(__APPLE__) && !defined(WIN32)
+ #define CREATE_GIMGUI_POINTER
+#endif
 
 #ifdef CREATE_GIMGUI_POINTER
 ImGuiContext*   GImGui = NULL;
@@ -43,7 +43,7 @@ void SetImGuiContext()
         ImGuiContext* imGuiContext = (ImGuiContext*) ctx;
         ImGui::SetCurrentContext(imGuiContext);
 #ifdef CREATE_GIMGUI_POINTER
-        GImGui = imGuiContext;
+//        GImGui = imGuiContext;
 #endif
         ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
 
@@ -90,7 +90,7 @@ cv::Mat RoundTrip_Mat_To_BufferInfo_To_Mat(const cv::Mat& m)
     return m;
 }
 
-PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
+PYBIND11_MODULE(cpp_immvision, m) {
     m.doc() = R"pbdoc(
         immvision: immediate image debugger and insights
         -----------------------

@@ -15,8 +15,7 @@
 
 
  Python module
-  * pyimgui / use docking branch ?
-  * [X] provide power_save
+  * [ ] Recup scripts build de docker_run
   * [ ] pip install
     Lire doc / pip install: https://pip.pypa.io/en/stable/cli/pip_install/
     * [ ] Pb / build isolé : pip pas disponible. Regarder si skbuild peut aider. Question sur stackoverflow ?

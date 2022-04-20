@@ -597,16 +597,16 @@ def pybind_pip_install():
     """
     my_chdir(REPO_DIR)
     commands = f"""
-#        rm -rf _skbuild
+        rm -rf _skbuild
         python3 -m venv {VENV_NAME}
         {VENV_RUN_SOURCE}
 #        ls {VENV_PACKAGES_DIR}/
-        pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
+#        pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
 
         rm -rf {VENV_PACKAGES_DIR}/immvision &&  pip install . -v && ls -alh {VENV_PACKAGES_DIR}/immvision
 
-#        python3 -c 'import immvision'
-#        python3 -c 'import immvision.test'
+        python3 -c 'import immvision'
+        python3 -c 'import immvision.test'
 #        LD_LIBRARY_PATH={VENV_PACKAGES_DIR}/immvision python3 -c 'import immvision.test'
     """
     commands = chain_and_echo_commands(commands)
