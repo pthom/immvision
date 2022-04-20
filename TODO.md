@@ -15,22 +15,18 @@
 
 
  Python module
-  * pb OpenGL SDL => test hello imgui / backport modifs (& dans pyimgui)
-  * port imgui modifs / use docking branch ?
+  * pyimgui / use docking branch ?
   * [X] provide power_save
-  * [X] do not blit if data unchanged
-  * [X] Rendre possible de fonctionner avec ou sans hack _pybinds_lib
   * [ ] pip install
-    Pb / build isolé : pip pas disponible. Regarder si skbuild peut aider. Question sur stackoverflow ?
-
-Test install opencv via conan dans pip
-Test mode editable
-
-Lire doc / pip install: https://pip.pypa.io/en/stable/cli/pip_install/
+    Lire doc / pip install: https://pip.pypa.io/en/stable/cli/pip_install/
+    * [ ] Pb / build isolé : pip pas disponible. Regarder si skbuild peut aider. Question sur stackoverflow ?
+  * [ ] pip editable mode ? Si ok, supprimer code & hack _pybind_libs path
     https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs
+  * [ ] Link opencv: 
+    Lire doc / isolated build
+    Test install opencv via conan dans pip ?
+  * [ ] imgui & pyimgui : utiliser branche docking sans powersave ?
 
-Test en mode no-isolation:
-  pip install scikit-build
 
 * [ ] Pb link GImGui: 
 Voir imgui.cpp:1015
