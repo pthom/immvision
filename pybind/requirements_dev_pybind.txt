@@ -1,5 +1,4 @@
 setuptools>=42
-pybind11>=2.9.2
 cmake>=3.22
 pysdl2
 scikit-build>=0.14.1

@@ -15,12 +15,7 @@ if (NOT DEFINED PYTHON_EXECUTABLE)
   endif()
 endif()
 
-execute_process(
-  COMMAND "${PYTHON_EXECUTABLE}" -c "import pybind11; print(pybind11.get_cmake_dir())"
-  OUTPUT_VARIABLE pybind11_dir
-  OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ECHO STDOUT)
-list(APPEND CMAKE_PREFIX_PATH "${pybind11_dir}")
-find_package(pybind11 CONFIG REQUIRED)
+add_subdirectory(${PROJECT_SOURCE_DIR}/external/pybind11)
 
 #
 # Main target: cpp_imvision python module
@@ -42,18 +37,19 @@ target_compile_definitions(cpp_immvision PRIVATE
 #
 find_package(OpenCV)
 if (NOT OpenCV_FOUND)
-  set(default_opencv_include_dir ${CMAKE_CURRENT_LIST_DIR}/../external/vcpkg/installed/x64-osx/include)
+  set(default_opencv_include_dir ${PROJECT_SOURCE_DIR}/external/vcpkg/installed/x64-osx/include)
   message(WARN "find_package(OpenCV) failed, using default (and probably bad) location:
-          set(OpenCV_INCLUDE_DIRS ${default_include_dir}) ")
-  set(OpenCV_INCLUDE_DIRS ${default_include_dir})
+          set(OpenCV_INCLUDE_DIRS ${default_opencv_include_dir}) ")
+  set(OpenCV_INCLUDE_DIRS ${default_opencv_include_dir})
 else()
   # Hack for broken vcpkg naming
   set(OpenCV_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS} ${opencv_INCLUDE_DIRS})
 endif()
 target_include_directories(cpp_immvision PRIVATE ${OpenCV_INCLUDE_DIRS})
 # Link
-target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
-
+if (NOT APPLE)
+  target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
+endif()
 
 #
 # Link with imgui
@@ -132,7 +128,6 @@ add_custom_command(
 #
 # immvision_debug_pybind
 #
-find_package(pybind11 CONFIG REQUIRED)
 add_executable(pybind_debug_helper ${THIS_DIR}/pybind_debug_helper/pybind_debug_helper.cpp)
 target_link_libraries(pybind_debug_helper PRIVATE pybind11::embed)
 target_include_directories(pybind_debug_helper PRIVATE ${pybind11_INCLUDE_DIRS})
