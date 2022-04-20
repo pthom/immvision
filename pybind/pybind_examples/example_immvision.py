@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import _pybind_libs_path
-
 import imgui
 import immvision
 import immvision.imgui_runner as imgui_runner
@@ -9,10 +7,10 @@ import cv2
 import sdl2
 import numpy as np
 import time
+import os
 
-folder = "/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision_demos/inspector_demo/assets/"
-# image = cv2.imread(f"{folder}/reddit_place_2022.png")
-image = np.zeros([800, 600, 3], np.uint8)
+THIS_DIR = os.path.dirname(__file__)
+image = cv2.imread(f"{THIS_DIR}/smiley.png")
 
 # video_capture = cv2.VideoCapture(0)
 # show_video = True

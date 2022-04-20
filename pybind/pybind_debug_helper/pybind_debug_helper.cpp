@@ -3,7 +3,6 @@
 #include <filesystem>
 namespace py = pybind11;
 
-
 std::string string_replace(const std::string& src, const std::string& target, const std::string& repl)
 {
     if (src.empty() || target.empty())
@@ -30,7 +29,6 @@ int main()
 
     std::string cmd = R"(
 import sys
-sys.argv = [sys.argv[0], '-dev']
 sys.path.append("THIS_DIR")
 import pybind_debug_helper
     )";

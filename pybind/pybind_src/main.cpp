@@ -24,9 +24,9 @@ static void*   MyMallocWrapper(size_t size, void* user_data)    { IM_UNUSED(user
 static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user_data); free(ptr); }
 
 // For linux only!!!
-#if !defined(__APPLE__) && !defined(WIN32)
-//#define CREATE_GIMGUI_POINTER
-#endif
+// #if !defined(__APPLE__) && !defined(WIN32)
+// #define CREATE_GIMGUI_POINTER
+// #endif
 
 #ifdef CREATE_GIMGUI_POINTER
 ImGuiContext*   GImGui = NULL;
@@ -34,23 +34,33 @@ ImGuiContext*   GImGui = NULL;
 
 void SetImGuiContext()
 {
-#ifdef CREATE_GIMGUI_POINTER
     if (ImGui::GetCurrentContext() == NULL)
     {
         printf("SetImGuiContext detected null context!\n");
         size_t ctx = GetPythonImGuiContextPointer();
-        printf("SetImGuiContext ctx=%zu\n", ctx);
+        printf("SetImGuiContext ctx=%p  (%zu)\n", (void *)ctx, ctx);
 
         ImGuiContext* imGuiContext = (ImGuiContext*) ctx;
         ImGui::SetCurrentContext(imGuiContext);
+#ifdef CREATE_GIMGUI_POINTER
         GImGui = imGuiContext;
+#endif
         ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
+
+        ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
+        std::cout << "cpp: imgui.get_cursor_screen_pos() = ("
+            << cursorScreenPos.x << ", "
+            << cursorScreenPos.y << ")\n";
+
         printf("SetImGuiContext done\n");
     }
     printf("SetImGuiContext: nothing to do!\n");
-#endif
 }
 
+void Hello()
+{
+    printf("Hello Version: %s Time:%s\n", IMMVISION_VERSION, IMMVISION_COMPILATION_TIMESTAMP);
+}
 
 void Image(
     const cv::Mat& m,
@@ -90,6 +100,8 @@ PYBIND11_MODULE(IMMVISION_PYBIND_BIN_MODULE_NAME, m) {
     m.def("add", [](int a, int b) { return a + b; },
           R"pbdoc(Add two numbers)pbdoc"
           );
+
+    m.def("Hello", Hello);
 
     m.def("Image", Image);
     m.def("ImageNavigator", ImageNavigator);
