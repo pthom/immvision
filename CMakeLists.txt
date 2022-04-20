@@ -8,12 +8,12 @@ project(immvision
 set(CMAKE_CXX_STANDARD 17)
 
 option(IMMVISION_BUILD_PYTHON_BINDINGS "Build Python bindings for immvision" OFF)
-if(SKBUILD)
-    set(IMMVISION_BUILD_PYTHON_BINDINGS ON CACHE BOOL "")
+if (SKBUILD)
+    set(IMMVISION_BUILD_PYTHON_BINDINGS ON CACHE BOOL "" FORCE)
 endif()
 
 if (IMMVISION_BUILD_PYTHON_BINDINGS)
-    include("pybind/pybind_cmake.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/pybind/pybind_cmake.cmake")
 endif()
 
 if (NOT SKBUILD)

@@ -9,11 +9,10 @@ if (NOT DEFINED PYTHON_EXECUTABLE)
   set(PYTHON_EXECUTABLE "python")
 endif()
 execute_process(
-  COMMAND "${PYTHON_EXECUTABLE}" -c
-          "import pybind11; print(pybind11.get_cmake_dir())"
-  OUTPUT_VARIABLE _tmp_dir
+  COMMAND "${PYTHON_EXECUTABLE}" -c "import pybind11; print(pybind11.get_cmake_dir())"
+  OUTPUT_VARIABLE pybind11_dir
   OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ECHO STDOUT)
-list(APPEND CMAKE_PREFIX_PATH "${_tmp_dir}")
+list(APPEND CMAKE_PREFIX_PATH "${pybind11_dir}")
 find_package(pybind11 CONFIG REQUIRED)
 
 #

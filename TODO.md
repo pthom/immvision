@@ -13,7 +13,10 @@
   * [N] Replace vcpkg.tgz by artifacts: see https://github.com/marketplace/actions/upload-a-build-artifact
     Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
 
-* [ ] Python module
+
+ Python module
+  * pb OpenGL SDL => test hello imgui / backport modifs (& dans pyimgui)
+  * port imgui modifs / use docking branch ?
   * [X] provide power_save
   * [X] do not blit if data unchanged
   * [X] Rendre possible de fonctionner avec ou sans hack _pybinds_lib
@@ -99,8 +102,3 @@ static void*                GImAllocatorUserData = NULL;
   * [ ] Add param zoomCenter & zoomRatio
 
 * [?] (Much Later) Plugin python / lldb and gdb 
-
-
-/home/runner/work/immvision/immvision/immvision_pybind/venv/bin/python3 /tmp/pip-req-build-cvnykr_f/CmakeUtilities.py \
-/tmp/pip-req-build-cvnykr_f /tmp/pip-req-build-cvnykr_f/_skbuild/linux-x86_64-3.8/cmake-build \
-/tmp/pip-req-build-cvnykr_f/_skbuild/linux-x86_64-3.8/cmake-build \
