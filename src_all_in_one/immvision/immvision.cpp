@@ -3297,15 +3297,9 @@ namespace ImmVision
         ImageNavigatorParams* params,
         bool refresh)
     {
-        if (image.empty())
-        {
-            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "%s -> empty image !!!", params->Legend.c_str());
-            return cv::Point2d();
-        }
+        using CachedParams = ImageNavigatorUtils::ImageNavigatorTextureCache::CachedParams;
+        using CachedImages = ImageNavigatorUtils::ImageNavigatorTextureCache::CachedImages;
 
-        ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
-        auto &cacheParams = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheParams(image);
-        auto &cacheImages = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheImages(image);
         //
         // Lambda / panel Title
         //
@@ -3388,7 +3382,8 @@ namespace ImmVision
         //
         // Lambdas / Options & Adjustments
         //
-        auto fnOptionsInnerGui = [&params, &cacheParams, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded]()
+        auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded](
+                CachedParams & cacheParams)
         {
             float optionsWidth = 330.f;
             // Group with fixed width, so that Collapsing headers stop at optionsWidth
@@ -3527,13 +3522,13 @@ namespace ImmVision
             else
                 params->ShowOptions = !params->ShowOptions;
         };
-        auto fnOptionGui = [&params, &fnOptionsInnerGui]()
+        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams)
         {
             if (params->ShowOptionsInTooltip)
             {
                 if (ImGui::BeginPopup("Options"))
                 {
-                    fnOptionsInnerGui();
+                    fnOptionsInnerGui(cacheParams);
                     ImGui::EndPopup();
                 }
             }
@@ -3542,7 +3537,7 @@ namespace ImmVision
                 ImGui::SameLine();
                 ImGui::BeginGroup();
                 ImGui::Text("Options");
-                fnOptionsInnerGui();
+                fnOptionsInnerGui(cacheParams);
                 ImGui::EndGroup();
             }
         };
@@ -3551,7 +3546,7 @@ namespace ImmVision
         // Lambdas / Handle Zoom
         //
         // Mouse dragging
-        auto fnHandleMouseDragging = [&cacheParams, &params]()
+        auto fnHandleMouseDragging = [&params](CachedParams & cacheParams)
         {
             ZoomMatrix::ZoomMatrixType& zoomMatrix = params->ZoomMatrix;
 
@@ -3638,14 +3633,11 @@ namespace ImmVision
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params, &cacheImages]()
+        auto fnShowImage = [&params](CachedImages & cacheImages)
         {
-//            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(
-//                    *cacheImages.GlTexture,
-//                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
-
-            ImGui::Dummy(ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
-            cv::Point2d mouseLocation;
+            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(
+                    *cacheImages.GlTexture,
+                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
 
             cv::Point2d mouseLocation_originalImage =
                 ImGui::IsItemHovered() ? ZoomMatrix::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
@@ -3671,26 +3663,21 @@ namespace ImmVision
             ImageNavigatorWidgets::ShowPixelColorWidget(image, mouseLoc, *params);
         };
 
-
         //
-        // GUI
+        // Lambda / Show full Gui
         //
-        ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
-        cv::Point2d mouseLocation_originalImage;
-
-        // BeginGroupPanel
-        bool drawBorder = params->ShowLegendBorder;
-        ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
+        auto fnShowFullGui = [&](CachedParams& cacheParams, CachedImages &cacheImages)
         {
+
             ImGui::BeginGroup();
             // Show image
-            mouseLocation_originalImage = fnShowImage();
+            cv::Point2d mouseLocation_originalImage = fnShowImage(cacheImages);
             // Add Watched Pixel on double click
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered())
                 fnWatchedPixels_Add(mouseLocation_originalImage);
 
             // Handle Mouse
-            fnHandleMouseDragging();
+            fnHandleMouseDragging(cacheParams);
             fnHandleMouseWheel(mouseLocation_originalImage);
 
             // Zoom+ / Zoom- buttons
@@ -3712,9 +3699,39 @@ namespace ImmVision
             ImGui::EndGroup();
 
             // Show Options
-            fnOptionGui();
+            fnOptionGui(cacheParams);
+
+            return mouseLocation_originalImage;
+        };
+        auto fnShowFullGui_WithBorder = [&](CachedParams& cacheParams, CachedImages &cacheImages)
+        {
+            // BeginGroupPanel
+            bool drawBorder = params->ShowLegendBorder;
+            ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
+            cv::Point2d mouseLocation_originalImage = fnShowFullGui(cacheParams, cacheImages);
+            ImGuiImm::EndGroupPanel_FlagBorder();
+            return mouseLocation_originalImage;
+        };
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////
+        //
+        // Core of the function below (there are only lambdas declarations before)
+        //
+        /////////////////////////////////////////////////////////////////////////////////////////
+        if (image.empty())
+        {
+            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
+                               "%s -> empty image !!!", params->Legend.c_str());
+            return cv::Point2d();
         }
-        ImGuiImm::EndGroupPanel_FlagBorder();
+
+        ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
+        auto &cacheParams = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheParams(image);
+        auto &cacheImages = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheImages(image);
+
+        ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
+        cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);
         ImGui::PopID(); ImGui::PopID();
 
         return mouseLocation_originalImage;
