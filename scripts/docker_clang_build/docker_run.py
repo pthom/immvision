@@ -47,25 +47,6 @@ BUILD_COMMANDS = chain_and_echo_commands("""
         cp -a _pybind_libs/ ../sources/scripts/docker_clang_build/bin_docker 
             """)
 
-#LD_LIBRARY_PATH=/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/immvision python3 -c 'import immvision'
-#        python3 -c 'import immvision.imgui_shared_pybind'
-PACK_DIR="/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages"
-BUILD_PIP_COMMANDS = chain_and_echo_commands(f"""
-        
-        cd /dvp/sources/immvision_pybind
-        rm -rf _skbuild
-        python3 -m venv venv_docker
-        source venv_docker/bin/activate
-        #pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
-
-        #rm -rf {PACK_DIR}/immvision &&  pip install . -v && ls -al {PACK_DIR}/immvision
-        # 
-        python3 -c 'import immvision'
-        python3 -c 'import immvision.test'
-#        LD_LIBRARY_PATH={PACK_DIR}/immvision python3 -c 'import immvision.test'
-        """)
-
-
 CHDIR_LAST_DIRECTORY = INVOKE_DIR
 def my_chdir(folder):
     global CHDIR_LAST_DIRECTORY
@@ -170,7 +151,7 @@ def main():
     elif arg1 == "-build":
         run_docker_command(BUILD_COMMANDS, True)
     elif arg1 == "-build_pip":
-        run_docker_command(BUILD_PIP_COMMANDS, True)
+        run_docker_command("/dvp/sources/scripts/build_utilities.py run -pybind_pip_install", True)
     elif arg1 == "exec":
         bash_commands = " ".join(sys.argv[2:])
         run_docker_command(bash_commands, False)
