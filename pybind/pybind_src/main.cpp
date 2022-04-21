@@ -29,7 +29,7 @@ static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user
 #endif
 
 #ifdef CREATE_GIMGUI_POINTER
-    ImGuiContext*   GImGui = NULL;
+    //ImGuiContext*   GImGui = NULL;
 #endif
 
 void SetImGuiContext()
@@ -38,17 +38,12 @@ void SetImGuiContext()
     {
         printf("cpp: SetImGuiContext detected null context!\n");
         size_t contextPointer = GetPythonImGuiContextPointer();
-        printf("cpp: SetImGuiContext ctx=%p (got pointer from Python)\n", (void *)contextPointer);
+        printf("cpp: SetImGuiContext(%p) (got pointer from Python)\n", (void *)contextPointer);
         ImGui::SetCurrentContext((ImGuiContext*)contextPointer);
         ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
         ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
-        std::cout << "cpp: imgui.get_cursor_screen_pos() = ("
-            << cursorScreenPos.x << ", "
-            << cursorScreenPos.y << ")\n";
-
         printf("SetImGuiContext done\n");
     }
-    printf("SetImGuiContext: nothing to do!\n");
 }
 
 void Hello()

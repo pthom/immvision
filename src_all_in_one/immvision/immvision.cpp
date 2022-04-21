@@ -4805,7 +4805,7 @@ namespace
             Image = PythonModule.attr("_image");
             ImageButton = PythonModule.attr("_image_button");
             GetWindowDrawList_AddImage = PythonModule.attr("_get_window_draw_list_add_image");
-            GetImGuiContextId = PythonModule.attr("_get_imgui_context_id");
+            GetImGuiContextId = PythonModule.attr("_get_imgui_context_ptr");
         }
         pybind11::object PythonModule;
         pybind11::object Blit_RGBA_Buffer;

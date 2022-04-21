@@ -1,3 +1,4 @@
 immvision/__pycache__
-immvision/*.so
-immvision.egg-info
+**/*.so
+**/*.a
+**/immvision.egg-info

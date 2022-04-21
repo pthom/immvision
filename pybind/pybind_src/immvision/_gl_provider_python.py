@@ -84,15 +84,15 @@ def _get_window_draw_list_add_image(
     imgui.get_window_draw_list().add_image(texture_id, p_min, p_max, uv_a, uv_b, col)
 
 
-def _get_imgui_context_id():
-    imgui_context_id = None
-    if len(imgui.core._contexts) == 0:
-        print("get_imgui_context_id ==> No Context !")
-    print(f"Python found {len(imgui.core._contexts)} context(s)")
-    for ptr, ctx in imgui.core._contexts.items():
-        print(f"context ptr={hex(ptr)} ctx={hex(id(ctx))}")
-        imgui_context_id = ptr
-        break
-    imgui.text("_get_imgui_context_id")
-    print(f"python: imgui.get_cursor_screen_pos()={imgui.get_cursor_screen_pos()}")
-    return imgui_context_id
+def _get_imgui_context_ptr():
+    nb_contexts = len(imgui.core._contexts) # noqa
+    if nb_contexts == 0:
+        msg = "python: _get_imgui_context_id: No Context !"
+        raise RuntimeError(msg)
+    elif nb_contexts > 1:
+        msg = f"python: _get_imgui_context_id: More than one context (found {nb_contexts})!"
+        raise RuntimeError(msg)
+
+    imgui_context_ptr = list(imgui.core._contexts.keys())[0] # noqa
+    print(f"python: _get_imgui_context_id() -> {hex(imgui_context_ptr)}")
+    return imgui_context_ptr
