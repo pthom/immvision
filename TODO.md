@@ -16,15 +16,22 @@
 
  Python module
   * [ ] On Linux you’ll need to install the python-dev or python3-dev
-  * [ ] Recup scripts build de docker_run
+  * [ ] Anti aliasing moche: test glfw?
   * [ ] pip install
     Lire doc / pip install: https://pip.pypa.io/en/stable/cli/pip_install/
-    * [ ] Pb / build isolé : pip pas disponible. Regarder si skbuild peut aider. Question sur stackoverflow ?
-  * [ ] pip editable mode ? Si ok, supprimer code & hack _pybind_libs path
-    https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs
-  * [ ] Link opencv: 
-    Lire doc / isolated build
-    Test install opencv via conan dans pip ?
+    * [ ] pip install windows
+    * [ ] Link opencv:
+      Lire doc / isolated build
+      Test install opencv via conan dans pip ?
+  * [ ] CI
+    * [ ] Use docker
+    * [ ] Recup scripts build de docker_run
+    * [ ] Run test app for a few seconds
+
+  * [ ] pyimgui
+    * [ ] see branch dll
+    * [ ] Proposer imgui_runner
+    * [ ] Proposer power_save
   * [ ] imgui & pyimgui : utiliser branche docking sans powersave ?
 
 
