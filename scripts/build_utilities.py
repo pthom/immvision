@@ -611,9 +611,8 @@ def _pybind_pip_install(editable: bool):
 
         rm -rf {VENV_PACKAGES_DIR}/immvision &&  pip install -v {editable_flag} . && {ls_install_dir} && {ls_py_src_dir}
 
-#        python3 -c 'import immvision'
-#        python3 -c 'import immvision.test'
-#        LD_LIBRARY_PATH={VENV_PACKAGES_DIR}/immvision python3 -c 'import immvision.test'
+        python3 -c 'import immvision'
+        python3 -c 'import immvision.test'
     """
     commands = chain_and_echo_commands(commands)
     # print(chain_and_echo_commands(commands))

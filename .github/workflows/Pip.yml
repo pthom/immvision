@@ -12,6 +12,9 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
+    - name: download imgui
+      run: ./scripts/build_utilities.py run -imgui_download
+
     - name: Create docker image and container
       run: |
         cd scripts/docker_clang_build
@@ -22,6 +25,3 @@ jobs:
       run: |
         cd scripts/docker_clang_build
         ./docker_run.py exec /dvp/sources/scripts/build_utilities.py run -pybind_pip_install
-
-    - name: Setup interactive tmate session
-      uses: mxschmitt/action-tmate@v2
