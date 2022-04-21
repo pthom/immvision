@@ -2,6 +2,12 @@
 # CMAKE_CURRENT_LIST_DIR is thus ".." i.e the main repo dir
 set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
+if (WIN32)
+  add_compile_options(/FIpy ${THIS_DIR}/py_imconfig.h)
+else()
+  add_compile_options(-include ${THIS_DIR}/py_imconfig.h)
+endif()
+
 #
 # Find pydinb11 location via python (probably in a virtual env)
 #
@@ -102,7 +108,6 @@ if (NOT IMMVISION_NOLINK_APPLE)
   #  target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
   #  target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
   #  install(TARGETS imgui_shared_pybind DESTINATION .)
-
 endif(NOT IMMVISION_NOLINK_APPLE)
 
 

@@ -59,16 +59,10 @@ void Image(
 )
 {
     SetImGuiContext();
-
-    ImGui::Text("ALLO ALLO ALLO");
-    ImGui::Text("ALLO ALLO ALLO");
-    ImGui::Text("ALLO ALLO ALLO");
-    //cv::Size cv_size(size[0], size[1]);
-    //ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
-    ImGui::Text("ALLO ALLO ALLO");
-    ImGui::Text("ALLO ALLO ALLO");
-    ImGui::Text("ALLO ALLO ALLO");
+    cv::Size cv_size(size[0], size[1]);
+    ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
 }
+
 
 void ImageNavigator(const cv::Mat& image)
 {
