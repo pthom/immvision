@@ -14,69 +14,37 @@
     Parser https://api.github.com/repos/pthom/immvision/actions/artifacts
 
 
- Python module
-  * [ ] On Linux you’ll need to install the python-dev or python3-dev
-  * [ ] Anti aliasing moche: test glfw?
-  * [ ] pip install
-    Lire doc / pip install: https://pip.pypa.io/en/stable/cli/pip_install/
-    * [ ] pip install windows
-    * [ ] Link opencv:
-      Lire doc / isolated build
-      Test install opencv via conan dans pip ?
-  * [ ] CI
-    * [ ] Use docker
-    * [ ] Recup scripts build de docker_run
-    * [ ] Run test app for a few seconds
+ * [ ] PIP
+   * [ ] On Linux you’ll need to install the python-dev or python3-dev
+   * [ ] Anti aliasing moche: test glfw?
+   * [ ] pip install
+       [ ] install opencv via conan dans pip ?
+   * [ ] CI
+     * [ ] Run test app for a few seconds
+   * [ ] pyimgui
+     * [ ] see branch dll
+     * [ ] Proposer imgui_runner
+     * [ ] Proposer power_save
+   * [ ] imgui & pyimgui : utiliser branche docking sans powersave ?
+   * [X] classify code
+     * [X] Provide imgui_runner in the package
+     * [ ] Add missing signatures / cpp
+     * [ ] Add nice signatures / python
+     * [ ] publish opencv_converter: add unit tests
+     * [N?] pyimgui / version official
 
-  * [ ] pyimgui
-    * [ ] see branch dll
-    * [ ] Proposer imgui_runner
-    * [ ] Proposer power_save
-  * [ ] imgui & pyimgui : utiliser branche docking sans powersave ?
-
-
-* [ ] Pb link GImGui: 
-Voir imgui.cpp:1015
-// - Heaps and globals are not shared across DLL boundaries!
-// - You will need to call SetCurrentContext() + SetAllocatorFunctions() for each static/DLL boundary you are calling from.
-
-// Context
->>> imgui.create_context()
-<imgui.core._ImGuiContext object at 0x10d288f70>
->>> imgui.core._contexts
-{140717003419648: <imgui.core._ImGuiContext object at 0x10d288f70>}
-for nb, ctx in imgui.core._contexts.items(): print(id(ctx))
-
-// Allocators
-static void*   MallocWrapper(size_t size, void* user_data)    { IM_UNUSED(user_data); return malloc(size); }
-static void    FreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user_data); free(ptr); }
-SetAllocatorFunctions(ImGuiMemAllocFunc alloc_func, ImGuiMemFreeFunc free_func, void* user_data = NULL);
-static ImGuiMemAllocFunc    GImAllocatorAllocFunc = MallocWrapper;
-static ImGuiMemFreeFunc     GImAllocatorFreeFunc = FreeWrapper;
-static void*                GImAllocatorUserData = NULL;
-
-
-  * [ ] test fresh install sous docker
-  * [ ] CI
-  * [X] classify code
-    * [X] Provide imgui_runner in the package
-  * [ ] Add missing signatures / cpp
-  * [ ] Add nice signatures / python
-  * [ ] publish opencv_converter: add unit tests
-  * [N?] pyimgui / version official
-
-* [ ] immvision
-  * [ ] Compat Eigen ?
-  * [ ] doc
+ * [ ] immvision
+   * [ ] Compat Eigen ?
+   * [ ] doc
   
-* [ ] Inspector:
-  * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
-  * [ ] Handle params zoomCenter, zoomRatio
-  * [ ] load images
-  * [ ] List Image
-    * [ ] Different views : list, thumbs, thumbs size, etc
-    * [ ] Remove one image / Remove all
-  * [ ] Save inspector setup (options and window size ?)
+ * [ ] Inspector:
+   * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
+   * [ ] Handle params zoomCenter, zoomRatio
+   * [ ] load images
+   * [ ] List Image
+     * [ ] Different views : list, thumbs, thumbs size, etc
+     * [ ] Remove one image / Remove all
+   * [ ] Save inspector setup (options and window size ?)
 
 
 * [ ] Viewer

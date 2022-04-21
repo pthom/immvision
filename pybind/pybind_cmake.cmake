@@ -39,7 +39,8 @@ target_compile_definitions(cpp_immvision PRIVATE
 )
 
 #
-# Apple: no link at all
+# Apple: strangely, under MacOS, there is no need to link with imgui and/or OpenCV
+# (they are found in the python virtual environment)
 #
 if (APPLE)
   set(IMMVISION_NOLINK_APPLE ON)
@@ -74,40 +75,20 @@ target_include_directories(cpp_immvision PRIVATE ${imgui_source_dir})
 
 
 if (NOT IMMVISION_NOLINK_APPLE)
-  # Methode sans rien linker
-  #  ==> undefined symbol: _ZN5ImGui11PopStyleVarEi
+  # If we do not link ==> undefined symbol: _ZN5ImGui11PopStyleVarEi !!!
 
-  # Methode avec link statique:
-  # => les import fonctionnent
-  # => mais ImGui incapable de rendre du texte...
-  add_library(imgui_shared_pybind STATIC ${imgui_sources})
-  target_compile_options(imgui_shared_pybind PRIVATE -fPIC)
-  target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-  target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+  # Link with a static library
+  add_library(imgui_pybind STATIC ${imgui_sources})
+  target_compile_options(imgui_pybind PRIVATE -fPIC)
+  target_include_directories(imgui_pybind PUBLIC ${imgui_source_dir})
+  target_link_libraries(cpp_immvision PRIVATE imgui_pybind)
 
-
-  #
-  # Methode avec lib shared pybind:
-  #  ==> undefined symbol: _ZN5ImGui11PopStyleVarEi (ImGui::PopStyleVar(int))
-  #  pybind11_add_module(imgui_shared_pybind SHARED ${imgui_sources})
-  #  target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-  #  target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+  # Link with a shared pybind library  ==> undefined symbol: _ZN5ImGui11PopStyleVarEi (ImGui::PopStyleVar(int)) !!!
+  #  pybind11_add_module(imgui_pybind SHARED ${imgui_sources})
+  #  target_include_directories(imgui_pybind PUBLIC ${imgui_source_dir})
+  #  target_link_libraries(cpp_immvision PRIVATE imgui_pybind)
   #  target_compile_definitions(cpp_immvision PRIVATE IMMVISION_CREATE_GIMGUI_POINTER)
-  #  install(TARGETS imgui_shared_pybind DESTINATION .)
-
-
-
-  # Methode avec lib shared classique:
-  # => libimgui_shared_pybind.so: cannot open shared object file: No such file or directory
-  # bien que present dans package dir...
-  # => import marche avec LD_LIBRARY_PATH=/home/pascal/dvp/immvision/venv/lib/python3.8/site-packages/immvision python
-  #    ou bien
-  #             LD_LIBRARY_PATH=/home/pascal/dvp/immvision/pybind/pybind_src/immvision python
-  # => mais ensuite probleme de render text...
-  #  add_library(imgui_shared_pybind SHARED ${imgui_sources})
-  #  target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-  #  target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
-  #  install(TARGETS imgui_shared_pybind DESTINATION .)
+  #  install(TARGETS imgui_pybind DESTINATION .)
 endif(NOT IMMVISION_NOLINK_APPLE)
 
 
@@ -123,13 +104,13 @@ add_custom_command(
         ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:cpp_immvision>
 )
 if (NOT IMMVISION_NOLINK_APPLE)
-  install(TARGETS imgui_shared_pybind DESTINATION .)
+  install(TARGETS imgui_pybind DESTINATION .)
   add_custom_command(
-          TARGET imgui_shared_pybind
+          TARGET imgui_pybind
           POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy
-          $<TARGET_FILE:imgui_shared_pybind>
-          ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:imgui_shared_pybind>
+          $<TARGET_FILE:imgui_pybind>
+          ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:imgui_pybind>
   )
 endif()
 

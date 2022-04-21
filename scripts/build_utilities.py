@@ -598,19 +598,23 @@ def _pybind_pip_install(editable: bool):
         return f"echo ls {folder}: && echo ------------ && ls -alh {folder}"
 
     editable_flag = "--editable" if editable else ""
-    ls_install_dir = "true" if editable else ls_echo_dir(f"{VENV_PACKAGES_DIR}/immvision")
-    ls_py_src_dir = ls_echo_dir(f"{REPO_DIR}/pybind/pybind_src/immvision")
+    ls_install_dir = ls_echo_dir(f"{REPO_DIR}/pybind/pybind_src/immvision") if editable else ls_echo_dir(f"{VENV_PACKAGES_DIR}/immvision")
 
     my_chdir(REPO_DIR)
     commands = f"""
-        rm -rf _skbuild
+        # Suppress temp build dir
+        rm -rf {REPO_DIR}/_skbuild
+        # create virtual environment in venv
         python3 -m venv {VENV_NAME}
+        # Use virtual env venv in later commands
         {VENV_RUN_SOURCE}
-#        ls {VENV_PACKAGES_DIR}/
-#        pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
-
-        rm -rf {VENV_PACKAGES_DIR}/immvision &&  pip install -v {editable_flag} . && {ls_install_dir} && {ls_py_src_dir}
-
+        # Clean previously installed package
+        rm -rf {VENV_PACKAGES_DIR}/immvision 
+        # Do install
+        pip install -v {editable_flag} .
+        # List files (for debug) 
+        {ls_install_dir}
+        # Test if we can import the module
         python3 -c 'import immvision'
         python3 -c 'import immvision.test'
     """
