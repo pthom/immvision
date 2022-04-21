@@ -139,7 +139,7 @@ def help_vnc():
 
 def run_docker_command(commands, quiet):
     in_bash_commands = f'/bin/bash -c "{commands}"'
-    run_local_command(f"docker start {DOCKER_CONTAINER_NAME} && docker exec -it {DOCKER_CONTAINER_NAME} {in_bash_commands}", quiet)
+    run_local_command(f"docker start {DOCKER_CONTAINER_NAME} && docker exec {DOCKER_CONTAINER_NAME} {in_bash_commands}", quiet)
 
 
 def main():
