@@ -590,11 +590,17 @@ def pybind_clone_pyimgui():
     run(f"{VENV_RUN_SOURCE} pip install .")
 
 
-@decorate_loudly_echo_function_name
-def pybind_pip_install():
+def _pybind_pip_install(editable: bool):
     """
     Runs `pip install` in the main directory and checks that the module works
     """
+    def ls_echo_dir(folder):
+        return f"echo ls {folder}: && echo ------------ && ls -alh {folder}"
+
+    editable_flag = "--editable" if editable else ""
+    ls_install_dir = "true" if editable else ls_echo_dir(f"{VENV_PACKAGES_DIR}/immvision")
+    ls_py_src_dir = ls_echo_dir(f"{REPO_DIR}/pybind/pybind_src/immvision")
+
     my_chdir(REPO_DIR)
     commands = f"""
         rm -rf _skbuild
@@ -603,7 +609,7 @@ def pybind_pip_install():
 #        ls {VENV_PACKAGES_DIR}/
 #        pip install -v 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'
 
-        rm -rf {VENV_PACKAGES_DIR}/immvision &&  pip install . -v && ls -alh {VENV_PACKAGES_DIR}/immvision
+        rm -rf {VENV_PACKAGES_DIR}/immvision &&  pip install -v {editable_flag} . && {ls_install_dir} && {ls_py_src_dir}
 
         python3 -c 'import immvision'
         python3 -c 'import immvision.test'
@@ -612,6 +618,20 @@ def pybind_pip_install():
     commands = chain_and_echo_commands(commands)
     # print(chain_and_echo_commands(commands))
     run(commands)
+
+
+def pybind_pip_install_editable():
+    """
+    Runs `pip install --editable .` in the main directory and checks that the module works
+    """
+    _pybind_pip_install(True)
+
+
+def pybind_pip_install():
+    """
+    Runs `pip install .` in the main directory and checks that the module works
+    """
+    _pybind_pip_install(False)
 
 
 ######################################################################
@@ -670,7 +690,8 @@ def get_all_function_categories():
         "functions": [
             pybind_make_venv,
             pybind_clone_pyimgui,
-            pybind_pip_install
+            pybind_pip_install,
+            pybind_pip_install_editable
         ]
     }
 
