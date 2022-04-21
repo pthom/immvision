@@ -89,9 +89,9 @@ def _get_imgui_context_id():
     if len(imgui.core._contexts) == 0:
         print("get_imgui_context_id ==> No Context !")
     print(f"Python found {len(imgui.core._contexts)} context(s)")
-    for nb, ctx in imgui.core._contexts.items():
-        print(f"context {nb=} {ctx=}")
-        imgui_context_id = id(ctx)
+    for ptr, ctx in imgui.core._contexts.items():
+        print(f"context ptr={hex(ptr)} ctx={hex(id(ctx))}")
+        imgui_context_id = ptr
         break
     imgui.text("_get_imgui_context_id")
     print(f"python: imgui.get_cursor_screen_pos()={imgui.get_cursor_screen_pos()}")
