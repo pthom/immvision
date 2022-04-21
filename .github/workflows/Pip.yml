@@ -21,4 +21,5 @@ jobs:
     - name: pip install in docker container
       run: |
         cd scripts/docker_clang_build
-        ./docker_run.py exec /dvp/sources/scripts/build_utilities.py run -pybind_pip_install
+        docker start immvision_docker_builder
+        docker exec  immvision_docker_builder /bin/bash -c "/dvp/sources/scripts/build_utilities.py run -pybind_pip_install"
