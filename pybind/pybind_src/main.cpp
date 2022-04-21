@@ -28,8 +28,8 @@ static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user
     #define CREATE_GIMGUI_POINTER
 #endif
 
-#ifdef CREATE_GIMGUI_POINTER
-    //ImGuiContext*   GImGui = NULL;
+#ifdef IMMVISION_CREATE_GIMGUI_POINTER
+    ImGuiContext*   GImGui = NULL;
 #endif
 
 void SetImGuiContext()
@@ -40,7 +40,7 @@ void SetImGuiContext()
         size_t contextPointer = GetPythonImGuiContextPointer();
         printf("cpp: SetImGuiContext(%p) (got pointer from Python)\n", (void *)contextPointer);
         ImGui::SetCurrentContext((ImGuiContext*)contextPointer);
-        ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
+        //ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
         ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
         printf("SetImGuiContext done\n");
     }
@@ -60,8 +60,14 @@ void Image(
 {
     SetImGuiContext();
 
-    cv::Size cv_size(size[0], size[1]);
-    ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
+    ImGui::Text("ALLO ALLO ALLO");
+    ImGui::Text("ALLO ALLO ALLO");
+    ImGui::Text("ALLO ALLO ALLO");
+    //cv::Size cv_size(size[0], size[1]);
+    //ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
+    ImGui::Text("ALLO ALLO ALLO");
+    ImGui::Text("ALLO ALLO ALLO");
+    ImGui::Text("ALLO ALLO ALLO");
 }
 
 void ImageNavigator(const cv::Mat& image)

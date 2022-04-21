@@ -72,8 +72,8 @@ if (NOT IMMVISION_NOLINK_APPLE)
   #  ==> undefined symbol: _ZN5ImGui11PopStyleVarEi
 
   # Methode avec link statique:
-  # => les import semblent fonctionner, mais est ce
-  # => ensuite segfault dans GImGui
+  # => les import fonctionnent
+  # => mais ImGui incapable de rendre du texte...
   add_library(imgui_shared_pybind STATIC ${imgui_sources})
   target_compile_options(imgui_shared_pybind PRIVATE -fPIC)
   target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
@@ -82,12 +82,12 @@ if (NOT IMMVISION_NOLINK_APPLE)
 
   #
   # Methode avec lib shared pybind:
-  #  ==> undefined symbol: GImGui (pb classique, solution connue cf main.cpp)
-  #  ==> puis undefined symbol: _ZN5ImGui11PopStyleVarEi (ImGui::PopStyleVar(int))
-  #pybind11_add_module(imgui_shared_pybind SHARED ${imgui_sources})
-  #target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-  #target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
-  #install(TARGETS imgui_shared_pybind DESTINATION .)
+  #  ==> undefined symbol: _ZN5ImGui11PopStyleVarEi (ImGui::PopStyleVar(int))
+  #  pybind11_add_module(imgui_shared_pybind SHARED ${imgui_sources})
+  #  target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
+  #  target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+  #  target_compile_definitions(cpp_immvision PRIVATE IMMVISION_CREATE_GIMGUI_POINTER)
+  #  install(TARGETS imgui_shared_pybind DESTINATION .)
 
 
 
@@ -95,21 +95,14 @@ if (NOT IMMVISION_NOLINK_APPLE)
   # => libimgui_shared_pybind.so: cannot open shared object file: No such file or directory
   # bien que present dans package dir...
   # => import marche avec LD_LIBRARY_PATH=/home/pascal/dvp/immvision/venv/lib/python3.8/site-packages/immvision python
-  # => mais ensuite segfault dans GImGui
-  #add_library(imgui_shared_pybind SHARED ${imgui_sources})
-  #target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-  #target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
-  #install(TARGETS imgui_shared_pybind DESTINATION .)
+  #    ou bien
+  #             LD_LIBRARY_PATH=/home/pascal/dvp/immvision/pybind/pybind_src/immvision python
+  # => mais ensuite probleme de render text...
+  #  add_library(imgui_shared_pybind SHARED ${imgui_sources})
+  #  target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
+  #  target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+  #  install(TARGETS imgui_shared_pybind DESTINATION .)
 
-
-
-  # Methode / Hack link pip imgui on docker
-  # ==> Semi-ok, avec LD_LIBRARY_PATH avant appel python
-  # LD_LIBRARY_PATH=/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/imgui
-  #set(imgui_docker_lib_dir "/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/imgui/")
-  #target_link_directories(cpp_immvision PRIVATE ${imgui_docker_lib_dir})
-  #target_link_libraries(cpp_immvision PRIVATE core internal)
-  #install(TARGETS imgui_shared_pybind DESTINATION .)
 endif(NOT IMMVISION_NOLINK_APPLE)
 
 
