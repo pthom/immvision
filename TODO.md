@@ -15,23 +15,22 @@
 
 
  * [ ] PIP
-   * [ ] On Linux you’ll need to install the python-dev or python3-dev
    * [ ] Anti aliasing moche: test glfw?
-   * [ ] pip install
-       [ ] install opencv via conan dans pip ?
+   * [ ] install opencv via conan dans pip ?
    * [ ] CI
      * [ ] Run test app for a few seconds
    * [ ] pyimgui
-     * [ ] see branch dll
+     * [x] see branch dll
      * [ ] Proposer imgui_runner
      * [ ] Proposer power_save
-   * [ ] imgui & pyimgui : utiliser branche docking sans powersave ?
+   * [ ] imgui & pyimgui : utiliser branche docking sans powersave / branche master & official?
    * [X] classify code
      * [X] Provide imgui_runner in the package
      * [ ] Add missing signatures / cpp
      * [ ] Add nice signatures / python
      * [ ] publish opencv_converter: add unit tests
-     * [N?] pyimgui / version official
+   * [ ] cf _sbuild_template: add conda & wheels
+   * [ ] On Linux you’ll need to install the python-dev or python3-dev
 
  * [ ] immvision
    * [ ] Compat Eigen ?
