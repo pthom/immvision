@@ -611,7 +611,11 @@ namespace ImmVision
                     // => we add a dummy one (hopefully black on a black background)
                     float dummyColor[4]{0.f, 0.f, 0.f, 255.f};
                     ImGui::SetNextItemWidth(1.f);
-                    ImGui::ColorEdit4(id.c_str(), dummyColor, ImGuiColorEditFlags_NoInputs );
+                    int colorEditFlags =
+                              ImGuiColorEditFlags_NoInputs
+                            | ImGuiColorEditFlags_InputRGB
+                            | ImGuiColorEditFlags_DisplayRGB;
+                    ImGui::ColorEdit4(id.c_str(), dummyColor, colorEditFlags );
                     done = true;
                 }
                 else if (image.channels() == 3)
@@ -1197,7 +1201,10 @@ namespace ImmVision
         //
         auto fnShowImage = [&params, &cacheImages]()
         {
-            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(*cacheImages.GlTexture, ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
+            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(
+                    *cacheImages.GlTexture,
+                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
+
             cv::Point2d mouseLocation_originalImage =
                 ImGui::IsItemHovered() ? ZoomMatrix::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
             return mouseLocation_originalImage;
