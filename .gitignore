@@ -7,3 +7,4 @@ venv_docker/
 install/
 .vscode/
 _skbuild/
+**/imgui.ini
