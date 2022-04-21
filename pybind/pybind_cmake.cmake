@@ -33,6 +33,14 @@ target_compile_definitions(cpp_immvision PRIVATE
 )
 
 #
+# Apple: no link at all
+#
+if (APPLE)
+  set(IMMVISION_NOLINK_APPLE ON)
+  target_compile_definitions(cpp_immvision PRIVATE IMMVISION_NOLINK_APPLE)
+endif()
+
+#
 # Link with OpenCV
 #
 find_package(OpenCV)
@@ -47,68 +55,68 @@ else()
 endif()
 target_include_directories(cpp_immvision PRIVATE ${OpenCV_INCLUDE_DIRS})
 # Link
-if (NOT APPLE)
-  target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
+if (NOT IMMVISION_NOLINK_APPLE)
+    target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 endif()
 
 #
-# Link with imgui
+# Include path for imgui
 #
 set(imgui_source_dir ${PROJECT_SOURCE_DIR}/external/imgui)
 file(GLOB imgui_sources ${imgui_source_dir}/*.h ${imgui_source_dir}/*.cpp)
 target_include_directories(cpp_immvision PRIVATE ${imgui_source_dir})
 
 
-# Methode sans rien linker
-#  ==> undefined symbol: _ZN5ImGui11PopStyleVarEi
+if (NOT IMMVISION_NOLINK_APPLE)
+  # Methode sans rien linker
+  #  ==> undefined symbol: _ZN5ImGui11PopStyleVarEi
 
-# Methode avec link statique:
-# => les import semblent fonctionner, mais est ce
-# => ensuite segfault dans GImGui
-add_library(imgui_shared_pybind STATIC ${imgui_sources})
-target_compile_options(imgui_shared_pybind PRIVATE -fPIC)
-target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
-
-
-#
-# Methode avec lib shared pybind:
-#  ==> undefined symbol: GImGui (pb classique, solution connue cf main.cpp)
-#  ==> puis undefined symbol: _ZN5ImGui11PopStyleVarEi (ImGui::PopStyleVar(int))
-#pybind11_add_module(imgui_shared_pybind SHARED ${imgui_sources})
-#target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-#target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
-#install(TARGETS imgui_shared_pybind DESTINATION .)
+  # Methode avec link statique:
+  # => les import semblent fonctionner, mais est ce
+  # => ensuite segfault dans GImGui
+  add_library(imgui_shared_pybind STATIC ${imgui_sources})
+  target_compile_options(imgui_shared_pybind PRIVATE -fPIC)
+  target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
+  target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
 
 
-
-# Methode avec lib shared classique:
-# => libimgui_shared_pybind.so: cannot open shared object file: No such file or directory
-# bien que present dans package dir...
-# => import marche avec LD_LIBRARY_PATH=/home/pascal/dvp/immvision/venv/lib/python3.8/site-packages/immvision python
-# => mais ensuite segfault dans GImGui
-#add_library(imgui_shared_pybind SHARED ${imgui_sources})
-#target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
-#target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
-#install(TARGETS imgui_shared_pybind DESTINATION .)
+  #
+  # Methode avec lib shared pybind:
+  #  ==> undefined symbol: GImGui (pb classique, solution connue cf main.cpp)
+  #  ==> puis undefined symbol: _ZN5ImGui11PopStyleVarEi (ImGui::PopStyleVar(int))
+  #pybind11_add_module(imgui_shared_pybind SHARED ${imgui_sources})
+  #target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
+  #target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+  #install(TARGETS imgui_shared_pybind DESTINATION .)
 
 
 
-# Methode / Hack link pip imgui on docker
-# ==> Semi-ok, avec LD_LIBRARY_PATH avant appel python
-# LD_LIBRARY_PATH=/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/imgui
-#set(imgui_docker_lib_dir "/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/imgui/")
-#target_link_directories(cpp_immvision PRIVATE ${imgui_docker_lib_dir})
-#target_link_libraries(cpp_immvision PRIVATE core internal)
-#install(TARGETS imgui_shared_pybind DESTINATION .)
+  # Methode avec lib shared classique:
+  # => libimgui_shared_pybind.so: cannot open shared object file: No such file or directory
+  # bien que present dans package dir...
+  # => import marche avec LD_LIBRARY_PATH=/home/pascal/dvp/immvision/venv/lib/python3.8/site-packages/immvision python
+  # => mais ensuite segfault dans GImGui
+  #add_library(imgui_shared_pybind SHARED ${imgui_sources})
+  #target_include_directories(imgui_shared_pybind PUBLIC ${imgui_source_dir})
+  #target_link_libraries(cpp_immvision PRIVATE imgui_shared_pybind)
+  #install(TARGETS imgui_shared_pybind DESTINATION .)
 
+
+
+  # Methode / Hack link pip imgui on docker
+  # ==> Semi-ok, avec LD_LIBRARY_PATH avant appel python
+  # LD_LIBRARY_PATH=/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/imgui
+  #set(imgui_docker_lib_dir "/dvp/sources/immvision_pybind/venv_docker/lib/python3.10/site-packages/imgui/")
+  #target_link_directories(cpp_immvision PRIVATE ${imgui_docker_lib_dir})
+  #target_link_libraries(cpp_immvision PRIVATE core internal)
+  #install(TARGETS imgui_shared_pybind DESTINATION .)
+endif(NOT IMMVISION_NOLINK_APPLE)
 
 
 #
 # Install and deploy to source dir (for pip editable mode)
 #
 install(TARGETS cpp_immvision DESTINATION .)
-install(TARGETS imgui_shared_pybind DESTINATION .)
 add_custom_command(
         TARGET cpp_immvision
         POST_BUILD
@@ -116,14 +124,16 @@ add_custom_command(
         $<TARGET_FILE:cpp_immvision>
         ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:cpp_immvision>
 )
-add_custom_command(
-        TARGET imgui_shared_pybind
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:imgui_shared_pybind>
-        ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:imgui_shared_pybind>
-)
-
+if (NOT IMMVISION_NOLINK_APPLE)
+  install(TARGETS imgui_shared_pybind DESTINATION .)
+  add_custom_command(
+          TARGET imgui_shared_pybind
+          POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy
+          $<TARGET_FILE:imgui_shared_pybind>
+          ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:imgui_shared_pybind>
+  )
+endif()
 
 #
 # immvision_debug_pybind

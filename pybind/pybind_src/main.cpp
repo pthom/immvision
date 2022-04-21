@@ -4,6 +4,7 @@
 #include <pybind11/stl.h>
 #include "immvision/internal/opencv_pybind_converter.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -23,30 +24,23 @@ namespace ImmVision_GlProvider
 static void*   MyMallocWrapper(size_t size, void* user_data)    { IM_UNUSED(user_data); return malloc(size); }
 static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user_data); free(ptr); }
 
-// For linux only!!!
-#if !defined(__APPLE__) && !defined(WIN32)
- #define CREATE_GIMGUI_POINTER
+#ifndef IMMVISION_NOLINK_APPLE
+    #define CREATE_GIMGUI_POINTER
 #endif
 
 #ifdef CREATE_GIMGUI_POINTER
-ImGuiContext*   GImGui = NULL;
+    ImGuiContext*   GImGui = NULL;
 #endif
 
 void SetImGuiContext()
 {
     if (ImGui::GetCurrentContext() == NULL)
     {
-        printf("SetImGuiContext detected null context!\n");
-        size_t ctx = GetPythonImGuiContextPointer();
-        printf("SetImGuiContext ctx=%p  (%zu)\n", (void *)ctx, ctx);
-
-        ImGuiContext* imGuiContext = (ImGuiContext*) ctx;
-        ImGui::SetCurrentContext(imGuiContext);
-#ifdef CREATE_GIMGUI_POINTER
-//        GImGui = imGuiContext;
-#endif
+        printf("cpp: SetImGuiContext detected null context!\n");
+        size_t contextPointer = GetPythonImGuiContextPointer();
+        printf("cpp: SetImGuiContext ctx=%p (got pointer from Python)\n", (void *)contextPointer);
+        ImGui::SetCurrentContext((ImGuiContext*)contextPointer);
         ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
-
         ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
         std::cout << "cpp: imgui.get_cursor_screen_pos() = ("
             << cursorScreenPos.x << ", "

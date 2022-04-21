@@ -15,6 +15,7 @@
 
 
  Python module
+  * [ ] On Linux you’ll need to install the python-dev or python3-dev
   * [ ] Recup scripts build de docker_run
   * [ ] pip install
     Lire doc / pip install: https://pip.pypa.io/en/stable/cli/pip_install/
