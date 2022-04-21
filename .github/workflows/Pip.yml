@@ -12,43 +12,13 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
-    - name: Install needed libraries
-      run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libxrandr-dev xorg-dev libxinerama-dev curl zip unzip tar
-
-    - name: Install OpenCV and SDL via apt
-      run: sudo apt-get install -y libopencv-dev libsdl2-dev
-
-    - name: Download imgui
-      run: ./scripts/build_utilities.py run -imgui_download
-
-    # When building the pip package, sometimes we are in a bare copy of the immvision_pybind/ folder
-    # and ".." does not point inside the repository.
-    # So, the pip.yml Github workflow starts by copying imgui and immvision to src_copy_cpp/
-    # and immvision_pybind/CMakeLists will use this
-    - name: Hum... copy immvision and imgui sources to src_copy_cpp
+    - name: Create docker image and container
       run: |
-        cd immvision_pybind
-        mkdir src_copy_cpp
-        cp -a ../src/immvision src_copy_cpp/
-        cp -a ../external/imgui/ src_copy_cpp/
+        cd scripts/docker_clang_build
+        ./docker_run.py -build_image
+        ./docker_run.py -create_container
 
-
-
-    - name: Setup interactive tmate session
-      uses: mxschmitt/action-tmate@v2
-
-    # Alternatively we could prepare a venv like this:
-    #     pip3 install --upgrade pip
-    #     python3 -m venv venv
-    #     source venv/bin/activate
-    - name: pip install
-      run:  |
-        cd immvision_pybind
-        pip3 install --upgrade pip
-        python3 -m venv venv
-        source venv/bin/activate
-        pip3 install -v .
-
-    - name: pip test import
-      run:  |
-        python3 -c "import immvision"
+    - name: pip install in docker container
+      run: |
+        cd scripts/docker_clang_build
+        ./docker_run.py exec /dvp/sources/scripts/build_utilities.py run -pybind_pip_install
