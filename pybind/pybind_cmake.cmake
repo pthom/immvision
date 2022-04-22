@@ -28,6 +28,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/external/pybind11)
 find_package(OpenCV) # test if opencv can be found
 if (NOT OpenCV_FOUND)
   set(IMMVISION_PYBIND_USE_CONAN ON)
+  message(WARNING "Did not find a global OpenCV installation. Will try to install it via conan")
 endif()
 if (IMMVISION_PYBIND_USE_CONAN)
   set(conan_folder ${CMAKE_CURRENT_BINARY_DIR}/conan_third)
