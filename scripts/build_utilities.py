@@ -7,7 +7,7 @@ import dataclasses
 import typing
 from pathlib import Path
 
-CMAKE_BUILD_TYPE="Release"
+CMAKE_BUILD_TYPE = "Release"
 
 
 @dataclasses.dataclass
@@ -18,21 +18,22 @@ class Option:
 
 @dataclasses.dataclass
 class Options:
-    only_echo_command:Option = Option(True, "Only echo shell command, but do nothing")
+    only_echo_command: Option = Option(True, "Only echo shell command, but do nothing")
 
     use_vcpkg: Option = Option(False, "Use vcpkg package manager")
     use_conan: Option = Option(False, "Use Conan package manager")
 
     use_powersave: Option = Option(True, "Use imgui powersave version")
-    activate_all_warnings:Option = Option(True, "Activate all warnings, as errors")
+    activate_all_warnings: Option = Option(True, "Activate all warnings, as errors")
 
     # advanced options below
     build_emscripten: Option = Option(False, "Build for emscripten")
     windows_vcpkg_static: Option = Option(True, "Let vcpkg build static libraries under windows")
     build_32bits: Option = Option(False, "Build 32 bits version (only possible under windows)")
     vcpkg_bypass_install: Option = Option(False, "Bypass vcpkg install (advanced option, for CI only)")
-    emscripten_bypass_opencv_compil: Option = Option(False, "Bypass opencv compil for emscripten (advanced option, for CI only)")
+    emscripten_bypass_opencv_compil: Option = Option(False, "Skip opencv compil for emscripten (advanced, for CI only)")
     build_python_bindings: Option = Option(False, "Build python library using pybind11")
+
 
 OPTIONS = Options()
 
@@ -43,11 +44,11 @@ REPO_DIR = os.path.realpath(THIS_DIR + "/..")
 EXTERNAL_DIR = REPO_DIR + "/external"
 INVOKE_DIR_IS_REPO_DIR = False
 HOME_FOLDER = Path.home()
-if (os.path.realpath(INVOKE_DIR) == os.path.realpath(REPO_DIR)):
+if os.path.realpath(INVOKE_DIR) == os.path.realpath(REPO_DIR):
     INVOKE_DIR_IS_REPO_DIR = True
-if (os.path.realpath(INVOKE_DIR) == os.path.realpath(THIS_DIR)):
+if os.path.realpath(INVOKE_DIR) == os.path.realpath(THIS_DIR):
     INVOKE_DIR_IS_REPO_DIR = True
-if (os.path.realpath(INVOKE_DIR) == os.path.realpath(EXTERNAL_DIR)):
+if os.path.realpath(INVOKE_DIR) == os.path.realpath(EXTERNAL_DIR):
     INVOKE_DIR_IS_REPO_DIR = True
 
 IS_DOCKER_BUILDER = os.path.isfile("/IMMVISION_DOCKER_BUILDER")
@@ -57,11 +58,12 @@ VENV_NAME = "venv" if not IS_DOCKER_BUILDER else "venv_docker"
 VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
 # use "source" for bash, but for docker we may get "sh" which uses "." instead
 source_cmd = ". "
-VENV_RUN_SOURCE = f"{source_cmd} {VENV_DIR}/bin/activate && " if not IS_DOCKER_BUILDER else f"{source_cmd}  {VENV_DIR}/bin/activate && "
+VENV_RUN_SOURCE = f"{source_cmd} {VENV_DIR}/bin/activate && "
 VENV_PACKAGES_DIR = f"{VENV_DIR}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
 
 VCPKG_BASENAME = "vcpkg" if not IS_DOCKER_BUILDER else "vcpkg_docker"
 VCPKG_DIR = f"{REPO_DIR}/external/{VCPKG_BASENAME}"
+
 
 def has_program(program_name):
     paths = os.environ['PATH'].split(":")
@@ -75,11 +77,13 @@ def has_program(program_name):
 HAS_EMSCRIPTEN = has_program("emcmake")
 
 CHDIR_LAST_DIRECTORY = INVOKE_DIR
+
+
 def my_chdir(folder):
     global CHDIR_LAST_DIRECTORY
     try:
         os.chdir(folder)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         if OPTIONS.only_echo_command.Value:
             print(f"# Warning, folder {folder} does not yet exist")
         else:
@@ -89,14 +93,17 @@ def my_chdir(folder):
     CHDIR_LAST_DIRECTORY = folder
 
 
-def run(cmd, chain_commands = False):
+def run(cmd, chain_commands=False):
     if OPTIONS.only_echo_command.Value:
         print(cmd)
         return
+
+    if chain_commands and os.name == "nt":
+        raise RuntimeError("chain_commands is not supported under windows")
+
     if chain_commands:
-        if os.name == "nt":
-            raise RuntimeError("chain_commands is not supported under windows")
         cmd = _chain_and_echo_commands(cmd)
+        subprocess.check_call(cmd, shell=True)
     else:
         if os.name == "nt":
             print("###### Run command ######")
@@ -130,10 +137,10 @@ def _chain_and_echo_commands(commands: str):
     while echoing them, and ignoring commented lines (with a #)    
     """
     lines = commands.split("\n")
-     # strip lines
-    lines = map(lambda s : s.strip(), lines)
+    # strip lines
+    lines = map(lambda s: s.strip(), lines)
     # suppress empty lines
-    lines = filter(lambda s : not len(s) == 0, lines)
+    lines = filter(lambda s: not len(s) == 0, lines)
 
     # add "echo commands" and process comments:
     # comments starting with # are discarded and comments starting with ## are displayed loudly
@@ -153,13 +160,18 @@ def _chain_and_echo_commands(commands: str):
     return r
 
 
-
 def decorate_loudly_echo_function_name(fn):
     def wrapper_func(*args, **kwargs):
-        print(f"""
+        msg = f"""
 # ==================================================================
 #                {fn.__name__}
-# ==================================================================""")
+# =================================================================="""
+        if os.name == "nt":
+            print(msg)
+        else:
+            for line in msg.split("\n"):
+                subprocess.check_call(f"echo '{line}'", shell=True)
+
         return fn(*args, **kwargs)
     wrapper_func.__doc__ = fn.__doc__
     wrapper_func.__name__ = fn.__name__
@@ -307,7 +319,8 @@ def imgui_download():
       This PR was adapted to imgui docking version of March 2022 here:
       https://github.com/pthom/imgui/tree/docking_powersave
     """
-    git_repo = "https://github.com/pthom/imgui.git" if OPTIONS.use_powersave.Value else "https://github.com/ocornut/imgui.git"
+    git_repo = "https://github.com/pthom/imgui.git" if OPTIONS.use_powersave.Value \
+        else "https://github.com/ocornut/imgui.git"
     branch = "docking_powersave" if OPTIONS.use_powersave.Value else "docking"
 
     # Check if we changed to/from powersave mode
@@ -353,6 +366,7 @@ def all_imgui_downloads():
     imgui_download()
     hello_imgui_download()
 
+
 ######################################################################
 # vcpkg
 ######################################################################
@@ -386,10 +400,10 @@ def vcpkg_install_thirdparties():
     my_chdir(f"{VCPKG_DIR}")
     run("git pull")
 
-    packages = ["sdl2", "opencv4[core,jpeg,png]" ]
+    packages = ["sdl2", "opencv4[core,jpeg,png]"]
     for package in packages:
         triplet = _vcpkg_optional_triplet_name()
-        if len(triplet) >0:
+        if len(triplet) > 0:
             cmd = f'{vcpkg_exe} install "{package}:{triplet}"'
         else:
             cmd = f'{vcpkg_exe} install "{package}"'
@@ -505,7 +519,7 @@ def install_emscripten():
     # Fetch the latest version of the emsdk (not needed the first time you clone)
     run("git pull")
     # Download and install the latest SDK tools.
-    run ("./emsdk install latest")
+    run("./emsdk install latest")
     # Make the "latest" SDK "active" for the current user. (writes .emscripten file)
     run("./emsdk activate latest")
 
@@ -626,7 +640,8 @@ def _pybind_pip_install(editable: bool):
         return f"echo ls {folder}: && echo ------------ && ls -alh {folder}"
 
     editable_flag = "--editable" if editable else ""
-    ls_install_dir = ls_echo_dir(f"{REPO_DIR}/pybind/pybind_src/immvision") if editable else ls_echo_dir(f"{VENV_PACKAGES_DIR}/immvision")
+    ls_install_dir = ls_echo_dir(f"{REPO_DIR}/pybind/pybind_src/immvision") if editable \
+        else ls_echo_dir(f"{VENV_PACKAGES_DIR}/immvision")
 
     my_chdir(REPO_DIR)
     commands = f"""
@@ -746,12 +761,12 @@ def display_options_impl(as_command_line_flags: bool):
     for option_name, option_variable in option_vars.items():
         option_name = option_name.lower()
         if as_command_line_flags:
-            option_intro=f"\t[--{option_name}=True|False]".ljust(40)
-            option_desc=option_variable.Description.ljust(60)
+            option_intro = f"\t[--{option_name}=True|False]".ljust(40)
+            option_desc = option_variable.Description.ljust(60)
             print(f"{option_intro}    {option_desc}\tDefault={option_variable.Value}")
         else:
-            option_intro=f"{option_name}={option_variable.Value}".ljust(40)
-            option_desc=option_variable.Description
+            option_intro = f"{option_name}={option_variable.Value}".ljust(40)
+            option_desc = option_variable.Description
             print(f"{option_intro}\t{option_desc}")
     print(f"Build type: {CMAKE_BUILD_TYPE}  \n\tedit {__file__} to change the build type")
 
@@ -768,6 +783,7 @@ def help_commands():
         print("\t==================================================================================================")
         for fn in category['functions']:
             doc_lines = fn.__doc__.split("\n")[1:]
+
             def indent_doc_line(line):
                 return "\t\t" + line.strip()
             doc_detail_lines = list(map(indent_doc_line, doc_lines))
@@ -776,7 +792,7 @@ def help_commands():
             print(f"{doc_indented}")
 
 
-def help():
+def show_help():
     help_commands()
     help_options()
     if not HAS_EMSCRIPTEN:
@@ -784,7 +800,8 @@ def help():
         source ~/emsdk/emsdk_env.sh")
     if OPTIONS.only_echo_command.Value:
         print(f"""
-        Currently, commands are only output to the terminal. To run them, add 'run' as first param i.e {sys.argv[0]} run ...
+        Currently, commands are only output to the terminal. To run them, add 'run' as first param i.e 
+                {sys.argv[0]} run ...
         """)
 
 
@@ -801,7 +818,7 @@ def parse_args_options():
         found_corresponding_option = False
         for option_name, option_variable in option_vars.items():
             option_name = option_name.lower()
-            if arg.lower().startswith("--"+ option_name.lower()):
+            if arg.lower().startswith("--" + option_name.lower()):
                 found_corresponding_option = True
                 items = arg.split("=")
                 error_message = f"Error: use --{option_name}=True or --{option_name}=False"
@@ -820,7 +837,7 @@ def parse_args_options():
         exit(1)
 
 
-def parse_args_commands() -> typing.List[str] :
+def parse_args_commands() -> typing.List[typing.Callable]:
     commands = []
     for arg in sys.argv[1:]:
         if arg[:2] == "--":
@@ -828,9 +845,9 @@ def parse_args_commands() -> typing.List[str] :
         if arg[:1] != "-":
             continue
         found = False
-        for function_name in get_all_functions():
-            if arg.lower() == "-" + function_name.__name__:
-                commands.append(function_name)
+        for function_pointer in get_all_functions():
+            if arg.lower() == "-" + function_pointer.__name__:
+                commands.append(function_pointer)
                 found = True
         if not found:
             raise ValueError(f"command not found: {arg}")
@@ -844,24 +861,24 @@ def main():
     for arg in sys.argv[1:]:
         if not arg.startswith("-"):
             print(f"Bad argument: {arg}")
-            help()
+            show_help()
             return 1
     try:
         parse_args_options()
     except ValueError as e:
         print(f"Error: {e}\n")
-        help()
+        show_help()
         return 1
 
     try:
         commands = parse_args_commands()
     except ValueError as e:
         print(f"Error: {e}\n")
-        help()
+        show_help()
         return 1
 
     if len(commands) == 0:
-        help()
+        show_help()
         return 1
 
     for command in commands:
