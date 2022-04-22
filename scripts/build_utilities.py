@@ -219,6 +219,11 @@ def run_cmake():
         if len(triplet) > 0:
             cmake_cmd = cmake_cmd + f"{new_line} -DVCPKG_TARGET_TRIPLET={triplet}"
 
+    # See https://github.com/conan-io/conan-center-index/issues/10448
+    # We should be using a toolchain, but it create additional issues under MacOS
+    # if OPTIONS.use_conan.Value:
+    #     cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_TOOLCHAIN_FILE={INVOKE_DIR}/conan_toolchain.cmake"
+
     if OPTIONS.build_emscripten.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_install_emscripten/lib/cmake/opencv4"
 
