@@ -24,12 +24,12 @@ namespace ImmVision_GlProvider
 static void*   MyMallocWrapper(size_t size, void* user_data)    { IM_UNUSED(user_data); return malloc(size); }
 static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user_data); free(ptr); }
 
-#ifndef IMMVISION_NOLINK_APPLE
-    #define CREATE_GIMGUI_POINTER
-#endif
-
-#ifdef IMMVISION_CREATE_GIMGUI_POINTER
-    ImGuiContext*   GImGui = NULL;
+//
+// Since we are using ImGui as a DLL, we need to instantiate ourselves this global variable for ImGui
+// See note inside pybind_cmake.cmake for more explanation about the link with ImGui.
+//
+#ifndef __APPLE__
+ImGuiContext*   GImGui = NULL;
 #endif
 
 void SetImGuiContextFrom_pyimgui_Context()

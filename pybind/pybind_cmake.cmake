@@ -134,16 +134,16 @@ add_custom_command(
         $<TARGET_FILE:cpp_immvision>
         ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:cpp_immvision>
 )
-if (NOT IMMVISION_NOLINK_APPLE)
-  install(TARGETS imgui_pybind DESTINATION .)
-  add_custom_command(
-          TARGET imgui_pybind
-          POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy
-          $<TARGET_FILE:imgui_pybind>
-          ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:imgui_pybind>
-  )
-endif()
+
+# Note: no install for imgui_pybind since it is a static library
+#install(TARGETS imgui_pybind DESTINATION .)
+#add_custom_command(
+#        TARGET imgui_pybind
+#        POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy
+#        $<TARGET_FILE:imgui_pybind>
+#        ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:imgui_pybind>
+#    )
 
 #
 # immvision_debug_pybind
