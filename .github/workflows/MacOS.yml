@@ -28,10 +28,13 @@ jobs:
           cd build
           ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True -run_build_all
 
+    # Disabled because of issue in conan in CI: opencv/3.4.17: 'settings.compiler' value not defined
     - name: Build pip package under MacOS
       run: |
         python3 -m venv venv
         source venv/bin/activate
+        pip install conan
+        conan
         pip install -v .
 
     - uses: actions/upload-artifact@v3
