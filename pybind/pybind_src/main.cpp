@@ -32,17 +32,17 @@ static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user
     ImGuiContext*   GImGui = NULL;
 #endif
 
-void SetImGuiContext()
+void SetImGuiContextFrom_pyimgui_Context()
 {
     if (ImGui::GetCurrentContext() == NULL)
     {
-        printf("cpp: SetImGuiContext detected null context!\n");
+        printf("cpp: SetImGuiContextFrom_pyimgui_Context detected null context!\n");
         size_t contextPointer = GetPythonImGuiContextPointer();
-        printf("cpp: SetImGuiContext(%p) (got pointer from Python)\n", (void *)contextPointer);
+        printf("cpp: SetImGuiContextFrom_pyimgui_Context(%p) (got pointer from Python)\n", (void *)contextPointer);
         ImGui::SetCurrentContext((ImGuiContext*)contextPointer);
         //ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
         ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
-        printf("SetImGuiContext done\n");
+        printf("SetImGuiContextFrom_pyimgui_Context done\n");
     }
 }
 
@@ -60,7 +60,7 @@ void Image(
     bool isBgrOrBgra = true
 )
 {
-    SetImGuiContext();
+    SetImGuiContextFrom_pyimgui_Context();
     cv::Size cv_size(size[0], size[1]);
     ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
 }
@@ -68,7 +68,7 @@ void Image(
 
 void ImageNavigator(const cv::Mat& image)
 {
-    SetImGuiContext();
+    SetImGuiContextFrom_pyimgui_Context();
     cv::Size cv_size(500, 500);
     ImmVision::ImageNavigator(image, cv_size);
 }
