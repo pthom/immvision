@@ -1,6 +1,7 @@
 #ifdef IMMVISION_BUILDING_PYBIND
 
 #include "immvision/internal/opencv_pybind_converter.h"
+#include <opencv2/opencv.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -27,7 +28,9 @@ namespace opencv_pybind_converter
         { CV_32S, pybind11::format_descriptor<int32_t>::format(), "CV_32S" },
         { CV_32F, pybind11::format_descriptor<float>::format(), "CV_32F" },
         { CV_64F, pybind11::format_descriptor<double>::format(), "CV_64F" },
+#if (CV_MAJOR_VERSION >= 4)
         { CV_16F, pybind11::format_descriptor<cv::int16_t>::format(), "CV_16F" },
+#endif
     };
 
     int PybindFormat_to_CvDepth(const std::string& format)
