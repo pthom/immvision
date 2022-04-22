@@ -10,21 +10,17 @@
 
 
  * [ ] PIP
-   * [ ] install opencv via conan
-   * [ ] pip windows
-   * [ ] imgui & pyimgui : utiliser branche docking sans powersave / branche master & official?
-   * [ ] cf _skbuild_template: add conda & wheels
-   * [ ] On Linux you’ll need to install the python-dev or python3-dev
-   * [ ] pyimgui
-     * [ ] multisamples = 4
-     * [ ] Proposer imgui_runner
-     * [ ] Proposer power_save
+   * [ ] publish opencv_converter: add unit tests
    * [ ] classify code
-     * [X] Provide imgui_runner in the package
      * [ ] Add missing signatures / cpp
      * [ ] Add nice signatures / python
-     * [ ] publish opencv_converter: add unit tests
-   * [ ] Anti aliasing moche: test glfw?
+   * [Later] cf _skbuild_template: add conda & wheels
+   * [Later] pyimgui PRs
+       * [ ] Pull request / multisamples = 4
+       * [ ] Propose imgui_runner
+       * [ ] Propose power_save
+   * [Later] imgui & pyimgui : utiliser branche docking sans powersave / ou bien branche master & official?
+
 
  * [ ] immvision
    * [ ] Compat Eigen ?

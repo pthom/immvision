@@ -1,6 +1,4 @@
-#ifdef IMMVISION_BUILDING_PYBIND
-
-#include "immvision/internal/opencv_pybind_converter.h"
+#include "opencv_pybind_converter.h"
 #include <opencv2/opencv.hpp>
 
 #include <iostream>
@@ -190,6 +188,3 @@ namespace opencv_pybind_converter
 
 } // namespace opencv_pybind_converter
 
-
-
-#endif // #ifdef IMMVISION_BUILDING_PYBIND

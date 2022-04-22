@@ -2,7 +2,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "immvision/internal/opencv_pybind_converter.h"
+#include "opencv_pybind_converter.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 

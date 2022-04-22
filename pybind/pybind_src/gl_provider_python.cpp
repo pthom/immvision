@@ -2,7 +2,7 @@
 
 #include "immvision/internal/gl_provider.h"
 #include "immvision/image.h"
-#include "immvision/internal/opencv_pybind_converter.h"
+#include "opencv_pybind_converter.h"
 
 #include <opencv2/core.hpp>
 #include <pybind11/pybind11.h>
