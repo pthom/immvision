@@ -15,6 +15,8 @@ ONLY_SHOW_COMMAND = False
 
 
 CHDIR_LAST_DIRECTORY = INVOKE_DIR
+
+
 def my_chdir(folder):
     global CHDIR_LAST_DIRECTORY
     os.chdir(folder)
@@ -23,7 +25,7 @@ def my_chdir(folder):
     CHDIR_LAST_DIRECTORY = folder
 
 
-def run_local_command(cmd, quiet = False):
+def run_local_command(cmd, quiet=False):
     if ONLY_SHOW_COMMAND:
         print(cmd)
     else:
@@ -34,13 +36,17 @@ def run_local_command(cmd, quiet = False):
 
 def help():
     print(f"""
-        Usage: {sys.argv[0]} -build_image|-create_container|-bash|-remove_container|-remove_image|exec [any command and args] [--show_command]
+        Usage: {sys.argv[0]}    -build_image|-create_container|-bash|-remove_container| -remove_image
+                              | exec [any command and args] 
+
+                              [--show_command]
         
             {sys.argv[0]} -build_image 
         Will build the image (call this first). It will be called {DOCKER_IMAGE_NAME}
 
             {sys.argv[0]} -create_container 
-        Will create a container called {DOCKER_CONTAINER_NAME} from this image, where the sources are mounted at {SOURCES_MOUNT_DIR}.
+        Will create a container called {DOCKER_CONTAINER_NAME} from this image, 
+        where the sources are mounted at {SOURCES_MOUNT_DIR}.
         This container will start in detached mode (-d). Call this after build_image. 
         
             {sys.argv[0]} -bash 
@@ -58,6 +64,9 @@ def help():
             {sys.argv[0]} exec [any command and args]
         Will start the container and run the commands given after "exec".
         For example, "{sys.argv[0]} exec ls -al" will list the files.  
+
+            {sys.argv[0]} exec_it [any command and args]
+        Will start the container and run the commands given after "exec_it" in interactive mode
 
             --show_command 
         Will not run the command, but show you its command line.
@@ -114,10 +123,13 @@ def main():
     elif arg1 == "-remove_image":
         run_local_command(f"docker rmi {DOCKER_IMAGE_NAME}")
     elif arg1 == "-build_pip":
-        run_docker_command("/dvp/sources/scripts/build_utilities.py run -pybind_pip_install", True, False)
+        run_docker_command("/dvp/sources/scripts/build_utilities.py run -pybind_pip_install", quiet=True, interactive=False)
+    elif arg1 == "exec_it":
+        bash_commands = " ".join(sys.argv[2:])
+        run_docker_command(bash_commands, quiet=False, interactive=True)
     elif arg1 == "exec":
         bash_commands = " ".join(sys.argv[2:])
-        run_docker_command(bash_commands, False, True)
+        run_docker_command(bash_commands, quiet=False, interactive=False)
     else:
         help()
 
