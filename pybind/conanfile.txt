@@ -6,4 +6,8 @@ cmake_find_package
 
 [options]
 opencv:shared=False
-# opencv:with_gtk=False
+opencv:with_gtk=False
+opencv:with_quirc=False
+opencv:with_ffmpeg=False
+opencv:dnn=False
+opencv:with_quirc=False
