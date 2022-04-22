@@ -3,7 +3,7 @@
 set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
 if (WIN32)
-  add_compile_options(/FIpy ${THIS_DIR}/py_imconfig.h)
+  add_compile_options(/FI ${THIS_DIR}/py_imconfig.h)
 else()
   add_compile_options(-include ${THIS_DIR}/py_imconfig.h)
 endif()
