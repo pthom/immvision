@@ -25,10 +25,11 @@ static void*   MyMallocWrapper(size_t size, void* user_data)    { IM_UNUSED(user
 static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user_data); free(ptr); }
 
 //
-// Since we are using ImGui as a DLL, we need to instantiate ourselves this global variable for ImGui
+// If we were using ImGui as a DLL, we would need to instantiate ourselves this global variable for ImGui
 // See note inside pybind_cmake.cmake for more explanation about the link with ImGui.
+// (we are using a static link at the moment)
 //
-#ifndef __APPLE__
+#ifdef IMMVISION_IMGUI_DLL
 ImGuiContext*   GImGui = NULL;
 #endif
 
