@@ -1,14 +1,10 @@
 [requires]
-opencv/4.5.5
+opencv/3.4.17
+sdl/2.0.20
 
 [generators]
 cmake_find_package
 
 [options]
-sdl:shared=False
 opencv:shared=False
-opencv:with_gtk=False
-opencv:with_quirc=False
-opencv:with_ffmpeg=False
-opencv:dnn=False
-opencv:with_quirc=False
+opencv:with_gtk=True
