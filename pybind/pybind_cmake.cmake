@@ -82,10 +82,11 @@ target_include_directories(cpp_immvision PRIVATE ${imgui_source_dir})
 # (imgui/core.cpython-39-darwin.so and internal.cpython-39-darwin.so).
 # These dynamic libraries include imgui as well.
 # This has several serious implications:
-#   1. We need to create the GImGui instance inside this package, and transfer ImGui::GetCurrentContext()
-#       from pyimgui to this package (see SetImGuiContextFrom_pyimgui_Context())
+#   1. We *do not need* to create the GImGui instance inside this package (since we link statically with imgui)
+#      but we *do need* to transfer ImGui::GetCurrentContext() from pyimgui to this package
+#      (see SetImGuiContextFrom_pyimgui_Context())
 #   2. We need to be absolutely certain that pyimgui and this package use the exact same version of ImGui
-#      (imgui's evolution are not ABI stable).
+#      (imgui versions are not ABI stable).
 #      For this reason, we use a fork of pyimgui which is using our own version of ImGui
 #   3. We need to be certain that pyimgui and this package use the same imgui configuration
 #      (see py_imconfig.h)
