@@ -23,16 +23,23 @@ endif()
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/pybind11)
 
 #
-# Add OpenCv via conan
+# Add OpenCv via conan, if not found on the machine
 #
-set(IMMVISION_PYBIND_USE_CONAN ON)
+find_package(OpenCV) # test if opencv can be found
+if (NOT OpenCV_FOUND)
+  set(IMMVISION_PYBIND_USE_CONAN ON)
+endif()
 if (IMMVISION_PYBIND_USE_CONAN)
   set(conan_folder ${CMAKE_CURRENT_BINARY_DIR}/conan_third)
   file(MAKE_DIRECTORY ${conan_folder})
   execute_process(COMMAND
-      conan install ${PROJECT_SOURCE_DIR}/pybind
+      conan install ${PROJECT_SOURCE_DIR}/pybind --build=missing
       WORKING_DIRECTORY ${conan_folder}
+      RESULT_VARIABLE conan_install_result
       )
+  if (NOT ${conan_install_result} EQUAL "0")
+    message(FATAL_ERROR "conan_install_result=${conan_install_result}")
+  endif()
   # For conan, add binary dir to module search path
   list(APPEND CMAKE_MODULE_PATH ${conan_folder})
 endif()
@@ -66,8 +73,8 @@ endif()
 #
 find_package(OpenCV REQUIRED)
 # Hack for broken vcpkg naming
-set(OpenCV_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS} ${opencv_INCLUDE_DIRS})
-target_include_directories(cpp_immvision PRIVATE ${OpenCV_INCLUDE_DIRS})
+#set(OpenCV_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS} ${opencv_INCLUDE_DIRS})
+#target_include_directories(cpp_immvision PRIVATE ${OpenCV_INCLUDE_DIRS})
 # Link
 if (NOT IMMVISION_NOLINK_APPLE)
     target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
