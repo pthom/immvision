@@ -45,6 +45,10 @@ class ImguiAppParams:
     # Use power save: if this is true, you can increase manually the idle FPS by calling
     # imgui_runner.power_save.set_max_wait_before_next_frame( 1 / desired_fps)
     use_power_save: bool = True
+    # Anti-aliasing number of samples
+    # - if the call to SDL_GL_CreateContext fails, try reducing the value to zero
+    # - if you want better antialiasing, you can also increase it
+    gl_multisamples = 4
 
 
 def run(imgui_app_params: ImguiAppParams):
@@ -100,18 +104,18 @@ def run(imgui_app_params: ImguiAppParams):
 
 def _impl_pysdl2_init(imgui_app_params: ImguiAppParams):
     if SDL_Init(SDL_INIT_EVERYTHING) < 0:
-        print("Error: SDL could not initialize! SDL Error: " + SDL_GetError().decode("utf-8"))
+        print("Error:SDL_Init failed! SDL Error: " + SDL_GetError().decode("utf-8"))
         exit(1)
-
-    # out = SDL_GL_LoadLibrary([])
-    # print(f"SDL_GL_LoadLibrary returned {out}")
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24)
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8)
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1)
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1)
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8)
+
+    if imgui_app_params.gl_multisamples > 0:
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1)
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, imgui_app_params.gl_multisamples)
+
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1)
@@ -120,24 +124,26 @@ def _impl_pysdl2_init(imgui_app_params: ImguiAppParams):
     SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, b"1")
     SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, b"1")
 
-    window = SDL_CreateWindow(imgui_app_params.app_window_title.encode('utf-8'),
-                              SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              imgui_app_params.app_window_size[0], imgui_app_params.app_window_size[1],
-                              SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE)
+    window_flags = (SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
 
+    window = SDL_CreateWindow(imgui_app_params.app_window_title.encode('utf-8'),
+                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                          imgui_app_params.app_window_size[0], imgui_app_params.app_window_size[1],
+                          window_flags)
     if window is None:
-        print("Error: Window could not be created! SDL Error: " + SDL_GetError().decode("utf-8"))
+        print("Error: SDL_CreateWindow failed! SDL Error: " + SDL_GetError().decode("utf-8"))
         exit(1)
 
     gl_context = SDL_GL_CreateContext(window)
     if gl_context is None:
-        print("Error: Cannot create OpenGL Context! SDL Error: " + SDL_GetError().decode("utf-8"))
+        print("Error: SDL_GL_CreateContext failed! SDL Error: " + SDL_GetError().decode("utf-8"))
         exit(1)
 
     SDL_GL_MakeCurrent(window, gl_context)
-    if SDL_GL_SetSwapInterval(1) < 0:
-        print("Warning: Unable to set VSync! SDL Error: " + SDL_GetError().decode("utf-8"))
-        exit(1)
+
+    swap_interval_result = SDL_GL_SetSwapInterval(1)  # Enable vsync
+    if swap_interval_result < 0:
+        print(f"Warning, SDL_GL_SetSwapInterval returned {SDL_GL_SetSwapInterval}")
 
     return window, gl_context
 
