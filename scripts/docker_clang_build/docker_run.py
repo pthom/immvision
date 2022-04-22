@@ -14,39 +14,6 @@ VNC_PORT = 5900
 ONLY_SHOW_COMMAND = False
 
 
-def chain_and_echo_commands(commands):
-    lines = commands.split("\n")
-     # strip lines
-    lines = map(lambda s : s.strip(), lines)
-    # suppress empty lines and comments
-    lines = filter(lambda s : not s.startswith("#") and not len(s) == 0, lines)
-
-    # End of line joiner
-    end_line = " &&         \\\n"
-
-    lines_with_echo = []
-    for line in lines:
-        lines_with_echo.append(f"echo '####################################'")
-        lines_with_echo.append(f"echo '{line}'")
-        lines_with_echo.append(f"echo ''")
-        lines_with_echo.append(line)
-
-    r = end_line.join(lines_with_echo)
-    return r
-
-
-BUILD_COMMANDS = chain_and_echo_commands("""
-        echo 'Making build dir in the container'
-        cd /dvp
-        mkdir -p build
-        cd build
-        echo 'Running cmake and build'
-        ../sources/scripts/build_utilities.py run --build_python_bindings=True -run_build_all
-        echo 'Deploying binaries to the host machine inside scripts/docker_clang_build/bin_docker/'
-        cp -a bin/ ../sources/scripts/docker_clang_build/bin_docker
-        cp -a _pybind_libs/ ../sources/scripts/docker_clang_build/bin_docker 
-            """)
-
 CHDIR_LAST_DIRECTORY = INVOKE_DIR
 def my_chdir(folder):
     global CHDIR_LAST_DIRECTORY
@@ -78,9 +45,6 @@ def help():
         
             {sys.argv[0]} -bash 
         Will log you into a bash session in the previously created container.
-
-            {sys.argv[0]} -build
-        Will start the container and build the project.
 
             {sys.argv[0]} -build_pip
         Will start the container and build the pip project
@@ -148,8 +112,6 @@ def main():
         run_local_command(f"docker rm {DOCKER_CONTAINER_NAME}")
     elif arg1 == "-remove_image":
         run_local_command(f"docker rmi {DOCKER_IMAGE_NAME}")
-    elif arg1 == "-build":
-        run_docker_command(BUILD_COMMANDS, True)
     elif arg1 == "-build_pip":
         run_docker_command("/dvp/sources/scripts/build_utilities.py run -pybind_pip_install", True)
     elif arg1 == "exec":

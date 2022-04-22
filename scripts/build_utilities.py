@@ -89,16 +89,33 @@ def my_chdir(folder):
     CHDIR_LAST_DIRECTORY = folder
 
 
-def run(cmd):
+def run(cmd, chain_commands = False):
     if OPTIONS.only_echo_command.Value:
         print(cmd)
+        return
+    if chain_commands:
+        cmd = _chain_and_echo_commands(cmd)
     else:
-        print(f"###### {sys.argv[0]}: Running shell command ######")
-        print(cmd)
-        subprocess.check_call(cmd, shell=True)
+        cmd = _cmd_to_echo_and_cmd(cmd)
+    subprocess.check_call(cmd, shell=True)
 
 
-def chain_and_echo_commands(commands: str):
+def _cmd_to_echo_and_cmd_lines(cmd: str) -> [str]:
+    lines_with_echo = [
+        "echo '###### Run command ######'",
+        f"echo '{cmd}'",
+        "echo ''",
+        cmd
+    ]
+    return lines_with_echo
+
+
+def _cmd_to_echo_and_cmd(cmd: str) -> str:
+    end_line = " &&         \\\n"
+    return end_line.join(_cmd_to_echo_and_cmd_lines(cmd))
+
+
+def _chain_and_echo_commands(commands: str):
     """
     Take a series of shell command on a multiline string (one command per line)
     and returns a shell command that will execute each of them in sequence,
@@ -107,18 +124,21 @@ def chain_and_echo_commands(commands: str):
     lines = commands.split("\n")
      # strip lines
     lines = map(lambda s : s.strip(), lines)
-    # suppress empty lines and comments
-    lines = filter(lambda s : not s.startswith("#") and not len(s) == 0, lines)
+    # suppress empty lines
+    lines = filter(lambda s : not len(s) == 0, lines)
+
+    # add "echo commands" and process comments:
+    # comments starting with # are discarded and comments starting with ## are displayed loudly
+    lines_with_echo = []
+    for line in lines:
+        if line.startswith("##"):
+            echo_line = f"echo '******************** {line[2:].strip()} ***************'"
+            lines_with_echo.append(echo_line)
+        elif not line.startswith("#"):
+            lines_with_echo = lines_with_echo + _cmd_to_echo_and_cmd_lines(line)
 
     # End of line joiner
     end_line = " &&         \\\n"
-
-    lines_with_echo = []
-    for line in lines:
-        lines_with_echo.append(f"echo '####################################'")
-        lines_with_echo.append(f"echo '{line}'")
-        lines_with_echo.append(f"echo ''")
-        lines_with_echo.append(line)
 
     r = end_line.join(lines_with_echo)
     r = r.replace("&& &&", "&& ")
@@ -602,25 +622,23 @@ def _pybind_pip_install(editable: bool):
 
     my_chdir(REPO_DIR)
     commands = f"""
-        # Suppress temp build dir
+        ## Suppress temp build dir
         rm -rf {REPO_DIR}/_skbuild
-        # create virtual environment in venv
+        ## create virtual environment in venv
         python3 -m venv {VENV_NAME}
-        # Use virtual env venv in later commands
+        ## Use virtual env venv in later commands
         {VENV_RUN_SOURCE}
-        # Clean previously installed package
+        ## Clean previously installed package
         rm -rf {VENV_PACKAGES_DIR}/immvision 
-        # Do install
+        ## Do install
         pip install -v {editable_flag} .
-        # List files (for debug) 
+        ## List files (for debug) 
         {ls_install_dir}
-        # Test if we can import the module
+        ## Test if we can import the module
         python3 -c 'import immvision'
         python3 -c 'import immvision.test'
     """
-    commands = chain_and_echo_commands(commands)
-    # print(chain_and_echo_commands(commands))
-    run(commands)
+    run(commands, chain_commands=True)
 
 
 def pybind_pip_install_editable():

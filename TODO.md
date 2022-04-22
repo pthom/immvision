@@ -15,7 +15,6 @@
 
 
  * [ ] PIP
-   * [ ] Anti aliasing moche: test glfw?
    * [ ] install opencv via conan dans pip ?
    * [ ] CI
      * [ ] Run test app for a few seconds
@@ -31,6 +30,7 @@
      * [ ] publish opencv_converter: add unit tests
    * [ ] cf _sbuild_template: add conda & wheels
    * [ ] On Linux you’ll need to install the python-dev or python3-dev
+   * [ ] Anti aliasing moche: test glfw?
 
  * [ ] immvision
    * [ ] Compat Eigen ?
