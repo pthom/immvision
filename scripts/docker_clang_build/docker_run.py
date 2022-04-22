@@ -82,9 +82,10 @@ def help_vnc():
     print(msg)
 
 
-def run_docker_command(commands, quiet):
+def run_docker_command(commands, quiet: bool, interactive: bool):
     in_bash_commands = f'/bin/bash -c "{commands}"'
-    run_local_command(f"docker start {DOCKER_CONTAINER_NAME} && docker exec {DOCKER_CONTAINER_NAME} {in_bash_commands}", quiet)
+    interactive_flag = "-it" if interactive else ""
+    run_local_command(f"docker start {DOCKER_CONTAINER_NAME} && docker exec {interactive_flag} {DOCKER_CONTAINER_NAME} {in_bash_commands}", quiet)
 
 
 def main():
@@ -113,10 +114,10 @@ def main():
     elif arg1 == "-remove_image":
         run_local_command(f"docker rmi {DOCKER_IMAGE_NAME}")
     elif arg1 == "-build_pip":
-        run_docker_command("/dvp/sources/scripts/build_utilities.py run -pybind_pip_install", True)
+        run_docker_command("/dvp/sources/scripts/build_utilities.py run -pybind_pip_install", True, False)
     elif arg1 == "exec":
         bash_commands = " ".join(sys.argv[2:])
-        run_docker_command(bash_commands, False)
+        run_docker_command(bash_commands, False, True)
     else:
         help()
 
