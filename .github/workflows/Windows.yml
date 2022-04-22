@@ -44,6 +44,8 @@ jobs:
         #   run: |
         # python -m venv venv
         # .\venv\Scripts\activate
+        # pip install conan
+        # conan
         # pip install -v .
 
     - uses: actions/upload-artifact@v3
