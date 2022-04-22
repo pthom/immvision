@@ -90,7 +90,7 @@ namespace ImmVision
         double Factor = 1., Delta = 0.;
     };
 
-
+    
     //
     // struct ImageNavigatorParams
     //
