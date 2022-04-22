@@ -61,25 +61,10 @@ target_compile_definitions(cpp_immvision PRIVATE
 )
 
 #
-# Apple: strangely, under MacOS, there is no need to link with imgui and/or OpenCV
-# (they are found in the python virtual environment)
-#
-if (APPLE)
-  set(IMMVISION_NOLINK_APPLE ON)
-  target_compile_definitions(cpp_immvision PRIVATE IMMVISION_NOLINK_APPLE)
-endif()
-
-#
 # Link with OpenCV
 #
 find_package(OpenCV REQUIRED)
-# Hack for broken vcpkg naming
-#set(OpenCV_INCLUDE_DIRS ${OpenCV_INCLUDE_DIRS} ${opencv_INCLUDE_DIRS})
-#target_include_directories(cpp_immvision PRIVATE ${OpenCV_INCLUDE_DIRS})
-# Link
-if (NOT IMMVISION_NOLINK_APPLE)
-    target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
-endif()
+target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
 #
 # Include path for imgui
@@ -120,7 +105,7 @@ if (link_with_imgui)
   #  target_link_libraries(cpp_immvision PRIVATE imgui_pybind)
   #  target_compile_definitions(cpp_immvision PRIVATE IMMVISION_CREATE_GIMGUI_POINTER)
   #  install(TARGETS imgui_pybind DESTINATION .)
-endif(NOT IMMVISION_NOLINK_APPLE)
+endif()
 
 
 #
