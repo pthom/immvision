@@ -36,8 +36,15 @@ jobs:
         path: build_x64/bin/
         retention-days: 90
 
+    - name: Build pip package under windows
+      run: |
+        python -m venv venv
+        .\venv\Scripts\activate
+        pip install -v .
+
     - uses: actions/upload-artifact@v3
       with:
         name: win_x86_bin_artifacts
         path: build_x86/bin/
         retention-days: 90
+

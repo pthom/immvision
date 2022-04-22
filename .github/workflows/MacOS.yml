@@ -28,6 +28,12 @@ jobs:
           cd build
           ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True -run_build_all
 
+    - name: Build pip package under MacOS
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install -v .
+
     - uses: actions/upload-artifact@v3
       with:
         name: macos_bin_artifacts
