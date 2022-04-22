@@ -46,9 +46,11 @@ void SetImGuiContext()
     }
 }
 
-void Hello()
+std::string VersionInfo()
 {
-    printf("Hello Version: %s Time:%s\n", IMMVISION_VERSION, IMMVISION_COMPILATION_TIMESTAMP);
+    char msg[2000];
+    snprintf(msg, 2000, "immvision version %s (date: %s)\n", IMMVISION_VERSION, __TIMESTAMP__);
+    return msg;
 }
 
 void Image(
@@ -90,13 +92,13 @@ PYBIND11_MODULE(cpp_immvision, m) {
           R"pbdoc(Add two numbers)pbdoc"
           );
 
-    m.def("Hello", Hello);
-
     m.def("Image", Image);
     m.def("ImageNavigator", ImageNavigator);
 
     m.def("InitGlProvider", ImmVision_GlProvider::InitGlProvider);
     m.def("ResetGlProvider", ImmVision_GlProvider::ResetGlProvider);
+
+    m.def("VersionInfo", VersionInfo);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

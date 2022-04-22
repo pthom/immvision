@@ -14,8 +14,6 @@ endif()
 
 set(IMMVISION_VERSION ${PROJECT_VERSION})
 add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")
-string(TIMESTAMP IMMVISION_COMPILATION_TIMESTAMP "%Y-%m-%d %H:%M:%S")
-
 
 if (IMMVISION_BUILD_PYTHON_BINDINGS)
     include("${CMAKE_CURRENT_LIST_DIR}/pybind/pybind_cmake.cmake")
