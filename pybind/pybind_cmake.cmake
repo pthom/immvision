@@ -89,7 +89,23 @@ file(GLOB imgui_sources ${imgui_source_dir}/*.h ${imgui_source_dir}/*.cpp)
 target_include_directories(cpp_immvision PRIVATE ${imgui_source_dir})
 
 
-if (NOT IMMVISION_NOLINK_APPLE)
+#
+# Link with imgui: here be dragons
+#
+# We are here linking with a static version of imgui, but the package
+# will communicate with the dynamic libraries of pyimgui
+# (imgui/core.cpython-39-darwin.so and internal.cpython-39-darwin.so).
+# These dynamic libraries include imgui as well.
+# This has several serious implications:
+#   1. We need to create the GImGui instance inside this package, and transfer ImGui::GetCurrentContext()
+#       from pyimgui to this package (see SetImGuiContextFrom_pyimgui_Context())
+#   2. We need to be absolutely certain that pyimgui and this package use the exact same version of ImGui
+#      (imgui's evolution are not ABI stable).
+#      For this reason, we use a fork of pyimgui which is using our own version of ImGui
+#   3. We need to be certain that pyimgui and this package use the same imgui configuration
+#      (see py_imconfig.h)
+set(link_with_imgui ON)
+if (link_with_imgui)
   # If we do not link ==> undefined symbol: _ZN5ImGui11PopStyleVarEi !!!
 
   # Link with a static library
