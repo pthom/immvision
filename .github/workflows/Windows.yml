@@ -36,11 +36,15 @@ jobs:
         path: build_x64/bin/
         retention-days: 90
 
-    - name: Build pip package under windows
-      run: |
-        python -m venv venv
-        .\venv\Scripts\activate
-        pip install -v .
+    # Impossible to build PIP in CI under windows, because the machines use MSVC 2022
+    # which conan does not recognize:
+    #   Auto detecting your dev setup to initialize the default profile (C:\Users\runneradmin\.conan\profiles\default)
+    #  ERROR: Not able to automatically detect 'C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.31.31103/bin/Hostx86/x64/cl.exe' version
+    # - name: Build pip package under windows
+        #   run: |
+        # python -m venv venv
+        # .\venv\Scripts\activate
+        # pip install -v .
 
     - uses: actions/upload-artifact@v3
       with:
