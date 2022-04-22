@@ -94,10 +94,18 @@ def run(cmd, chain_commands = False):
         print(cmd)
         return
     if chain_commands:
+        if os.name == "nt":
+            raise RuntimeError("chain_commands is not supported under windows")
         cmd = _chain_and_echo_commands(cmd)
     else:
-        cmd = _cmd_to_echo_and_cmd(cmd)
-    subprocess.check_call(cmd, shell=True)
+        if os.name == "nt":
+            print("###### Run command ######")
+            print(cmd)
+            print()
+            subprocess.check_call(cmd, shell=True)
+        else:
+            cmd = _cmd_to_echo_and_cmd(cmd)
+            subprocess.check_call(cmd, shell=True)
 
 
 def _cmd_to_echo_and_cmd_lines(cmd: str) -> [str]:
