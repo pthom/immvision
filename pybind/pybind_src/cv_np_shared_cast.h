@@ -7,8 +7,8 @@
 #include <stdexcept>
 #include <vector>
 
-// Voir si make_capsule peut aider a modifier les valeurs internes des Matrices inplace
-// cf https://stackoverflow.com/questions/60949451/how-to-send-a-cvmat-to-python-over-shared-memory
+// Thanks to Dan Mašek who gave me some inspiration here:
+// https://stackoverflow.com/questions/60949451/how-to-send-a-cvmat-to-python-over-shared-memory
 
 namespace cv_np_shared_cast
 {
@@ -154,7 +154,10 @@ namespace pybind11
         }
 
         //
-        // Mat
+        // Cast between cv::Mat and numpy.ndarray
+        // The cast between cv::Mat and numpy.ndarray works with shared memory:
+        //   any modification to the Matrix size, type, and values is immediately
+        //   impacted on both sides.
         //
         template<>
         struct type_caster<cv::Mat>
@@ -190,7 +193,10 @@ namespace pybind11
 
 
         //
-        // Matx (and Vec)
+        // Cast between cv::Matx<_rows,_cols> (aka Matx33d, Matx21d, etc) + Vec<_rows> (aka Vec1d, Vec2f, etc) and numpy.ndarray
+        // The cast between cv::Matx, cv::Vec and numpy.ndarray works with shared memory:
+        //   any modification to the Matrix size, type, and values is immediately
+        //   impacted on both sides.
         //
         template<typename _Tp, int _rows, int _cols>
         struct type_caster<cv::Matx<_Tp, _rows, _cols> >
@@ -217,8 +223,11 @@ namespace pybind11
         };
 
 
+        /*
         //
-        // Size
+        // Cast between cv::Size and a simple python tuple.
+        // No shared memory, you cannot modify the width or the height without
+        // transferring the whole Size from C++, or the tuple from python
         //
         template<typename _Tp>
         struct type_caster<cv::Size_<_Tp>>
@@ -251,7 +260,7 @@ namespace pybind11
             }
         };
 
-/*
+
         //
         // Point
         //

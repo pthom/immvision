@@ -13,12 +13,12 @@ def are_float_close(x: float, y: float):
 """
 We are playing with this C++ class
 
-struct FooMat
+struct StructTest_CvNpShared
 {
     // Create a mat with 3 rows, 4 columns and 1 channel
     // its shape for numpy should be (3, 4)
     cv::Mat m = cv::Mat::eye(cv::Size(4, 3), CV_8UC1);
-    void SetM(int v, int row, int col) { m.at<uchar>(row, col) = v;}
+    void SetM(int row, int col, uchar v) { m.at<uchar>(row, col) = v; }
 
     cv::Matx32d mx = cv::Matx32d::eye();
     void SetMX(int row, int col, double v) { mx(row, col) = v;}
@@ -26,7 +26,7 @@ struct FooMat
 """
 def test_mat():
     # create object
-    o: np.ndarray = immvision.cpp_immvision.FooMat()
+    o: np.ndarray = immvision.cpp_immvision.StructTest_CvNpShared()
     assert o.m.shape == (3, 4)
 
     # play with its internal cv::Mat
@@ -80,7 +80,7 @@ def test_mat():
 
 def test_matx():
     # create object
-    o: np.ndarray = immvision.cpp_immvision.FooMat()
+    o: np.ndarray = immvision.cpp_immvision.StructTest_CvNpShared()
     assert o.mx.shape == (3, 2)
 
     # play with its internal cv::Mat
