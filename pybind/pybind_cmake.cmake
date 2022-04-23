@@ -8,28 +8,6 @@ else()
   add_compile_options(-include ${THIS_DIR}/py_imconfig.h)
 endif()
 
-
-function (try_execute_shell_cmd cmd)
-  message(WARNING "try_execute_shell_cmd: ${cmd}")
-  execute_process(COMMAND /bin/bash -c "${cmd}" RESULT_VARIABLE result)
-  message(WARNING "try_execute_shell_cmd ==> result=${result}")
-  if (NOT ${result} EQUAL "0")
-    message(FATAL_ERROR "Failed: ${cmd}")
-  endif()
-endfunction()
-
-# See https://docs.conan.io/en/latest/getting_started.html
-# conan has to be baby-sitted to use the current gcc c++ abi
-function(init_conan_default_profile)
-  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    message(WARNING "gcc detected")
-    try_execute_shell_cmd("CC=gcc CXX=g++ conan profile new default --detect")
-    try_execute_shell_cmd("conan profile update settings.compiler.libcxx=libstdc++11 default")
-  else()
-    message(WARNING "gcc NOT detected")
-  endif()
-endfunction()
-
 #
 # Find pydinb11 location via python (probably in a virtual env)
 #
@@ -47,6 +25,30 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/external/pybind11)
 #
 # Add OpenCv via conan, if not found on the machine
 #
+set(opencv_install_help "
+Could not find OpenCV. Please install it first.
+
+1. Either via a global installation
+Under ubuntu, you can install it with apt:
+    sudo apt-get install libopencv-dev
+
+2. Or via a local installation, using conan (https://conan.io/):
+First, install conan:
+    pip install conan
+    conan profile new default --detect
+
+If (and only if) you are using gcc, it is also recommended to run:
+    conan profile update settings.compiler.libcxx=libstdc++11 default
+
+Then, install OpenCV for this package via:
+    mkdir -p /tmp/foo
+    cd /tmp/foo
+    # For linux, run:
+    conan install ${THIS_DIR}/conanfile_linux.txt --build=missing
+    # For other platforms, run:
+    conan install ${THIS_DIR}/conanfile.txt --build=missing
+")
+
 find_package(OpenCV) # test if opencv can be found
 if (NOT OpenCV_FOUND)
   set(IMMVISION_PYBIND_USE_CONAN ON)
@@ -55,8 +57,6 @@ endif()
 if (IMMVISION_PYBIND_USE_CONAN)
   set(conan_folder ${CMAKE_CURRENT_BINARY_DIR}/conan_third)
   file(MAKE_DIRECTORY ${conan_folder})
-
-  init_conan_default_profile()
   if(UNIX AND NOT APPLE)
     set(conanfile "conanfile_linux.txt")
   else()
@@ -64,12 +64,13 @@ if (IMMVISION_PYBIND_USE_CONAN)
   endif()
 
   execute_process(COMMAND
-      conan install ${PROJECT_SOURCE_DIR}/pybind/${conanfile} --build=missing
+      conan install ${PROJECT_SOURCE_DIR}/pybind/${conanfile}
       WORKING_DIRECTORY ${conan_folder}
       RESULT_VARIABLE conan_install_result
       )
   if (NOT ${conan_install_result} EQUAL "0")
-    message(FATAL_ERROR "conan_install_result=${conan_install_result}")
+    message(WARNING "conan_install_result=${conan_install_result}")
+    message(FATAL_ERROR ${opencv_install_help})
   endif()
   # For conan, add binary dir to module search path
   list(APPEND CMAKE_MODULE_PATH ${conan_folder})
@@ -93,7 +94,10 @@ target_compile_definitions(cpp_immvision PRIVATE
 #
 # Link with OpenCV
 #
-find_package(OpenCV REQUIRED)
+find_package(OpenCV)
+if (NOT OpenCV_FOUND)
+  message(FATAL_ERROR ${opencv_install_help})
+endif()
 target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
 #
