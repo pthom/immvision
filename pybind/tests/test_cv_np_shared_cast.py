@@ -1,9 +1,10 @@
 import pytest
 
 import immvision
+import immvision.cpp_immvision as cpp_immvision
 import numpy as np
 import math
-
+import random
 
 def are_float_close(x: float, y: float):
     return math.fabs(x - y) < 1E-5
@@ -43,10 +44,7 @@ def test_mat():
 
     # Ask C++ to change a value in the matrix, at (0,0)
     # and verify that m_linked as well as o.m are impacted
-    #print(o.m); print()
     o.SetM(0, 0, 10)
-    #print(o.m); print()
-    #print(o.m[0, 0])
     o.SetM(2, 3, 15)
     assert m_linked[0, 0] == 10
     assert m_linked[2, 3] == 15
@@ -68,11 +66,8 @@ def test_mat():
     new_mat[1, 0, 1] = 43.1
     new_mat[0, 1, 1] = 44.1
     o.m = new_mat
-    print(o.m.shape)
     assert o.m.shape == new_shape
     assert o.m.dtype == new_type
-    print(f"{new_mat=}")
-    print(f"{o.m=}")
     assert are_float_close(o.m[0, 0, 0], 42.1)
     assert are_float_close(o.m[1, 0, 1], 43.1)
     assert are_float_close(o.m[0, 1, 1], 44.1)
@@ -131,6 +126,81 @@ def test_matx():
         o.mx = new_mat
 
 
+def test_Test_CvNpRoundTrip():
+    m = np.zeros([5, 6, 7])
+    m[3, 4, 5] = 156;
+    m2 = cpp_immvision.Test_CvNpRoundTrip(m)
+    assert (m == m2).all()
+
+    possible_types = [np.uint8, np.int8, np.uint16, np.int16, np.int32, float, np.float64]
+    for test_idx in range(300):
+        ndim = random.choice([2, 3])
+        shape = []
+        for dim in range(ndim):
+            if dim < 2:
+                shape.append(random.randrange(2, 1000))
+            else:
+                shape.append(random.randrange(2, 10))
+        type = random.choice(possible_types)
+
+        m = np.zeros(shape, dtype = type)
+
+        i = random.randrange(shape[0])
+        j = random.randrange(shape[1])
+        if ndim == 2:
+            m[i, j] = random.random()
+        elif ndim == 3:
+            k = random.randrange(shape[2])
+            m[i, j, k] = random.random()
+        else:
+            raise RuntimeError("Should not happen")
+
+        m2 = cpp_immvision.Test_CvNpRoundTrip(m)
+
+        if not (m == m2).all():
+            print("argh")
+        assert (m == m2).all()
+
+
+def test_size():
+    o = immvision.cpp_immvision.StructTest_CvNpShared()
+    assert o.s[0] == 123
+    assert o.s[1] == 456
+    o.SetWidth(789)
+    assert o.s[0] == 789
+    o.s = (987, 654)
+    print(f"{o.s=}")
+    assert o.s[0] == 987
+    assert o.s[1] == 654
+
+
+def test_point():
+    o = immvision.cpp_immvision.StructTest_CvNpShared()
+    assert o.pt[0] == 42
+    assert o.pt[1] == 43
+    o.SetX(789)
+    assert o.pt[0] == 789
+    o.pt = (987, 654)
+    print(f"{o.s=}")
+    assert o.pt[0] == 987
+    assert o.pt[1] == 654
+
+
+def test_point3():
+    o = immvision.cpp_immvision.StructTest_CvNpShared()
+    assert are_float_close(o.pt3[0], 41.5)
+    assert are_float_close(o.pt3[1], 42.)
+    assert are_float_close(o.pt3[2], 42.5)
+    o.SetX3(789.)
+    assert are_float_close(o.pt3[0], 789.)
+    o.pt3 = (987.1, 654.2, 321.0)
+    print(f"{o.s=}")
+    assert are_float_close(o.pt3[0], 987.1)
+    assert are_float_close(o.pt3[1], 654.2)
+    assert are_float_close(o.pt3[2], 321.0)
+
+
 if __name__ == "__main__":
     test_mat()
     test_matx()
+    test_Test_CvNpRoundTrip()

@@ -2,7 +2,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "opencv_pybind_converter.h"
+#include "cv_np_shared_cast.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -10,6 +10,7 @@
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
 size_t GetPythonImGuiContextPointer();
+void register_cv_np_shared_test_functions(pybind11::module& m);
 
 
 namespace py = pybind11;
@@ -57,12 +58,12 @@ std::string VersionInfo()
 void Image(
     const cv::Mat& m,
     bool refresh,
-    const std::array<int, 2> size = {0, 0},
+    const cv::Size size = {0, 0},
     bool isBgrOrBgra = true
 )
 {
     SetImGuiContextFrom_pyimgui_Context();
-    cv::Size cv_size(size[0], size[1]);
+    cv::Size cv_size(size.width, size.height);
     ImmVision::Image(m, refresh, cv_size, isBgrOrBgra);
 }
 
@@ -75,13 +76,6 @@ void ImageNavigator(const cv::Mat& image)
 }
 
 
-// This function will call the 2 casters defined in opencv_pybind_converter
-// The unit tests check that the values and types are unmodified
-cv::Mat RoundTrip_Mat_To_BufferInfo_To_Mat(const cv::Mat& m)
-{
-    return m;
-}
-
 PYBIND11_MODULE(cpp_immvision, m) {
     m.doc() = R"pbdoc(
         immvision: immediate image debugger and insights
@@ -89,17 +83,29 @@ PYBIND11_MODULE(cpp_immvision, m) {
         https://github.com/pthom/immvision/
     )pbdoc";
 
-    m.def("add", [](int a, int b) { return a + b; },
-          R"pbdoc(Add two numbers)pbdoc"
-          );
+    register_cv_np_shared_test_functions(m);
 
-    m.def("Image", Image);
+    m.def("Image", Image, "Image doc",
+        py::arg("image"),
+        py::arg("refresh") = false,
+        py::arg("size") = pybind11::make_tuple(0, 0),
+        py::arg("isBgrOrBgra") = true
+    );
     m.def("ImageNavigator", ImageNavigator);
 
     m.def("InitGlProvider", ImmVision_GlProvider::InitGlProvider);
     m.def("ResetGlProvider", ImmVision_GlProvider::ResetGlProvider);
 
     m.def("VersionInfo", VersionInfo);
+
+    using namespace ImmVision;
+    py::class_<ImageNavigatorParams>(m, "ImageNavigatorParams")
+        .def(py::init<>())
+        .def_readwrite("ImageDisplaySize", &ImageNavigatorParams::ImageDisplaySize)
+        .def_readwrite("Legend", &ImageNavigatorParams::Legend)
+        .def_readwrite("ZoomMatrix", &ImageNavigatorParams::ZoomMatrix)
+        .def_readwrite("WatchedPixels", &ImageNavigatorParams::WatchedPixels)
+        ;
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

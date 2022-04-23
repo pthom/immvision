@@ -145,14 +145,8 @@ namespace cv_np_shared_cast
 
 namespace pybind11
 {
-    // Inspired (and heavily modified) from https://github.com/pybind/pybind11/issues/538#issuecomment-273981569
     namespace detail
     {
-        inline void log_mat_info(const char* name, const cv::Mat& m)
-        {
-            printf("%s size: rows=%i cols=%i channels=%i type=%i \n", name, m.rows, m.cols, m.channels(), m.type());
-        }
-
         //
         // Cast between cv::Mat and numpy.ndarray
         // The cast between cv::Mat and numpy.ndarray works with shared memory:
@@ -223,7 +217,7 @@ namespace pybind11
         };
 
 
-        /*
+
         //
         // Cast between cv::Size and a simple python tuple.
         // No shared memory, you cannot modify the width or the height without
@@ -245,8 +239,8 @@ namespace pybind11
                     throw std::invalid_argument("Size should be in a tuple of size 2");
 
                 SizeTp r;
-                r.width = tuple[0].cast<_Tp>();
-                r.height = tuple[0].cast<_Tp>();
+                r.width =  tuple[0].cast<_Tp>();
+                r.height = tuple[1].cast<_Tp>();
 
                 value = r;
                 return true;
@@ -262,7 +256,9 @@ namespace pybind11
 
 
         //
-        // Point
+        // Cast between cv::Point and a simple python tuple
+        // No shared memory, you cannot modify x or y without
+        // transferring the whole Point from C++, or the tuple from python
         //
         template<typename _Tp>
         struct type_caster<cv::Point_<_Tp>>
@@ -272,7 +268,7 @@ namespace pybind11
         public:
         PYBIND11_TYPE_CASTER(PointTp , _("tuple"));
 
-            // Conversion part 1 (Python->C++, i.e tuple -> Size)
+            // Conversion part 1 (Python->C++)
             bool load(handle src, bool)
             {
                 auto tuple = pybind11::reinterpret_borrow<pybind11::tuple>(src);
@@ -287,7 +283,7 @@ namespace pybind11
                 return true;
             }
 
-            // Conversion part 2 (C++ -> Python, i.e Size -> tuple)
+            // Conversion part 2 (C++ -> Python)
             static handle cast(const PointTp &value, return_value_policy, handle defval)
             {
                 auto result = pybind11::make_tuple(value.x, value.y);
@@ -296,8 +292,10 @@ namespace pybind11
         };
 
 
+
         //
         // Point3
+        // No shared memory
         //
         template<typename _Tp>
         struct type_caster<cv::Point3_<_Tp>>
@@ -307,7 +305,7 @@ namespace pybind11
         public:
         PYBIND11_TYPE_CASTER(PointTp , _("tuple"));
 
-            // Conversion part 1 (Python->C++, i.e tuple -> Size)
+            // Conversion part 1 (Python->C++)
             bool load(handle src, bool)
             {
                 auto tuple = pybind11::reinterpret_borrow<pybind11::tuple>(src);
@@ -323,7 +321,7 @@ namespace pybind11
                 return true;
             }
 
-            // Conversion part 2 (C++ -> Python, i.e Size -> tuple)
+            // Conversion part 2 (C++ -> Python)
             static handle cast(const PointTp &value, return_value_policy, handle defval)
             {
                 auto result = pybind11::make_tuple(value.x, value.y, value.z);
@@ -331,7 +329,6 @@ namespace pybind11
             }
         };
 
-         */
 
     }  // namespace detail
 }  // namespace pybind11
