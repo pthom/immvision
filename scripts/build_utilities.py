@@ -54,8 +54,8 @@ if os.path.realpath(INVOKE_DIR) == os.path.realpath(EXTERNAL_DIR):
 
 IS_DOCKER_BUILDER = os.path.isfile("/IMMVISION_DOCKER_BUILDER")
 
-VENV_PARENT_DIR = f"{REPO_DIR}"
-VENV_NAME = "venv" if not IS_DOCKER_BUILDER else "venv_docker"
+VENV_PARENT_DIR = f"{REPO_DIR}" if not IS_DOCKER_BUILDER else "/"
+VENV_NAME = "venv"
 VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
 # use "source" for bash, but for docker we may get "sh" which uses "." instead
 source_cmd = ". "
@@ -657,12 +657,14 @@ def _pybind_pip_install(editable: bool):
         ## Suppress temp build dir
         rm -rf {REPO_DIR}/_skbuild
         ## create virtual environment in venv
+        cd {VENV_PARENT_DIR}
         python3 -m venv {VENV_NAME}
         ## Use virtual env venv in later commands
         {VENV_RUN_SOURCE}
         ## Clean previously installed package
         rm -rf {VENV_PACKAGES_DIR}/immvision 
         ## Do install
+        cd {REPO_DIR}
         pip install -v {editable_flag} .
         ## List files (for debug) 
         {ls_install_dir}
