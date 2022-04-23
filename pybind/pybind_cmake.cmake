@@ -14,18 +14,7 @@ else()
 endif()
 
 
-#
 # Find pydinb11 location via python (probably in a virtual env)
-#
-if (NOT DEFINED PYTHON_EXECUTABLE)
-  if (EXISTS ${PROJECT_SOURCE_DIR}/venv/bin/python)
-    set(PYTHON_EXECUTABLE "${PROJECT_SOURCE_DIR}/venv/bin/python")
-  elseif(EXISTS ${PROJECT_SOURCE_DIR}/venv_docker/bin/python)
-    set(PYTHON_EXECUTABLE "${PROJECT_SOURCE_DIR}/venv_docker/bin/python")
-  else()
-    set(PYTHON_EXECUTABLE "python")
-  endif()
-endif()
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/pybind11)
 
 #
@@ -89,6 +78,13 @@ file(GLOB_RECURSE sources_immvision_pybind ${THIS_DIR}/pybind_src/*.cpp ${THIS_D
 file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PROJECT_SOURCE_DIR}/src/immvision/*.cpp)
 pybind11_add_module(cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
 target_include_directories(cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set(cv_np_shared_cast_dir ${THIS_DIR}/cv_np_shared_cast)
+target_sources(cpp_immvision PRIVATE
+    ${cv_np_shared_cast_dir}/cv_np_shared_cast.cpp
+    ${cv_np_shared_cast_dir}/cv_np_shared_cast.h
+    ${cv_np_shared_cast_dir}/cv_np_shared_test_helper.cpp
+    )
+target_include_directories(cpp_immvision PRIVATE ${cv_np_shared_cast_dir})
 
 # Compile definitions
 target_compile_definitions(cpp_immvision PRIVATE
@@ -96,6 +92,10 @@ target_compile_definitions(cpp_immvision PRIVATE
     IMMVISION_COMPILATION_TIMESTAMP="${IMMVISION_COMPILATION_TIMESTAMP}"
     IMMVISION_BUILDING_PYBIND
 )
+
+#
+#
+#
 
 #
 # Link with OpenCV
