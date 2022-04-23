@@ -37,17 +37,17 @@ jobs:
         retention-days: 90
 
     - name: Build pip package under windows
-          run: |
-            python -m venv venv
-            .\venv\Scripts\activate
+      run: |
+        python -m venv venv
+        .\venv\Scripts\activate
 
-            C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/opencv_install_windows_pip.7z
-            7z x opencv_install_windows_pip.7z
-            $OpenCV_DIR=(pwd).Path + "/opencv_install_windows_pip"
-            $OpenCV_DIR=$OpenCV_DIR -replace "\\","/"
-            $env:OpenCV_DIR = $OpenCV_DIR
+        C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/opencv_install_windows_pip.7z
+        7z x opencv_install_windows_pip.7z
+        $OpenCV_DIR=(pwd).Path + "/opencv_install_windows_pip"
+        $OpenCV_DIR=$OpenCV_DIR -replace "\\","/"
+        $env:OpenCV_DIR = $OpenCV_DIR
 
-            pip install -v .
+        pip install -v .
 
     - uses: actions/upload-artifact@v3
       with:
