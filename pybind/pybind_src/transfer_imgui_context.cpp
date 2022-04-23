@@ -1,6 +1,7 @@
 #include "imgui.h"
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
 
 size_t GetPythonImGuiContextPointer();
 
