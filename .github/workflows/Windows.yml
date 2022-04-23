@@ -30,24 +30,30 @@ jobs:
         cd build_x86
         python ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True --build_32bits=True -run_build_all
 
+    # Build pip package under windows
+    # Disabled because the precompiled opencv_install_windows_pip.7z has an incompatibility
+    #     CMake Warning at pm/opencv_install_windows_pip/OpenCVConfig.cmake:190 (message):
+    #     Found OpenCV Windows Pack but it has no binaries compatible with your
+    #     configuration.
+    # (see .github/workflows/Note_Windows_pip_Opencv.md for instructions on how to reproduce and repair the issue)
+    # - name: Build pip package under windows
+    #   run: |
+    #     python -m venv venv
+    #     .\venv\Scripts\activate
+
+    #     C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/opencv_install_windows_pip.7z
+    #     7z x opencv_install_windows_pip.7z
+    #     $OpenCV_DIR=(pwd).Path + "/opencv_install_windows_pip"
+    #     $OpenCV_DIR=$OpenCV_DIR -replace "\\","/"
+    #     $env:OpenCV_DIR = $OpenCV_DIR
+
+    #     pip install -v .
+
     - uses: actions/upload-artifact@v3
       with:
         name: win_x64_bin_artifacts
         path: build_x64/bin/
         retention-days: 90
-
-    - name: Build pip package under windows
-      run: |
-        python -m venv venv
-        .\venv\Scripts\activate
-
-        C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/opencv_install_windows_pip.7z
-        7z x opencv_install_windows_pip.7z
-        $OpenCV_DIR=(pwd).Path + "/opencv_install_windows_pip"
-        $OpenCV_DIR=$OpenCV_DIR -replace "\\","/"
-        $env:OpenCV_DIR = $OpenCV_DIR
-
-        pip install -v .
 
     - uses: actions/upload-artifact@v3
       with:

@@ -4,6 +4,7 @@ set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
 if(DEFINED ENV{OpenCV_DIR})
   set(OpenCV_DIR $ENV{OpenCV_DIR})
+  message(WARNING "Got OpenCV_DIR from enviroment: ${OpenCV_DIR}")
 endif()
 
 if (WIN32)

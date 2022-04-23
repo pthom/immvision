@@ -43,7 +43,12 @@ scp  opencv_install_windows_pip.7z pascal@traineq.org:HTML/ImmvisionGithubFiles/
 ````
 
 
-And it can be used like this
+And it can be used like this:
+Note: 
+        During development, don't forget to temporarily disable conan in pybind_cmake.cmake:
+        set(IMMVISION_PYBIND_USE_CONAN OFF)
+                instead of 
+        set(IMMVISION_PYBIND_USE_CONAN ON)
 
 ````
 python -m venv venv
