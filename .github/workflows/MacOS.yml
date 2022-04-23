@@ -28,6 +28,9 @@ jobs:
           cd build
           ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True -run_build_all
 
+    - name: Setup interactive tmate session
+      uses: mxschmitt/action-tmate@v2
+
     # Disabled because of issue in conan in CI: opencv/3.4.17: 'settings.compiler' value not defined
     # > conan
     #  ERROR: Not able to automatically detect '/Applications/Xcode_13.2.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc' version
