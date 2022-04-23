@@ -20,6 +20,6 @@ RUN mkdir ~/.vnc &&\
 RUN apt-get install -y libopencv-dev
 
 # Install pipewire (PipeWire multimedia server), required by sdl
-RUN apt-get install pipewire
+RUN apt-get install -y pipewire
 
 RUN touch /IMMVISION_DOCKER_BUILDER
