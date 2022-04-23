@@ -28,19 +28,18 @@ jobs:
           cd build
           ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True -run_build_all
 
-    - name: Setup interactive tmate session
-      uses: mxschmitt/action-tmate@v2
+    - name: Build pip package under MacOS
+      run: |
+        python3 -m venv venv
+        source venv/bin/activate
 
-    # Disabled because of issue in conan in CI: opencv/3.4.17: 'settings.compiler' value not defined
-    # > conan
-    #  ERROR: Not able to automatically detect '/Applications/Xcode_13.2.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc' version
-    # - name: Build pip package under MacOS
-        # run: |
-        # python3 -m venv venv
-        # source venv/bin/activate
-        # pip install conan
-        # conan
-        # pip install -v .
+        # see Note_MacOS_pip_Opencv.md
+        wget https://traineq.org/ImmvisionGithubFiles/opencv_install_macos_pip.tgz
+        tar xfz opencv_install_macos_pip.tgz
+        export OpenCV_DIR=$(pwd)/opencv_install_macos_pip/lib/cmake/opencv4
+
+        echo "Now, building and installing the immvision pip package"
+        pip install -v .
 
     - uses: actions/upload-artifact@v3
       with:
