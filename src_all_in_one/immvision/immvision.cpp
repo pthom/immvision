@@ -188,6 +188,7 @@ namespace ImmVision
         //
         // Display size and title
         //
+
         // Size of the navigator (can be different from the image size)
         cv::Size ImageDisplaySize = cv::Size();
         // Title displayed in the border
@@ -196,6 +197,7 @@ namespace ImmVision
         //
         // Zoom and Pan
         //
+
         // ZoomMatrix can be created using MakeZoomMatrix to create a view centered around a given point
         cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
         // If displaying several navigators, those with the same ZoomKey will zoom and pan together
@@ -204,6 +206,7 @@ namespace ImmVision
         //
         // Color adjustments for float matrixes
         //
+
         ColorAdjustmentsValues ColorAdjustments = {};
         // If displaying several navigators, those with the same ColorAdjustmentsKey will adjust together
         std::string ColorAdjustmentsKey = "";

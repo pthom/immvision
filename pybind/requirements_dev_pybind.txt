@@ -5,6 +5,7 @@ scikit-build>=0.14.1
 opencv-contrib-python
 PyOpenGL
 pysdl2-dll
+pytest
 
 #
 # this will `pip install imgui` (provided by pyimgui)

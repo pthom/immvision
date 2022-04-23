@@ -7,6 +7,12 @@
 #include <stdexcept>
 #include <vector>
 
+//
+// Casts between cv::Mat, cv::Matx, cv::Vec and numpy.ndarray with shared memory
+//
+// Casts between cv::Size, cv::Point, cv::Point3 and python tuples without shared memory
+//
+
 // Thanks to Dan Mašek who gave me some inspiration here:
 // https://stackoverflow.com/questions/60949451/how-to-send-a-cvmat-to-python-over-shared-memory
 
