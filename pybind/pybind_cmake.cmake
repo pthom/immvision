@@ -2,11 +2,16 @@
 # CMAKE_CURRENT_LIST_DIR is thus ".." i.e the main repo dir
 set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
+if(DEFINED ENV{OpenCV_DIR})
+  set(OpenCV_DIR $ENV{OpenCV_DIR})
+endif()
+
 if (WIN32)
   add_compile_options(/FI ${THIS_DIR}/py_imconfig.h)
 else()
   add_compile_options(-include ${THIS_DIR}/py_imconfig.h)
 endif()
+
 
 #
 # Find pydinb11 location via python (probably in a virtual env)
