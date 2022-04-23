@@ -8,6 +8,27 @@ else()
   add_compile_options(-include ${THIS_DIR}/py_imconfig.h)
 endif()
 
+# See https://docs.conan.io/en/latest/getting_started.html
+# conan has to be baby-sitted to use the current gcc c++ abi
+function(init_conan_default_profile)
+  execute_process(COMMAND
+      conan profile new default --detect
+      RESULT_VARIABLE result)
+  if (NOT ${result} EQUAL "0")
+    message(FATAL_ERROR "conan profile new default --detect ==> result=${result}")
+  endif()
+
+  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+    # tell conan to use the good version
+    execute_process(COMMAND
+        conan profile update settings.compiler.libcxx=libstdc++11 default
+        RESULT_VARIABLE result)
+    if (NOT ${result} EQUAL "0")
+      message(FATAL_ERROR "conan profile update settings.compiler.libcxx=libstdc++11 default ==> result=${result}")
+    endif()
+  endif()
+endfunction()
+
 #
 # Find pydinb11 location via python (probably in a virtual env)
 #
