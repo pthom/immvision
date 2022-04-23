@@ -8,24 +8,25 @@ else()
   add_compile_options(-include ${THIS_DIR}/py_imconfig.h)
 endif()
 
+
+function (try_execute_shell_cmd cmd)
+  message(WARNING "try_execute_shell_cmd: ${cmd}")
+  execute_process(COMMAND /bin/bash -c "${cmd}" RESULT_VARIABLE result)
+  message(WARNING "try_execute_shell_cmd ==> result=${result}")
+  if (NOT ${result} EQUAL "0")
+    message(FATAL_ERROR "Failed: ${cmd}")
+  endif()
+endfunction()
+
 # See https://docs.conan.io/en/latest/getting_started.html
 # conan has to be baby-sitted to use the current gcc c++ abi
 function(init_conan_default_profile)
-  execute_process(COMMAND
-      conan profile new default --detect
-      RESULT_VARIABLE result)
-  if (NOT ${result} EQUAL "0")
-    message(FATAL_ERROR "conan profile new default --detect ==> result=${result}")
-  endif()
-
   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    # tell conan to use the good version
-    execute_process(COMMAND
-        conan profile update settings.compiler.libcxx=libstdc++11 default
-        RESULT_VARIABLE result)
-    if (NOT ${result} EQUAL "0")
-      message(FATAL_ERROR "conan profile update settings.compiler.libcxx=libstdc++11 default ==> result=${result}")
-    endif()
+    message(WARNING "gcc detected")
+    try_execute_shell_cmd("CC=gcc CXX=g++ conan profile new default --detect")
+    try_execute_shell_cmd("conan profile update settings.compiler.libcxx=libstdc++11 default")
+  else()
+    message(WARNING "gcc NOT detected")
   endif()
 endfunction()
 
