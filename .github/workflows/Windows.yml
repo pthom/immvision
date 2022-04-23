@@ -36,6 +36,10 @@ jobs:
         path: build_x64/bin/
         retention-days: 90
 
+
+    - name: Setup interactive tmate session
+      uses: mxschmitt/action-tmate@v3
+
     # Impossible to build PIP in CI under windows, because the machines use MSVC 2022
     # which conan does not recognize:
     #   Auto detecting your dev setup to initialize the default profile (C:\Users\runneradmin\.conan\profiles\default)
