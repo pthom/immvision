@@ -16,6 +16,6 @@ RUN mkdir ~/.vnc &&\
     chmod +x /start_x_vnc.sh && \
     apt-get install -y libglapi-mesa
 
-RUN install -y libopencv-dev
+RUN apt-get install -y libopencv-dev
 
 RUN touch /IMMVISION_DOCKER_BUILDER
