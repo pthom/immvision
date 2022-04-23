@@ -10,7 +10,6 @@
 
 
  * [ ] PIP
-   * [ ] publish opencv_converter: add unit tests
    * [ ] classify code
      * [ ] Add missing signatures / cpp
      * [ ] Add nice signatures / python
@@ -20,6 +19,9 @@
        * [ ] Propose imgui_runner
        * [ ] Propose power_save
    * [Later] imgui & pyimgui : utiliser branche docking sans powersave / ou bien branche master & official?
+   * Read https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
+     https://setuptools.pypa.io/en/latest/index.html
+   * 
 
 
  * [ ] immvision
@@ -28,6 +30,7 @@
   
  * [ ] Inspector:
    * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
+   *     Build exe via pip
    * [ ] Handle params zoomCenter, zoomRatio
    * [ ] load images
    * [ ] List Image

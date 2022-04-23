@@ -1,3 +1,3 @@
 
     - name: Setup interactive tmate session
-      uses: mxschmitt/action-tmate@v2
+      uses: mxschmitt/action-tmate@v3
