@@ -1,0 +1,9 @@
+[requires]
+opencv/3.4.17
+
+[generators]
+cmake_find_package
+
+[options]
+opencv:shared=False
+opencv:with_gtk=False

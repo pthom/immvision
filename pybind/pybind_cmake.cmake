@@ -33,8 +33,16 @@ endif()
 if (IMMVISION_PYBIND_USE_CONAN)
   set(conan_folder ${CMAKE_CURRENT_BINARY_DIR}/conan_third)
   file(MAKE_DIRECTORY ${conan_folder})
+
+  init_conan_default_profile()
+  if(UNIX AND NOT APPLE)
+    set(conanfile "conanfile_linux.txt")
+  else()
+    set(conanfile "conanfile.txt")
+  endif()
+
   execute_process(COMMAND
-      conan install ${PROJECT_SOURCE_DIR}/pybind --build=missing
+      conan install ${PROJECT_SOURCE_DIR}/pybind/${conanfile} --build=missing
       WORKING_DIRECTORY ${conan_folder}
       RESULT_VARIABLE conan_install_result
       )

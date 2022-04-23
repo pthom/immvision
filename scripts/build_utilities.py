@@ -5,6 +5,7 @@ import datetime
 import sys
 import dataclasses
 import typing
+import platform
 from pathlib import Path
 
 CMAKE_BUILD_TYPE = "Release"
@@ -203,7 +204,10 @@ def run_cmake():
 
     if OPTIONS.use_conan.Value:
         print("# Install dependencies via conan")
-        run(f"conan install {REPO_DIR} --build=missing")
+        if platform.uname()[0].lower() == "linux":
+            run(f"conan install {REPO_DIR}/conanfile_linux.txt --build=missing")
+        else:
+            run(f"conan install {REPO_DIR}/conanfile.txt --build=missing")
 
     if os.name == "nt":
         new_line = "    "
