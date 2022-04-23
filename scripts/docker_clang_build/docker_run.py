@@ -41,6 +41,10 @@ def help():
 
                               [--show_command]
         
+            {sys.argv[0]} -full_build 
+        Will build the image, create and start a container based on this image 
+        (any previously running container named {DOCKER_CONTAINER_NAME} will be removed
+
             {sys.argv[0]} -build_image 
         Will build the image (call this first). It will be called {DOCKER_IMAGE_NAME}
 
@@ -48,6 +52,10 @@ def help():
         Will create a container called {DOCKER_CONTAINER_NAME} from this image, 
         where the sources are mounted at {SOURCES_MOUNT_DIR}.
         This container will start in detached mode (-d). Call this after build_image. 
+
+            {sys.argv[0]} -recreate_container 
+        Will recreate a container called {DOCKER_CONTAINER_NAME} from this image
+        and delete any previous container with this name.
         
             {sys.argv[0]} -bash 
         Will log you into a bash session in the previously created container.
@@ -109,10 +117,25 @@ def main():
             ONLY_SHOW_COMMAND = True
 
     arg1 = sys.argv[1].lower()
-    if arg1 == "-build_image":
+    if arg1 == "-full_build":
+        try:
+            run_local_command(f"docker stop {DOCKER_CONTAINER_NAME}")
+            run_local_command(f"docker rm {DOCKER_CONTAINER_NAME}")
+        except subprocess.CalledProcessError:
+            pass
+        run_local_command(f"docker build -t {DOCKER_IMAGE_NAME} .")
+        run_local_command(f"docker run --name {DOCKER_CONTAINER_NAME} -p {VNC_PORT}:{VNC_PORT} -it -d -v {REPO_DIR}:{SOURCES_MOUNT_DIR} {DOCKER_IMAGE_NAME}  /bin/bash")
+    elif arg1 == "-build_image":
         my_chdir(THIS_DIR)
         run_local_command(f"docker build -t {DOCKER_IMAGE_NAME} .")
     elif arg1 == "-create_container":
+        run_local_command(f"docker run --name {DOCKER_CONTAINER_NAME} -p {VNC_PORT}:{VNC_PORT} -it -d -v {REPO_DIR}:{SOURCES_MOUNT_DIR} {DOCKER_IMAGE_NAME}  /bin/bash")
+    elif arg1 == "-recreate_container":
+        try:
+            run_local_command(f"docker stop {DOCKER_CONTAINER_NAME}")
+            run_local_command(f"docker rm {DOCKER_CONTAINER_NAME}")
+        except subprocess.CalledProcessError:
+            pass
         run_local_command(f"docker run --name {DOCKER_CONTAINER_NAME} -p {VNC_PORT}:{VNC_PORT} -it -d -v {REPO_DIR}:{SOURCES_MOUNT_DIR} {DOCKER_IMAGE_NAME}  /bin/bash")
     elif arg1 == "-bash":
         help_vnc()
@@ -120,6 +143,8 @@ def main():
     elif arg1 == "-remove_container":
         run_local_command(f"docker stop {DOCKER_CONTAINER_NAME}")
         run_local_command(f"docker rm {DOCKER_CONTAINER_NAME}")
+    elif arg1 == "-remove_image":
+        run_local_command(f"docker rmi {DOCKER_IMAGE_NAME}")
     elif arg1 == "-remove_image":
         run_local_command(f"docker rmi {DOCKER_IMAGE_NAME}")
     elif arg1 == "-build_pip":
