@@ -16,6 +16,10 @@ RUN mkdir ~/.vnc &&\
     chmod +x /start_x_vnc.sh && \
     apt-get install -y libglapi-mesa
 
+# Install OpenCV dev lib,,required by immvision
 RUN apt-get install -y libopencv-dev
+
+# Install pipewire (PipeWire multimedia server), required by sdl
+RUN apt-get install pipewire
 
 RUN touch /IMMVISION_DOCKER_BUILDER

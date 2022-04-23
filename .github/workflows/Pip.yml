@@ -29,4 +29,4 @@ jobs:
     - name: run example graphical app for 5 seconds
       run:  |
         cd scripts/docker_clang_build
-        ./docker_run.py exec "/start_x_vnc.sh & sleep 5 &&  export DISPLAY=:0 && cd /dvp/sources && source venv_docker/bin/activate && python pybind/pybind_examples/pip_test_app.py"
+        ./docker_run.py exec "/start_x_vnc.sh & sleep 5 &&  export DISPLAY=:0 && cd /dvp/sources && source /venv/bin/activate && python pybind/pybind_examples/pip_test_app.py"
