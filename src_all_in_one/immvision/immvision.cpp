@@ -1109,7 +1109,10 @@ namespace ImmVision
             for (double v: values)
                 strs.push_back(formatValue(v, depth));
 
-            return JoinStrings(strs, ',');
+            std::string r = JoinStrings(strs, ',');
+            if (add_paren)
+                r = std::string("(") + r + ")";
+            return r;
         }
 
     } // namespace MatrixInfoUtils
