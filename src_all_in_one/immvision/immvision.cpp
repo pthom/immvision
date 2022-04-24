@@ -571,156 +571,6 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv_drawing_utils.h included by src/immvision/image_navigator.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <opencv2/core/core.hpp>
-
-namespace ImmVision
-{
-
-    namespace CvDrawingUtils
-    {
-        enum class Colors
-        {
-            Black,
-            Red,
-            Green,
-            Blue,
-            White,
-            Yellow,
-            Cyan,
-            Violet,
-            Orange
-        };
-
-        cv::Scalar ColorsToScalar(Colors value);
-
-        inline cv::Scalar Black()
-        { return {0, 0, 0, 255}; }
-
-        inline cv::Scalar Red()
-        { return {0, 0, 255, 255}; }
-
-        inline cv::Scalar Green()
-        { return {0, 255, 0, 255}; }
-
-        inline cv::Scalar Blue()
-        { return {255, 0, 0, 255}; }
-
-        inline cv::Scalar White()
-        { return {255, 255, 255, 255}; }
-
-        inline cv::Scalar Yellow()
-        { return {0, 255, 255, 255}; }
-
-        inline cv::Scalar Cyan()
-        { return {255, 255, 0, 255}; }
-
-        inline cv::Scalar Violet()
-        { return {200, 50, 200, 255}; }
-
-        inline cv::Scalar Orange()
-        { return {255, 128, 0, 255}; }
-
-
-        void line(cv::Mat &image,
-                  const cv::Point2d &a,
-                  const cv::Point2d &b,
-                  cv::Scalar color,
-                  int thickness = 1);
-
-        void ellipse(cv::Mat &image,
-                     const cv::Point2d &center,
-                     const cv::Size2d &size,
-                     const cv::Scalar &color,
-                     double angle = 0.,
-                     double start_angle = 0.,
-                     double end_angle = 360.,
-                     int thickness = 1);
-
-        void circle(cv::Mat &image,
-                    const cv::Point2d &center,
-                    double radius,
-                    cv::Scalar color,
-                    int thickness = 1);
-
-        void rectangle(cv::Mat &image,
-                       const cv::Point2d &pt1,
-                       const cv::Point2d &pt2,
-                       const cv::Scalar &color,
-                       bool fill = false,
-                       int thickness = 1);
-
-
-        void rectangle_size(cv::Mat &img,
-                            const cv::Point2d &pt,
-                            const cv::Size2d &size,
-                            const cv::Scalar &color,
-                            bool fill = false,
-                            int thickness = 1);
-
-        void text(cv::Mat &img,
-                  const cv::Point2d &position,
-                  const std::string &msg,
-                  const cv::Scalar &color,
-                  bool center_around_point = false,
-                  bool add_cartouche = false,
-                  double fontScale = 0.4,
-                  int thickness = 1);
-
-        void cross_hole(cv::Mat &img,
-                        const cv::Point2d &position,
-                        const cv::Scalar &color,
-                        double size = 2.,
-                        double size_hole = 2.,
-                        int thickness = 1);
-
-        void draw_named_feature(cv::Mat &img,
-                                const cv::Point2d &position,
-                                const std::string &name,
-                                const cv::Scalar &color,
-                                bool add_cartouche = false,
-                                double size = 3.,
-                                double size_hole = 2.,
-                                int thickness = 1);
-
-        void draw_transparent_pixel(
-            cv::Mat &img_rgba,
-            const cv::Point2d &position,
-            const cv::Scalar &color,
-            double alpha
-        );
-
-        void draw_grid(
-            cv::Mat& img_rgba,
-            cv::Scalar lineColor,
-            double alpha,
-            double x_spacing, double y_spacing,
-            double x_start, double y_start,
-            double x_end, double y_end
-        );
-
-        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2);
-        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2);
-
-        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize = 30);
-
-        using Image_RGB = cv::Mat;
-        using Image_RGBA = cv::Mat;
-
-        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba,
-                                              const Image_RGBA &overlay_rgba,
-                                              double alpha);
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra);
-
-    }  // namespace CvDrawingUtils
-}  // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/image_navigator.cpp continued                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/portable_file_dialogs.h included by src/immvision/image_navigator.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -2554,27 +2404,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/matrix_info_utils.h included by src/immvision/image_navigator.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <string>
-
-namespace ImmVision
-{
-    namespace MatrixInfoUtils
-    {
-        std::string _MatTypeName(const cv::Mat& m);
-        std::string _MatInfo(const cv::Mat &m);
-        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y);
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true);
-
-    } // namespace MatrixInfoUtils
-
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/image_navigator.cpp continued                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image_navigator_drawing.h included by src/immvision/image_navigator.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2605,173 +2434,38 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/image_navigator.cpp continued                                            //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include "imgui_internal.h"
 
-#include <iostream>
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_navigator_widgets.h included by src/immvision/image_navigator.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace ImmVision
 {
-    
     namespace ImageNavigatorWidgets
     {
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
-        {
-            ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
-            texture.Draw_DisableDragWindow(displaySize);
-            bool isImageHovered = ImGui::IsItemHovered();
-            ImVec2 mouse = ImGui::GetMousePos();
-            if (isImageHovered)
-                return cv::Point2d((double)(mouse.x - imageTopLeft.x), (double)(mouse.y - imageTopLeft.y));
-            else
-                return cv::Point2d(-1., -1.);
-        }
-
-        void ShowImageInfo(const cv::Mat &image, double zoomFactor)
-        {
-            std::string info = MatrixInfoUtils::_MatInfo(image);
-            ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
-        }
-
-
-        void ShowPixelColorWidget(
-            const cv::Mat &image,
-            cv::Point pt,
-            const ImageNavigatorParams& params)
-        {
-            bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
-            auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
-            auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
-                return params.IsColorOrderBGR ?
-                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
-                                              :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
-            };
-            auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
-                return params.IsColorOrderBGR ?
-                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
-                                              :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
-            };
-
-            bool done = false;
-            std::string id = std::string("##pixelcolor_") + std::to_string(pt.x) + "," + std::to_string(pt.y);
-            if (image.depth() == CV_8U)
-            {
-                ImGuiColorEditFlags editFlags =
-                    ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_AlphaPreviewHalf
-                    | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_Uint8;
-                if (!isInImage)
-                {
-                    // ColorEdit4 introduces a strange line spacing on the next group
-                    // which cannot be simulated with ImGui::Dummy
-                    // => we add a dummy one (hopefully black on a black background)
-                    float dummyColor[4]{0.f, 0.f, 0.f, 255.f};
-                    ImGui::SetNextItemWidth(1.f);
-                    int colorEditFlags =
-                              ImGuiColorEditFlags_NoInputs
-                            | ImGuiColorEditFlags_InputRGB
-                            | ImGuiColorEditFlags_DisplayRGB;
-                    ImGui::ColorEdit4(id.c_str(), dummyColor, colorEditFlags );
-                    done = true;
-                }
-                else if (image.channels() == 3)
-                {
-                    cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
-                    ImVec4 colorAsImVec = Vec3bToImVec4(col);
-                    ImGui::SetNextItemWidth(150.f);
-                    ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
-                    done = true;
-                }
-                else if (image.channels() == 4)
-                {
-                    cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
-                    ImVec4 colorAsImVec = Vec4bToImVec4(col);
-                    ImGui::SetNextItemWidth(200.f);
-                    ImGui::ColorEdit4(id.c_str(), (float*)&colorAsImVec, editFlags);
-                    done = true;
-                }
-            }
-            if (! done)
-            {
-                std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(image, pt.x, pt.y);
-                ImGui::Text("%s", pixelInfo.c_str());
-            }
-        }
-
+        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize);
+        void ShowImageInfo(const cv::Mat &image, double zoomFactor);
+        void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageNavigatorParams& params);
 
         // If true, the collapsing headers will be synced across instances
-        static bool s_CollapsingHeader_CacheState_Sync = false;
-
-        bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false)
-        {
-            static std::map<std::string, bool> collapsingHeadersState;
-            bool shallOpen = forceOpen;
-            if (s_CollapsingHeader_CacheState_Sync)
-            {
-                if (collapsingHeadersState.find(name) != collapsingHeadersState.end())
-                {
-                    bool wasOpenedLastTime = collapsingHeadersState.at(name);
-                    if (wasOpenedLastTime)
-                        shallOpen = true;
-                }
-            }
-            if (shallOpen)
-                ImGui::SetNextItemOpen(shallOpen, ImGuiCond_Always);
-            bool opened = ImGui::CollapsingHeader(name);
-            collapsingHeadersState[name] = opened;
-            return opened;
-        };
-
+        extern bool s_CollapsingHeader_CacheState_Sync;
+        bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false);
     } // namespace ImageNavigatorWidgets
 
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/image_navigator.cpp continued                                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    namespace ImageNavigatorUtils
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_navigator_cache.h included by src/immvision/image_navigator.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+namespace ImmVision
+{
+    namespace ImageNavigatorCache
     {
-        void InitializeMissingParams(ImageNavigatorParams* params, const cv::Mat& image)
-        {
-            if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
-                params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
-            if (params->ZoomMatrix == cv::Matx33d::eye())
-                params->ZoomMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
-        }
-
-        bool ShallRefreshRgbaCache(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
-        {
-            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
-            return false;
-        }
-
-        bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
-        {
-            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
-                return true;
-            if (! ZoomPanTransform::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
-                return true;
-            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
-                return true;
-            if (v1.ShowGrid != v2.ShowGrid)
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
-            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
-                return true;
-            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
-                return true;
-            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
-                return true;
-            return false;
-        }
-
-
         class ImageNavigatorTextureCache
         {
         public:
@@ -2793,118 +2487,40 @@ namespace ImmVision
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
-            void UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
-            {
-                auto cacheKey = &image;
-                params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
+            void UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh);
 
-                bool needsRefreshTexture = refresh;
-                bool shallRefreshRgbaCache = false;
-
-                if (! mCacheParams.Contains(cacheKey))
-                {
-                    InitializeMissingParams(params, image);
-                    needsRefreshTexture = true;
-                    shallRefreshRgbaCache = true;
-                    mCacheParams.AddKey(cacheKey);
-                }
-                if (! mCacheImages.Contains(cacheKey))
-                {
-                    mCacheImages.AddKey(cacheKey);
-                    needsRefreshTexture = true;
-                    shallRefreshRgbaCache = true;
-                    mCacheImages.Get(cacheKey).GlTexture = std::make_unique<GlTextureCv>();
-                }
-
-                auto& cachedParams = mCacheParams.Get(cacheKey);
-                auto& cachedImages = mCacheImages.Get(cacheKey);
-                cachedParams.NavigatorParams = params;
-
-                ImageNavigatorParams oldParams = cachedParams.PreviousParams;
-                *cachedParams.NavigatorParams = *params;
-
-                if (cachedImages.GlTexture->mImageSize.x == 0.f)
-                    needsRefreshTexture = true;
-                if (ShallRefreshTexture(oldParams, *params))
-                    needsRefreshTexture = true;
-                if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
-                    params->ZoomMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
-                        oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
-                if (needsRefreshTexture)
-                {
-                    if (ShallRefreshRgbaCache(oldParams, *params))
-                        shallRefreshRgbaCache = true;
-                    ImageNavigatorDrawing::BlitImageNavigatorTexture(
-                        *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
-                }
-
-                if (! ZoomPanTransform::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
-                    UpdateLinkedZooms(image);
-                if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
-                    UpdateLinkedColorAdjustments(image);
-
-                cachedParams.PreviousParams = *params;
-
-                mCacheImages.ClearOldEntries();
-            }
-
-            CachedParams& GetCacheParams(const cv::Mat& image)
-            {
-                return mCacheParams.Get(&image);
-            }
-            CachedImages& GetCacheImages(const cv::Mat& image)
-            {
-                return mCacheImages.Get(&image);
-            }
-
-            void ClearImagesCache()
-            {
-                mCacheImages.Clear();
-            }
+            CachedParams& GetCacheParams(const cv::Mat& image);
+            CachedImages& GetCacheImages(const cv::Mat& image);
+            void ClearImagesCache();
 
         private:
             // Methods
-            void UpdateLinkedZooms(const cv::Mat& image)
-            {
-                auto currentCacheKey = &image;
-                auto & currentCache = mCacheParams.Get(&image);
-                std::string zoomKey = currentCache.NavigatorParams->ZoomKey;
-                if (zoomKey.empty())
-                    return;
-                ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomMatrix;
-                for (auto& otherCacheKey : mCacheParams.Keys())
-                {
-                    CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                    if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ZoomKey == zoomKey))
-                        otherCache.NavigatorParams->ZoomMatrix = newZoom;
-                }
-            }
-            void UpdateLinkedColorAdjustments(const cv::Mat& image)
-            {
-                auto currentCacheKey = &image;
-                auto & currentCache = mCacheParams.Get(&image);
-                std::string colorKey = currentCache.NavigatorParams->ColorAdjustmentsKey;
-                if (colorKey.empty())
-                    return;
-                ColorAdjustmentsValues newColorAdjustments = currentCache.NavigatorParams->ColorAdjustments;
-                for (auto& otherCacheKey : mCacheParams.Keys())
-                {
-                    CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                    if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ColorAdjustmentsKey == colorKey))
-                        otherCache.NavigatorParams->ColorAdjustments = newColorAdjustments;
-                }
-            }
+            void UpdateLinkedZooms(const cv::Mat& image);
+            void UpdateLinkedColorAdjustments(const cv::Mat& image);
 
             internal::Cache<const cv::Mat *, CachedParams> mCacheParams;
             double mCachedImagesTimeToLive = 5.;
             internal::ShortLivedCache<const cv::Mat *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
         };
-        static ImageNavigatorTextureCache gImageNavigatorTextureCache;
+
+        extern ImageNavigatorTextureCache gImageNavigatorTextureCache;
+        
     } // namespace ImageNavigatorUtils
 
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/image_navigator.cpp continued                                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include "imgui_internal.h"
+
+#include <iostream>
+
+namespace ImmVision
+{
     void ClearNavigatorTextureCache()
     {
-        ImageNavigatorUtils::gImageNavigatorTextureCache.ClearImagesCache();
+        ImageNavigatorCache::gImageNavigatorTextureCache.ClearImagesCache();
     }
 
     cv::Point2d ImageNavigator(
@@ -2912,8 +2528,8 @@ namespace ImmVision
         ImageNavigatorParams* params,
         bool refresh)
     {
-        using CachedParams = ImageNavigatorUtils::ImageNavigatorTextureCache::CachedParams;
-        using CachedImages = ImageNavigatorUtils::ImageNavigatorTextureCache::CachedImages;
+        using CachedParams = ImageNavigatorCache::ImageNavigatorTextureCache::CachedParams;
+        using CachedImages = ImageNavigatorCache::ImageNavigatorTextureCache::CachedImages;
 
         //
         // Lambda / panel Title
@@ -3343,9 +2959,9 @@ namespace ImmVision
             return cv::Point2d();
         }
 
-        ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
-        auto &cacheParams = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheParams(image);
-        auto &cacheImages = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheImages(image);
+        ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
+        auto &cacheParams = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheParams(image);
+        auto &cacheImages = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheImages(image);
 
         ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
         cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);
@@ -3433,7 +3049,7 @@ namespace ImmVision
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
                 std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
-                auto &cacheImage = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheImages(
+                auto &cacheImage = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheImages(
                     s_Inspector_ImagesAndParams[i].Image);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
@@ -3467,7 +3083,7 @@ namespace ImmVision
                     i.Params.ZoomMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
-                ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
+                ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }
@@ -3662,6 +3278,156 @@ namespace ImmVision
 //                       src/immvision/internal/cv_drawing_utils.cpp                                            //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv_drawing_utils.h included by src/immvision/internal/cv_drawing_utils.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <opencv2/core/core.hpp>
+
+namespace ImmVision
+{
+
+    namespace CvDrawingUtils
+    {
+        enum class Colors
+        {
+            Black,
+            Red,
+            Green,
+            Blue,
+            White,
+            Yellow,
+            Cyan,
+            Violet,
+            Orange
+        };
+
+        cv::Scalar ColorsToScalar(Colors value);
+
+        inline cv::Scalar Black()
+        { return {0, 0, 0, 255}; }
+
+        inline cv::Scalar Red()
+        { return {0, 0, 255, 255}; }
+
+        inline cv::Scalar Green()
+        { return {0, 255, 0, 255}; }
+
+        inline cv::Scalar Blue()
+        { return {255, 0, 0, 255}; }
+
+        inline cv::Scalar White()
+        { return {255, 255, 255, 255}; }
+
+        inline cv::Scalar Yellow()
+        { return {0, 255, 255, 255}; }
+
+        inline cv::Scalar Cyan()
+        { return {255, 255, 0, 255}; }
+
+        inline cv::Scalar Violet()
+        { return {200, 50, 200, 255}; }
+
+        inline cv::Scalar Orange()
+        { return {255, 128, 0, 255}; }
+
+
+        void line(cv::Mat &image,
+                  const cv::Point2d &a,
+                  const cv::Point2d &b,
+                  cv::Scalar color,
+                  int thickness = 1);
+
+        void ellipse(cv::Mat &image,
+                     const cv::Point2d &center,
+                     const cv::Size2d &size,
+                     const cv::Scalar &color,
+                     double angle = 0.,
+                     double start_angle = 0.,
+                     double end_angle = 360.,
+                     int thickness = 1);
+
+        void circle(cv::Mat &image,
+                    const cv::Point2d &center,
+                    double radius,
+                    cv::Scalar color,
+                    int thickness = 1);
+
+        void rectangle(cv::Mat &image,
+                       const cv::Point2d &pt1,
+                       const cv::Point2d &pt2,
+                       const cv::Scalar &color,
+                       bool fill = false,
+                       int thickness = 1);
+
+
+        void rectangle_size(cv::Mat &img,
+                            const cv::Point2d &pt,
+                            const cv::Size2d &size,
+                            const cv::Scalar &color,
+                            bool fill = false,
+                            int thickness = 1);
+
+        void text(cv::Mat &img,
+                  const cv::Point2d &position,
+                  const std::string &msg,
+                  const cv::Scalar &color,
+                  bool center_around_point = false,
+                  bool add_cartouche = false,
+                  double fontScale = 0.4,
+                  int thickness = 1);
+
+        void cross_hole(cv::Mat &img,
+                        const cv::Point2d &position,
+                        const cv::Scalar &color,
+                        double size = 2.,
+                        double size_hole = 2.,
+                        int thickness = 1);
+
+        void draw_named_feature(cv::Mat &img,
+                                const cv::Point2d &position,
+                                const std::string &name,
+                                const cv::Scalar &color,
+                                bool add_cartouche = false,
+                                double size = 3.,
+                                double size_hole = 2.,
+                                int thickness = 1);
+
+        void draw_transparent_pixel(
+            cv::Mat &img_rgba,
+            const cv::Point2d &position,
+            const cv::Scalar &color,
+            double alpha
+        );
+
+        void draw_grid(
+            cv::Mat& img_rgba,
+            cv::Scalar lineColor,
+            double alpha,
+            double x_spacing, double y_spacing,
+            double x_start, double y_start,
+            double x_end, double y_end
+        );
+
+        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2);
+        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2);
+
+        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize = 30);
+
+        using Image_RGB = cv::Mat;
+        using Image_RGBA = cv::Mat;
+
+        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba,
+                                              const Image_RGBA &overlay_rgba,
+                                              double alpha);
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra);
+
+    }  // namespace CvDrawingUtils
+}  // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv_drawing_utils.cpp continued                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <opencv2/imgproc/imgproc.hpp>
 #include <unordered_map>
 
@@ -4483,9 +4249,196 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_navigator_cache.cpp                                       //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace ImageNavigatorCache
+    {
+        void InitializeMissingParams(ImageNavigatorParams* params, const cv::Mat& image)
+        {
+            if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
+                params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
+            if (params->ZoomMatrix == cv::Matx33d::eye())
+                params->ZoomMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
+        }
+
+        bool ShallRefreshRgbaCache(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
+        {
+            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
+                return true;
+            if (v1.SelectedChannel != v2.SelectedChannel)
+                return true;
+            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
+                return true;
+            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
+                return true;
+            return false;
+        }
+
+        bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
+        {
+            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
+                return true;
+            if (! ZoomPanTransform::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
+                return true;
+            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
+                return true;
+            if (v1.ShowGrid != v2.ShowGrid)
+                return true;
+            if (v1.SelectedChannel != v2.SelectedChannel)
+                return true;
+            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
+                return true;
+            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
+                return true;
+            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
+                return true;
+            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
+                return true;
+            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
+                return true;
+            return false;
+        }
+
+
+        //
+        // ImageNavigatorTextureCache impl below
+        //
+
+        void ImageNavigatorTextureCache::UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
+        {
+            auto cacheKey = &image;
+            params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
+
+            bool needsRefreshTexture = refresh;
+            bool shallRefreshRgbaCache = false;
+
+            if (! mCacheParams.Contains(cacheKey))
+            {
+                InitializeMissingParams(params, image);
+                needsRefreshTexture = true;
+                shallRefreshRgbaCache = true;
+                mCacheParams.AddKey(cacheKey);
+            }
+            if (! mCacheImages.Contains(cacheKey))
+            {
+                mCacheImages.AddKey(cacheKey);
+                needsRefreshTexture = true;
+                shallRefreshRgbaCache = true;
+                mCacheImages.Get(cacheKey).GlTexture = std::make_unique<GlTextureCv>();
+            }
+
+            auto& cachedParams = mCacheParams.Get(cacheKey);
+            auto& cachedImages = mCacheImages.Get(cacheKey);
+            cachedParams.NavigatorParams = params;
+
+            ImageNavigatorParams oldParams = cachedParams.PreviousParams;
+            *cachedParams.NavigatorParams = *params;
+
+            if (cachedImages.GlTexture->mImageSize.x == 0.f)
+                needsRefreshTexture = true;
+            if (ShallRefreshTexture(oldParams, *params))
+                needsRefreshTexture = true;
+            if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
+                params->ZoomMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
+                    oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
+            if (needsRefreshTexture)
+            {
+                if (ShallRefreshRgbaCache(oldParams, *params))
+                    shallRefreshRgbaCache = true;
+                ImageNavigatorDrawing::BlitImageNavigatorTexture(
+                    *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
+            }
+
+            if (! ZoomPanTransform::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
+                UpdateLinkedZooms(image);
+            if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
+                UpdateLinkedColorAdjustments(image);
+
+            cachedParams.PreviousParams = *params;
+
+            mCacheImages.ClearOldEntries();
+        }
+
+        ImageNavigatorTextureCache::CachedParams& ImageNavigatorTextureCache::GetCacheParams(const cv::Mat& image)
+        {
+            return mCacheParams.Get(&image);
+        }
+        ImageNavigatorTextureCache::CachedImages& ImageNavigatorTextureCache::GetCacheImages(const cv::Mat& image)
+        {
+            return mCacheImages.Get(&image);
+        }
+
+        void ImageNavigatorTextureCache::ClearImagesCache()
+        {
+            mCacheImages.Clear();
+        }
+
+        void ImageNavigatorTextureCache::UpdateLinkedZooms(const cv::Mat& image)
+        {
+            auto currentCacheKey = &image;
+            auto & currentCache = mCacheParams.Get(&image);
+            std::string zoomKey = currentCache.NavigatorParams->ZoomKey;
+            if (zoomKey.empty())
+                return;
+            ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomMatrix;
+            for (auto& otherCacheKey : mCacheParams.Keys())
+            {
+                CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
+                if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ZoomKey == zoomKey))
+                    otherCache.NavigatorParams->ZoomMatrix = newZoom;
+            }
+        }
+        void ImageNavigatorTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
+        {
+            auto currentCacheKey = &image;
+            auto & currentCache = mCacheParams.Get(&image);
+            std::string colorKey = currentCache.NavigatorParams->ColorAdjustmentsKey;
+            if (colorKey.empty())
+                return;
+            ColorAdjustmentsValues newColorAdjustments = currentCache.NavigatorParams->ColorAdjustments;
+            for (auto& otherCacheKey : mCacheParams.Keys())
+            {
+                CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
+                if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ColorAdjustmentsKey == colorKey))
+                    otherCache.NavigatorParams->ColorAdjustments = newColorAdjustments;
+            }
+        }
+
+
+    ImageNavigatorTextureCache gImageNavigatorTextureCache;
+    } // namespace ImageNavigatorUtils
+
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image_navigator_drawing.cpp                                     //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/matrix_info_utils.h included by src/immvision/internal/image_navigator_drawing.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <string>
+
+namespace ImmVision
+{
+    namespace MatrixInfoUtils
+    {
+        std::string _MatTypeName(const cv::Mat& m);
+        std::string _MatInfo(const cv::Mat &m);
+        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y);
+        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true);
+
+    } // namespace MatrixInfoUtils
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_navigator_drawing.cpp continued                           //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace ImmVision
 {
@@ -4732,6 +4685,125 @@ namespace ImmVision
 
 } // namespace ImmVision
 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_navigator_widgets.cpp                                     //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+namespace ImmVision
+{
+    namespace ImageNavigatorWidgets
+    {
+        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
+        {
+            ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
+            texture.Draw_DisableDragWindow(displaySize);
+            bool isImageHovered = ImGui::IsItemHovered();
+            ImVec2 mouse = ImGui::GetMousePos();
+            if (isImageHovered)
+                return cv::Point2d((double)(mouse.x - imageTopLeft.x), (double)(mouse.y - imageTopLeft.y));
+            else
+                return cv::Point2d(-1., -1.);
+        }
+
+        void ShowImageInfo(const cv::Mat &image, double zoomFactor)
+        {
+            std::string info = MatrixInfoUtils::_MatInfo(image);
+            ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
+        }
+
+
+        void ShowPixelColorWidget(
+            const cv::Mat &image,
+            cv::Point pt,
+            const ImageNavigatorParams& params)
+        {
+            bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
+            auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
+            auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
+                return params.IsColorOrderBGR ?
+                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
+                                              :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
+            };
+            auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
+                return params.IsColorOrderBGR ?
+                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
+                                              :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
+            };
+
+            bool done = false;
+            std::string id = std::string("##pixelcolor_") + std::to_string(pt.x) + "," + std::to_string(pt.y);
+            if (image.depth() == CV_8U)
+            {
+                ImGuiColorEditFlags editFlags =
+                    ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_AlphaPreviewHalf
+                    | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_Uint8;
+                if (!isInImage)
+                {
+                    // ColorEdit4 introduces a strange line spacing on the next group
+                    // which cannot be simulated with ImGui::Dummy
+                    // => we add a dummy one (hopefully black on a black background)
+                    float dummyColor[4]{0.f, 0.f, 0.f, 255.f};
+                    ImGui::SetNextItemWidth(1.f);
+                    int colorEditFlags =
+                        ImGuiColorEditFlags_NoInputs
+                        | ImGuiColorEditFlags_InputRGB
+                        | ImGuiColorEditFlags_DisplayRGB;
+                    ImGui::ColorEdit4(id.c_str(), dummyColor, colorEditFlags );
+                    done = true;
+                }
+                else if (image.channels() == 3)
+                {
+                    cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
+                    ImVec4 colorAsImVec = Vec3bToImVec4(col);
+                    ImGui::SetNextItemWidth(150.f);
+                    ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
+                    done = true;
+                }
+                else if (image.channels() == 4)
+                {
+                    cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
+                    ImVec4 colorAsImVec = Vec4bToImVec4(col);
+                    ImGui::SetNextItemWidth(200.f);
+                    ImGui::ColorEdit4(id.c_str(), (float*)&colorAsImVec, editFlags);
+                    done = true;
+                }
+            }
+            if (! done)
+            {
+                std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(image, pt.x, pt.y);
+                ImGui::Text("%s", pixelInfo.c_str());
+            }
+        }
+
+
+        // If true, the collapsing headers will be synced across instances
+        bool s_CollapsingHeader_CacheState_Sync = false;
+
+        bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen)
+        {
+            static std::map<std::string, bool> collapsingHeadersState;
+            bool shallOpen = forceOpen;
+            if (s_CollapsingHeader_CacheState_Sync)
+            {
+                if (collapsingHeadersState.find(name) != collapsingHeadersState.end())
+                {
+                    bool wasOpenedLastTime = collapsingHeadersState.at(name);
+                    if (wasOpenedLastTime)
+                        shallOpen = true;
+                }
+            }
+            if (shallOpen)
+                ImGui::SetNextItemOpen(shallOpen, ImGuiCond_Always);
+            bool opened = ImGui::CollapsingHeader(name);
+            collapsingHeadersState[name] = opened;
+            return opened;
+        };
+
+    } // namespace ImageNavigatorWidgets
+
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/imgui_imm.cpp                                                   //

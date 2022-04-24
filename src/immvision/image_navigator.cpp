@@ -6,14 +6,14 @@
 #include "immvision/internal/gl_texture.h"
 #include "immvision/internal/internal_icons.h"
 #include "immvision/internal/imgui_imm.h"
-#include "immvision/internal/cv_drawing_utils.h"
 #include "immvision/internal/portable_file_dialogs.h"
 #include "immvision/internal/imgui_imm_gl_image.h"
 #include "immvision/internal/short_lived_cache.h"
 #include "immvision/internal/zoom_pan_transform.h"
 #include "immvision/internal/color_adjustment_utils.h"
-#include "immvision/internal/matrix_info_utils.h"
 #include "immvision/internal/image_navigator_drawing.h"
+#include "immvision/internal/image_navigator_widgets.h"
+#include "immvision/internal/image_navigator_cache.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -23,299 +23,9 @@
 
 namespace ImmVision
 {
-    namespace ImageNavigatorWidgets
-    {
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
-        {
-            ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
-            texture.Draw_DisableDragWindow(displaySize);
-            bool isImageHovered = ImGui::IsItemHovered();
-            ImVec2 mouse = ImGui::GetMousePos();
-            if (isImageHovered)
-                return cv::Point2d((double)(mouse.x - imageTopLeft.x), (double)(mouse.y - imageTopLeft.y));
-            else
-                return cv::Point2d(-1., -1.);
-        }
-
-        void ShowImageInfo(const cv::Mat &image, double zoomFactor)
-        {
-            std::string info = MatrixInfoUtils::_MatInfo(image);
-            ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
-        }
-
-
-        void ShowPixelColorWidget(
-            const cv::Mat &image,
-            cv::Point pt,
-            const ImageNavigatorParams& params)
-        {
-            bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
-            auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
-            auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
-                return params.IsColorOrderBGR ?
-                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
-                                              :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
-            };
-            auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
-                return params.IsColorOrderBGR ?
-                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
-                                              :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
-            };
-
-            bool done = false;
-            std::string id = std::string("##pixelcolor_") + std::to_string(pt.x) + "," + std::to_string(pt.y);
-            if (image.depth() == CV_8U)
-            {
-                ImGuiColorEditFlags editFlags =
-                    ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_AlphaPreviewHalf
-                    | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_Uint8;
-                if (!isInImage)
-                {
-                    // ColorEdit4 introduces a strange line spacing on the next group
-                    // which cannot be simulated with ImGui::Dummy
-                    // => we add a dummy one (hopefully black on a black background)
-                    float dummyColor[4]{0.f, 0.f, 0.f, 255.f};
-                    ImGui::SetNextItemWidth(1.f);
-                    int colorEditFlags =
-                              ImGuiColorEditFlags_NoInputs
-                            | ImGuiColorEditFlags_InputRGB
-                            | ImGuiColorEditFlags_DisplayRGB;
-                    ImGui::ColorEdit4(id.c_str(), dummyColor, colorEditFlags );
-                    done = true;
-                }
-                else if (image.channels() == 3)
-                {
-                    cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
-                    ImVec4 colorAsImVec = Vec3bToImVec4(col);
-                    ImGui::SetNextItemWidth(150.f);
-                    ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
-                    done = true;
-                }
-                else if (image.channels() == 4)
-                {
-                    cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
-                    ImVec4 colorAsImVec = Vec4bToImVec4(col);
-                    ImGui::SetNextItemWidth(200.f);
-                    ImGui::ColorEdit4(id.c_str(), (float*)&colorAsImVec, editFlags);
-                    done = true;
-                }
-            }
-            if (! done)
-            {
-                std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(image, pt.x, pt.y);
-                ImGui::Text("%s", pixelInfo.c_str());
-            }
-        }
-
-
-        // If true, the collapsing headers will be synced across instances
-        static bool s_CollapsingHeader_CacheState_Sync = false;
-
-        bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false)
-        {
-            static std::map<std::string, bool> collapsingHeadersState;
-            bool shallOpen = forceOpen;
-            if (s_CollapsingHeader_CacheState_Sync)
-            {
-                if (collapsingHeadersState.find(name) != collapsingHeadersState.end())
-                {
-                    bool wasOpenedLastTime = collapsingHeadersState.at(name);
-                    if (wasOpenedLastTime)
-                        shallOpen = true;
-                }
-            }
-            if (shallOpen)
-                ImGui::SetNextItemOpen(shallOpen, ImGuiCond_Always);
-            bool opened = ImGui::CollapsingHeader(name);
-            collapsingHeadersState[name] = opened;
-            return opened;
-        };
-
-    } // namespace ImageNavigatorWidgets
-
-
-    namespace ImageNavigatorUtils
-    {
-        void InitializeMissingParams(ImageNavigatorParams* params, const cv::Mat& image)
-        {
-            if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
-                params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
-            if (params->ZoomMatrix == cv::Matx33d::eye())
-                params->ZoomMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
-        }
-
-        bool ShallRefreshRgbaCache(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
-        {
-            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
-            return false;
-        }
-
-        bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
-        {
-            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
-                return true;
-            if (! ZoomPanTransform::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
-                return true;
-            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
-                return true;
-            if (v1.ShowGrid != v2.ShowGrid)
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
-            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
-                return true;
-            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
-                return true;
-            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
-                return true;
-            return false;
-        }
-
-
-        class ImageNavigatorTextureCache
-        {
-        public:
-            // members
-            struct CachedParams
-            {
-                // This caches are small and will persist during the application lifetime
-                ImageNavigatorParams* NavigatorParams = nullptr;
-                ImVec2 LastDragDelta;
-                std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
-                bool   IsMouseDragging = false;
-                struct ImageNavigatorParams  PreviousParams;
-            };
-            struct CachedImages
-            {
-                // This caches are heavy and will be destroyed
-                // if not used (after about 5 seconds)
-                cv::Mat     ImageRgbaCache;
-                std::unique_ptr<GlTextureCv> GlTexture;
-            };
-
-            void UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
-            {
-                auto cacheKey = &image;
-                params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
-
-                bool needsRefreshTexture = refresh;
-                bool shallRefreshRgbaCache = false;
-
-                if (! mCacheParams.Contains(cacheKey))
-                {
-                    InitializeMissingParams(params, image);
-                    needsRefreshTexture = true;
-                    shallRefreshRgbaCache = true;
-                    mCacheParams.AddKey(cacheKey);
-                }
-                if (! mCacheImages.Contains(cacheKey))
-                {
-                    mCacheImages.AddKey(cacheKey);
-                    needsRefreshTexture = true;
-                    shallRefreshRgbaCache = true;
-                    mCacheImages.Get(cacheKey).GlTexture = std::make_unique<GlTextureCv>();
-                }
-
-                auto& cachedParams = mCacheParams.Get(cacheKey);
-                auto& cachedImages = mCacheImages.Get(cacheKey);
-                cachedParams.NavigatorParams = params;
-
-                ImageNavigatorParams oldParams = cachedParams.PreviousParams;
-                *cachedParams.NavigatorParams = *params;
-
-                if (cachedImages.GlTexture->mImageSize.x == 0.f)
-                    needsRefreshTexture = true;
-                if (ShallRefreshTexture(oldParams, *params))
-                    needsRefreshTexture = true;
-                if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
-                    params->ZoomMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
-                        oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
-                if (needsRefreshTexture)
-                {
-                    if (ShallRefreshRgbaCache(oldParams, *params))
-                        shallRefreshRgbaCache = true;
-                    ImageNavigatorDrawing::BlitImageNavigatorTexture(
-                        *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
-                }
-
-                if (! ZoomPanTransform::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
-                    UpdateLinkedZooms(image);
-                if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
-                    UpdateLinkedColorAdjustments(image);
-
-                cachedParams.PreviousParams = *params;
-
-                mCacheImages.ClearOldEntries();
-            }
-
-            CachedParams& GetCacheParams(const cv::Mat& image)
-            {
-                return mCacheParams.Get(&image);
-            }
-            CachedImages& GetCacheImages(const cv::Mat& image)
-            {
-                return mCacheImages.Get(&image);
-            }
-
-            void ClearImagesCache()
-            {
-                mCacheImages.Clear();
-            }
-
-        private:
-            // Methods
-            void UpdateLinkedZooms(const cv::Mat& image)
-            {
-                auto currentCacheKey = &image;
-                auto & currentCache = mCacheParams.Get(&image);
-                std::string zoomKey = currentCache.NavigatorParams->ZoomKey;
-                if (zoomKey.empty())
-                    return;
-                ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomMatrix;
-                for (auto& otherCacheKey : mCacheParams.Keys())
-                {
-                    CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                    if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ZoomKey == zoomKey))
-                        otherCache.NavigatorParams->ZoomMatrix = newZoom;
-                }
-            }
-            void UpdateLinkedColorAdjustments(const cv::Mat& image)
-            {
-                auto currentCacheKey = &image;
-                auto & currentCache = mCacheParams.Get(&image);
-                std::string colorKey = currentCache.NavigatorParams->ColorAdjustmentsKey;
-                if (colorKey.empty())
-                    return;
-                ColorAdjustmentsValues newColorAdjustments = currentCache.NavigatorParams->ColorAdjustments;
-                for (auto& otherCacheKey : mCacheParams.Keys())
-                {
-                    CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                    if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ColorAdjustmentsKey == colorKey))
-                        otherCache.NavigatorParams->ColorAdjustments = newColorAdjustments;
-                }
-            }
-
-            internal::Cache<const cv::Mat *, CachedParams> mCacheParams;
-            double mCachedImagesTimeToLive = 5.;
-            internal::ShortLivedCache<const cv::Mat *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
-        };
-        static ImageNavigatorTextureCache gImageNavigatorTextureCache;
-    } // namespace ImageNavigatorUtils
-
     void ClearNavigatorTextureCache()
     {
-        ImageNavigatorUtils::gImageNavigatorTextureCache.ClearImagesCache();
+        ImageNavigatorCache::gImageNavigatorTextureCache.ClearImagesCache();
     }
 
     cv::Point2d ImageNavigator(
@@ -323,8 +33,8 @@ namespace ImmVision
         ImageNavigatorParams* params,
         bool refresh)
     {
-        using CachedParams = ImageNavigatorUtils::ImageNavigatorTextureCache::CachedParams;
-        using CachedImages = ImageNavigatorUtils::ImageNavigatorTextureCache::CachedImages;
+        using CachedParams = ImageNavigatorCache::ImageNavigatorTextureCache::CachedParams;
+        using CachedImages = ImageNavigatorCache::ImageNavigatorTextureCache::CachedImages;
 
         //
         // Lambda / panel Title
@@ -754,9 +464,9 @@ namespace ImmVision
             return cv::Point2d();
         }
 
-        ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
-        auto &cacheParams = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheParams(image);
-        auto &cacheImages = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheImages(image);
+        ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
+        auto &cacheParams = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheParams(image);
+        auto &cacheImages = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheImages(image);
 
         ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
         cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);
@@ -844,7 +554,7 @@ namespace ImmVision
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
                 std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
-                auto &cacheImage = ImageNavigatorUtils::gImageNavigatorTextureCache.GetCacheImages(
+                auto &cacheImage = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheImages(
                     s_Inspector_ImagesAndParams[i].Image);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
@@ -878,7 +588,7 @@ namespace ImmVision
                     i.Params.ZoomMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
-                ImageNavigatorUtils::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
+                ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }
