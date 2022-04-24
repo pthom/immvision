@@ -1,0 +1,20 @@
+#pragma once
+#include "immvision/internal/gl_texture.h"
+#include "immvision/image_navigator.h"
+#include "imgui.h"
+#include <opencv2/core.hpp>
+
+namespace ImmVision
+{
+    namespace ImageNavigatorWidgets
+    {
+        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize);
+        void ShowImageInfo(const cv::Mat &image, double zoomFactor);
+        void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageNavigatorParams& params);
+
+        // If true, the collapsing headers will be synced across instances
+        extern bool s_CollapsingHeader_CacheState_Sync;
+        bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false);
+    } // namespace ImageNavigatorWidgets
+
+}
