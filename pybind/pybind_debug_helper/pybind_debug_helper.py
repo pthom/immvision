@@ -9,8 +9,8 @@ THIS_DIR = os.path.dirname(__file__)
 path_examples = os.path.realpath(f"{THIS_DIR}/../pybind_examples/")
 sys.path.append(path_examples)
 
-import immvision.cpp_immvision
-print(immvision.cpp_immvision.CvNp_ListTypeSynonyms())
+#import immvision.cpp_immvision
+#print(immvision.cpp_immvision.CvNp_ListTypeSynonyms())
 
-# import example_immvision
-# example_immvision.main()
+import example_immvision
+example_immvision.main()

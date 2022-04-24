@@ -13,6 +13,7 @@
    * [ ] classify code
      * [ ] Add missing signatures / cpp
      * [ ] Add nice signatures / python
+   * [ ] gerer types de matrices, cf https://numpy.org/doc/stable/reference/arrays.scalars.html#sized-aliases
    * [Later] cf _skbuild_template: add conda & wheels
    * [Later] pyimgui PRs
        * [ ] Pull request / multisamples = 4
@@ -25,7 +26,12 @@
 
 
  * [ ] immvision
+   * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
+   *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
    * [ ] Compat Eigen ?
+   * [ ] Image and ImageNavigator are the same ? Groupe them ?
+   * [ ] Navigator returns multiple values (mouse position (double), pixel color (vecdouble), ...)
+         Store these values in params? / Store Watched pixels values ?
    * [ ] doc
   
  * [ ] Inspector:

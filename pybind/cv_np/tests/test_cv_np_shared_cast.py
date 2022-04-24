@@ -6,9 +6,9 @@ import numpy as np
 import math
 import random
 
+
 def are_float_close(x: float, y: float):
     return math.fabs(x - y) < 1E-5
-
 
 
 """

@@ -2722,18 +2722,7 @@ namespace ImmVision
         }
 
 
-        template<typename T>
-        std::string ShowVecValue(const T& v)
-        {
-            char buffer_color[300];
-            snprintf(buffer_color, 300, "%.5G", (double)v);
-            return std::string(buffer_color);
-        }
-        template<>
-        std::string ShowVecValue(const unsigned char& v)
-        {
-            return std::to_string((int)v);
-        }
+
         std::string JoinStrings(const std::vector<std::string>&v, char separator)
         {
             std::string r;
@@ -2745,53 +2734,82 @@ namespace ImmVision
             }
             return r;
         }
-        template<typename _Tp, int cn>
-        std::string ShowVecValues(const cv::Vec<_Tp, cn>& v, char separator = ',', bool add_paren = true)
-        {
-            std::string r;
-            std::vector<std::string> val_strs;
-            for (int i = 0; i < cn; ++i)
-                val_strs.push_back(ShowVecValue(v[i]));
 
-            r = JoinStrings(val_strs, separator);
-            if (add_paren)
-                r = std::string("(") + r + ")";
+        template<typename _Tp>
+        std::vector<double> GrabValuesFromBuffer(const uchar * buffer, int nb)
+        {
+            std::vector<double> r;
+            auto buffer_typed =  reinterpret_cast<const _Tp *>(buffer);
+            for (int i = 0; i < nb; ++i)
+            {
+                r.push_back(static_cast<double>(*buffer_typed));
+                ++buffer_typed;
+            }
             return r;
+        }
+
+        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y)
+        {
+            int depth = m.depth();
+            int nb_channels = m.channels();
+            const uchar * ptr = m.ptr(y, x);
+            if (depth == CV_8U)
+                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
+            else if (depth == CV_8S)
+                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
+            else if (depth == CV_16U)
+                return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
+            else if (depth == CV_16S)
+                return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
+#if CV_MAJOR_VERSION >= 4
+            else if (depth == CV_16F)
+                return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
+#endif
+            else if (depth == CV_32S)
+                return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
+            else if (depth == CV_32F)
+                return GrabValuesFromBuffer<float>(ptr, nb_channels);
+            else if (depth == CV_64F)
+                return GrabValuesFromBuffer<double>(ptr, nb_channels);
+            else
+                throw std::runtime_error("MatValuesAt: unhandled depth");
         }
 
         std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true)
         {
-            auto fnShowVecValues = [separator, add_paren](const auto& v) {
-                return ShowVecValues(v, separator, add_paren);
-            };
             if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
                 return "";
-            if (m.type() == CV_64FC4)
-                return fnShowVecValues(m.at<cv::Vec4d>(y, x));
-            else if (m.type() == CV_64FC3)
-                return fnShowVecValues(m.at<cv::Vec3d>(y, x));
-            else if (m.type() == CV_64FC2)
-                return fnShowVecValues(m.at<cv::Vec2d>(y, x));
-            else if (m.type() == CV_64FC1)
-                return ShowVecValue(m.at<double>(y, x));
-            else if (m.type() == CV_32FC4)
-                return fnShowVecValues(m.at<cv::Vec4f>(y, x));
-            else if (m.type() == CV_32FC3)
-                return fnShowVecValues(m.at<cv::Vec3f>(y, x));
-            else if (m.type() == CV_32FC2)
-                return fnShowVecValues(m.at<cv::Vec2f>(y, x));
-            else if (m.type() == CV_32FC1)
-                return ShowVecValue(m.at<float>(y, x));
-            else if (m.type() == CV_8UC4)
-                return fnShowVecValues(m.at<cv::Vec4b>(y, x));
-            else if (m.type() == CV_8UC3)
-                return fnShowVecValues(m.at<cv::Vec3b>(y, x));
-            else if (m.type() == CV_8UC2)
-                return fnShowVecValues(m.at<cv::Vec2b>(y, x));
-            else if (m.type() == CV_8UC1)
-                return ShowVecValue(m.at<unsigned char>(y, x));
-            else
-                throw("Unhandled matrix type !");
+            std::vector<double> values = MatValuesAt(m, x, y);
+
+            auto formatValue = [](double v, int depth) -> std::string
+            {
+                bool isFloat = false;
+                if ((depth == CV_32F) || (depth == CV_64F))
+                    isFloat = true;
+#if CV_MAJOR_VERSION >= 4
+                if (depth == CV_16F)
+                    isFloat = true;
+#endif
+                if (isFloat)
+                {
+                    char buffer_color[300];
+                    snprintf(buffer_color, 300, "%.5G", (double) v);
+                    return std::string(buffer_color);
+                }
+                else
+                {
+                    char buffer_color[300];
+                    snprintf(buffer_color, 300, "%lld", (long long) v);
+                    return std::string(buffer_color);
+                }
+            };
+
+            std::vector<std::string> strs;
+            int depth = m.depth();
+            for (double v: values)
+                strs.push_back(formatValue(v, depth));
+
+            return JoinStrings(strs, ',');
         }
 
     } // namespace MatrixInfoUtils
@@ -4444,20 +4462,45 @@ namespace ImmVision
             return img;
         }
 
+        auto is_depth_unsigned_integer = [](int depth) {
+            return ((depth == CV_8U) || (depth == CV_16U));
+        };
+        auto is_depth_signed_integer = [](int depth) {
+            return ((depth == CV_8S) || (depth == CV_16S) || (depth == CV_32S));
+        };
+        auto is_depth_integer = [](int depth) {
+            return is_depth_signed_integer(depth) || is_depth_unsigned_integer(depth);
+        };
+        auto is_depth_integer_not_uchar(int depth) {
+            return is_depth_integer(depth) && (depth != CV_8U);
+        }
+        auto is_depth_float = [](int depth) {
+            return ((depth == CV_16F) || (depth == CV_32F) || (depth == CV_64F));
+        };
 
         Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
         {
+
             cv::Mat mat = inputMat;
+
             if (!inputMat.isContinuous())
                 mat = inputMat.clone();
+            if (is_depth_integer_not_uchar(mat.depth()))
+            {
+                cv::Mat m64;
+                inputMat.convertTo(m64, CV_64F);
+                mat = m64;
+            }
+
 
             cv::Mat mat_rgba;
             int nbChannels = mat.channels();
             if (nbChannels == 1)
             {
-                if ((mat.depth() == CV_8U))
+                int depth = mat.depth(); (void)depth;
+                if (mat.depth() == CV_8U)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                else if (is_depth_float(depth))
                 {
                     cv::Mat grey_uchar;
                     cv::Mat float_times_255 = mat * 255.;
