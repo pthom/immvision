@@ -79,10 +79,8 @@ file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PR
 pybind11_add_module(cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
 target_include_directories(cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # add cv_np
-set(cv_np_dir ${THIS_DIR}/cv_np)
-FILE(GLOB cv_np_sources ${cv_np_dir}/*.h ${cv_np_dir}/*.cpp)
-target_sources(cpp_immvision PRIVATE ${cv_np_sources})
-target_include_directories(cpp_immvision PRIVATE ${cv_np_dir}/..)
+add_subdirectory(${THIS_DIR}/cv_np)
+target_link_libraries(cpp_immvision PRIVATE cv_np_lib)
 
 # Compile definitions
 target_compile_definitions(cpp_immvision PRIVATE

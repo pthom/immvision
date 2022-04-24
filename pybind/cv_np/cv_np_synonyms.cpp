@@ -34,7 +34,7 @@ namespace cv_np
         return AlignCenter(std::to_string(v));
     }
 
-    std::string ListTypeSynonyms()
+    std::string list_types_synonyms()
     {
         std::string title = AlignCenter("cv_depth") + AlignCenter("cv_depth_name") + AlignCenter("np_format");
 

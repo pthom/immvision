@@ -5,5 +5,5 @@
 
 void pydef_cv_np(pybind11::module& m)
 {
-    m.def("CvNp_ListTypeSynonyms", cv_np::ListTypeSynonyms);
+    m.def("list_types_synonyms", cv_np::list_types_synonyms);
 }

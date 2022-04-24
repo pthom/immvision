@@ -8,7 +8,7 @@
 // * the cast Python->C++ (for the input parameter)
 // * the cast C++->Python (for the returned value)
 // The unit tests check that the values and types are unmodified
-cv::Mat CvNp_TestRoundTrip(const cv::Mat& m)
+cv::Mat cv_np_roundtrip(const cv::Mat& m)
 {
     return m;
 }
@@ -64,5 +64,5 @@ void pydef_cv_np_shared_test(pybind11::module& m)
         .def("SetZ3", &CvNpSharedCast_TestHelper::SetZ3)
         ;
 
-    m.def("CvNp_TestRoundTrip", CvNp_TestRoundTrip);
+    m.def("cv_np_roundtrip", cv_np_roundtrip);
 }

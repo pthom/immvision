@@ -1,10 +1,14 @@
 import pytest
-
-import immvision
-import immvision.cpp_immvision as cpp_immvision
 import numpy as np
 import math
 import random
+
+import sys
+sys.path.append(".")
+sys.path.append("..")
+
+
+from cv_np import CvNpSharedCast_TestHelper, cv_np_roundtrip
 
 
 def are_float_close(x: float, y: float):
@@ -14,7 +18,7 @@ def are_float_close(x: float, y: float):
 """
 We are playing with this C++ class
 
-struct CvNpSharedCast_Test
+struct CvNpSharedCast_TestHelper
 {
     // Create a mat with 3 rows, 4 columns and 1 channel
     // its shape for numpy should be (3, 4)
@@ -40,12 +44,11 @@ struct CvNpSharedCast_Test
 """
 
 
-CvObjectCollection = immvision.cpp_immvision.CvNpSharedCast_TestHelper
 
 
 def test_mat():
     # create object
-    o = CvObjectCollection()
+    o = CvNpSharedCast_TestHelper()
     assert o.m.shape == (3, 4)
 
     # play with its internal cv::Mat
@@ -93,7 +96,7 @@ def test_mat():
 
 def test_matx():
     # create object
-    o = CvObjectCollection()
+    o = CvNpSharedCast_TestHelper()
     assert o.mx.shape == (3, 2)
 
     # play with its internal cv::Mat
@@ -145,7 +148,7 @@ def test_matx():
 
 
 def test_size():
-    o = CvObjectCollection()
+    o = CvNpSharedCast_TestHelper()
     assert o.s[0] == 123
     assert o.s[1] == 456
     o.SetWidth(789)
@@ -156,7 +159,7 @@ def test_size():
 
 
 def test_point():
-    o = CvObjectCollection()
+    o = CvNpSharedCast_TestHelper()
     assert o.pt[0] == 42
     assert o.pt[1] == 43
     o.SetX(789)
@@ -167,7 +170,7 @@ def test_point():
 
 
 def test_point3():
-    o = CvObjectCollection()
+    o = CvNpSharedCast_TestHelper()
     assert are_float_close(o.pt3[0], 41.5)
     assert are_float_close(o.pt3[1], 42.)
     assert are_float_close(o.pt3[2], 42.5)
@@ -182,7 +185,7 @@ def test_point3():
 def test_cv_np_round_trip():
     m = np.zeros([5, 6, 7])
     m[3, 4, 5] = 156;
-    m2 = cpp_immvision.CvNp_TestRoundTrip(m)
+    m2 = cv_np_roundtrip(m)
     assert (m == m2).all()
 
     possible_types = [np.uint8, np.int8, np.uint16, np.int16, np.int32, float, np.float64]
@@ -208,7 +211,7 @@ def test_cv_np_round_trip():
         else:
             raise RuntimeError("Should not happen")
 
-        m2 = cpp_immvision.CvNp_TestRoundTrip(m)
+        m2 = cv_np_roundtrip(m)
 
         if not (m == m2).all():
             print("argh")

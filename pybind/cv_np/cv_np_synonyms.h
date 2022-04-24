@@ -19,5 +19,5 @@ namespace cv_np
 
     extern std::vector<TypeSynonyms> sTypeSynonyms;
 
-    std::string ListTypeSynonyms();
+    std::string list_types_synonyms();
 }
