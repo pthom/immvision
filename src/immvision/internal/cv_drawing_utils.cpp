@@ -416,20 +416,45 @@ namespace ImmVision
             return img;
         }
 
+        auto is_depth_unsigned_integer = [](int depth) {
+            return ((depth == CV_8U) || (depth == CV_16U));
+        };
+        auto is_depth_signed_integer = [](int depth) {
+            return ((depth == CV_8S) || (depth == CV_16S) || (depth == CV_32S));
+        };
+        auto is_depth_integer = [](int depth) {
+            return is_depth_signed_integer(depth) || is_depth_unsigned_integer(depth);
+        };
+        auto is_depth_integer_not_uchar(int depth) {
+            return is_depth_integer(depth) && (depth != CV_8U);
+        }
+        auto is_depth_float = [](int depth) {
+            return ((depth == CV_16F) || (depth == CV_32F) || (depth == CV_64F));
+        };
 
         Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
         {
+
             cv::Mat mat = inputMat;
+
             if (!inputMat.isContinuous())
                 mat = inputMat.clone();
+            if (is_depth_integer_not_uchar(mat.depth()))
+            {
+                cv::Mat m64;
+                inputMat.convertTo(m64, CV_64F);
+                mat = m64;
+            }
+
 
             cv::Mat mat_rgba;
             int nbChannels = mat.channels();
             if (nbChannels == 1)
             {
-                if ((mat.depth() == CV_8U))
+                int depth = mat.depth(); (void)depth;
+                if (mat.depth() == CV_8U)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                else if (is_depth_float(depth))
                 {
                     cv::Mat grey_uchar;
                     cv::Mat float_times_255 = mat * 255.;
