@@ -1,7 +1,7 @@
 #include "immvision/inspector.h"
 #include "immvision/image_navigator.h"
 #include "immvision/internal/image_navigator_cache.h"
-#include "immvision/internal/imgui_imm_gl_image.h"
+#include "immvision/internal/gl/imgui_imm_gl_image.h"
 #include "immvision/internal/zoom_pan_transform.h"
 #include "immvision/internal/image_navigator_widgets.h"
 

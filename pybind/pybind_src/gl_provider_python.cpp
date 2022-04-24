@@ -1,6 +1,6 @@
 #ifdef IMMVISION_BUILDING_PYBIND
 
-#include "immvision/internal/gl_provider.h"
+#include "immvision/internal/gl/gl_provider.h"
 #include "immvision/image.h"
 #include "cv_np/cv_np_shared_cast.h"
 

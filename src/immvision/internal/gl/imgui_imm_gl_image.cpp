@@ -1,4 +1,4 @@
-#include "immvision/internal/imgui_imm_gl_image.h"
+#include "immvision/internal/gl/imgui_imm_gl_image.h"
 
 #include <string>
 

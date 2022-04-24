@@ -1,6 +1,6 @@
 #include "immvision/image.h"
 
-#include "immvision/internal/gl_texture.h"
+#include "immvision/internal/gl/gl_texture.h"
 #include "immvision/internal/imgui_imm.h"
 #include "immvision/immvision.h"
 #include "immvision/internal/internal_icons.h"

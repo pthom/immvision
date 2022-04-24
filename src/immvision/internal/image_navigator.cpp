@@ -6,7 +6,7 @@
 #include "immvision/internal/internal_icons.h"
 #include "immvision/internal/imgui_imm.h"
 #include "immvision/internal/portable_file_dialogs.h"
-#include "immvision/internal/imgui_imm_gl_image.h"
+#include "immvision/internal/gl/imgui_imm_gl_image.h"
 #include "immvision/internal/zoom_pan_transform.h"
 #include "immvision/internal/color_adjustment_utils.h"
 #include "immvision/internal/image_navigator_widgets.h"

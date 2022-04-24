@@ -1,6 +1,6 @@
 #ifndef IMMVISION_BUILDING_PYBIND // see gl_provider_python for the pybind version
 
-#include "immvision/internal/gl_provider.h"
+#include "immvision/internal/gl/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
 #include "immvision/image.h"
 #include <iostream>

@@ -1,6 +1,6 @@
 #pragma once
 #include "immvision/image_navigator.h"
-#include "immvision/internal/gl_texture.h"
+#include "immvision/internal/gl/gl_texture.h"
 #include "immvision/internal/short_lived_cache.h"
 
 
@@ -46,7 +46,7 @@ namespace ImmVision
         };
 
         extern ImageNavigatorTextureCache gImageNavigatorTextureCache;
-        
+
     } // namespace ImageNavigatorUtils
 
 
