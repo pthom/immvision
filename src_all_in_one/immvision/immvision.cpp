@@ -249,12 +249,14 @@ namespace ImmVision
         bool HighlightWatchedPixels = true;
     };
 
+    cv::Matx33d MakeZoomMatrix(
+        const cv::Point2d & zoomCenter,
+        double zoomRatio,
+        const cv::Size displayedImageSize
+    );
 
-    cv::Point2d ImageNavigator(
-        const cv::Mat& image,
-        ImageNavigatorParams* params,
-        bool refreshImage = false
-        );
+
+    cv::Point2d ImageNavigator(const cv::Mat& image, ImageNavigatorParams* params, bool refreshImage = false);
 
 
     cv::Point2d ImageNavigator(
@@ -268,19 +270,23 @@ namespace ImmVision
     );
 
 
-    cv::Matx33d MakeZoomMatrix(
-        const cv::Point2d & zoomCenter,
-        double zoomRatio,
-        const cv::Size displayedImageSize
-    );
-
 
     void ClearNavigatorTextureCache();
 
 
-    ////////////////////////////////////////////
-    // Inspector
-    ////////////////////////////////////////////
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision.h continued                                                    //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/inspector.h included by src/immvision/immvision.h                        //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <string>
+
+namespace ImmVision
+{
     void Inspector_AddImage(
         const cv::Mat& image,
         const std::string& legend,
@@ -294,7 +300,6 @@ namespace ImmVision
     void Inspector_ClearImages();
 
 } // namespace ImmVision
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/image.cpp continued                                                      //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2404,38 +2409,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_drawing.h included by src/immvision/image_navigator.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace ImageNavigatorDrawing
-    {
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params);
-
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params);
-
-        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
-                                         const ImageNavigatorParams& params, bool drawPixelCoords);
-
-        cv::Mat MakeWarpPaperBackground(cv::Size s);
-
-        void BlitImageNavigatorTexture(
-            const ImageNavigatorParams& params,
-            const cv::Mat& image,
-            cv::Mat& in_out_rgba_image_cache,
-            bool shall_refresh_rgba,
-            GlTextureCv* outTexture
-        );
-
-    } // namespace ImageNavigatorDrawing
-
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/image_navigator.cpp continued                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image_navigator_widgets.h included by src/immvision/image_navigator.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2999,11 +2972,30 @@ namespace ImmVision
     }
 
 
+} // namespace ImmVision
 
-    ////////////////////////////////////////////
-    // Inspector
-    ////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision.cpp                                                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace immvision
+{
+    void foo()
+    {
+        std::cout << "foo()" << std::endl;
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/inspector.cpp                                                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+namespace ImmVision
+{
     struct Inspector_ImageAndParams
     {
         cv::Mat Image;
@@ -3200,21 +3192,7 @@ namespace ImmVision
         s_Inspector_ImagesAndParams.clear();
     }
 
-} // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/immvision.cpp                                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace immvision
-{
-    void foo()
-    {
-        std::cout << "foo()" << std::endl;
-    }
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/color_adjustment_utils.cpp                                      //
@@ -4252,6 +4230,38 @@ namespace ImmVision
 //                       src/immvision/internal/image_navigator_cache.cpp                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_navigator_drawing.h included by src/immvision/internal/image_navigator_cache.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace ImageNavigatorDrawing
+    {
+        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params);
+
+        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params);
+
+        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
+                                         const ImageNavigatorParams& params, bool drawPixelCoords);
+
+        cv::Mat MakeWarpPaperBackground(cv::Size s);
+
+        void BlitImageNavigatorTexture(
+            const ImageNavigatorParams& params,
+            const cv::Mat& image,
+            cv::Mat& in_out_rgba_image_cache,
+            bool shall_refresh_rgba,
+            GlTextureCv* outTexture
+        );
+
+    } // namespace ImageNavigatorDrawing
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_navigator_cache.cpp continued                             //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace ImmVision
 {
     namespace ImageNavigatorCache
@@ -4421,7 +4431,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/matrix_info_utils.h included by src/immvision/internal/image_navigator_drawing.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <string>
 
 namespace ImmVision
 {

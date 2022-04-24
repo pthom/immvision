@@ -88,12 +88,14 @@ namespace ImmVision
         bool HighlightWatchedPixels = true;
     };
 
+    cv::Matx33d MakeZoomMatrix(
+        const cv::Point2d & zoomCenter,
+        double zoomRatio,
+        const cv::Size displayedImageSize
+    );
 
-    cv::Point2d ImageNavigator(
-        const cv::Mat& image,
-        ImageNavigatorParams* params,
-        bool refreshImage = false
-        );
+
+    cv::Point2d ImageNavigator(const cv::Mat& image, ImageNavigatorParams* params, bool refreshImage = false);
 
 
     cv::Point2d ImageNavigator(
@@ -107,29 +109,8 @@ namespace ImmVision
     );
 
 
-    cv::Matx33d MakeZoomMatrix(
-        const cv::Point2d & zoomCenter,
-        double zoomRatio,
-        const cv::Size displayedImageSize
-    );
-
 
     void ClearNavigatorTextureCache();
 
-
-    ////////////////////////////////////////////
-    // Inspector
-    ////////////////////////////////////////////
-    void Inspector_AddImage(
-        const cv::Mat& image,
-        const std::string& legend,
-        const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
-    );
-    void Inspector_Show();
-    void Inspector_ClearImages();
 
 } // namespace ImmVision

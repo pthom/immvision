@@ -162,12 +162,14 @@ namespace ImmVision
         bool HighlightWatchedPixels = true;
     };
 
+    cv::Matx33d MakeZoomMatrix(
+        const cv::Point2d & zoomCenter,
+        double zoomRatio,
+        const cv::Size displayedImageSize
+    );
 
-    cv::Point2d ImageNavigator(
-        const cv::Mat& image,
-        ImageNavigatorParams* params,
-        bool refreshImage = false
-        );
+
+    cv::Point2d ImageNavigator(const cv::Mat& image, ImageNavigatorParams* params, bool refreshImage = false);
 
 
     cv::Point2d ImageNavigator(
@@ -181,19 +183,23 @@ namespace ImmVision
     );
 
 
-    cv::Matx33d MakeZoomMatrix(
-        const cv::Point2d & zoomCenter,
-        double zoomRatio,
-        const cv::Size displayedImageSize
-    );
-
 
     void ClearNavigatorTextureCache();
 
 
-    ////////////////////////////////////////////
-    // Inspector
-    ////////////////////////////////////////////
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision.h continued                                                    //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/inspector.h included by src/immvision/immvision.h                        //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <string>
+
+namespace ImmVision
+{
     void Inspector_AddImage(
         const cv::Mat& image,
         const std::string& legend,
