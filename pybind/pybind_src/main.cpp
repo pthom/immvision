@@ -2,7 +2,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "cv_np_shared_cast.h"
+#include "cv_np/cv_np_shared_cast.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -10,14 +10,11 @@
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
 
-void register_cv_np_shared_test_functions(pybind11::module& m);
-
-void pybind_image_register(pybind11::module& m);
-void pybind_image_navigator_register(pybind11::module& m);
-void pybind_gl_provider_sentinel_register(pybind11::module& m);
-
-
-namespace py = pybind11;
+void pydef_cv_np(pybind11::module& m);
+void pydef_cv_np_shared_test(pybind11::module& m);
+void pydef_image(pybind11::module& m);
+void pydef_image_navigator(pybind11::module& m);
+void pydef_gl_provider_sentinel(pybind11::module& m);
 
 
 std::string VersionInfo()
@@ -30,17 +27,15 @@ std::string VersionInfo()
 
 PYBIND11_MODULE(cpp_immvision, m)
 {
-    m.doc() = R"pbdoc(
-        immvision: immediate image debugger and insights
-        https://github.com/pthom/immvision/
-    )pbdoc";
+    m.doc() = "immvision: immediate image debugger and insights";
     m.def("VersionInfo", VersionInfo);
 
-    register_cv_np_shared_test_functions(m);
-    pybind_gl_provider_sentinel_register(m);
+    pydef_cv_np_shared_test(m);
+    pydef_gl_provider_sentinel(m);
+    pydef_cv_np(m);
 
-    pybind_image_register(m);
-    pybind_image_navigator_register(m);
+    pydef_image(m);
+    pydef_image_navigator(m);
 
 
 #ifdef VERSION_INFO

@@ -78,13 +78,11 @@ file(GLOB_RECURSE sources_immvision_pybind ${THIS_DIR}/pybind_src/*.cpp ${THIS_D
 file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PROJECT_SOURCE_DIR}/src/immvision/*.cpp)
 pybind11_add_module(cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
 target_include_directories(cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
-set(cv_np_shared_cast_dir ${THIS_DIR}/cv_np_shared_cast)
-target_sources(cpp_immvision PRIVATE
-    ${cv_np_shared_cast_dir}/cv_np_shared_cast.cpp
-    ${cv_np_shared_cast_dir}/cv_np_shared_cast.h
-    ${cv_np_shared_cast_dir}/cv_np_shared_test_helper.cpp
-    )
-target_include_directories(cpp_immvision PRIVATE ${cv_np_shared_cast_dir})
+# add cv_np
+set(cv_np_dir ${THIS_DIR}/cv_np)
+FILE(GLOB cv_np_sources ${cv_np_dir}/*.h ${cv_np_dir}/*.cpp)
+target_sources(cpp_immvision PRIVATE ${cv_np_sources})
+target_include_directories(cpp_immvision PRIVATE ${cv_np_dir}/..)
 
 # Compile definitions
 target_compile_definitions(cpp_immvision PRIVATE

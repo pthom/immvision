@@ -8,13 +8,13 @@
 // * the cast Python->C++ (for the input parameter)
 // * the cast C++->Python (for the returned value)
 // The unit tests check that the values and types are unmodified
-cv::Mat Test_CvNpRoundTrip(const cv::Mat& m)
+cv::Mat CvNp_TestRoundTrip(const cv::Mat& m)
 {
     return m;
 }
 
 
-struct StructTest_CvNpShared
+struct CvNpSharedCast_TestHelper
 {
     // Create a mat with 3 rows, 4 columns and 1 channel
     // its shape for numpy should be (3, 4)
@@ -39,30 +39,30 @@ struct StructTest_CvNpShared
 };
 
 
-void register_cv_np_shared_test_functions(pybind11::module& m)
+void pydef_cv_np_shared_test(pybind11::module& m)
 {
-    pybind11::class_<StructTest_CvNpShared>(m, "StructTest_CvNpShared")
+    pybind11::class_<CvNpSharedCast_TestHelper>(m, "CvNpSharedCast_TestHelper")
         .def(pybind11::init<>())
 
-        .def_readwrite("m", &StructTest_CvNpShared::m)
-        .def("SetM", &StructTest_CvNpShared::SetM)
+        .def_readwrite("m", &CvNpSharedCast_TestHelper::m)
+        .def("SetM", &CvNpSharedCast_TestHelper::SetM)
 
-        .def_readwrite("mx", &StructTest_CvNpShared::mx)
-        .def("SetMX", &StructTest_CvNpShared::SetMX)
+        .def_readwrite("mx", &CvNpSharedCast_TestHelper::mx)
+        .def("SetMX", &CvNpSharedCast_TestHelper::SetMX)
 
-        .def_readwrite("s", &StructTest_CvNpShared::s)
-        .def("SetWidth", &StructTest_CvNpShared::SetWidth)
-        .def("SetHeight", &StructTest_CvNpShared::SetHeight)
+        .def_readwrite("s", &CvNpSharedCast_TestHelper::s)
+        .def("SetWidth", &CvNpSharedCast_TestHelper::SetWidth)
+        .def("SetHeight", &CvNpSharedCast_TestHelper::SetHeight)
 
-        .def_readwrite("pt", &StructTest_CvNpShared::pt)
-        .def("SetX", &StructTest_CvNpShared::SetX)
-        .def("SetY", &StructTest_CvNpShared::SetY)
+        .def_readwrite("pt", &CvNpSharedCast_TestHelper::pt)
+        .def("SetX", &CvNpSharedCast_TestHelper::SetX)
+        .def("SetY", &CvNpSharedCast_TestHelper::SetY)
 
-        .def_readwrite("pt3", &StructTest_CvNpShared::pt3)
-        .def("SetX3", &StructTest_CvNpShared::SetX3)
-        .def("SetY3", &StructTest_CvNpShared::SetY3)
-        .def("SetZ3", &StructTest_CvNpShared::SetZ3)
+        .def_readwrite("pt3", &CvNpSharedCast_TestHelper::pt3)
+        .def("SetX3", &CvNpSharedCast_TestHelper::SetX3)
+        .def("SetY3", &CvNpSharedCast_TestHelper::SetY3)
+        .def("SetZ3", &CvNpSharedCast_TestHelper::SetZ3)
         ;
 
-    m.def("Test_CvNpRoundTrip", Test_CvNpRoundTrip);
+    m.def("CvNp_TestRoundTrip", CvNp_TestRoundTrip);
 }

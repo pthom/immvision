@@ -1,6 +1,6 @@
 #include "immvision/image.h"
 #include "transfer_imgui_context.h"
-#include "cv_np_shared_cast.h"
+#include "cv_np/cv_np_shared_cast.h"
 
 #include <pybind11/pybind11.h>
 #include <opencv2/core.hpp>
@@ -22,7 +22,7 @@ void Image(
 
 
 
-void pybind_image_register(pybind11::module& m)
+void pydef_image(pybind11::module& m)
 {
     m.def("Image", Image, "Image doc",
           py::arg("image"),

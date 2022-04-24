@@ -14,7 +14,7 @@ def are_float_close(x: float, y: float):
 """
 We are playing with this C++ class
 
-struct StructTest_CvNpShared
+struct CvNpSharedCast_Test
 {
     // Create a mat with 3 rows, 4 columns and 1 channel
     // its shape for numpy should be (3, 4)
@@ -23,11 +23,29 @@ struct StructTest_CvNpShared
 
     cv::Matx32d mx = cv::Matx32d::eye();
     void SetMX(int row, int col, double v) { mx(row, col) = v;}
+
+    cv::Size s = cv::Size(123, 456);
+    void SetWidth(int w) { s.width = w;}
+    void SetHeight(int h) { s.height = h;}
+
+    cv::Point2i pt = cv::Point2i(42, 43);
+    void SetX(int x) { pt.x = x; }
+    void SetY(int y) { pt.y = y; }
+
+    cv::Point3d pt3 = cv::Point3d(41.5, 42., 42.5);
+    void SetX3(double x) { pt3.x = x; }
+    void SetY3(double y) { pt3.y = y; }
+    void SetZ3(double z) { pt3.z = z; }
 };
 """
+
+
+CvObjectCollection = immvision.cpp_immvision.CvNpSharedCast_TestHelper
+
+
 def test_mat():
     # create object
-    o: np.ndarray = immvision.cpp_immvision.StructTest_CvNpShared()
+    o = CvObjectCollection()
     assert o.m.shape == (3, 4)
 
     # play with its internal cv::Mat
@@ -75,7 +93,7 @@ def test_mat():
 
 def test_matx():
     # create object
-    o: np.ndarray = immvision.cpp_immvision.StructTest_CvNpShared()
+    o = CvObjectCollection()
     assert o.mx.shape == (3, 2)
 
     # play with its internal cv::Mat
@@ -126,10 +144,45 @@ def test_matx():
         o.mx = new_mat
 
 
-def test_Test_CvNpRoundTrip():
+def test_size():
+    o = CvObjectCollection()
+    assert o.s[0] == 123
+    assert o.s[1] == 456
+    o.SetWidth(789)
+    assert o.s[0] == 789
+    o.s = (987, 654)
+    assert o.s[0] == 987
+    assert o.s[1] == 654
+
+
+def test_point():
+    o = CvObjectCollection()
+    assert o.pt[0] == 42
+    assert o.pt[1] == 43
+    o.SetX(789)
+    assert o.pt[0] == 789
+    o.pt = (987, 654)
+    assert o.pt[0] == 987
+    assert o.pt[1] == 654
+
+
+def test_point3():
+    o = CvObjectCollection()
+    assert are_float_close(o.pt3[0], 41.5)
+    assert are_float_close(o.pt3[1], 42.)
+    assert are_float_close(o.pt3[2], 42.5)
+    o.SetX3(789.)
+    assert are_float_close(o.pt3[0], 789.)
+    o.pt3 = (987.1, 654.2, 321.0)
+    assert are_float_close(o.pt3[0], 987.1)
+    assert are_float_close(o.pt3[1], 654.2)
+    assert are_float_close(o.pt3[2], 321.0)
+
+
+def test_cv_np_round_trip():
     m = np.zeros([5, 6, 7])
     m[3, 4, 5] = 156;
-    m2 = cpp_immvision.Test_CvNpRoundTrip(m)
+    m2 = cpp_immvision.CvNp_TestRoundTrip(m)
     assert (m == m2).all()
 
     possible_types = [np.uint8, np.int8, np.uint16, np.int16, np.int32, float, np.float64]
@@ -155,52 +208,14 @@ def test_Test_CvNpRoundTrip():
         else:
             raise RuntimeError("Should not happen")
 
-        m2 = cpp_immvision.Test_CvNpRoundTrip(m)
+        m2 = cpp_immvision.CvNp_TestRoundTrip(m)
 
         if not (m == m2).all():
             print("argh")
         assert (m == m2).all()
 
 
-def test_size():
-    o = immvision.cpp_immvision.StructTest_CvNpShared()
-    assert o.s[0] == 123
-    assert o.s[1] == 456
-    o.SetWidth(789)
-    assert o.s[0] == 789
-    o.s = (987, 654)
-    print(f"{o.s=}")
-    assert o.s[0] == 987
-    assert o.s[1] == 654
-
-
-def test_point():
-    o = immvision.cpp_immvision.StructTest_CvNpShared()
-    assert o.pt[0] == 42
-    assert o.pt[1] == 43
-    o.SetX(789)
-    assert o.pt[0] == 789
-    o.pt = (987, 654)
-    print(f"{o.s=}")
-    assert o.pt[0] == 987
-    assert o.pt[1] == 654
-
-
-def test_point3():
-    o = immvision.cpp_immvision.StructTest_CvNpShared()
-    assert are_float_close(o.pt3[0], 41.5)
-    assert are_float_close(o.pt3[1], 42.)
-    assert are_float_close(o.pt3[2], 42.5)
-    o.SetX3(789.)
-    assert are_float_close(o.pt3[0], 789.)
-    o.pt3 = (987.1, 654.2, 321.0)
-    print(f"{o.s=}")
-    assert are_float_close(o.pt3[0], 987.1)
-    assert are_float_close(o.pt3[1], 654.2)
-    assert are_float_close(o.pt3[2], 321.0)
-
-
 if __name__ == "__main__":
     test_mat()
     test_matx()
-    test_Test_CvNpRoundTrip()
+    test_cv_np_round_trip()

@@ -1,5 +1,5 @@
 #include "immvision/image_navigator.h"
-#include "cv_np_shared_cast.h"
+#include "cv_np/cv_np_shared_cast.h"
 #include "transfer_imgui_context.h"
 
 #include <pybind11/pybind11.h>
@@ -18,7 +18,7 @@ void ImageNavigator(const cv::Mat& image)
 
 
 
-void pybind_image_navigator_register(pybind11::module& m)
+void pydef_image_navigator(pybind11::module& m)
 {
     m.def("ImageNavigator", ImageNavigator);
 

@@ -8,7 +8,7 @@ namespace ImmVision_GlProvider
     void ResetGlProvider();
 }
 
-void pybind_gl_provider_sentinel_register(pybind11::module& m)
+void pydef_gl_provider_sentinel(pybind11::module& m)
 {
     m.def("InitGlProvider", ImmVision_GlProvider::InitGlProvider);
     m.def("ResetGlProvider", ImmVision_GlProvider::ResetGlProvider);

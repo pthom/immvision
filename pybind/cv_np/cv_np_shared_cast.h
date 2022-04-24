@@ -1,130 +1,45 @@
 #pragma once
-
+#include "cv_np_synonyms.h"
 #include <opencv2/core/core.hpp>
 #include <pybind11/numpy.h>
 
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-
 //
-// Casts between cv::Mat, cv::Matx, cv::Vec and numpy.ndarray with shared memory
+// Explicit casters between cv::Mat / cv::Matx and numpy.ndarray, with shared memory
+// Also see automatic casters in the namespace pybind11:detail below
 //
-// Casts between cv::Size, cv::Point, cv::Point3 and python tuples without shared memory
-//
-
-// Thanks to Dan Mašek who gave me some inspiration here:
-// https://stackoverflow.com/questions/60949451/how-to-send-a-cvmat-to-python-over-shared-memory
-
 namespace cv_np_shared_cast
 {
-
-    namespace detail
-    {
-        namespace py = pybind11;
-
-        inline py::dtype determine_np_dtype(int depth)
-        {
-            switch (depth) {
-                case CV_8U: return py::dtype::of<uint8_t>();
-                case CV_8S: return py::dtype::of<int8_t>();
-                case CV_16U: return py::dtype::of<uint16_t>();
-                case CV_16S: return py::dtype::of<int16_t>();
-                case CV_32S: return py::dtype::of<int32_t>();
-                case CV_32F: return py::dtype::of<float>();
-                case CV_64F: return py::dtype::of<double>();
-                default:
-                    throw std::invalid_argument("Unsupported data type.");
-            }
-        }
-
-        inline int determine_cv_depth(pybind11::dtype dt)
-        {
-            int r;
-            if (dt.is(py::dtype::of<uint8_t>())) return CV_8U;
-            else if (dt.is(py::dtype::of<int8_t>())) return CV_8S;
-            else if (dt.is(py::dtype::of<uint16_t>())) return CV_16U;
-            else if (dt.is(py::dtype::of<int16_t>())) return CV_16S;
-            else if (dt.is(py::dtype::of<int32_t>())) return CV_32S;
-            else if (dt.is(py::dtype::of<float>())) return CV_32F;
-            else if (dt.is(py::dtype::of<double>())) return CV_64F;
-            else
-                throw std::invalid_argument("Unsupported data type.");
-        }
-
-        inline int determine_cv_type(const py::array& a, int depth)
-        {
-            if (a.ndim() < 2)
-                throw std::invalid_argument("determine_cv_type needs at least two dimensions");
-            if (a.ndim() > 3)
-                throw std::invalid_argument("determine_cv_type needs at most three dimensions");
-            if (a.ndim() == 2)
-                return CV_MAKETYPE(depth, 1);
-            //We now know that shape.size() == 3
-            return CV_MAKETYPE(depth, a.shape()[2]);
-        }
-
-        inline cv::Size determine_cv_size(const py::array& a)
-        {
-            if (a.ndim() < 2)
-                throw std::invalid_argument("determine_cv_size needs at least two dimensions");
-            return cv::Size(static_cast<int>(a.shape()[1]), static_cast<int>(a.shape()[0]));
-        }
-
-        inline std::vector<std::size_t> determine_shape(const cv::Mat& m)
-        {
-            if (m.channels() == 1) {
-                return {
-                    static_cast<size_t>(m.rows)
-                    , static_cast<size_t>(m.cols)
-                };
-            }
-            return {
-                static_cast<size_t>(m.rows)
-                , static_cast<size_t>(m.cols)
-                , static_cast<size_t>(m.channels())
-            };
-        }
-
-        inline py::capsule make_capsule_mat(const cv::Mat& m)
-        {
-            return py::capsule(new cv::Mat(m)
-                , [](void *v) { delete reinterpret_cast<cv::Mat*>(v); }
-            );
-        }
+    //
+    // Public interface
+    //
+    pybind11::array mat_to_nparray(const cv::Mat& m);
+    cv::Mat         nparray_to_mat(pybind11::array& a);
 
         template<typename _Tp, int _rows, int _cols>
-        inline pybind11::capsule make_capsule_matx(const cv::Matx<_Tp, _rows, _cols>& m)
+    pybind11::array matx_to_nparray(const cv::Matx<_Tp, _rows, _cols>& m);
+        template<typename _Tp, int _rows, int _cols>
+    void            nparray_to_matx(pybind11::array &a, cv::Matx<_Tp, _rows, _cols>& out_matrix);
+
+
+    //
+    // Private details and implementations below
+    //
+    namespace detail
+    {
+        template<typename _Tp, int _rows, int _cols>
+        pybind11::capsule make_capsule_matx(const cv::Matx<_Tp, _rows, _cols>& m)
         {
             return pybind11::capsule(new cv::Matx<_Tp, _rows, _cols>(m)
                 , [](void *v) { delete reinterpret_cast<cv::Matx<_Tp, _rows, _cols>*>(v); }
             );
         }
-
     } // namespace detail
 
-    inline pybind11::array mat_to_nparray(const cv::Mat& m)
-    {
-        if (!m.isContinuous())
-            throw std::invalid_argument("Only continuous Mats supported.");
-        return pybind11::array(detail::determine_np_dtype(m.depth())
-            , detail::determine_shape(m)
-            , m.data
-            , detail::make_capsule_mat(m));
-    }
-
-    inline cv::Mat nparray_to_mat(pybind11::array& a)
-    {
-        int depth = detail::determine_cv_depth(a.dtype());
-        int type = detail::determine_cv_type(a, depth);
-        cv::Size size = detail::determine_cv_size(a);
-        cv::Mat m(size, type, a.mutable_data(0));
-        return m;
-    }
-
-
     template<typename _Tp, int _rows, int _cols>
-    inline pybind11::array matx_to_nparray(const cv::Matx<_Tp, _rows, _cols>& m)
+    pybind11::array matx_to_nparray(const cv::Matx<_Tp, _rows, _cols>& m)
     {
         return pybind11::array(
             pybind11::dtype::of<_Tp>()
@@ -144,11 +59,15 @@ namespace cv_np_shared_cast
         for (size_t i = 0; i < mat_size; ++i)
             out_matrix.val[i] = arrayValues[i];
     }
-
 } // namespace cv_np_shared_cast
 
 
 
+//
+// 1. Casts with shared memory between {cv::Mat, cv::Matx, cv::Vec} and numpy.ndarray
+//
+// 2. Casts without shared memory between {cv::Size, cv::Point, cv::Point3} and python tuples
+//
 namespace pybind11
 {
     namespace detail
