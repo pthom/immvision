@@ -1,7 +1,7 @@
 #pragma once
 #include "immvision/image_navigator.h"
 #include "immvision/internal/gl/gl_texture.h"
-#include "immvision/internal/short_lived_cache.h"
+#include "immvision/internal/gl/short_lived_cache.h"
 
 
 namespace ImmVision

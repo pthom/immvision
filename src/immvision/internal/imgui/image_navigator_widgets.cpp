@@ -1,4 +1,4 @@
-#include "immvision/internal/image_navigator_widgets.h"
+#include "immvision/internal/imgui/image_navigator_widgets.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
 
 #include <map>

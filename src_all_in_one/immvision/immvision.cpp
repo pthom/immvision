@@ -1306,6 +1306,740 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/image_navigator_drawing.cpp                             //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/image_navigator_drawing.h included by src/immvision/internal/drawing/image_navigator_drawing.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/gl/gl_texture.h included by src/immvision/internal/drawing/image_navigator_drawing.h//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <memory>
+
+namespace ImmVision
+{
+    /// GlTexture holds a OpenGL Texture (created via glGenTextures)
+    /// You can blit (i.e transfer) image buffer onto it.
+    /// The linked OpenGL texture lifetime is linked to this.
+    /// GlTexture is not copiable (since it holds a reference to a texture stored on the GPU)
+    struct GlTexture
+    {
+        GlTexture();
+        virtual ~GlTexture();
+
+        // non copiable
+        GlTexture(const GlTexture& ) = delete;
+        GlTexture& operator=(const GlTexture& ) = delete;
+
+        void Draw(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0)) const;
+        bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
+        void Draw_DisableDragWindow(const ImVec2& size = ImVec2(0, 0)) const;
+
+        void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
+
+        // members
+        ImVec2 mImageSize;
+        unsigned int mImTextureId;
+    };
+
+
+    struct GlTextureCv : public GlTexture
+    {
+        GlTextureCv() = default;
+        GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra);
+        ~GlTextureCv() override = default;
+
+        void BlitMat(const cv::Mat& mat, bool isBgrOrBgra);
+    };
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/image_navigator_drawing.h continued                     //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace ImageNavigatorDrawing
+    {
+        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params);
+
+        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params);
+
+        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
+                                         const ImageNavigatorParams& params, bool drawPixelCoords);
+
+        cv::Mat MakeSchoolPaperBackground(cv::Size s);
+
+        void BlitImageNavigatorTexture(
+            const ImageNavigatorParams& params,
+            const cv::Mat& image,
+            cv::Mat& in_out_rgba_image_cache,
+            bool shall_refresh_rgba,
+            GlTextureCv* outTexture
+        );
+
+    } // namespace ImageNavigatorDrawing
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/image_navigator_drawing.cpp continued                   //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <opencv2/imgproc.hpp>
+
+
+namespace ImmVision
+{
+    namespace ImageNavigatorDrawing
+    {
+        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params)
+        {
+            cv::Mat r = image.clone();
+
+            std::vector<std::pair<size_t, cv::Point2d>> visiblePixels;
+            {
+                for (size_t i = 0; i < params.WatchedPixels.size(); ++i)
+                {
+                    cv::Point w = params.WatchedPixels[i];
+                    cv::Point2d p = ZoomPanTransform::Apply(params.ZoomMatrix, w);
+                    if (cv::Rect(cv::Point(0, 0), params.ImageDisplaySize).contains(p))
+                        visiblePixels.push_back({i, p});
+                }
+            }
+
+            for (const auto& kv : visiblePixels)
+            {
+                CvDrawingUtils::draw_named_feature(
+                    r,         // img
+                    kv.second, // position,
+                    std::to_string(kv.first),       // name
+                    cv::Scalar(255, 255, 255, 255), // color
+                    true, // add_cartouche
+                    4.,   // size
+                    2.5,  // size_hole
+                    1     // thickness
+                );
+            }
+
+            return r;
+        }
+
+        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params)
+        {
+            double x_spacing = (double) params.ZoomMatrix(0, 0);
+            double y_spacing = (double) params.ZoomMatrix(1, 1);
+
+            double x_start, y_start;
+            {
+                cv::Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
+                origin_unzoomed = cv::Point2d(std::floor(origin_unzoomed.x) + 0.5, std::floor(origin_unzoomed.y) + 0.5);
+                cv::Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomMatrix, origin_unzoomed);
+                x_start = origin_zoomed.x;
+                y_start = origin_zoomed.y;
+            }
+            double x_end = (double)inOutImageRgba.cols - 1.;
+            double y_end = (double)inOutImageRgba.rows - 1.;
+
+            auto lineColor = cv::Scalar(255, 255, 0, 255);
+            double alpha = 0.3;
+            CvDrawingUtils::draw_grid(inOutImageRgba, lineColor, alpha, x_spacing, y_spacing, x_start, y_start, x_end, y_end);
+        }
+
+        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
+                                         const ImageNavigatorParams& params, bool drawPixelCoords)
+        {
+            assert(drawingImage.type() == CV_8UC4);
+
+            cv::Mat r = drawingImage;
+            cv::Point tl, br;
+            {
+                cv::Point2d tld = ZoomPanTransform::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
+                cv::Point2d brd = ZoomPanTransform::Apply(params.ZoomMatrix.inv(),
+                                                          cv::Point2d((double)params.ImageDisplaySize.width,
+                                                                      (double)params.ImageDisplaySize.height));
+                tl = { (int)std::floor(tld.x), (int)std::floor(tld.y) };
+                br = { (int)std::ceil(brd.x), (int)std::ceil(brd.y) };
+            }
+
+            for (int x = tl.x; x <= br.x; x+= 1)
+            {
+                for (int y = tl.y; y <= br.y; y+= 1)
+                {
+                    std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(valuesImage, x, y, '\n', false);
+                    if (drawPixelCoords)
+                        pixelInfo = std::string("x:") + std::to_string(x) + "\n" + "y:" + std::to_string(y) + "\n" + pixelInfo;
+
+                    cv::Point2d position = ZoomPanTransform::Apply(params.ZoomMatrix, cv::Point2d((double)x, (double )y));
+
+                    cv::Scalar textColor;
+                    {
+                        cv::Scalar white(255, 255, 255, 255);
+                        cv::Scalar black(0, 0, 0, 255);
+                        cv::Vec4b backgroundColor(0, 0, 0, 0);
+                        if ( cv::Rect(cv::Point(), drawingImage.size()).contains({(int)position.x, (int)position.y}))
+                            backgroundColor = drawingImage.at<cv::Vec4b>((int)position.y, (int)position.x);
+                        double luminance = backgroundColor[2] * 0.2126 + backgroundColor[1] * 0.7152 + backgroundColor[0] * 0.0722;
+                        if (luminance > 170.)
+                            textColor = black;
+                        else
+                            textColor = white;
+                    }
+                    CvDrawingUtils::text(
+                        r,
+                        position,
+                        pixelInfo,
+                        textColor,
+                        true, // center_around_point
+                        false, // add_cartouche
+                        0.3,  //fontScale
+                        1     //int thickness
+                    );
+                }
+            }
+            return r;
+        };
+
+
+        cv::Mat MakeSchoolPaperBackground(cv::Size s)
+        {
+            cv::Mat mat(s, CV_8UC4);
+
+            auto paperColor = cv::Scalar(205, 215, 220, 255);
+            auto lineColor = cv::Scalar(199, 196, 184, 255);
+            mat = paperColor;
+            int quadSize = 17;
+            for (int y = 0; y < s.height; y+= quadSize)
+            {
+                auto linePtr = mat.ptr<cv::Vec4b>(y);
+                for (int x = 0; x < s.width; ++x)
+                {
+                    *linePtr = lineColor;
+                    linePtr++;
+                }
+            }
+            for (int y = 0; y < s.height; y++)
+            {
+                auto linePtr = mat.ptr<cv::Vec4b>(y);
+                for (int x = 0; x < s.width; x+=quadSize)
+                {
+                    *linePtr = lineColor;
+                    linePtr += quadSize;
+                }
+            }
+            return mat;
+        }
+
+        void BlitImageNavigatorTexture(
+            const ImageNavigatorParams& params,
+            const cv::Mat& image,
+            cv::Mat& in_out_rgba_image_cache,
+            bool shall_refresh_rgba,
+            GlTextureCv* outTexture
+        )
+        {
+            if (image.empty())
+                return;
+
+            cv::Mat finalImage = image.clone();
+
+            //
+            // Adjustements needed before conversion to rgba
+            //
+            auto fnAdjustColor = [&finalImage, params]()
+            {
+                // Selected channels
+                if (finalImage.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels()))
+                {
+                    std::vector<cv::Mat> channels;
+                    cv::split(finalImage, channels);
+                    finalImage = channels[(size_t)params.SelectedChannel];
+                }
+
+                // Alpha checkerboard
+                if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
+                {
+                    cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
+                    finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
+                }
+
+                // Color adjustments
+                finalImage = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, finalImage);
+            };
+
+            //
+            // Convert to rgba with adjustments if needed
+            //
+            if (shall_refresh_rgba)
+            {
+                fnAdjustColor();
+                finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
+                in_out_rgba_image_cache = finalImage;
+                assert(finalImage.type() == CV_8UC4);
+            }
+            else
+            {
+                finalImage = in_out_rgba_image_cache;
+                assert(finalImage.type() == CV_8UC4);
+                assert(!finalImage.empty());
+            }
+
+            //
+            // Zoom
+            //
+            {
+                cv::Mat imageZoomed = MakeSchoolPaperBackground(params.ImageDisplaySize);
+                cv::warpAffine(finalImage, imageZoomed,
+                               ZoomPanTransform::ZoomMatrixToM23(params.ZoomMatrix),
+                               params.ImageDisplaySize,
+                               cv::INTER_NEAREST,
+                               cv::BorderTypes::BORDER_TRANSPARENT,
+                               cv::Scalar(127, 127, 127, 127)
+                );
+                finalImage = imageZoomed;
+            }
+
+            //
+            // Drawings on final image
+            //
+            {
+                // Draw grid
+                double gridMinZoomFactor = 12.;
+                double zoomFactor = (double)params.ZoomMatrix(0, 0);
+                if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
+                    DrawGrid(finalImage, params);
+
+                // Draw Pixel Values
+                double drawPixelvaluesMinZoomFactor = (image.depth() == CV_8U) ? 36. : 48.;
+                if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelvaluesMinZoomFactor)
+                {
+                    double drawPixelCoordsMinZoomFactor = 60.;
+                    bool drawPixelCoords = zoomFactor > drawPixelCoordsMinZoomFactor;
+                    finalImage = DrawValuesOnZoomedPixels(finalImage, image, params, drawPixelCoords);
+                }
+
+                // Draw Watched Pixels
+                if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))
+                    finalImage = DrawWatchedPixels(finalImage, params);
+
+            }
+
+            //
+            // Blit
+            //
+            outTexture->BlitMat(finalImage, false);
+        }
+
+    } // namespace ImageNavigatorDrawing
+
+} // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/internal_icons.cpp                                      //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/internal_icons.h included by src/immvision/internal/drawing/internal_icons.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace Icons
+    {
+        enum class IconType
+        {
+            ZoomPlus,
+            ZoomMinus,
+            ZoomScaleOne,
+            ZoomFullView,
+            AdjustLevels,
+        };
+        unsigned int GetIcon(IconType iconType);
+
+        bool IconButton(IconType iconType, bool disabled = false);
+
+        void ClearIconsTextureCache();
+
+        void DevelPlaygroundGui();
+
+    } // namespace Icons
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/internal_icons.cpp continued                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/imgui/imgui_imm.h included by src/immvision/internal/drawing/internal_icons.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Some extensions to ImGui, specific to ImmVision
+namespace ImGuiImm
+{
+    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags);
+
+    ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);
+    cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize);
+
+    void PushDisabled();
+    void PopDisabled();
+    void SameLineAlignRight(float rightMargin = 0.f, float alignRegionWidth = -1.f);
+
+    // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
+    void BeginGroupPanel(const char* name, const ImVec2& size = ImVec2(0.0f, 0.0f));
+    void EndGroupPanel();
+
+    void BeginGroupPanel_FlagBorder(const char* name, bool draw_border, const ImVec2& size = ImVec2(0.0f, 0.0f));
+    void EndGroupPanel_FlagBorder();
+    ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name);
+
+    void BeginGroupFixedWidth(float width);
+    void EndGroupFixedWidth();
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/internal_icons.cpp continued                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/gl/imgui_imm_gl_image.h included by src/immvision/internal/drawing/internal_icons.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Wrappers for ImGui::Image, ImGui::ImageButton and ImGui::GetWindowDrawList()->AddImage
+//
+// They have the same behavior under C++, but under python this is transferred to the python interpreter
+// (see gl_provider_python.cpp for their python definition)
+//
+namespace ImGuiImmGlImage
+{
+    IMGUI_API void  Image(unsigned int user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0));
+    IMGUI_API bool  ImageButton(unsigned int user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1));    // <0 frame_padding uses default frame padding settings. 0 for no padding
+    IMGUI_API void  GetWindowDrawList_AddImage(unsigned int user_texture_id, const ImVec2& p_min, const ImVec2& p_max, const ImVec2& uv_min = ImVec2(0, 0), const ImVec2& uv_max = ImVec2(1, 1), ImU32 col = IM_COL32_WHITE);
+} // namespace ImGuiImmGlImage
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/drawing/internal_icons.cpp continued                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include "imgui_internal.h"
+
+
+namespace ImmVision
+{
+    namespace Icons
+    {
+        static cv::Size iconsSizeDraw(200, 200);
+        auto ScalePoint = [](cv::Point2d p) {
+            return cv::Point2d(p.x * (double) iconsSizeDraw.width, p.y * (double) iconsSizeDraw.height);
+        };
+        auto ScaleDouble = [](double v) {
+            return v * (double) iconsSizeDraw.width;
+        };
+        auto ScaleInt = [](double v) {
+            return (int) (v * (double) iconsSizeDraw.width + 0.5);
+        };
+
+        auto PointFromOther = [](cv::Point2d o, double angleDegree, double distance) {
+            double m_pi = 3.14159265358979323846;
+            double angleRadian = -angleDegree / 180. * m_pi;
+            cv::Point2d r(o.x + cos(angleRadian) * distance, o.y + sin(angleRadian) * distance);
+            return r;
+        };
+
+
+        cv::Mat MakeMagnifierImage(IconType iconType)
+        {
+            using namespace ImmVision;
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+
+
+            // Transparent background
+            m = cv::Scalar(0, 0, 0, 0);
+
+            cv::Scalar color(255, 255, 255, 255);
+            double radius = 0.3;
+            cv::Point2d center(1. - radius * 1.3, radius * 1.2);
+            // Draw shadow
+            {
+                cv::Point2d decal(radius * 0.1, radius * 0.1);
+                cv::Scalar color_shadow(127, 127, 127, 255);
+
+                CvDrawingUtils::circle(
+                    m, //image,
+                    ScalePoint(center + decal),
+                    ScaleDouble(radius), //radius
+                    color_shadow,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 1.7) + decal),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.03) + decal),
+                    color_shadow,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 2.3) + decal),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.5) + decal),
+                    color_shadow,
+                    ScaleInt(0.14)
+                );
+            }
+            // Draw magnifier
+            {
+                CvDrawingUtils::circle(
+                    m, //image,
+                    ScalePoint(center),
+                    ScaleDouble(radius), //radius
+                    color,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 1.7)),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.03)),
+                    color,
+                    ScaleInt(0.08)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 225., radius * 2.3)),
+                    ScalePoint(PointFromOther(center, 225., radius * 1.5)),
+                    color,
+                    ScaleInt(0.14)
+                );
+            }
+
+            if (iconType == IconType::ZoomPlus)
+            {
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 90., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 270., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+            if (iconType == IconType::ZoomMinus)
+            {
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
+                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+            if (iconType == IconType::ZoomScaleOne)
+            {
+                cv::Point2d a = PointFromOther(center, -90., radius * 0.45);
+                cv::Point2d b = PointFromOther(center, 90., radius * 0.45);
+                a.x += radius * 0.05;
+                b.x += radius * 0.05;
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(a),
+                    ScalePoint(b),
+                    color,
+                    ScaleInt(0.06)
+                );
+                cv::Point2d c(b.x - radius * 0.2, b.y + radius * 0.2);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(b),
+                    ScalePoint(c),
+                    color,
+                    ScaleInt(0.06)
+                );
+            }
+
+            return m;
+        }
+
+
+        cv::Mat MakeFullViewImage()
+        {
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+            m = cv::Scalar(0, 0, 0, 0);
+
+            cv::Scalar color(255, 255, 255, 255);
+            double decal = 0.1;
+            double length_x = 0.3, length_y = 0.3;
+            for (int y = 0; y <= 1; ++y)
+            {
+                for (int x = 0; x <= 1; ++x)
+                {
+                    cv::Point2d corner;
+
+                    corner.x = (x == 0) ? decal : 1. - decal;
+                    corner.y = (y == 0) ? decal : 1. - decal;
+                    double moveX = (x == 0) ? length_x : -length_x;
+                    double moveY = (y == 0) ? length_y : -length_y;
+                    cv::Point2d a = corner;
+                    cv::Point2d b(a.x + moveX, a.y);
+                    cv::Point2d c(a.x, a.y + moveY);
+                    CvDrawingUtils::line(
+                        m, //image,
+                        ScalePoint(a),
+                        ScalePoint(b),
+                        color,
+                        ScaleInt(0.06)
+                    );
+                    CvDrawingUtils::line(
+                        m, //image,
+                        ScalePoint(a),
+                        ScalePoint(c),
+                        color,
+                        ScaleInt(0.06)
+                    );
+
+                }
+            }
+            return m;
+        }
+
+        cv::Mat MakeAdjustLevelsImage()
+        {
+            cv::Mat m(iconsSizeDraw, CV_8UC4);
+            m = cv::Scalar(0, 0, 0, 0);
+            cv::Scalar color(255, 255, 255, 255);
+
+            double yMin = 0.15, yMax = 0.8;
+            int nbBars = 3;
+            for (int bar = 0; bar < nbBars; ++bar)
+            {
+                double xBar = (double)bar / ((double)(nbBars) + 0.17) + 0.2;
+                cv::Point2d a(xBar, yMin);
+                cv::Point2d b(xBar, yMax);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(a),
+                    ScalePoint(b),
+                    color,
+                    ScaleInt(0.08)
+                );
+
+                double barWidth = 0.1;
+                double yBar = 0.7 - 0.2 * (double)bar;
+                cv::Point2d c(a.x - barWidth / 2., yBar);
+                cv::Point2d d(a.x + barWidth / 2., yBar);
+                CvDrawingUtils::line(
+                    m, //image,
+                    ScalePoint(c),
+                    ScalePoint(d),
+                    color,
+                    ScaleInt(0.16)
+                );
+            }
+
+            return m;
+        }
+
+
+        static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
+        static cv::Size gIconSize(20,  20);
+
+        unsigned int GetIcon(IconType iconType)
+        {
+            if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
+            {
+                cv::Mat m;
+                if (iconType == IconType::ZoomFullView)
+                    m = MakeFullViewImage();
+                else if (iconType == IconType::AdjustLevels)
+                    m = MakeAdjustLevelsImage();
+                else
+                    m = MakeMagnifierImage(iconType);
+
+                cv::Mat resized = m;
+                cv::resize(m, resized, cv::Size(gIconSize.width * 2, gIconSize.height * 2), 0., 0., cv::INTER_AREA);
+                auto texture = std::make_unique<GlTextureCv>(resized, true);
+                sIconsTextureCache[iconType] = std::move(texture);
+            }
+            return sIconsTextureCache[iconType]->mImTextureId;
+        }
+
+        bool IconButton(IconType iconType, bool disabled)
+        {
+            ImGui::PushID((int)iconType);
+            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+            ImU32 backColorEnabled = ImGui::ColorConvertFloat4ToU32(ImVec4 (1.f, 1.f, 1.f, 1.f));
+            ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
+            ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
+            if (disabled)
+                ImGuiImm::PushDisabled();
+
+            // Cannot use InvisibleButton, since it does not handle "Repeat"
+            std::string spaceLabel = " ";
+            while (ImGui::CalcTextSize(spaceLabel.c_str()).x < 14.f)
+                spaceLabel += " ";
+            bool clicked = ImGui::Button(spaceLabel.c_str());
+
+            ImGuiImmGlImage::GetWindowDrawList_AddImage(
+                GetIcon(iconType),
+                cursorPos,
+                {cursorPos.x + (float)gIconSize.width, cursorPos.y + (float)gIconSize.height},
+                ImVec2(0.f, 0.f),
+                ImVec2(1.f, 1.f),
+                backColor
+                );
+
+            if (disabled)
+                ImGuiImm::PopDisabled();
+            ImGui::PopID();
+            return disabled ? false : clicked;
+        }
+
+
+        void DevelPlaygroundGui()
+        {
+            static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
+            static cv::Mat img = MakeAdjustLevelsImage();
+
+            static ImmVision::ImageNavigatorParams imageNavigatorParams1;
+            imageNavigatorParams1.ImageDisplaySize = {400, 400};
+            ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
+
+            ImGui::SameLine();
+
+            static ImmVision::ImageNavigatorParams imageNavigatorParams2;
+            imageNavigatorParams2.ImageDisplaySize = {400, 400};
+            ImmVision::ImageNavigator(img, &imageNavigatorParams2);
+
+            ImVec2 iconSize(15.f, 15.f);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
+            ImGuiImmGlImage::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
+        }
+
+        void ClearIconsTextureCache()
+        {
+            Icons::sIconsTextureCache.clear();
+        }
+
+} // namespace Icons
+
+
+} // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl/gl_provider.cpp                                              //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef IMMVISION_BUILDING_PYBIND // see gl_provider_python for the pybind version
@@ -1510,76 +2244,8 @@ namespace ImmVision_GlProvider
 //                       src/immvision/internal/gl/gl_texture.cpp                                               //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/gl_texture.h included by src/immvision/internal/gl/gl_texture.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <memory>
-
-namespace ImmVision
-{
-    /// GlTexture holds a OpenGL Texture (created via glGenTextures)
-    /// You can blit (i.e transfer) image buffer onto it.
-    /// The linked OpenGL texture lifetime is linked to this.
-    /// GlTexture is not copiable (since it holds a reference to a texture stored on the GPU)
-    struct GlTexture
-    {
-        GlTexture();
-        virtual ~GlTexture();
-
-        // non copiable
-        GlTexture(const GlTexture& ) = delete;
-        GlTexture& operator=(const GlTexture& ) = delete;
-
-        void Draw(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0)) const;
-        bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
-        void Draw_DisableDragWindow(const ImVec2& size = ImVec2(0, 0)) const;
-
-        void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
-
-        // members
-        ImVec2 mImageSize;
-        unsigned int mImTextureId;
-    };
 
 
-    struct GlTextureCv : public GlTexture
-    {
-        GlTextureCv() = default;
-        GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra);
-        ~GlTextureCv() override = default;
-
-        void BlitMat(const cv::Mat& mat, bool isBgrOrBgra);
-    };
-
-} // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/gl_texture.cpp continued                                     //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/imgui_imm_gl_image.h included by src/immvision/internal/gl/gl_texture.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//
-// Wrappers for ImGui::Image, ImGui::ImageButton and ImGui::GetWindowDrawList()->AddImage
-//
-// They have the same behavior under C++, but under python this is transferred to the python interpreter
-// (see gl_provider_python.cpp for their python definition)
-//
-namespace ImGuiImmGlImage
-{
-    IMGUI_API void  Image(unsigned int user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0));
-    IMGUI_API bool  ImageButton(unsigned int user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1));    // <0 frame_padding uses default frame padding settings. 0 for no padding
-    IMGUI_API void  GetWindowDrawList_AddImage(unsigned int user_texture_id, const ImVec2& p_min, const ImVec2& p_max, const ImVec2& uv_min = ImVec2(0, 0), const ImVec2& uv_max = ImVec2(1, 1), ImU32 col = IM_COL32_WHITE);
-} // namespace ImGuiImmGlImage
-
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/gl_texture.cpp continued                                     //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace ImmVision
 {
     GlTexture::GlTexture()
@@ -1679,105 +2345,11 @@ namespace ImGuiImmGlImage
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image.cpp                                                       //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/imgui_imm.h included by src/immvision/internal/image.cpp        //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-// Some extensions to ImGui, specific to ImmVision
-namespace ImGuiImm
-{
-    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags);
-
-    ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);
-    cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize);
-
-    void PushDisabled();
-    void PopDisabled();
-    void SameLineAlignRight(float rightMargin = 0.f, float alignRegionWidth = -1.f);
-
-    // cf https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
-    void BeginGroupPanel(const char* name, const ImVec2& size = ImVec2(0.0f, 0.0f));
-    void EndGroupPanel();
-
-    void BeginGroupPanel_FlagBorder(const char* name, bool draw_border, const ImVec2& size = ImVec2(0.0f, 0.0f));
-    void EndGroupPanel_FlagBorder();
-    ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name);
-
-    void BeginGroupFixedWidth(float width);
-    void EndGroupFixedWidth();
-}
-
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image.cpp continued                                             //
+//                       src/immvision/internal/gl/short_lived_cache.cpp                                        //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/immvision.h included by src/immvision/internal/image.cpp                 //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/inspector.h included by src/immvision/immvision.h                        //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    void Inspector_AddImage(
-        const cv::Mat& image,
-        const std::string& legend,
-        const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
-    );
-    void Inspector_Show();
-    void Inspector_ClearImages();
-
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image.cpp continued                                             //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/internal_icons.h included by src/immvision/internal/image.cpp   //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace Icons
-    {
-        enum class IconType
-        {
-            ZoomPlus,
-            ZoomMinus,
-            ZoomScaleOne,
-            ZoomFullView,
-            AdjustLevels,
-        };
-        unsigned int GetIcon(IconType iconType);
-
-        bool IconButton(IconType iconType, bool disabled = false);
-
-        void ClearIconsTextureCache();
-
-        void DevelPlaygroundGui();
-
-    } // namespace Icons
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image.cpp continued                                             //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/short_lived_cache.h included by src/immvision/internal/image.cpp//
+//                       src/immvision/internal/gl/short_lived_cache.h included by src/immvision/internal/gl/short_lived_cache.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -1917,9 +2489,60 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image.cpp continued                                             //
+//                       src/immvision/internal/gl/short_lived_cache.cpp continued                              //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <chrono>
+
+namespace ImmVision
+{
+    namespace internal
+    {
+        double TimerSeconds()
+        {
+            using chrono_second = std::chrono::duration<double, std::ratio<1>>;
+            using chrono_clock = std::chrono::steady_clock;
+
+            static std::chrono::time_point<chrono_clock> startTime = chrono_clock::now();
+            double elapsed = std::chrono::duration_cast<chrono_second>(chrono_clock::now() - startTime).count();
+            return elapsed;
+        }
+
+    } // namespace internal
+} // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image.cpp                                                       //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision.h included by src/immvision/internal/image.cpp                 //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/inspector.h included by src/immvision/immvision.h                        //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    void Inspector_AddImage(
+        const cv::Mat& image,
+        const std::string& legend,
+        const std::string& zoomKey = "",
+        const std::string& colorAdjustmentsKey = "",
+        const cv::Point2d & zoomCenter = cv::Point2d(),
+        double zoomRatio = -1.,
+        bool isColorOrderBGR = true
+    );
+    void Inspector_Show();
+    void Inspector_ClearImages();
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image.cpp continued                                             //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 namespace ImmVision
 {
@@ -2011,12 +2634,11 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image_navigator.cpp                                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/portable_file_dialogs.h included by src/immvision/internal/image_navigator.cpp//
+//                       src/immvision/internal/sys/portable_file_dialogs.h included by src/immvision/internal/image_navigator.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //  Portable File Dialogs :
@@ -3770,7 +4392,7 @@ inline std::string internal::file_dialog::select_folder_vista(IFileDialog *ifd, 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_widgets.h included by src/immvision/internal/image_navigator.cpp//
+//                       src/immvision/internal/imgui/image_navigator_widgets.h included by src/immvision/internal/image_navigator.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace ImmVision
@@ -3787,6 +4409,7 @@ namespace ImmVision
     } // namespace ImageNavigatorWidgets
 
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image_navigator.cpp continued                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3846,7 +4469,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image_navigator.cpp continued                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include "imgui_internal.h"
 
 
 namespace ImmVision
@@ -4339,38 +4961,6 @@ namespace ImmVision
 //                       src/immvision/internal/image_navigator_cache.cpp                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_drawing.h included by src/immvision/internal/image_navigator_cache.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace ImageNavigatorDrawing
-    {
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params);
-
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params);
-
-        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
-                                         const ImageNavigatorParams& params, bool drawPixelCoords);
-
-        cv::Mat MakeWarpPaperBackground(cv::Size s);
-
-        void BlitImageNavigatorTexture(
-            const ImageNavigatorParams& params,
-            const cv::Mat& image,
-            cv::Mat& in_out_rgba_image_cache,
-            bool shall_refresh_rgba,
-            GlTextureCv* outTexture
-        );
-
-    } // namespace ImageNavigatorDrawing
-
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_cache.cpp continued                             //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace ImmVision
 {
     namespace ImageNavigatorCache
@@ -4534,258 +5124,7 @@ namespace ImmVision
 } // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_drawing.cpp                                     //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    namespace ImageNavigatorDrawing
-    {
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params)
-        {
-            cv::Mat r = image.clone();
-
-            std::vector<std::pair<size_t, cv::Point2d>> visiblePixels;
-            {
-                for (size_t i = 0; i < params.WatchedPixels.size(); ++i)
-                {
-                    cv::Point w = params.WatchedPixels[i];
-                    cv::Point2d p = ZoomPanTransform::Apply(params.ZoomMatrix, w);
-                    if (cv::Rect(cv::Point(0, 0), params.ImageDisplaySize).contains(p))
-                        visiblePixels.push_back({i, p});
-                }
-            }
-
-            for (const auto& kv : visiblePixels)
-            {
-                CvDrawingUtils::draw_named_feature(
-                    r,         // img
-                    kv.second, // position,
-                    std::to_string(kv.first),       // name
-                    cv::Scalar(255, 255, 255, 255), // color
-                    true, // add_cartouche
-                    4.,   // size
-                    2.5,  // size_hole
-                    1     // thickness
-                );
-            }
-
-            return r;
-        }
-
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params)
-        {
-            double x_spacing = (double) params.ZoomMatrix(0, 0);
-            double y_spacing = (double) params.ZoomMatrix(1, 1);
-
-            double x_start, y_start;
-            {
-                cv::Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
-                origin_unzoomed = cv::Point2d(std::floor(origin_unzoomed.x) + 0.5, std::floor(origin_unzoomed.y) + 0.5);
-                cv::Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomMatrix, origin_unzoomed);
-                x_start = origin_zoomed.x;
-                y_start = origin_zoomed.y;
-            }
-            double x_end = (double)inOutImageRgba.cols - 1.;
-            double y_end = (double)inOutImageRgba.rows - 1.;
-
-            auto lineColor = cv::Scalar(255, 255, 0, 255);
-            double alpha = 0.3;
-            CvDrawingUtils::draw_grid(inOutImageRgba, lineColor, alpha, x_spacing, y_spacing, x_start, y_start, x_end, y_end);
-        }
-
-        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
-                                         const ImageNavigatorParams& params, bool drawPixelCoords)
-        {
-            assert(drawingImage.type() == CV_8UC4);
-
-            cv::Mat r = drawingImage;
-            cv::Point tl, br;
-            {
-                cv::Point2d tld = ZoomPanTransform::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
-                cv::Point2d brd = ZoomPanTransform::Apply(params.ZoomMatrix.inv(),
-                                                          cv::Point2d((double)params.ImageDisplaySize.width,
-                                                                      (double)params.ImageDisplaySize.height));
-                tl = { (int)std::floor(tld.x), (int)std::floor(tld.y) };
-                br = { (int)std::ceil(brd.x), (int)std::ceil(brd.y) };
-            }
-
-            for (int x = tl.x; x <= br.x; x+= 1)
-            {
-                for (int y = tl.y; y <= br.y; y+= 1)
-                {
-                    std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(valuesImage, x, y, '\n', false);
-                    if (drawPixelCoords)
-                        pixelInfo = std::string("x:") + std::to_string(x) + "\n" + "y:" + std::to_string(y) + "\n" + pixelInfo;
-
-                    cv::Point2d position = ZoomPanTransform::Apply(params.ZoomMatrix, cv::Point2d((double)x, (double )y));
-
-                    cv::Scalar textColor;
-                    {
-                        cv::Scalar white(255, 255, 255, 255);
-                        cv::Scalar black(0, 0, 0, 255);
-                        cv::Vec4b backgroundColor(0, 0, 0, 0);
-                        if ( cv::Rect(cv::Point(), drawingImage.size()).contains({(int)position.x, (int)position.y}))
-                            backgroundColor = drawingImage.at<cv::Vec4b>((int)position.y, (int)position.x);
-                        double luminance = backgroundColor[2] * 0.2126 + backgroundColor[1] * 0.7152 + backgroundColor[0] * 0.0722;
-                        if (luminance > 170.)
-                            textColor = black;
-                        else
-                            textColor = white;
-                    }
-                    CvDrawingUtils::text(
-                        r,
-                        position,
-                        pixelInfo,
-                        textColor,
-                        true, // center_around_point
-                        false, // add_cartouche
-                        0.3,  //fontScale
-                        1     //int thickness
-                    );
-                }
-            }
-            return r;
-        };
-
-
-        cv::Mat MakeWarpPaperBackground(cv::Size s)
-        {
-            cv::Mat mat(s, CV_8UC4);
-
-            auto paperColor = cv::Scalar(205, 215, 220, 255);
-            auto lineColor = cv::Scalar(199, 196, 184, 255);
-            mat = paperColor;
-            int quadSize = 17;
-            for (int y = 0; y < s.height; y+= quadSize)
-            {
-                auto linePtr = mat.ptr<cv::Vec4b>(y);
-                for (int x = 0; x < s.width; ++x)
-                {
-                    *linePtr = lineColor;
-                    linePtr++;
-                }
-            }
-            for (int y = 0; y < s.height; y++)
-            {
-                auto linePtr = mat.ptr<cv::Vec4b>(y);
-                for (int x = 0; x < s.width; x+=quadSize)
-                {
-                    *linePtr = lineColor;
-                    linePtr += quadSize;
-                }
-            }
-            return mat;
-        }
-
-        void BlitImageNavigatorTexture(
-            const ImageNavigatorParams& params,
-            const cv::Mat& image,
-            cv::Mat& in_out_rgba_image_cache,
-            bool shall_refresh_rgba,
-            GlTextureCv* outTexture
-        )
-        {
-            if (image.empty())
-                return;
-
-            cv::Mat finalImage = image.clone();
-
-            //
-            // Adjustements needed before conversion to rgba
-            //
-            auto fnAdjustColor = [&finalImage, params]()
-            {
-                // Selected channels
-                if (finalImage.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels()))
-                {
-                    std::vector<cv::Mat> channels;
-                    cv::split(finalImage, channels);
-                    finalImage = channels[(size_t)params.SelectedChannel];
-                }
-
-                // Alpha checkerboard
-                if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
-                {
-                    cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
-                    finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
-                }
-
-                // Color adjustments
-                finalImage = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, finalImage);
-            };
-
-            //
-            // Convert to rgba with adjustments if needed
-            //
-            if (shall_refresh_rgba)
-            {
-                fnAdjustColor();
-                finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
-                in_out_rgba_image_cache = finalImage;
-                assert(finalImage.type() == CV_8UC4);
-            }
-            else
-            {
-                finalImage = in_out_rgba_image_cache;
-                assert(finalImage.type() == CV_8UC4);
-                assert(!finalImage.empty());
-            }
-
-            //
-            // Zoom
-            //
-            {
-                cv::Mat imageZoomed = MakeWarpPaperBackground(params.ImageDisplaySize);
-                cv::warpAffine(finalImage, imageZoomed,
-                               ZoomPanTransform::ZoomMatrixToM23(params.ZoomMatrix),
-                               params.ImageDisplaySize,
-                               cv::INTER_NEAREST,
-                               cv::BorderTypes::BORDER_TRANSPARENT,
-                               cv::Scalar(127, 127, 127, 127)
-                );
-                finalImage = imageZoomed;
-            }
-
-            //
-            // Drawings on final image
-            //
-            {
-                // Draw grid
-                double gridMinZoomFactor = 12.;
-                double zoomFactor = (double)params.ZoomMatrix(0, 0);
-                if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
-                    DrawGrid(finalImage, params);
-
-                // Draw Pixel Values
-                double drawPixelvaluesMinZoomFactor = (image.depth() == CV_8U) ? 36. : 48.;
-                if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelvaluesMinZoomFactor)
-                {
-                    double drawPixelCoordsMinZoomFactor = 60.;
-                    bool drawPixelCoords = zoomFactor > drawPixelCoordsMinZoomFactor;
-                    finalImage = DrawValuesOnZoomedPixels(finalImage, image, params, drawPixelCoords);
-                }
-
-                // Draw Watched Pixels
-                if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))
-                    finalImage = DrawWatchedPixels(finalImage, params);
-
-            }
-
-            //
-            // Blit
-            //
-            outTexture->BlitMat(finalImage, false);
-        }
-
-    } // namespace ImageNavigatorDrawing
-
-} // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_widgets.cpp                                     //
+//                       src/immvision/internal/imgui/image_navigator_widgets.cpp                               //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -4904,7 +5243,7 @@ namespace ImmVision
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/imgui_imm.cpp                                                   //
+//                       src/immvision/internal/imgui/imgui_imm.cpp                                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define IMGUI_DEFINE_MATH_OPERATORS
 
@@ -5540,19 +5879,6 @@ namespace ImGuiImm
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/immvision.cpp                                                   //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace immvision
-{
-    void foo()
-    {
-        std::cout << "foo()" << std::endl;
-    }
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/inspector.cpp                                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -5757,340 +6083,3 @@ namespace ImmVision
     }
 
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/internal_icons.cpp                                              //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    namespace Icons
-    {
-        static cv::Size iconsSizeDraw(200, 200);
-        auto ScalePoint = [](cv::Point2d p) {
-            return cv::Point2d(p.x * (double) iconsSizeDraw.width, p.y * (double) iconsSizeDraw.height);
-        };
-        auto ScaleDouble = [](double v) {
-            return v * (double) iconsSizeDraw.width;
-        };
-        auto ScaleInt = [](double v) {
-            return (int) (v * (double) iconsSizeDraw.width + 0.5);
-        };
-
-        auto PointFromOther = [](cv::Point2d o, double angleDegree, double distance) {
-            double m_pi = 3.14159265358979323846;
-            double angleRadian = -angleDegree / 180. * m_pi;
-            cv::Point2d r(o.x + cos(angleRadian) * distance, o.y + sin(angleRadian) * distance);
-            return r;
-        };
-
-
-        cv::Mat MakeMagnifierImage(IconType iconType)
-        {
-            using namespace ImmVision;
-            cv::Mat m(iconsSizeDraw, CV_8UC4);
-
-
-            // Transparent background
-            m = cv::Scalar(0, 0, 0, 0);
-
-            cv::Scalar color(255, 255, 255, 255);
-            double radius = 0.3;
-            cv::Point2d center(1. - radius * 1.3, radius * 1.2);
-            // Draw shadow
-            {
-                cv::Point2d decal(radius * 0.1, radius * 0.1);
-                cv::Scalar color_shadow(127, 127, 127, 255);
-
-                CvDrawingUtils::circle(
-                    m, //image,
-                    ScalePoint(center + decal),
-                    ScaleDouble(radius), //radius
-                    color_shadow,
-                    ScaleInt(0.08)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 1.7) + decal),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.03) + decal),
-                    color_shadow,
-                    ScaleInt(0.08)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 2.3) + decal),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.5) + decal),
-                    color_shadow,
-                    ScaleInt(0.14)
-                );
-            }
-            // Draw magnifier
-            {
-                CvDrawingUtils::circle(
-                    m, //image,
-                    ScalePoint(center),
-                    ScaleDouble(radius), //radius
-                    color,
-                    ScaleInt(0.08)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 1.7)),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.03)),
-                    color,
-                    ScaleInt(0.08)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 2.3)),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.5)),
-                    color,
-                    ScaleInt(0.14)
-                );
-            }
-
-            if (iconType == IconType::ZoomPlus)
-            {
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 90., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 270., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
-            }
-            if (iconType == IconType::ZoomMinus)
-            {
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
-            }
-            if (iconType == IconType::ZoomScaleOne)
-            {
-                cv::Point2d a = PointFromOther(center, -90., radius * 0.45);
-                cv::Point2d b = PointFromOther(center, 90., radius * 0.45);
-                a.x += radius * 0.05;
-                b.x += radius * 0.05;
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(a),
-                    ScalePoint(b),
-                    color,
-                    ScaleInt(0.06)
-                );
-                cv::Point2d c(b.x - radius * 0.2, b.y + radius * 0.2);
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(b),
-                    ScalePoint(c),
-                    color,
-                    ScaleInt(0.06)
-                );
-            }
-
-            return m;
-        }
-
-
-        cv::Mat MakeFullViewImage()
-        {
-            cv::Mat m(iconsSizeDraw, CV_8UC4);
-            m = cv::Scalar(0, 0, 0, 0);
-
-            cv::Scalar color(255, 255, 255, 255);
-            double decal = 0.1;
-            double length_x = 0.3, length_y = 0.3;
-            for (int y = 0; y <= 1; ++y)
-            {
-                for (int x = 0; x <= 1; ++x)
-                {
-                    cv::Point2d corner;
-
-                    corner.x = (x == 0) ? decal : 1. - decal;
-                    corner.y = (y == 0) ? decal : 1. - decal;
-                    double moveX = (x == 0) ? length_x : -length_x;
-                    double moveY = (y == 0) ? length_y : -length_y;
-                    cv::Point2d a = corner;
-                    cv::Point2d b(a.x + moveX, a.y);
-                    cv::Point2d c(a.x, a.y + moveY);
-                    CvDrawingUtils::line(
-                        m, //image,
-                        ScalePoint(a),
-                        ScalePoint(b),
-                        color,
-                        ScaleInt(0.06)
-                    );
-                    CvDrawingUtils::line(
-                        m, //image,
-                        ScalePoint(a),
-                        ScalePoint(c),
-                        color,
-                        ScaleInt(0.06)
-                    );
-
-                }
-            }
-            return m;
-        }
-
-        cv::Mat MakeAdjustLevelsImage()
-        {
-            cv::Mat m(iconsSizeDraw, CV_8UC4);
-            m = cv::Scalar(0, 0, 0, 0);
-            cv::Scalar color(255, 255, 255, 255);
-
-            double yMin = 0.15, yMax = 0.8;
-            int nbBars = 3;
-            for (int bar = 0; bar < nbBars; ++bar)
-            {
-                double xBar = (double)bar / ((double)(nbBars) + 0.17) + 0.2;
-                cv::Point2d a(xBar, yMin);
-                cv::Point2d b(xBar, yMax);
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(a),
-                    ScalePoint(b),
-                    color,
-                    ScaleInt(0.08)
-                );
-
-                double barWidth = 0.1;
-                double yBar = 0.7 - 0.2 * (double)bar;
-                cv::Point2d c(a.x - barWidth / 2., yBar);
-                cv::Point2d d(a.x + barWidth / 2., yBar);
-                CvDrawingUtils::line(
-                    m, //image,
-                    ScalePoint(c),
-                    ScalePoint(d),
-                    color,
-                    ScaleInt(0.16)
-                );
-            }
-
-            return m;
-        }
-
-
-        static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
-        static cv::Size gIconSize(20,  20);
-
-        unsigned int GetIcon(IconType iconType)
-        {
-            if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
-            {
-                cv::Mat m;
-                if (iconType == IconType::ZoomFullView)
-                    m = MakeFullViewImage();
-                else if (iconType == IconType::AdjustLevels)
-                    m = MakeAdjustLevelsImage();
-                else
-                    m = MakeMagnifierImage(iconType);
-
-                cv::Mat resized = m;
-                cv::resize(m, resized, cv::Size(gIconSize.width * 2, gIconSize.height * 2), 0., 0., cv::INTER_AREA);
-                auto texture = std::make_unique<GlTextureCv>(resized, true);
-                sIconsTextureCache[iconType] = std::move(texture);
-            }
-            return sIconsTextureCache[iconType]->mImTextureId;
-        }
-
-        bool IconButton(IconType iconType, bool disabled)
-        {
-            ImGui::PushID((int)iconType);
-            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-            ImU32 backColorEnabled = ImGui::ColorConvertFloat4ToU32(ImVec4 (1.f, 1.f, 1.f, 1.f));
-            ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
-            ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
-            if (disabled)
-                ImGuiImm::PushDisabled();
-
-            // Cannot use InvisibleButton, since it does not handle "Repeat"
-            std::string spaceLabel = " ";
-            while (ImGui::CalcTextSize(spaceLabel.c_str()).x < 14.f)
-                spaceLabel += " ";
-            bool clicked = ImGui::Button(spaceLabel.c_str());
-
-            ImGuiImmGlImage::GetWindowDrawList_AddImage(
-                GetIcon(iconType),
-                cursorPos,
-                {cursorPos.x + (float)gIconSize.width, cursorPos.y + (float)gIconSize.height},
-                ImVec2(0.f, 0.f),
-                ImVec2(1.f, 1.f),
-                backColor
-                );
-
-            if (disabled)
-                ImGuiImm::PopDisabled();
-            ImGui::PopID();
-            return disabled ? false : clicked;
-        }
-
-
-        void DevelPlaygroundGui()
-        {
-            static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
-            static cv::Mat img = MakeAdjustLevelsImage();
-
-            static ImmVision::ImageNavigatorParams imageNavigatorParams1;
-            imageNavigatorParams1.ImageDisplaySize = {400, 400};
-            ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
-
-            ImGui::SameLine();
-
-            static ImmVision::ImageNavigatorParams imageNavigatorParams2;
-            imageNavigatorParams2.ImageDisplaySize = {400, 400};
-            ImmVision::ImageNavigator(img, &imageNavigatorParams2);
-
-            ImVec2 iconSize(15.f, 15.f);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
-        }
-
-        void ClearIconsTextureCache()
-        {
-            Icons::sIconsTextureCache.clear();
-        }
-
-} // namespace Icons
-
-
-} // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/short_lived_cache.cpp                                           //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    namespace internal
-    {
-        double TimerSeconds()
-        {
-            using chrono_second = std::chrono::duration<double, std::ratio<1>>;
-            using chrono_clock = std::chrono::steady_clock;
-
-            static std::chrono::time_point<chrono_clock> startTime = chrono_clock::now();
-            double elapsed = std::chrono::duration_cast<chrono_second>(chrono_clock::now() - startTime).count();
-            return elapsed;
-        }
-
-    } // namespace internal
-} // namespace ImmVision
-

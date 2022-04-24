@@ -1,4 +1,4 @@
-#include "immvision/internal/image_navigator_drawing.h"
+#include "immvision/internal/drawing/image_navigator_drawing.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/cv_drawing_utils.h"
@@ -119,7 +119,7 @@ namespace ImmVision
         };
 
 
-        cv::Mat MakeWarpPaperBackground(cv::Size s)
+        cv::Mat MakeSchoolPaperBackground(cv::Size s)
         {
             cv::Mat mat(s, CV_8UC4);
 
@@ -206,7 +206,7 @@ namespace ImmVision
             // Zoom
             //
             {
-                cv::Mat imageZoomed = MakeWarpPaperBackground(params.ImageDisplaySize);
+                cv::Mat imageZoomed = MakeSchoolPaperBackground(params.ImageDisplaySize);
                 cv::warpAffine(finalImage, imageZoomed,
                                ZoomPanTransform::ZoomMatrixToM23(params.ZoomMatrix),
                                params.ImageDisplaySize,

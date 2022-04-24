@@ -14,7 +14,7 @@ namespace ImmVision
         cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
                                          const ImageNavigatorParams& params, bool drawPixelCoords);
 
-        cv::Mat MakeWarpPaperBackground(cv::Size s);
+        cv::Mat MakeSchoolPaperBackground(cv::Size s);
 
         void BlitImageNavigatorTexture(
             const ImageNavigatorParams& params,

@@ -3,13 +3,12 @@
 #include <opencv2/imgcodecs.hpp>
 
 #include "immvision/image_navigator.h"
-#include "immvision/internal/internal_icons.h"
-#include "immvision/internal/imgui_imm.h"
-#include "immvision/internal/portable_file_dialogs.h"
-#include "immvision/internal/gl/imgui_imm_gl_image.h"
+#include "immvision/internal/drawing/internal_icons.h"
+#include "immvision/internal/imgui/imgui_imm.h"
+#include "immvision/internal/sys/portable_file_dialogs.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
-#include "immvision/internal/image_navigator_widgets.h"
+#include "immvision/internal/imgui/image_navigator_widgets.h"
 #include "immvision/internal/image_navigator_cache.h"
 #include "imgui.h"
 #include "imgui_internal.h"
