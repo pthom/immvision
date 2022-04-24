@@ -1,4 +1,4 @@
-#include "immvision/internal/color_adjustment_utils.h"
+#include "immvision/internal/cv/color_adjustment_utils.h"
 
 namespace ImmVision
 {

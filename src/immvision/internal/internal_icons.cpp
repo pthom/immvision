@@ -1,5 +1,5 @@
 #include "immvision/internal/internal_icons.h"
-#include "immvision/internal/cv_drawing_utils.h"
+#include "immvision/internal/cv/cv_drawing_utils.h"
 #include "immvision/internal/gl/gl_texture.h"
 #include "immvision/image_navigator.h"
 #include "immvision/internal/imgui_imm.h"

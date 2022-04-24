@@ -1,10 +1,11 @@
 #include "immvision/internal/image_navigator_drawing.h"
-#include "immvision/internal/color_adjustment_utils.h"
-#include "immvision/internal/zoom_pan_transform.h"
-#include "immvision/internal/cv_drawing_utils.h"
-#include "immvision/internal/matrix_info_utils.h"
+#include "immvision/internal/cv/color_adjustment_utils.h"
+#include "immvision/internal/cv/zoom_pan_transform.h"
+#include "immvision/internal/cv/cv_drawing_utils.h"
+#include "immvision/internal/cv/matrix_info_utils.h"
 
 #include <opencv2/imgproc.hpp>
+
 
 namespace ImmVision
 {

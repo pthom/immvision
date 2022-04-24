@@ -1,6 +1,6 @@
 #include "immvision/internal/gl/gl_texture.h"
 
-#include "immvision/internal/cv_drawing_utils.h"
+#include "immvision/internal/cv/cv_drawing_utils.h"
 #include "immvision/internal/gl/gl_provider.h"
 #include "immvision/internal/gl/imgui_imm_gl_image.h"
 

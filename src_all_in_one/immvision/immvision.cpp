@@ -1,15 +1,15 @@
 // THIS FILE WAS GENERATED AUTOMATICALLY. DO NOT EDIT.
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/color_adjustment_utils.cpp                                      //
+//                       src/immvision/internal/cv/color_adjustment_utils.cpp                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/color_adjustment_utils.h included by src/immvision/internal/color_adjustment_utils.cpp//
+//                       src/immvision/internal/cv/color_adjustment_utils.h included by src/immvision/internal/cv/color_adjustment_utils.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/image_navigator.h included by src/immvision/internal/color_adjustment_utils.h//
+//                       src/immvision/image_navigator.h included by src/immvision/internal/cv/color_adjustment_utils.h//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "imgui.h"
@@ -129,7 +129,7 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/color_adjustment_utils.h continued                              //
+//                       src/immvision/internal/cv/color_adjustment_utils.h continued                           //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace ImmVision
 {
@@ -144,7 +144,7 @@ namespace ImmVision
 } // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/color_adjustment_utils.cpp continued                            //
+//                       src/immvision/internal/cv/color_adjustment_utils.cpp continued                         //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace ImmVision
 {
@@ -201,11 +201,11 @@ namespace ImmVision
 } // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv_drawing_utils.cpp                                            //
+//                       src/immvision/internal/cv/cv_drawing_utils.cpp                                         //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv_drawing_utils.h included by src/immvision/internal/cv_drawing_utils.cpp//
+//                       src/immvision/internal/cv/cv_drawing_utils.h included by src/immvision/internal/cv/cv_drawing_utils.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <opencv2/core/core.hpp>
 
@@ -352,7 +352,7 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv_drawing_utils.cpp continued                                  //
+//                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <opencv2/imgproc/imgproc.hpp>
 #include <unordered_map>
@@ -968,6 +968,344 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/matrix_info_utils.cpp                                        //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/matrix_info_utils.h included by src/immvision/internal/cv/matrix_info_utils.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <string>
+
+namespace ImmVision
+{
+    namespace MatrixInfoUtils
+    {
+        std::string _MatTypeName(const cv::Mat& m);
+        std::string _MatInfo(const cv::Mat &m);
+        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y);
+        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true);
+
+    } // namespace MatrixInfoUtils
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/matrix_info_utils.cpp continued                              //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <map>
+
+#ifndef CV_16F // for old versions of OpenCV
+#define CV_16F 7
+#endif
+
+namespace ImmVision
+{
+    namespace MatrixInfoUtils
+    {
+        std::string _MatTypeName(const cv::Mat& m)
+        {
+            std::map<int, std::string> depthNames
+                {
+                    { CV_8U, "CV_8U" },
+                    { CV_8S, "CV_8S" },
+                    { CV_16U, "CV_16U" },
+                    { CV_16S, "CV_16S" },
+                    { CV_32S, "CV_32S"},
+                    { CV_32F, "CV_32F"},
+                    { CV_64F, "CV_64F"},
+                    { CV_16F, "CV_16F"}
+                };
+            return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
+        }
+
+        std::string _MatInfo(const cv::Mat &m)
+        {
+            return _MatTypeName(m) + " " + std::to_string(m.cols) + "x" + std::to_string(m.rows);
+        }
+
+        std::string JoinStrings(const std::vector<std::string>&v, char separator)
+        {
+            std::string r;
+            for (size_t i = 0; i < v.size(); ++ i)
+            {
+                r += v[i];
+                if (i < v.size() - 1)
+                    r += separator;
+            }
+            return r;
+        }
+
+        template<typename _Tp>
+        std::vector<double> GrabValuesFromBuffer(const uchar * buffer, int nb)
+        {
+            std::vector<double> r;
+            auto buffer_typed =  reinterpret_cast<const _Tp *>(buffer);
+            for (int i = 0; i < nb; ++i)
+            {
+                r.push_back(static_cast<double>(*buffer_typed));
+                ++buffer_typed;
+            }
+            return r;
+        }
+
+        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y)
+        {
+            int depth = m.depth();
+            int nb_channels = m.channels();
+            const uchar * ptr = m.ptr(y, x);
+            if (depth == CV_8U)
+                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
+            else if (depth == CV_8S)
+                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
+            else if (depth == CV_16U)
+                return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
+            else if (depth == CV_16S)
+                return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
+#if CV_MAJOR_VERSION >= 4
+                else if (depth == CV_16F)
+                return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
+#endif
+            else if (depth == CV_32S)
+                return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
+            else if (depth == CV_32F)
+                return GrabValuesFromBuffer<float>(ptr, nb_channels);
+            else if (depth == CV_64F)
+                return GrabValuesFromBuffer<double>(ptr, nb_channels);
+            else
+                throw std::runtime_error("MatValuesAt: unhandled depth");
+        }
+
+        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator, bool add_paren)
+        {
+            if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
+                return "";
+            std::vector<double> values = MatValuesAt(m, x, y);
+
+            auto formatValue = [](double v, int depth) -> std::string
+            {
+                bool isFloat = false;
+                if ((depth == CV_32F) || (depth == CV_64F))
+                    isFloat = true;
+#if CV_MAJOR_VERSION >= 4
+                if (depth == CV_16F)
+                    isFloat = true;
+#endif
+                if (isFloat)
+                {
+                    char buffer_color[300];
+                    snprintf(buffer_color, 300, "%.5G", (double) v);
+                    return std::string(buffer_color);
+                }
+                else
+                {
+                    char buffer_color[300];
+                    snprintf(buffer_color, 300, "%lld", (long long) v);
+                    return std::string(buffer_color);
+                }
+            };
+
+            std::vector<std::string> strs;
+            int depth = m.depth();
+            for (double v: values)
+                strs.push_back(formatValue(v, depth));
+
+            return JoinStrings(strs, ',');
+        }
+
+    } // namespace MatrixInfoUtils
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/zoom_pan_transform.cpp                                       //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/zoom_pan_transform.h included by src/immvision/internal/cv/zoom_pan_transform.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+namespace ImmVision
+{
+    namespace ZoomPanTransform
+    {
+        using MatrixType = cv::Matx33d;
+
+        MatrixType Identity();
+
+        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio);
+        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom);
+        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize);
+        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize);
+        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
+
+        bool IsEqual(const MatrixType & v1, const MatrixType & v2);
+
+        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p);
+
+        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m);
+
+        MatrixType UpdateZoomMatrix_DisplaySizeChanged(
+            const MatrixType& oldZoomMatrix,
+            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize);
+
+    } // namespace ZoomPanTransform
+
+    cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/zoom_pan_transform.cpp continued                             //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace ImmVision
+{
+    namespace ZoomPanTransform
+    {
+        using MatrixType = cv::Matx33d;
+
+        MatrixType Identity()
+        {
+            return cv::Matx33d::eye();
+        }
+
+        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio)
+        {
+            auto mat = cv::Matx33d::eye();
+            mat(0, 0) = zoomRatio;
+            mat(1, 1) = zoomRatio;
+            mat(0, 2) = zoomCenter.x * (1. - zoomRatio);
+            mat(1, 2) = zoomCenter.y * (1. - zoomRatio);
+            return mat;
+        }
+
+        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom)
+        {
+            auto mat = cv::Matx33d::eye();
+            mat(0, 2) = (double)dragDelta.x / currentZoom;
+            mat(1, 2) = (double)dragDelta.y / currentZoom;
+            return mat;
+        }
+
+        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize)
+        {
+            MatrixType r = Identity();
+            r(0, 2) = (viewportSize.width / 2 - imageSize.width / 2);
+            r(1, 2) = (viewportSize.height / 2 - imageSize.height / 2);
+            return r;
+        }
+
+        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m)
+        {
+            cv::Matx23d r;
+            for (int y = 0; y < 2; y++)
+                for (int x = 0; x < 3; x++)
+                    r(y, x) = m(y, x);
+            return r;
+        }
+
+        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize)
+        {
+            MatrixType r = Identity();
+
+            double zoom;
+            {
+                double k_image = (double)imageSize.width / (double)imageSize.height;
+                double k_viewport = (double)viewportSize.width / (double)viewportSize.height;
+                if (k_image > k_viewport)
+                    zoom = (double)viewportSize.width / (double)imageSize.width;
+                else
+                    zoom = (double)viewportSize.height / (double)imageSize.height;
+            }
+
+            r(0, 0) = zoom;
+            r(1, 1) = zoom;
+
+            return r;
+        }
+
+        bool IsEqual(const MatrixType & v1, const MatrixType & v2)
+        {
+            for (int j = 0; j < 3; j++)
+                for (int i = 0; i < 3; i++)
+                    if (fabs(v2(j, i) - v1(j, i)) > 1E-6)
+                        return false;
+            return true;
+        }
+
+        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p)
+        {
+            cv::Matx31d pMat(p.x, p.y, 1.);
+            cv::Matx31d rMat = zoomMatrix * pMat;
+            cv::Point2d r(rMat(0, 0), rMat(1, 0));
+            return r;
+        }
+
+        MatrixType UpdateZoomMatrix_DisplaySizeChanged(
+            const MatrixType& oldZoomMatrix,
+            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize)
+        {
+            if (oldDisplaySize.area() == 0 || newDisplaySize.area() == 0)
+                return oldZoomMatrix;
+
+            MatrixType zoomMatrix;
+
+            auto fnImageCenter = [](const cv::Size s) {
+                return cv::Point2d((double)s.width / 2., (double)s.height / 2.);
+            };
+
+            double newZoomFactor;
+            {
+                double oldZoomFactor = oldZoomMatrix(0, 0);
+                double kx = (double)newDisplaySize.width / (double)oldDisplaySize.width;
+                double ky = (double)newDisplaySize.height / (double)oldDisplaySize.height;
+                double k = (kx + ky) / 2.;
+                newZoomFactor = oldZoomFactor * k;
+            }
+
+            zoomMatrix = MatrixType::eye();
+            zoomMatrix(0, 0) = zoomMatrix(1, 1) = newZoomFactor;
+
+            cv::Point2d translation;
+            {
+                cv::Point2d oldDisplayCenter_Zoomed = fnImageCenter(oldDisplaySize);
+                cv::Point2d oldDisplayCenter_Image = ZoomPanTransform::Apply(oldZoomMatrix.inv(), oldDisplayCenter_Zoomed);
+
+                cv::Point2d newDisplayCenter_Zoomed_Wanted = fnImageCenter(newDisplaySize);
+                cv::Point2d newDisplayCenter_Zoomed_Now = ZoomPanTransform::Apply(zoomMatrix, oldDisplayCenter_Image);
+                translation = newDisplayCenter_Zoomed_Wanted - newDisplayCenter_Zoomed_Now;
+            }
+
+            zoomMatrix(0, 2) = translation.x;
+            zoomMatrix(1, 2) = translation.y;
+
+            return zoomMatrix;
+        }
+
+        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
+        {
+            auto mat = cv::Matx33d::eye();
+            mat(0, 0) = zoomRatio;
+            mat(1, 1) = zoomRatio;
+            double dx = (double)displayedImageSize.width / 2. - zoomRatio * zoomCenter.x;
+            double dy = (double)displayedImageSize.height / 2. - zoomRatio * zoomCenter.y;
+            mat(0, 2) = dx;
+            mat(1, 2) = dy;
+            return mat;
+        }
+
+    } // namespace ZoomPanTransform
+
+    cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
+    {
+        return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
+    }
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl/gl_provider.cpp                                              //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef IMMVISION_BUILDING_PYBIND // see gl_provider_python for the pybind version
@@ -1238,6 +1576,7 @@ namespace ImGuiImmGlImage
 } // namespace ImGuiImmGlImage
 
 
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl/gl_texture.cpp continued                                     //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1313,7 +1652,6 @@ namespace ImmVision
 //                       src/immvision/internal/gl/imgui_imm_gl_image.cpp                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <string>
 
 namespace ImGuiImmGlImage
 {
@@ -1442,7 +1780,6 @@ namespace ImmVision
 //                       src/immvision/internal/short_lived_cache.h included by src/immvision/internal/image.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <map>
 
 
 namespace ImmVision
@@ -3433,45 +3770,6 @@ inline std::string internal::file_dialog::select_folder_vista(IFileDialog *ifd, 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/zoom_pan_transform.h included by src/immvision/internal/image_navigator.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    namespace ZoomPanTransform
-    {
-        using MatrixType = cv::Matx33d;
-
-        MatrixType Identity();
-
-        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio);
-        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom);
-        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize);
-        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize);
-        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
-
-        bool IsEqual(const MatrixType & v1, const MatrixType & v2);
-
-        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p);
-
-        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m);
-
-        MatrixType UpdateZoomMatrix_DisplaySizeChanged(
-            const MatrixType& oldZoomMatrix,
-            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize);
-
-    } // namespace ZoomPanTransform
-
-    cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
-
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator.cpp continued                                   //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image_navigator_widgets.h included by src/immvision/internal/image_navigator.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -4239,26 +4537,6 @@ namespace ImmVision
 //                       src/immvision/internal/image_navigator_drawing.cpp                                     //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/matrix_info_utils.h included by src/immvision/internal/image_navigator_drawing.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace MatrixInfoUtils
-    {
-        std::string _MatTypeName(const cv::Mat& m);
-        std::string _MatInfo(const cv::Mat &m);
-        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y);
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true);
-
-    } // namespace MatrixInfoUtils
-
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_drawing.cpp continued                           //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace ImmVision
 {
@@ -5795,133 +6073,6 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/matrix_info_utils.cpp                                           //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-#ifndef CV_16F // for old versions of OpenCV
-#define CV_16F 7
-#endif
-
-namespace ImmVision
-{
-    namespace MatrixInfoUtils
-    {
-        std::string _MatTypeName(const cv::Mat& m)
-        {
-            std::map<int, std::string> depthNames
-                {
-                    { CV_8U, "CV_8U" },
-                    { CV_8S, "CV_8S" },
-                    { CV_16U, "CV_16U" },
-                    { CV_16S, "CV_16S" },
-                    { CV_32S, "CV_32S"},
-                    { CV_32F, "CV_32F"},
-                    { CV_64F, "CV_64F"},
-                    { CV_16F, "CV_16F"}
-                };
-            return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
-        }
-
-        std::string _MatInfo(const cv::Mat &m)
-        {
-            return _MatTypeName(m) + " " + std::to_string(m.cols) + "x" + std::to_string(m.rows);
-        }
-
-        std::string JoinStrings(const std::vector<std::string>&v, char separator)
-        {
-            std::string r;
-            for (size_t i = 0; i < v.size(); ++ i)
-            {
-                r += v[i];
-                if (i < v.size() - 1)
-                    r += separator;
-            }
-            return r;
-        }
-
-        template<typename _Tp>
-        std::vector<double> GrabValuesFromBuffer(const uchar * buffer, int nb)
-        {
-            std::vector<double> r;
-            auto buffer_typed =  reinterpret_cast<const _Tp *>(buffer);
-            for (int i = 0; i < nb; ++i)
-            {
-                r.push_back(static_cast<double>(*buffer_typed));
-                ++buffer_typed;
-            }
-            return r;
-        }
-
-        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y)
-        {
-            int depth = m.depth();
-            int nb_channels = m.channels();
-            const uchar * ptr = m.ptr(y, x);
-            if (depth == CV_8U)
-                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
-            else if (depth == CV_8S)
-                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
-            else if (depth == CV_16U)
-                return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
-            else if (depth == CV_16S)
-                return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
-#if CV_MAJOR_VERSION >= 4
-                else if (depth == CV_16F)
-                return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
-#endif
-            else if (depth == CV_32S)
-                return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
-            else if (depth == CV_32F)
-                return GrabValuesFromBuffer<float>(ptr, nb_channels);
-            else if (depth == CV_64F)
-                return GrabValuesFromBuffer<double>(ptr, nb_channels);
-            else
-                throw std::runtime_error("MatValuesAt: unhandled depth");
-        }
-
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator, bool add_paren)
-        {
-            if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
-                return "";
-            std::vector<double> values = MatValuesAt(m, x, y);
-
-            auto formatValue = [](double v, int depth) -> std::string
-            {
-                bool isFloat = false;
-                if ((depth == CV_32F) || (depth == CV_64F))
-                    isFloat = true;
-#if CV_MAJOR_VERSION >= 4
-                if (depth == CV_16F)
-                    isFloat = true;
-#endif
-                if (isFloat)
-                {
-                    char buffer_color[300];
-                    snprintf(buffer_color, 300, "%.5G", (double) v);
-                    return std::string(buffer_color);
-                }
-                else
-                {
-                    char buffer_color[300];
-                    snprintf(buffer_color, 300, "%lld", (long long) v);
-                    return std::string(buffer_color);
-                }
-            };
-
-            std::vector<std::string> strs;
-            int depth = m.depth();
-            for (double v: values)
-                strs.push_back(formatValue(v, depth));
-
-            return JoinStrings(strs, ',');
-        }
-
-    } // namespace MatrixInfoUtils
-
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/short_lived_cache.cpp                                           //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -5942,154 +6093,4 @@ namespace ImmVision
 
     } // namespace internal
 } // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/zoom_pan_transform.cpp                                          //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace ZoomPanTransform
-    {
-        using MatrixType = cv::Matx33d;
-
-        MatrixType Identity()
-        {
-            return cv::Matx33d::eye();
-        }
-
-        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio)
-        {
-            auto mat = cv::Matx33d::eye();
-            mat(0, 0) = zoomRatio;
-            mat(1, 1) = zoomRatio;
-            mat(0, 2) = zoomCenter.x * (1. - zoomRatio);
-            mat(1, 2) = zoomCenter.y * (1. - zoomRatio);
-            return mat;
-        }
-
-        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom)
-        {
-            auto mat = cv::Matx33d::eye();
-            mat(0, 2) = (double)dragDelta.x / currentZoom;
-            mat(1, 2) = (double)dragDelta.y / currentZoom;
-            return mat;
-        }
-
-        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize)
-        {
-            MatrixType r = Identity();
-            r(0, 2) = (viewportSize.width / 2 - imageSize.width / 2);
-            r(1, 2) = (viewportSize.height / 2 - imageSize.height / 2);
-            return r;
-        }
-
-        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m)
-        {
-            cv::Matx23d r;
-            for (int y = 0; y < 2; y++)
-                for (int x = 0; x < 3; x++)
-                    r(y, x) = m(y, x);
-            return r;
-        }
-
-        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize)
-        {
-            MatrixType r = Identity();
-
-            double zoom;
-            {
-                double k_image = (double)imageSize.width / (double)imageSize.height;
-                double k_viewport = (double)viewportSize.width / (double)viewportSize.height;
-                if (k_image > k_viewport)
-                    zoom = (double)viewportSize.width / (double)imageSize.width;
-                else
-                    zoom = (double)viewportSize.height / (double)imageSize.height;
-            }
-
-            r(0, 0) = zoom;
-            r(1, 1) = zoom;
-
-            return r;
-        }
-
-        bool IsEqual(const MatrixType & v1, const MatrixType & v2)
-        {
-            for (int j = 0; j < 3; j++)
-                for (int i = 0; i < 3; i++)
-                    if (fabs(v2(j, i) - v1(j, i)) > 1E-6)
-                        return false;
-            return true;
-        }
-
-        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p)
-        {
-            cv::Matx31d pMat(p.x, p.y, 1.);
-            cv::Matx31d rMat = zoomMatrix * pMat;
-            cv::Point2d r(rMat(0, 0), rMat(1, 0));
-            return r;
-        }
-
-        MatrixType UpdateZoomMatrix_DisplaySizeChanged(
-            const MatrixType& oldZoomMatrix,
-            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize)
-        {
-            if (oldDisplaySize.area() == 0 || newDisplaySize.area() == 0)
-                return oldZoomMatrix;
-
-            MatrixType zoomMatrix;
-
-            auto fnImageCenter = [](const cv::Size s) {
-                return cv::Point2d((double)s.width / 2., (double)s.height / 2.);
-            };
-
-            double newZoomFactor;
-            {
-                double oldZoomFactor = oldZoomMatrix(0, 0);
-                double kx = (double)newDisplaySize.width / (double)oldDisplaySize.width;
-                double ky = (double)newDisplaySize.height / (double)oldDisplaySize.height;
-                double k = (kx + ky) / 2.;
-                newZoomFactor = oldZoomFactor * k;
-            }
-
-            zoomMatrix = MatrixType::eye();
-            zoomMatrix(0, 0) = zoomMatrix(1, 1) = newZoomFactor;
-
-            cv::Point2d translation;
-            {
-                cv::Point2d oldDisplayCenter_Zoomed = fnImageCenter(oldDisplaySize);
-                cv::Point2d oldDisplayCenter_Image = ZoomPanTransform::Apply(oldZoomMatrix.inv(), oldDisplayCenter_Zoomed);
-
-                cv::Point2d newDisplayCenter_Zoomed_Wanted = fnImageCenter(newDisplaySize);
-                cv::Point2d newDisplayCenter_Zoomed_Now = ZoomPanTransform::Apply(zoomMatrix, oldDisplayCenter_Image);
-                translation = newDisplayCenter_Zoomed_Wanted - newDisplayCenter_Zoomed_Now;
-            }
-
-            zoomMatrix(0, 2) = translation.x;
-            zoomMatrix(1, 2) = translation.y;
-
-            return zoomMatrix;
-        }
-
-        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
-        {
-            auto mat = cv::Matx33d::eye();
-            mat(0, 0) = zoomRatio;
-            mat(1, 1) = zoomRatio;
-            double dx = (double)displayedImageSize.width / 2. - zoomRatio * zoomCenter.x;
-            double dy = (double)displayedImageSize.height / 2. - zoomRatio * zoomCenter.y;
-            mat(0, 2) = dx;
-            mat(1, 2) = dy;
-            return mat;
-        }
-
-    } // namespace ZoomPanTransform
-
-    cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
-    {
-        return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
-    }
-
-}
 

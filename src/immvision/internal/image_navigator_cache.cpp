@@ -1,6 +1,6 @@
 #include "immvision/internal/image_navigator_cache.h"
-#include "immvision/internal/color_adjustment_utils.h"
-#include "immvision/internal/zoom_pan_transform.h"
+#include "immvision/internal/cv/color_adjustment_utils.h"
+#include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/imgui_imm.h"
 #include "immvision/internal/image_navigator_drawing.h"
 
