@@ -117,7 +117,7 @@ namespace ImmVision
             for (double v: values)
                 strs.push_back(formatValue(v, depth));
 
-            std::string r = JoinStrings(strs, ',');
+            std::string r = JoinStrings(strs, separator);
             if (add_paren)
                 r = std::string("(") + r + ")";
             return r;
