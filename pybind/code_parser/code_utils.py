@@ -92,6 +92,14 @@ def indent_code(code: str, indent_size: int):
     return "\n".join(lines)
 
 
+def indent_code_force(code: str, indent_size: int):
+    lines = code.split("\n")
+    indent_str = " " * indent_size
+    lines = map(lambda s: indent_str + s.strip(), lines)
+    return "\n".join(lines)
+
+
+
 def write_code_between_markers(
         inout_filename: str,
         code_marker: str,
@@ -116,7 +124,7 @@ def write_code_between_markers(
                     indent_size += 1
                 output_code = output_code + code_line + "\n"
                 output_code = output_code + "\n\n"
-                output_code = output_code + indent_code(code_to_insert, indent_size)
+                output_code = output_code + indent_code_force(code_to_insert, indent_size)
         else:
             if not is_inside_autogen_region:
                 output_code = output_code + code_line + "\n"
@@ -126,5 +134,7 @@ def write_code_between_markers(
             output_code = output_code + "\n\n"
             output_code = output_code + code_line + "\n"
             is_inside_autogen_region = False
+    if output_code[-1:] == "\n":
+        output_code = output_code[:-1]
 
     write_text_file(inout_filename, output_code)

@@ -11,8 +11,7 @@ prettyprinter.install_extras(exclude=["django", "ipython"])
 
 
 THIS_DIR = os.path.dirname(__file__)
-IMMVISION_CPP_FOLDER = f"{THIS_DIR}/../../src/immvision"
-IMMVISION_CPP_PYBIND_FOLDER = f"{THIS_DIR}/../src_cpp"
+REPO_DIR = os.path.realpath(THIS_DIR + "/../..")
 
 
 @dataclass
@@ -269,45 +268,88 @@ def make_struct_attributes_cpp_code(struct_name: str, struct_infos: typing.List[
     return r
 
 
-def write_struct_attributes_pybindcpp_code(
+def make_struct_tostring_cpp_code(struct_name: str, struct_infos: typing.List[Variant_Attribute_CodeRegion]):
+    code_intro = f'''
+        using namespace ImmVision::StringUtils;
+
+        std::string r;
+        r += "ImageNavigatorParams\\n";
+        r += "{{\\n";
+
+        std::string inner;
+    '''
+
+    code_inner = 'inner = inner + "ATTR_NAME: " + ToString(v.ATTR_NAME) + "\\n";'
+
+    code_outro = f'''
+        r = r + IndentLines(inner, 4);
+        r += "}}";
+        return r;
+    '''
+
+    r = code_intro + "\n";
+    def add_line(l):
+        nonlocal r
+        r = r + l + "\n"
+
+    for info in struct_infos:
+        if info.code_region_comment is not None:
+            for line in info.code_region_comment.comment.split("\n"):
+                add_line("// " + line)
+        if info.struct_attribute is not None:
+            #         r = r + MakeIndent(indent_size) + "ColorAdjustments: " + ToString(v.ColorAdjustments) + "\n";
+            attr = info.struct_attribute
+            line = code_inner.replace("ATTR_NAME", attr.name_cpp)
+            add_line(line)
+
+    r = r + code_outro
+    return code_utils.indent_code_force(r, 8)
+
+
+def write_generated_code(
         struct_header_filename: str,
         struct_name: str,
-        inout_pybindcpp_filename: str
+        modified_cpp_filename: str,
+        marker_id: str,
+        code_generator_function
     ):
     struct_infos = extract_struct_infos(
         code_utils.read_text_file(struct_header_filename),
         struct_name)
-    code_marker = f"{struct_name}.attributes"
+    code_marker = f"{struct_name}.{marker_id}"
     code_utils.write_code_between_markers(
-        inout_pybindcpp_filename,
+        modified_cpp_filename,
         code_marker,
-        make_struct_attributes_cpp_code(struct_name, struct_infos)
+        code_generator_function(struct_name, struct_infos)
     )
 
 
+def write_struct_attributes_pybindcpp_code(struct_header_filename, struct_name, modified_cpp_filename):
+    write_generated_code(
+        struct_header_filename, struct_name, modified_cpp_filename, "attributes", make_struct_attributes_cpp_code)
+
+
+def write_struct_tostring_code(struct_header_filename, struct_name, modified_cpp_filename):
+    write_generated_code(
+        struct_header_filename, struct_name, modified_cpp_filename, "tostring", make_struct_tostring_cpp_code)
 
 
 
-def playground():
-    with open(f"{IMMVISION_CPP_FOLDER}/image_navigator.h", "r") as f:
-        code = f.read()
+def main():
+    struct_header_filename = f"{REPO_DIR}/src/immvision/image_navigator.h"
 
+    # Good
     struct_name = "ImageNavigatorParams"
-
-    struct_infos = extract_struct_infos(code, struct_name)
-    # pprint(struct_infos)
-
-    # print(make_struct_doc(infos))
-    #indent_size = 8
-    #print(make_struct_attributes_cpp_code(struct_name, indent_size, infos))
-
-
-    struct_header_filename = f"{IMMVISION_CPP_FOLDER}/image_navigator.h"
-    struct_name = "ImageNavigatorParams"
-    pybindcpp_filename = f"{IMMVISION_CPP_PYBIND_FOLDER}/pybind_image_navigator.cpp"
+    modified_cpp_filename = f"{REPO_DIR}/pybind/src_cpp/pybind_image_navigator.cpp"
     write_struct_attributes_pybindcpp_code(
-        struct_header_filename, struct_name, pybindcpp_filename)
+        struct_header_filename,
+        struct_name,
+        modified_cpp_filename
+    )
+    modified_cpp_filename = f"{REPO_DIR}/src/immvision/internal/misc/immvision_to_string.cpp"
+    write_struct_tostring_code(
+        struct_header_filename, struct_name, modified_cpp_filename)
 
 
 if __name__ == "__main__":
-    playground()
+    main()
