@@ -335,16 +335,17 @@ def main():
     struct_header_filename = f"{REPO_DIR}/src/immvision/image_navigator.h"
 
     # Good
-    struct_name = "ImageNavigatorParams"
-    modified_cpp_filename = f"{REPO_DIR}/pybind/src_cpp/pybind_image_navigator.cpp"
-    write_struct_attributes_pybindcpp_code(
-        struct_header_filename,
-        struct_name,
-        modified_cpp_filename
-    )
-    modified_cpp_filename = f"{REPO_DIR}/src/immvision/internal/misc/immvision_to_string.cpp"
-    write_struct_tostring_code(
-        struct_header_filename, struct_name, modified_cpp_filename)
+    struct_names = ["ImageNavigatorParams", "ColorAdjustmentsValues"]
+    for struct_name in struct_names:
+        modified_cpp_filename = f"{REPO_DIR}/pybind/src_cpp/pybind_image_navigator.cpp"
+        write_struct_attributes_pybindcpp_code(
+            struct_header_filename,
+            struct_name,
+            modified_cpp_filename
+        )
+        modified_cpp_filename = f"{REPO_DIR}/src/immvision/internal/misc/immvision_to_string.cpp"
+        write_struct_tostring_code(
+            struct_header_filename, struct_name, modified_cpp_filename)
 
 
 if __name__ == "__main__":
