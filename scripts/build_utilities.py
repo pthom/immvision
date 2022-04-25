@@ -649,7 +649,7 @@ def _pybind_pip_install(editable: bool):
         return f"echo ls {folder}: && echo ------------ && ls -alh {folder}"
 
     editable_flag = "--editable" if editable else ""
-    ls_install_dir = ls_echo_dir(f"{REPO_DIR}/pybind/pybind_src/immvision") if editable \
+    ls_install_dir = ls_echo_dir(f"{REPO_DIR}/pybind/src_python/immvision") if editable \
         else ls_echo_dir(f"{VENV_PACKAGES_DIR}/immvision")
 
     my_chdir(REPO_DIR)

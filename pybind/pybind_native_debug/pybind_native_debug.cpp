@@ -45,7 +45,7 @@ int main()
     std::string cmd = R"(
 import sys
 sys.path.append("THIS_DIR")
-import pybind_debug_helper
+import pybind_native_debug
     )";
     cmd = string_replace(cmd, "THIS_DIR", THIS_DIR);
     py::exec(cmd);

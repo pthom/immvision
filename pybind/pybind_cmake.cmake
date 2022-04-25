@@ -74,7 +74,7 @@ endif()
 #
 # Main target: cpp_imvision python module
 #
-file(GLOB_RECURSE sources_immvision_pybind ${THIS_DIR}/pybind_src/*.cpp ${THIS_DIR}/pybind_src/*.h)
+file(GLOB_RECURSE sources_immvision_pybind ${THIS_DIR}/src_cpp/*.cpp ${THIS_DIR}/src_cpp/*.h)
 file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PROJECT_SOURCE_DIR}/src/immvision/*.cpp)
 pybind11_add_module(cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
 target_include_directories(cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -154,7 +154,7 @@ add_custom_command(
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:cpp_immvision>
-        ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:cpp_immvision>
+        ${THIS_DIR}/src_python/immvision/$<TARGET_FILE_NAME:cpp_immvision>
 )
 
 # Note: no install for imgui_pybind since it is a static library
@@ -164,13 +164,13 @@ add_custom_command(
 #        POST_BUILD
 #        COMMAND ${CMAKE_COMMAND} -E copy
 #        $<TARGET_FILE:imgui_pybind>
-#        ${THIS_DIR}/pybind_src/immvision/$<TARGET_FILE_NAME:imgui_pybind>
+#        ${THIS_DIR}/src_python/immvision/$<TARGET_FILE_NAME:imgui_pybind>
 #    )
 
 #
 # immvision_debug_pybind
 #
-add_executable(pybind_debug_helper ${THIS_DIR}/pybind_debug_helper/pybind_debug_helper.cpp)
-target_link_libraries(pybind_debug_helper PRIVATE pybind11::embed)
-target_include_directories(pybind_debug_helper PRIVATE ${pybind11_INCLUDE_DIRS})
-add_dependencies(pybind_debug_helper cpp_immvision)
+add_executable(pybind_native_debug ${THIS_DIR}/pybind_native_debug/pybind_native_debug.cpp)
+target_link_libraries(pybind_native_debug PRIVATE pybind11::embed)
+target_include_directories(pybind_native_debug PRIVATE ${pybind11_INCLUDE_DIRS})
+add_dependencies(pybind_native_debug cpp_immvision)
