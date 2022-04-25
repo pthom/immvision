@@ -361,6 +361,75 @@ namespace ImmVision
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/string_utils.h included by src/immvision/internal/cv/cv_drawing_utils.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <string>
+
+namespace ImmVision
+{
+    namespace StringUtils
+    {
+        std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator);
+        std::vector<std::string> SplitString(const std::string& s, const char separator);
+        std::string IndentLine(const std::string& s, int indentSize);
+        std::string IndentLines(const std::string& s, int indentSize);
+
+
+        std::string ToString(const std::string& s);
+        std::string ToString(const double& v);
+        std::string ToString(const float& v);
+        std::string ToString(const int& v);
+        std::string ToString(bool v);
+
+        template<typename _Tp>
+        std::string ToString(const cv::Point_<_Tp>& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        template<typename _Tp>
+        std::string ToString(const cv::Size_<_Tp>& v)
+        {
+            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
+        }
+
+        template<typename _Tp>
+        std::string ToString(const std::vector<_Tp>& v)
+        {
+            std::vector<std::string> strs;
+            for (const auto& x : v)
+                strs.push_back(ToString(x));
+            std::string r = "[" + JoinStrings(strs, ", ") + "]";
+            return r;
+        }
+
+        template<typename _Tp, int _rows,int _cols>
+        std::string ToString(const cv::Matx<_Tp, _rows, _cols>& m)
+        {
+            std::vector<std::string> lines;
+            for (int i = 0; i < _rows; ++i)
+            {
+                std::vector<_Tp> lineValues;
+                for (int j = 0; j < _cols; ++j)
+                    lineValues.push_back(m(i, j));
+
+                std::string lineString = ToString(lineValues);
+                if (i != 0)
+                    lineString = std::string("   ") + lineString;
+                lines.push_back(lineString);
+            }
+            std::string r = "\n  [";
+            r += JoinStrings(lines, ",\n");
+            r += "]";
+            return r;
+        }
+
+    } // namespace StringUtils
+} // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
@@ -381,16 +450,6 @@ namespace ImmVision
         {
             int drawing_shift = 3;
             double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
-
-            std::vector<std::string> SplitString(const std::string &s, char delimiter)
-            {
-                std::vector<std::string> tokens;
-                std::string token;
-                std::istringstream tokenStream(s);
-                while (std::getline(tokenStream, token, delimiter))
-                    tokens.push_back(token);
-                return tokens;
-            }
 
         }  // namespace
 
@@ -701,7 +760,7 @@ namespace ImmVision
                   double fontScale /*= 0.4*/,
                   int thickness /*= 1*/)
         {
-            auto lines = SplitString(msg, '\n');
+            auto lines = StringUtils::SplitString(msg, '\n');
 
             double line_height = _text_line_height(fontScale, thickness) + 3.;
             cv::Point2d linePosition = position;
@@ -985,7 +1044,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/matrix_info_utils.h included by src/immvision/internal/cv/matrix_info_utils.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <string>
 
 namespace ImmVision
 {
@@ -2652,7 +2710,7 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/sys/portable_file_dialogs.h included by src/immvision/internal/image_navigator.cpp//
+//                       src/immvision/internal/misc/portable_file_dialogs.h included by src/immvision/internal/image_navigator.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //  Portable File Dialogs :
@@ -6104,3 +6162,166 @@ namespace ImmVision
     }
 
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/immvision_to_string.cpp                                    //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/immvision_to_string.h included by src/immvision/internal/misc/immvision_to_string.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+namespace ImmVision
+{
+    std::string ToString(const ColorAdjustmentsValues& params);
+    std::string ToString(const ImageNavigatorParams& params);
+};
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/immvision_to_string.cpp continued                          //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    std::string ToString(const ColorAdjustmentsValues& params)
+    {
+        return "ColorAdjustmentsValues";
+    }
+
+
+    std::string ToString(const ImageNavigatorParams& v)
+    {
+        // <autogen:ImageNavigatorParams.ToString> // Autogenerated code below! Do not edit!
+
+
+        using namespace ImmVision::StringUtils;
+
+        std::string r;
+        r += "ImageNavigatorParams\n";
+        r += "{\n";
+
+        std::string inner;
+
+        //  struct ImageNavigatorParams
+        //  Stores all the display parameters and options for an ImageNavigator,
+        //  (its parameters default values are reasonable choices)
+        //  Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
+        //  Display size and title
+        inner = inner + "ImageDisplaySize: " + ToString(v.ImageDisplaySize) + "\n";
+        inner = inner + "Legend: " + ToString(v.Legend) + "\n";
+        //  Zoom and Pan (represented by an affine transform matrix, of size 3x3)
+        inner = inner + "ZoomPanMatrix: " + ToString(v.ZoomPanMatrix) + "\n";
+        inner = inner + "ZoomKey: " + ToString(v.ZoomKey) + "\n";
+        //  Color adjustments
+        inner = inner + "ColorAdjustments: " + ToString(v.ColorAdjustments) + "\n";
+        inner = inner + "ColorAdjustmentsKey: " + ToString(v.ColorAdjustmentsKey) + "\n";
+        //  Zoom and pan with the mouse
+        inner = inner + "PanWithMouse: " + ToString(v.PanWithMouse) + "\n";
+        inner = inner + "ZoomWithMouseWheel: " + ToString(v.ZoomWithMouseWheel) + "\n";
+        inner = inner + "IsColorOrderBGR: " + ToString(v.IsColorOrderBGR) + "\n";
+        //  Image display options
+        inner = inner + "SelectedChannel: " + ToString(v.SelectedChannel) + "\n";
+        inner = inner + "ShowAlphaChannelCheckerboard: " + ToString(v.ShowAlphaChannelCheckerboard) + "\n";
+        inner = inner + "ShowGrid: " + ToString(v.ShowGrid) + "\n";
+        inner = inner + "DrawValuesOnZoomedPixels: " + ToString(v.DrawValuesOnZoomedPixels) + "\n";
+        //  Navigator display options
+        inner = inner + "ShowImageInfo: " + ToString(v.ShowImageInfo) + "\n";
+        inner = inner + "ShowPixelInfo: " + ToString(v.ShowPixelInfo) + "\n";
+        inner = inner + "ShowZoomButtons: " + ToString(v.ShowZoomButtons) + "\n";
+        inner = inner + "ShowLegendBorder: " + ToString(v.ShowLegendBorder) + "\n";
+        inner = inner + "ShowOptions: " + ToString(v.ShowOptions) + "\n";
+        inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
+        //  Watched Pixels
+        inner = inner + "WatchedPixels: " + ToString(v.WatchedPixels) + "\n";
+        inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
+
+        r = r + IndentLines(inner, 4);
+        r += "}";
+        return r;
+
+        // </autogen:ImageNavigatorParams.ToString> // Autogenerated code below! Do not edit!
+    }
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/string_utils.cpp                                           //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace StringUtils
+    {
+        std::vector<std::string> SplitString(const std::string &s, char delimiter)
+        {
+            std::vector<std::string> tokens;
+            std::string token;
+            std::istringstream tokenStream(s);
+            while (std::getline(tokenStream, token, delimiter))
+                tokens.push_back(token);
+            return tokens;
+        }
+
+        std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator)
+        {
+            std::string r;
+            for (size_t i = 0; i < v.size(); ++ i)
+            {
+                r += v[i];
+                if (i < v.size() - 1)
+                    r += separator;
+            }
+            return r;
+        }
+
+        std::string IndentLine(const std::string& s, int indentSize)
+        {
+            return std::string((size_t)indentSize, ' ') + s;
+        }
+
+        std::string IndentLines(const std::string& s, int indentSize)
+        {
+            auto lines = SplitString(s, '\n');
+            std::string r = "";
+            for (auto line: lines)
+                r = r + IndentLine(line, indentSize) + "\n";
+            return r;
+        }
+
+
+        std::string ToString(const cv::Size& size)
+        {
+            return std::string("(") + std::to_string(size.width) + "," + std::to_string(size.height) + ")";
+        }
+
+        std::string ToString(const std::string& s)
+        {
+            return "\"" + s + "\"";
+        }
+
+        std::string ToString(const double& v)
+        {
+            char buf[200];
+            snprintf(buf, 200, "%7G", v);
+            return buf;
+        }
+
+        std::string ToString(const int& v)
+        {
+            return std::to_string(v);
+        }
+
+        std::string ToString(const float& v)
+        {
+            return ToString((double)v);
+        }
+
+        std::string ToString(bool v)
+        {
+            return (v ? "true" : "false");
+        }
+
+
+    } // namespace StringUtils
+} // namespace ImmVision

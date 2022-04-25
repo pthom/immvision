@@ -1,4 +1,5 @@
 #include "immvision/internal/cv/cv_drawing_utils.h"
+#include "immvision/internal/misc/string_utils.h"
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -17,16 +18,6 @@ namespace ImmVision
         {
             int drawing_shift = 3;
             double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
-
-            std::vector<std::string> SplitString(const std::string &s, char delimiter)
-            {
-                std::vector<std::string> tokens;
-                std::string token;
-                std::istringstream tokenStream(s);
-                while (std::getline(tokenStream, token, delimiter))
-                    tokens.push_back(token);
-                return tokens;
-            }
 
         }  // namespace
 
@@ -337,7 +328,7 @@ namespace ImmVision
                   double fontScale /*= 0.4*/,
                   int thickness /*= 1*/)
         {
-            auto lines = SplitString(msg, '\n');
+            auto lines = StringUtils::SplitString(msg, '\n');
 
             double line_height = _text_line_height(fontScale, thickness) + 3.;
             cv::Point2d linePosition = position;
