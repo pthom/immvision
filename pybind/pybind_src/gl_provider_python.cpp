@@ -2,7 +2,7 @@
 
 #include "immvision/internal/gl/gl_provider.h"
 #include "immvision/image.h"
-#include "cv_np/cv_np_shared_cast.h"
+#include "cvnp/cvnp.h"
 
 #include <opencv2/core.hpp>
 #include <pybind11/pybind11.h>

@@ -2,7 +2,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "cv_np/cv_np_shared_cast.h"
+#include "cvnp/cvnp.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -10,8 +10,8 @@
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
 
-void pydef_cv_np(pybind11::module& m);
-void pydef_cv_np_shared_test(pybind11::module& m);
+void pydef_cvnp(pybind11::module& m);
+void pydef_cvnp_test(pybind11::module& m);
 void pydef_image(pybind11::module& m);
 void pydef_image_navigator(pybind11::module& m);
 void pydef_gl_provider_sentinel(pybind11::module& m);
@@ -30,9 +30,9 @@ PYBIND11_MODULE(cpp_immvision, m)
     m.doc() = "immvision: immediate image debugger and insights";
     m.def("VersionInfo", VersionInfo);
 
-    pydef_cv_np_shared_test(m);
+    pydef_cvnp_test(m);
     pydef_gl_provider_sentinel(m);
-    pydef_cv_np(m);
+    pydef_cvnp(m);
 
     pydef_image(m);
     pydef_image_navigator(m);

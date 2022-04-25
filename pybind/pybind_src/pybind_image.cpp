@@ -1,6 +1,6 @@
 #include "immvision/image.h"
 #include "transfer_imgui_context.h"
-#include "cv_np/cv_np_shared_cast.h"
+#include "cvnp/cvnp.h"
 
 #include <pybind11/pybind11.h>
 #include <opencv2/core.hpp>

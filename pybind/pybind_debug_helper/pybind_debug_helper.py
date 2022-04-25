@@ -16,7 +16,7 @@ import example_immvision
 example_immvision.main()
 
 
-# sys.path.append(THIS_DIR + "/../cv_np")
-# sys.path.append(THIS_DIR + "/../cv_np/tests")
-# import test_cv_np_shared_cast
-# test_cv_np_shared_cast.main()
+# sys.path.append(THIS_DIR + "/../cvnp")
+# sys.path.append(THIS_DIR + "/../cvnp/tests")
+# import test_cvnp
+# test_cvnp.main()

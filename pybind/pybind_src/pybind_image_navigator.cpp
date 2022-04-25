@@ -1,5 +1,5 @@
 #include "immvision/image_navigator.h"
-#include "cv_np/cv_np_shared_cast.h"
+#include "cvnp/cvnp.h"
 #include "transfer_imgui_context.h"
 
 #include <pybind11/pybind11.h>
