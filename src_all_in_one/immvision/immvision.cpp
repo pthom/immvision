@@ -25,17 +25,20 @@ namespace ImmVision
     // (the navigator expects values between 0 and 1, and will convert them to 0..255)
     struct ColorAdjustmentsValues
     {
-        double Factor = 1., Delta = 0.;
+        double Factor = 1.;
+        double Delta = 0.;
     };
 
     
-    //
-    // struct ImageNavigatorParams
-    //
-    // Stores all the display parameters and options for an ImageNavigator,
-    // (its parameters default values are reasonable choices)
     struct ImageNavigatorParams
     {
+        //
+        // struct ImageNavigatorParams
+        // Stores all the display parameters and options for an ImageNavigator,
+        // (its parameters default values are reasonable choices)
+        // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
+        //
+
         //
         // Display size and title
         //
@@ -46,19 +49,19 @@ namespace ImmVision
         std::string Legend = "Image Navigator";
 
         //
-        // Zoom and Pan
+        // Zoom and Pan (represented by an affine transform matrix, of size 3x3)
         //
 
-        // ZoomMatrix can be created using MakeZoomMatrix to create a view centered around a given point
-        cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
+        // ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
+        cv::Matx33d ZoomPanMatrix = cv::Matx33d::eye();
         // If displaying several navigators, those with the same ZoomKey will zoom and pan together
         std::string ZoomKey = "";
 
         //
-        // Color adjustments for float matrixes
+        // Color adjustments
         //
-
-        ColorAdjustmentsValues ColorAdjustments = {};
+        // Color adjustments for float matrixes
+        ColorAdjustmentsValues ColorAdjustments = ColorAdjustmentsValues();
         // If displaying several navigators, those with the same ColorAdjustmentsKey will adjust together
         std::string ColorAdjustmentsKey = "";
 
@@ -68,9 +71,7 @@ namespace ImmVision
         bool PanWithMouse = true;
         bool ZoomWithMouseWheel = true;
 
-        //
         // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
-        //
         bool IsColorOrderBGR = true;
 
         //
@@ -78,29 +79,39 @@ namespace ImmVision
         //
         // if SelectedChannel >= 0 then only this channel is displayed
         int  SelectedChannel = -1;
+        // show a checkerboard behind transparent portions of 4 channels RGBA images
         bool ShowAlphaChannelCheckerboard = true;
-        // Image display options when the zoom is high
+        // Grid displayed when the zoom is high
         bool ShowGrid = true;
+        // Pixel values show when the zoom is high
         bool DrawValuesOnZoomedPixels = true;
 
         //
         // Navigator display options
         //
+        // Show matrix type and size
         bool ShowImageInfo = true;
+        // Show pixel values
         bool ShowPixelInfo = true;
+        // Show buttons that enable to zoom in/out (the mouse wheel also zoom)
         bool ShowZoomButtons = true;
+        // Show a rectangular border with the legend
         bool ShowLegendBorder = true;
+        // Open the options panel
         bool ShowOptions = false;
+        // If set to true, then the option panel will be displayed in a transient tooltip window
         bool ShowOptionsInTooltip = false;
 
         //
         // Watched Pixels
         //
+        // List of Watched Pixel coordinates
         std::vector<cv::Point> WatchedPixels;
+        // Shall the watched pixels be drawn on the image
         bool HighlightWatchedPixels = true;
     };
 
-    cv::Matx33d MakeZoomMatrix(
+    cv::Matx33d MakeZoomPanMatrix(
         const cv::Point2d & zoomCenter,
         double zoomRatio,
         const cv::Size displayedImageSize
@@ -1154,7 +1165,7 @@ namespace ImmVision
 
     } // namespace ZoomPanTransform
 
-    cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
+    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize);
 
 }
 
@@ -1300,7 +1311,7 @@ namespace ImmVision
 
     } // namespace ZoomPanTransform
 
-    cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
+    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
     {
         return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
     }
@@ -1407,7 +1418,7 @@ namespace ImmVision
                 for (size_t i = 0; i < params.WatchedPixels.size(); ++i)
                 {
                     cv::Point w = params.WatchedPixels[i];
-                    cv::Point2d p = ZoomPanTransform::Apply(params.ZoomMatrix, w);
+                    cv::Point2d p = ZoomPanTransform::Apply(params.ZoomPanMatrix, w);
                     if (cv::Rect(cv::Point(0, 0), params.ImageDisplaySize).contains(p))
                         visiblePixels.push_back({i, p});
                 }
@@ -1432,14 +1443,14 @@ namespace ImmVision
 
         void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params)
         {
-            double x_spacing = (double) params.ZoomMatrix(0, 0);
-            double y_spacing = (double) params.ZoomMatrix(1, 1);
+            double x_spacing = (double) params.ZoomPanMatrix(0, 0);
+            double y_spacing = (double) params.ZoomPanMatrix(1, 1);
 
             double x_start, y_start;
             {
-                cv::Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
+                cv::Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), cv::Point2d(0., 0.));
                 origin_unzoomed = cv::Point2d(std::floor(origin_unzoomed.x) + 0.5, std::floor(origin_unzoomed.y) + 0.5);
-                cv::Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomMatrix, origin_unzoomed);
+                cv::Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix, origin_unzoomed);
                 x_start = origin_zoomed.x;
                 y_start = origin_zoomed.y;
             }
@@ -1459,8 +1470,8 @@ namespace ImmVision
             cv::Mat r = drawingImage;
             cv::Point tl, br;
             {
-                cv::Point2d tld = ZoomPanTransform::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
-                cv::Point2d brd = ZoomPanTransform::Apply(params.ZoomMatrix.inv(),
+                cv::Point2d tld = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), cv::Point2d(0., 0.));
+                cv::Point2d brd = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(),
                                                           cv::Point2d((double)params.ImageDisplaySize.width,
                                                                       (double)params.ImageDisplaySize.height));
                 tl = { (int)std::floor(tld.x), (int)std::floor(tld.y) };
@@ -1475,7 +1486,7 @@ namespace ImmVision
                     if (drawPixelCoords)
                         pixelInfo = std::string("x:") + std::to_string(x) + "\n" + "y:" + std::to_string(y) + "\n" + pixelInfo;
 
-                    cv::Point2d position = ZoomPanTransform::Apply(params.ZoomMatrix, cv::Point2d((double)x, (double )y));
+                    cv::Point2d position = ZoomPanTransform::Apply(params.ZoomPanMatrix, cv::Point2d((double)x, (double )y));
 
                     cv::Scalar textColor;
                     {
@@ -1595,7 +1606,7 @@ namespace ImmVision
             {
                 cv::Mat imageZoomed = MakeSchoolPaperBackground(params.ImageDisplaySize);
                 cv::warpAffine(finalImage, imageZoomed,
-                               ZoomPanTransform::ZoomMatrixToM23(params.ZoomMatrix),
+                               ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
                                params.ImageDisplaySize,
                                cv::INTER_NEAREST,
                                cv::BorderTypes::BORDER_TRANSPARENT,
@@ -1610,7 +1621,7 @@ namespace ImmVision
             {
                 // Draw grid
                 double gridMinZoomFactor = 12.;
-                double zoomFactor = (double)params.ZoomMatrix(0, 0);
+                double zoomFactor = (double)params.ZoomPanMatrix(0, 0);
                 if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
                     DrawGrid(finalImage, params);
 
@@ -4744,7 +4755,7 @@ namespace ImmVision
         // Mouse dragging
         auto fnHandleMouseDragging = [&params](CachedParams & cacheParams)
         {
-            ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomMatrix;
+            ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
 
             int mouseDragButton = 0;
             bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && ImGui::IsItemHovered();
@@ -4774,14 +4785,14 @@ namespace ImmVision
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
                 double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.;
-                params->ZoomMatrix = params->ZoomMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
+                params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
             }
         };
         auto fnShowZoomButtons = [&params, &image]()
         {
             if (params->ShowZoomButtons)
             {
-                ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomMatrix;
+                ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
 
                 cv::Point2d viewportCenter_originalImage = ZoomPanTransform::Apply(
                     zoomMatrix.inv(),
@@ -4838,7 +4849,7 @@ namespace ImmVision
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
 
             cv::Point2d mouseLocation_originalImage =
-                ImGui::IsItemHovered() ? ZoomPanTransform::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
+                ImGui::IsItemHovered() ? ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
             return mouseLocation_originalImage;
         };
 
@@ -4891,7 +4902,7 @@ namespace ImmVision
 
             // Show infos
             if (params->ShowImageInfo)
-                ImageNavigatorWidgets::ShowImageInfo(image, params->ZoomMatrix(0, 0));
+                ImageNavigatorWidgets::ShowImageInfo(image, params->ZoomPanMatrix(0, 0));
             if (params->ShowPixelInfo)
                 fnShowPixelInfo(mouseLocation_originalImage);
             ImGui::EndGroup();
@@ -4979,8 +4990,8 @@ namespace ImmVision
         {
             if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
                 params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
-            if (params->ZoomMatrix == cv::Matx33d::eye())
-                params->ZoomMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
+            if (params->ZoomPanMatrix == cv::Matx33d::eye())
+                params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
         bool ShallRefreshRgbaCache(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
@@ -5000,7 +5011,7 @@ namespace ImmVision
         {
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
-            if (! ZoomPanTransform::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
+            if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))
                 return true;
             if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
                 return true;
@@ -5061,8 +5072,8 @@ namespace ImmVision
             if (ShallRefreshTexture(oldParams, *params))
                 needsRefreshTexture = true;
             if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
-                params->ZoomMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
-                    oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
+                params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
+                    oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
             if (needsRefreshTexture)
             {
                 if (ShallRefreshRgbaCache(oldParams, *params))
@@ -5071,7 +5082,7 @@ namespace ImmVision
                     *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
             }
 
-            if (! ZoomPanTransform::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
+            if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
                 UpdateLinkedZooms(image);
             if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
                 UpdateLinkedColorAdjustments(image);
@@ -5102,12 +5113,12 @@ namespace ImmVision
             std::string zoomKey = currentCache.NavigatorParams->ZoomKey;
             if (zoomKey.empty())
                 return;
-            ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomMatrix;
+            ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomPanMatrix;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
                 if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ZoomKey == zoomKey))
-                    otherCache.NavigatorParams->ZoomMatrix = newZoom;
+                    otherCache.NavigatorParams->ZoomPanMatrix = newZoom;
             }
         }
         void ImageNavigatorTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
@@ -5972,7 +5983,7 @@ namespace ImmVision
             {
                 if (i.InitialZoomRatio > 0.)
                 {
-                    i.Params.ZoomMatrix = ZoomPanTransform::MakeZoomMatrix(
+                    i.Params.ZoomPanMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
                 ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);

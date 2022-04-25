@@ -27,9 +27,8 @@ void pydef_image_navigator(pybind11::module& m)
         .def(py::init<>())
         .def_readwrite("ImageDisplaySize", &ImageNavigatorParams::ImageDisplaySize)
         .def_readwrite("Legend", &ImageNavigatorParams::Legend)
-        .def_readwrite("ZoomMatrix", &ImageNavigatorParams::ZoomMatrix)
+        .def_readwrite("ZoomMatrix", &ImageNavigatorParams::ZoomPanMatrix)
         .def_readwrite("WatchedPixels", &ImageNavigatorParams::WatchedPixels)
         ;
-
 
 }

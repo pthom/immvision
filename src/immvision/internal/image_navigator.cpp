@@ -287,7 +287,7 @@ namespace ImmVision
         // Mouse dragging
         auto fnHandleMouseDragging = [&params](CachedParams & cacheParams)
         {
-            ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomMatrix;
+            ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
 
             int mouseDragButton = 0;
             bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && ImGui::IsItemHovered();
@@ -317,14 +317,14 @@ namespace ImmVision
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
                 double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.;
-                params->ZoomMatrix = params->ZoomMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
+                params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
             }
         };
         auto fnShowZoomButtons = [&params, &image]()
         {
             if (params->ShowZoomButtons)
             {
-                ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomMatrix;
+                ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
 
                 cv::Point2d viewportCenter_originalImage = ZoomPanTransform::Apply(
                     zoomMatrix.inv(),
@@ -381,7 +381,7 @@ namespace ImmVision
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
 
             cv::Point2d mouseLocation_originalImage =
-                ImGui::IsItemHovered() ? ZoomPanTransform::Apply(params->ZoomMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
+                ImGui::IsItemHovered() ? ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
             return mouseLocation_originalImage;
         };
 
@@ -434,7 +434,7 @@ namespace ImmVision
 
             // Show infos
             if (params->ShowImageInfo)
-                ImageNavigatorWidgets::ShowImageInfo(image, params->ZoomMatrix(0, 0));
+                ImageNavigatorWidgets::ShowImageInfo(image, params->ZoomPanMatrix(0, 0));
             if (params->ShowPixelInfo)
                 fnShowPixelInfo(mouseLocation_originalImage);
             ImGui::EndGroup();

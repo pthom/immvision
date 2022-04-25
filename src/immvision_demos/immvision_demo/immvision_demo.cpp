@@ -188,7 +188,7 @@ static void guiFunction()
             static bool zoomApplied = false;
             if (!zoomApplied)
             {
-                imageNavigatorParamsFilter.ZoomMatrix = ImmVision::MakeZoomMatrix(
+                imageNavigatorParamsFilter.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
                     cv::Point2d(1004., 953.), 40., imageNavigatorParamsFilter.ImageDisplaySize);
 
                 zoomApplied = true;

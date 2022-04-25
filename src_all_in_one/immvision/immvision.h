@@ -87,17 +87,20 @@ namespace ImmVision
     // (the navigator expects values between 0 and 1, and will convert them to 0..255)
     struct ColorAdjustmentsValues
     {
-        double Factor = 1., Delta = 0.;
+        double Factor = 1.;
+        double Delta = 0.;
     };
 
     
-    //
-    // struct ImageNavigatorParams
-    //
-    // Stores all the display parameters and options for an ImageNavigator,
-    // (its parameters default values are reasonable choices)
     struct ImageNavigatorParams
     {
+        //
+        // struct ImageNavigatorParams
+        // Stores all the display parameters and options for an ImageNavigator,
+        // (its parameters default values are reasonable choices)
+        // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
+        //
+
         //
         // Display size and title
         //
@@ -108,19 +111,19 @@ namespace ImmVision
         std::string Legend = "Image Navigator";
 
         //
-        // Zoom and Pan
+        // Zoom and Pan (represented by an affine transform matrix, of size 3x3)
         //
 
-        // ZoomMatrix can be created using MakeZoomMatrix to create a view centered around a given point
-        cv::Matx33d ZoomMatrix = cv::Matx33d::eye();
+        // ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
+        cv::Matx33d ZoomPanMatrix = cv::Matx33d::eye();
         // If displaying several navigators, those with the same ZoomKey will zoom and pan together
         std::string ZoomKey = "";
 
         //
-        // Color adjustments for float matrixes
+        // Color adjustments
         //
-
-        ColorAdjustmentsValues ColorAdjustments = {};
+        // Color adjustments for float matrixes
+        ColorAdjustmentsValues ColorAdjustments = ColorAdjustmentsValues();
         // If displaying several navigators, those with the same ColorAdjustmentsKey will adjust together
         std::string ColorAdjustmentsKey = "";
 
@@ -130,9 +133,7 @@ namespace ImmVision
         bool PanWithMouse = true;
         bool ZoomWithMouseWheel = true;
 
-        //
         // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
-        //
         bool IsColorOrderBGR = true;
 
         //
@@ -140,29 +141,39 @@ namespace ImmVision
         //
         // if SelectedChannel >= 0 then only this channel is displayed
         int  SelectedChannel = -1;
+        // show a checkerboard behind transparent portions of 4 channels RGBA images
         bool ShowAlphaChannelCheckerboard = true;
-        // Image display options when the zoom is high
+        // Grid displayed when the zoom is high
         bool ShowGrid = true;
+        // Pixel values show when the zoom is high
         bool DrawValuesOnZoomedPixels = true;
 
         //
         // Navigator display options
         //
+        // Show matrix type and size
         bool ShowImageInfo = true;
+        // Show pixel values
         bool ShowPixelInfo = true;
+        // Show buttons that enable to zoom in/out (the mouse wheel also zoom)
         bool ShowZoomButtons = true;
+        // Show a rectangular border with the legend
         bool ShowLegendBorder = true;
+        // Open the options panel
         bool ShowOptions = false;
+        // If set to true, then the option panel will be displayed in a transient tooltip window
         bool ShowOptionsInTooltip = false;
 
         //
         // Watched Pixels
         //
+        // List of Watched Pixel coordinates
         std::vector<cv::Point> WatchedPixels;
+        // Shall the watched pixels be drawn on the image
         bool HighlightWatchedPixels = true;
     };
 
-    cv::Matx33d MakeZoomMatrix(
+    cv::Matx33d MakeZoomPanMatrix(
         const cv::Point2d & zoomCenter,
         double zoomRatio,
         const cv::Size displayedImageSize

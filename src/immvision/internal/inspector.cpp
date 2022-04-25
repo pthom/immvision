@@ -86,7 +86,7 @@ namespace ImmVision
             {
                 if (i.InitialZoomRatio > 0.)
                 {
-                    i.Params.ZoomMatrix = ZoomPanTransform::MakeZoomMatrix(
+                    i.Params.ZoomPanMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
                 ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);

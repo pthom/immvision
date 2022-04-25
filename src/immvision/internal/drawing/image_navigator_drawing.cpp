@@ -20,7 +20,7 @@ namespace ImmVision
                 for (size_t i = 0; i < params.WatchedPixels.size(); ++i)
                 {
                     cv::Point w = params.WatchedPixels[i];
-                    cv::Point2d p = ZoomPanTransform::Apply(params.ZoomMatrix, w);
+                    cv::Point2d p = ZoomPanTransform::Apply(params.ZoomPanMatrix, w);
                     if (cv::Rect(cv::Point(0, 0), params.ImageDisplaySize).contains(p))
                         visiblePixels.push_back({i, p});
                 }
@@ -45,14 +45,14 @@ namespace ImmVision
 
         void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params)
         {
-            double x_spacing = (double) params.ZoomMatrix(0, 0);
-            double y_spacing = (double) params.ZoomMatrix(1, 1);
+            double x_spacing = (double) params.ZoomPanMatrix(0, 0);
+            double y_spacing = (double) params.ZoomPanMatrix(1, 1);
 
             double x_start, y_start;
             {
-                cv::Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
+                cv::Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), cv::Point2d(0., 0.));
                 origin_unzoomed = cv::Point2d(std::floor(origin_unzoomed.x) + 0.5, std::floor(origin_unzoomed.y) + 0.5);
-                cv::Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomMatrix, origin_unzoomed);
+                cv::Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix, origin_unzoomed);
                 x_start = origin_zoomed.x;
                 y_start = origin_zoomed.y;
             }
@@ -72,8 +72,8 @@ namespace ImmVision
             cv::Mat r = drawingImage;
             cv::Point tl, br;
             {
-                cv::Point2d tld = ZoomPanTransform::Apply(params.ZoomMatrix.inv(), cv::Point2d(0., 0.));
-                cv::Point2d brd = ZoomPanTransform::Apply(params.ZoomMatrix.inv(),
+                cv::Point2d tld = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), cv::Point2d(0., 0.));
+                cv::Point2d brd = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(),
                                                           cv::Point2d((double)params.ImageDisplaySize.width,
                                                                       (double)params.ImageDisplaySize.height));
                 tl = { (int)std::floor(tld.x), (int)std::floor(tld.y) };
@@ -88,7 +88,7 @@ namespace ImmVision
                     if (drawPixelCoords)
                         pixelInfo = std::string("x:") + std::to_string(x) + "\n" + "y:" + std::to_string(y) + "\n" + pixelInfo;
 
-                    cv::Point2d position = ZoomPanTransform::Apply(params.ZoomMatrix, cv::Point2d((double)x, (double )y));
+                    cv::Point2d position = ZoomPanTransform::Apply(params.ZoomPanMatrix, cv::Point2d((double)x, (double )y));
 
                     cv::Scalar textColor;
                     {
@@ -208,7 +208,7 @@ namespace ImmVision
             {
                 cv::Mat imageZoomed = MakeSchoolPaperBackground(params.ImageDisplaySize);
                 cv::warpAffine(finalImage, imageZoomed,
-                               ZoomPanTransform::ZoomMatrixToM23(params.ZoomMatrix),
+                               ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
                                params.ImageDisplaySize,
                                cv::INTER_NEAREST,
                                cv::BorderTypes::BORDER_TRANSPARENT,
@@ -223,7 +223,7 @@ namespace ImmVision
             {
                 // Draw grid
                 double gridMinZoomFactor = 12.;
-                double zoomFactor = (double)params.ZoomMatrix(0, 0);
+                double zoomFactor = (double)params.ZoomPanMatrix(0, 0);
                 if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
                     DrawGrid(finalImage, params);
 

@@ -28,6 +28,6 @@ namespace ImmVision
 
     } // namespace ZoomPanTransform
 
-    cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
+    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize);
 
 }

@@ -12,8 +12,8 @@ namespace ImmVision
         {
             if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
                 params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
-            if (params->ZoomMatrix == cv::Matx33d::eye())
-                params->ZoomMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
+            if (params->ZoomPanMatrix == cv::Matx33d::eye())
+                params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
         bool ShallRefreshRgbaCache(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
@@ -33,7 +33,7 @@ namespace ImmVision
         {
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
-            if (! ZoomPanTransform::IsEqual(v1.ZoomMatrix, v2.ZoomMatrix))
+            if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))
                 return true;
             if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
                 return true;
@@ -94,8 +94,8 @@ namespace ImmVision
             if (ShallRefreshTexture(oldParams, *params))
                 needsRefreshTexture = true;
             if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
-                params->ZoomMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
-                    oldParams.ZoomMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
+                params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
+                    oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
             if (needsRefreshTexture)
             {
                 if (ShallRefreshRgbaCache(oldParams, *params))
@@ -104,7 +104,7 @@ namespace ImmVision
                     *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
             }
 
-            if (! ZoomPanTransform::IsEqual(oldParams.ZoomMatrix, params->ZoomMatrix))
+            if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
                 UpdateLinkedZooms(image);
             if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
                 UpdateLinkedColorAdjustments(image);
@@ -135,12 +135,12 @@ namespace ImmVision
             std::string zoomKey = currentCache.NavigatorParams->ZoomKey;
             if (zoomKey.empty())
                 return;
-            ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomMatrix;
+            ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomPanMatrix;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
                 if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ZoomKey == zoomKey))
-                    otherCache.NavigatorParams->ZoomMatrix = newZoom;
+                    otherCache.NavigatorParams->ZoomPanMatrix = newZoom;
             }
         }
         void ImageNavigatorTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
