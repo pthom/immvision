@@ -6,6 +6,7 @@ opencv-contrib-python
 PyOpenGL
 pysdl2-dll
 pytest
+prettyprinter
 
 #
 # this will `pip install imgui` (provided by pyimgui)
