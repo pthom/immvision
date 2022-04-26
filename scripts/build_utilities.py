@@ -893,6 +893,19 @@ def main():
 
     for command in commands:
         print(f"# Running command: {command.__name__}")
+        if OPTIONS.only_echo_command.Value:
+            run_command = f"{sys.argv[0]} run {' '.join(sys.argv[1:])}"
+            print(f"""
+            ***************************************************************************
+            Nothing will be  done on the system! You will be shown the commands to run, 
+            and you can copy-paste them.
+            
+            If you want to run them, add "run" as a first parameter, i.e
+            
+            {run_command}
+            
+            ***************************************************************************
+            """)
         command()
 
     return 0
