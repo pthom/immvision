@@ -169,7 +169,7 @@ def extract_struct_attributes(struct_code: StructCode) -> typing.List[StructAttr
         # Search for comment beginning with // immediately on top of the attribute
         comment_lines_before_attribute_decl = []
         line_number = attribute.line_number - 1
-        while line_number > 0:
+        while line_number >= 0:
             previous_code_line: str = numbered_code_lines[line_number][1]
             if not previous_code_line.startswith("//"):
                 break
@@ -424,7 +424,8 @@ def main():
     struct_header_filename = f"{REPO_DIR}/src/immvision/image_navigator.h"
 
     # Good
-    struct_names = ["ImageNavigatorParams", "ColorAdjustmentsValues"]
+    # struct_names = ["ImageNavigatorParams", "ColorAdjustmentsValues"]
+    struct_names = ["ColorAdjustmentsValues"]
     for struct_name in struct_names:
         modified_cpp_filename = f"{REPO_DIR}/pybind/src_cpp/pybind_image_navigator.cpp"
         write_struct_attributes_pybindcpp_code(

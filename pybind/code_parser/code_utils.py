@@ -57,7 +57,7 @@ def _opencv_replacements() -> typing.List[StringReplacement]:
 
 def _std_replacements() -> typing.List[StringReplacement]:
     replacements = r"""
-    \bstd::string() -> ""
+    \bstd::string\(\) -> ""
     \bstd::string\b -> str
     \btrue\b -> True
     \bfalse\b -> False

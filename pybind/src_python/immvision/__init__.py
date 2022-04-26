@@ -20,19 +20,19 @@ ImageNavigatorParams.__doc__ = """Set of display parameters and options for an I
  Display size and title
     * image_display_size: Size = (0, 0)
             Size of the navigator (can be different from the image size)
-    * legend: "" = "Image Navigator"
+    * legend: str = "Image Navigator"
             Title displayed in the border
 
  Zoom and Pan (represented by an affine transform matrix, of size 3x3)
     * zoom_pan_matrix: Matx33d = np.eye(3)
             ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
-    * zoom_key: "" = ""
+    * zoom_key: str = ""
             If displaying several navigators, those with the same ZoomKey will zoom and pan together
 
  Color adjustments
     * color_adjustments: ColorAdjustmentsValues = ColorAdjustmentsValues()
             Color adjustments for float matrixes
-    * color_adjustments_key: "" = ""
+    * color_adjustments_key: str = ""
             If displaying several navigators, those with the same ColorAdjustmentsKey will adjust together
 
  Zoom and pan with the mouse
@@ -79,6 +79,7 @@ ImageNavigatorParams.__doc__ = """Set of display parameters and options for an I
 ColorAdjustmentsValues.__doc__ = """Color adjustments (esp. useful for a float matrix)
 
     * factor: float = 1.
+            Pre-multiply values by a Factor before displaying
     * delta: float = 0.
             Add a delta to the values before displaying
 """
