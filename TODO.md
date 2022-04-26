@@ -1,10 +1,13 @@
 * [ ] PIP
+  * [ ] add pyimgui ide autocompletion (pyi): see https://github.com/pyimgui/pyimgui/issues/263
+
+ * [ ] adapt window size to content if specified size is none
+  * [ ] imgui_fig (from imgui_datascience)
   * [ ] classify code
     * [ ] Add missing signatures / cpp
     * [ ] Add nice signatures / python
   * [ ] imgui_runner
       * [ ] change mat type if not castable (and cache)
-      * [ ] adapt window size to content if specified size is none
   * [Later] cf _skbuild_template: add conda & wheels
   * [Later] pyimgui
       * [ ] PR / Pull request / multisamples = 4

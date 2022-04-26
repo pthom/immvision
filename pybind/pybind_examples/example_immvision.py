@@ -10,12 +10,14 @@ import time
 import os
 
 THIS_DIR = os.path.dirname(__file__)
-image = cv2.imread(f"{THIS_DIR}/house.jpg")
-image = np.random.rand(100,100,3)
 
-#video_capture = cv2.VideoCapture(0)
-#show_camera = False
-start_time = time.time_ns()
+def static_vars(**kwargs):
+    def decorate(func):
+        for k in kwargs:
+            setattr(func, k, kwargs[k])
+        return func
+
+    return decorate
 
 # cf cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/
 def mandelbrot(height, width, x=-0.5, y=0, zoom=1, max_iterations=100):
@@ -47,33 +49,61 @@ def mandelbrot(height, width, x=-0.5, y=0, zoom=1, max_iterations=100):
     return div_time
 
 
-m = np.zeros((2, 4, 6), dtype = int)
+@static_vars(video_capture=None, visible=False)
+def show_camera():
+    if show_camera.video_capture is None:
+        show_camera.video_capture = cv2.VideoCapture(0)
+
+    # Live video
+    _, show_camera.visible = imgui.checkbox("Show camera", show_camera.visible)
+    if show_camera.visible:
+        video_ok, video_frame = show_camera.video_capture.read()
+        if video_ok:
+            immvision.Image(video_frame, True, (500, 0), True)
+            imgui_runner.power_save.set_max_wait_before_next_frame(1/50)
+
+
+start_time = time.time_ns()
+image = cv2.imread(f"{THIS_DIR}/house.jpg")
+image = np.random.rand(100,100,3)
 image = mandelbrot(800, 1000)
 image = image.astype(np.int32)
 
-enumerate
-
 
 def _test_gui_function(params: imgui_runner.ImguiAppParams):
-    # global show_camera
-    # # Live video
-    # _, show_camera = imgui.checkbox("Show camera", show_camera)
-    # if show_camera:
-    #     video_ok, video_frame = video_capture.read()
-    #     if video_ok:
-    #         immvision.Image(video_frame, True, (500, 0), True)
-    #         imgui.same_line()
-    #         imgui_runner.power_save.set_max_wait_before_next_frame(1/50)
-
-    # immvision.Image(image, False, (300, 0), True); imgui.same_line()
     imgui.text(immvision.cpp_immvision.VersionInfo())
+    show_camera()
+    # imgui.same_line()
     immvision.ImageNavigator(image)
-    if imgui.button("Exit"):
-        params.app_shall_exit = True
 
     elapsed = (time.time_ns() - start_time) / 1E9
     imgui.text(f"elapsed time: {elapsed:.2f}s FPS: {imgui.get_io().framerate:.2f}")
 
+
+def draw_coords_markers(w, h):
+    step = 100
+    for x in range(0, w + step, step):
+        for y in range(0, h + step, step):
+            imgui.set_cursor_pos((x, y))
+            imgui.text(f"{x=} {y=}")
+
+
+def gui_test_autosize(params: imgui_runner.ImguiAppParams):
+    draw_coords_markers(400, 600)
+    if imgui.button("Exit"):
+        params.app_shall_exit = True
+
+
+def main_autosize():
+    params = imgui_runner.ImguiAppParams()
+    # params.use_power_save = False
+
+    def my_gui():
+        gui_test_autosize(params)
+
+    imgui_runner.run(my_gui, params)
+    imgui_runner.run(my_gui, params)
+    imgui_runner.run(my_gui, params)
 
 
 def main():
@@ -83,9 +113,9 @@ def main():
     def my_gui():
         _test_gui_function(params)
 
-    params.gui_function = my_gui
-    imgui_runner.run(params)
+    imgui_runner.run(my_gui, params)
 
 
 if __name__ == "__main__":
     main()
+    # main_autosize()
