@@ -1,9 +1,9 @@
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
 RUN apt-get update
 
 # Install required build utilities
-RUN apt-get install -y build-essential git cmake python3 python3-pip python3-venv
+RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y build-essential git cmake python3 python3-pip python3-venv
 
 # install_x11vnc
 # /start_x_vnc.sh will start a "X server + vnc server + window manager" accessible via VNC
