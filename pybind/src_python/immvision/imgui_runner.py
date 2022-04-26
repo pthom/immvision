@@ -8,7 +8,7 @@ import imgui
 from imgui.integrations.sdl2 import SDL2Renderer
 from dataclasses import dataclass
 import typing
-
+from typing import Callable
 
 class _PowerSave:
     USE_POWER_SAVE = True
@@ -31,8 +31,6 @@ power_save =  _PowerSave()
 
 @dataclass
 class ImguiAppParams:
-    # Main function that will display the gui
-    gui_function: typing.Callable = None
     # Title and Size
     app_window_title: str = "ImGui Application"
     app_window_size: (int, int) = (1280, 720)
@@ -51,7 +49,10 @@ class ImguiAppParams:
     gl_multisamples = 4
 
 
-def run(imgui_app_params: ImguiAppParams):
+def run(gui_function: Callable, imgui_app_params: ImguiAppParams = None):
+    if imgui_app_params is None:
+        imgui_app_params = ImguiAppParams()
+
     window, gl_context = _impl_pysdl2_init(imgui_app_params)
     imgui.create_context()
     impl = SDL2Renderer(window)
@@ -81,7 +82,7 @@ def run(imgui_app_params: ImguiAppParams):
                 imgui.set_next_window_size(imgui_app_params.app_window_size[0], imgui_app_params.app_window_size[1])
                 imgui.begin("Default window")
 
-            imgui_app_params.gui_function()
+            gui_function()
             if imgui_app_params.provide_default_window:
                 imgui.end()
 
@@ -97,6 +98,9 @@ def run(imgui_app_params: ImguiAppParams):
         SDL_GL_SwapWindow(window)
 
     impl.shutdown()
+    ctx = imgui.get_current_context()
+    if ctx is not None:
+        imgui.destroy_context(ctx)
     SDL_GL_DeleteContext(gl_context)
     SDL_DestroyWindow(window)
     SDL_Quit()
@@ -145,6 +149,7 @@ def _impl_pysdl2_init(imgui_app_params: ImguiAppParams):
     if swap_interval_result < 0:
         print(f"Warning, SDL_GL_SetSwapInterval returned {SDL_GL_SetSwapInterval}")
 
+    SDL_RaiseWindow(window)
     return window, gl_context
 
 
