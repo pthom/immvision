@@ -339,13 +339,8 @@ def make_struct_tostring_cpp_code(struct_infos: StructInfos):
 
 
 def make_struct_piy_code(struct_infos: StructInfos):
-    code_intro = f'''
-class {struct_infos.struct_name()}:
-    """{struct_infos.struct_code.one_line_title}
-    
-DOC_STRING
-
-
+    code_intro = f'''class {struct_infos.struct_name()}:
+    """DOC_STRING
     """
     '''
     attr_inner = """    NAME_PYTHON: TYPE_PYTHON = DEFAULT_VALUE_PYTHON"""
