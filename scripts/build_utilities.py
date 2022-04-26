@@ -670,7 +670,6 @@ def _pybind_pip_install(editable: bool):
         {ls_install_dir}
         ## Test if we can import the module
         python3 -c 'import immvision'
-        python3 -c 'import immvision.test'
     """
     run(commands, chain_commands=True)
 

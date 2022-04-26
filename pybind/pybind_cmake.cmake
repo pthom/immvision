@@ -145,10 +145,9 @@ if (link_with_imgui)
 endif()
 
 
-#
-# Install and deploy to source dir (for pip editable mode)
-#
+# Install
 install(TARGETS cpp_immvision DESTINATION .)
+# deploy python lib to source dir (for pip editable mode)
 add_custom_command(
         TARGET cpp_immvision
         POST_BUILD
