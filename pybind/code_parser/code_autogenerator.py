@@ -8,7 +8,7 @@ etc.
 """
 import os
 import typing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 import code_utils
@@ -21,9 +21,10 @@ REPO_DIR = os.path.realpath(THIS_DIR + "/../..")
 @dataclass
 class StructCode:
     struct_name: str = ""
-    line_start: int = 0
-    line_end: int = 0
-    body_code: str = ""
+    line_start: int = 0      # starting line of the struct in the whole code
+    line_end: int = 0        # end line of the struct
+    body_code: str = ""      # the code inside the struct body
+    one_line_title: str = "" # the short title just one line before the struct declaration
 
 
 @dataclass
@@ -38,6 +39,23 @@ class StructAttribute:
 
 @dataclass
 class CodeRegionComment:
+    """
+    A CodeRegionComment is the beginning kind of "code region" inside a struct.
+    It should look like this in the C++ header file:
+
+    `````cpp
+    //
+    // Display size and title                                                <=== This is a CodeRegionComment
+    // (the display size can differ from the image size)                     <=== It can span several lines
+    //
+
+    // Size of the navigator (can be different from the image size)          <=== This is StructAttribute.comment
+    cv::Size ImageDisplaySize = cv::Size();                                   (it should fit on one line)
+    // Title displayed in the border
+    std::string Legend = "Image Navigator";
+    ````
+
+    """
     comment: str = ""
     line_number: int = 0
 
@@ -49,7 +67,15 @@ class Variant_Attribute_CodeRegion:
     struct_attribute: StructAttribute = None
 
 
-def _extract_struct_code(code: str, struct_name: str) -> StructCode:
+@dataclass
+class StructInfos:
+    struct_code: StructCode = None
+    attr_and_regions: list[Variant_Attribute_CodeRegion] = field(default_factory=list)
+    def struct_name(self):
+        return self.struct_code.struct_name
+
+
+def _extract_struct_code(whole_file_code: str, struct_name: str) -> StructCode:
     """
     Very dumb code parser
     :return:
@@ -59,7 +85,15 @@ def _extract_struct_code(code: str, struct_name: str) -> StructCode:
     r = StructCode()
     r.struct_name = struct_name
 
-    code_lines = code.split("\n")
+    code_lines = whole_file_code.split("\n")
+
+    def extract_one_line_title(line_number: int):
+        if line_number == 0:
+            return ""
+        previous_line = code_lines[line_number - 1]
+        if previous_line.strip().startswith("//"):
+            return previous_line.strip()[2:].strip()
+        return ""
 
     struct_lines = []
     in_struct = False
@@ -68,6 +102,7 @@ def _extract_struct_code(code: str, struct_name: str) -> StructCode:
         if f"struct {struct_name}" in code_line:
             in_struct = True
             r.line_start = line_number
+            r.one_line_title = extract_one_line_title(line_number)
 
         if "{" in code_line and in_struct:
             nb_accolades += 1
@@ -204,34 +239,30 @@ def extract_code_region_comments(struct_code: StructCode) -> typing.List[CodeReg
     return all_code_region_comments
 
 
-def extract_struct_attributes_and_regions(struct_code: str) -> typing.List[Variant_Attribute_CodeRegion]:
-    struct_attributes = extract_struct_attributes(struct_code)
-    code_region_comments = extract_code_region_comments(struct_code)
-    r = []
+def extract_struct_infos(whole_code: str, struct_name: str) -> StructInfos:
+    r = StructInfos()
+    r.struct_code = _extract_struct_code(whole_code, struct_name)
+    struct_attributes = extract_struct_attributes(r.struct_code)
+    code_region_comments = extract_code_region_comments(r.struct_code)
     for sa in struct_attributes:
         v = Variant_Attribute_CodeRegion()
         v.line_number = sa.line_number
         v.struct_attribute = sa
-        r.append(v)
+        r.attr_and_regions.append(v)
     for cr in code_region_comments:
         v = Variant_Attribute_CodeRegion()
         v.line_number = cr.line_number
         v.code_region_comment = cr
-        r.append(v)
+        r.attr_and_regions.append(v)
 
-    r = sorted(r, key=lambda x: x.line_number)
+    r.attr_and_regions = sorted(r.attr_and_regions, key=lambda x: x.line_number)
     return r
 
 
-def extract_struct_infos(code: str, struct_name: str) -> typing.List[Variant_Attribute_CodeRegion]:
-    struct_code = _extract_struct_code(code, struct_name)
-    infos = extract_struct_attributes_and_regions(struct_code)
-    return infos
+def make_struct_doc(struct_infos: StructInfos) -> str:
+    doc = f"{struct_infos.struct_code.one_line_title}\n\n"
 
-
-def make_struct_doc(struct_infos: typing.List[Variant_Attribute_CodeRegion]) -> str:
-    doc = ""
-    for info in struct_infos:
+    for info in struct_infos.attr_and_regions:
         if info.code_region_comment is not None:
             doc = doc + "\n" + info.code_region_comment.comment + "\n"
         elif info.struct_attribute is not None:
@@ -242,32 +273,37 @@ def make_struct_doc(struct_infos: typing.List[Variant_Attribute_CodeRegion]) -> 
 
             if len(attr.comment) > 0:
                 comment_lines = attr.comment.split("\n")
-                comment_lines = map(lambda l: "\t\t\t" + l, comment_lines)
+                comment_lines = map(lambda l: "            " + l, comment_lines)
                 comment = "\n".join(comment_lines)
                 attr_doc = attr_doc + "\n" + comment
-            doc = doc + "\t* " + attr_doc + "\n"
+            doc = doc + "    * " + attr_doc + "\n"
 
-    doc = code_utils.apply_opencv_replacements(doc)
+    doc = code_utils.apply_code_replacements(doc)
     return doc
 
 
-def make_struct_attributes_cpp_code(struct_name: str, struct_infos: typing.List[Variant_Attribute_CodeRegion]):
+def make_struct_doc_code(struct_infos: StructInfos) -> str:
+    code = f'{struct_infos.struct_name()}.__doc__ = """{make_struct_doc(struct_infos)}"""'
+    return code
+
+
+def make_struct_attributes_cpp_code(struct_infos: StructInfos):
     r = ""
 
     def add_line(l):
         nonlocal r
         r = r + l + "\n"
 
-    for info in struct_infos:
+    for info in struct_infos.attr_and_regions:
         if info.struct_attribute is not None:
             #   .def_readwrite("ImageDisplaySize", &ImageNavigatorParams::ImageDisplaySize, "The Size")
             attr = info.struct_attribute
-            line = f'.def_readwrite("{attr.name_python}", &{struct_name}::{attr.name_cpp}, "{attr.comment}")'
+            line = f'.def_readwrite("{attr.name_python}", &{struct_infos.struct_name()}::{attr.name_cpp}, "{attr.comment}")'
             add_line(line)
     return r
 
 
-def make_struct_tostring_cpp_code(struct_name: str, struct_infos: typing.List[Variant_Attribute_CodeRegion]):
+def make_struct_tostring_cpp_code(struct_infos: StructInfos):
     code_intro = f'''
         using namespace ImmVision::StringUtils;
 
@@ -291,7 +327,7 @@ def make_struct_tostring_cpp_code(struct_name: str, struct_infos: typing.List[Va
         nonlocal r
         r = r + l + "\n"
 
-    for info in struct_infos:
+    for info in struct_infos.attr_and_regions:
         if info.struct_attribute is not None:
             #         r = r + MakeIndent(indent_size) + "ColorAdjustments: " + ToString(v.ColorAdjustments) + "\n";
             attr = info.struct_attribute
@@ -302,32 +338,90 @@ def make_struct_tostring_cpp_code(struct_name: str, struct_infos: typing.List[Va
     return code_utils.indent_code_force(r, 8)
 
 
+def make_struct_piy_code(struct_infos: StructInfos):
+    code_intro = f'''
+class {struct_infos.struct_name()}:
+    """{struct_infos.struct_code.one_line_title}
+    
+DOC_STRING
+
+
+    """
+    '''
+    attr_inner = """    NAME_PYTHON: TYPE_PYTHON = DEFAULT_VALUE_PYTHON"""
+    code_outro = ""
+
+    code_intro = code_intro.replace("DOC_STRING", make_struct_doc(struct_infos))
+
+    r = code_intro + "\n";
+
+    def add_line(l):
+        nonlocal r
+        r = r + l + "\n"
+
+    for info in struct_infos.attr_and_regions:
+        if info.code_region_comment is not None:
+            add_line("")
+            add_line("    #")
+            for line in info.code_region_comment.comment.split("\n"):
+                add_line("    # " + line)
+            add_line("    #")
+
+        if info.struct_attribute is not None:
+            attr = info.struct_attribute
+            for line in attr.comment.split("\n"):
+                add_line("    # " + line)
+            line = attr_inner
+            line = line.replace("NAME_PYTHON", attr.name_python)
+            line = line.replace("TYPE_PYTHON", code_utils.apply_code_replacements(attr.type))
+            line = line.replace("DEFAULT_VALUE_PYTHON", code_utils.apply_code_replacements(attr.default_value))
+            add_line(line)
+
+    r = r + code_outro
+    return r
+
+
 def write_generated_code(
         struct_header_filename: str,
         struct_name: str,
         modified_cpp_filename: str,
         marker_id: str,
-        code_generator_function
+        code_generator_function,
+        flag_preserve_left_spaces: bool
     ):
     struct_infos = extract_struct_infos(
         code_utils.read_text_file(struct_header_filename),
         struct_name)
     code_marker = f"{struct_name}.{marker_id}"
+    generated_code = code_generator_function(struct_infos)
     code_utils.write_code_between_markers(
         modified_cpp_filename,
         code_marker,
-        code_generator_function(struct_name, struct_infos)
+        generated_code,
+        flag_preserve_left_spaces
     )
 
 
 def write_struct_attributes_pybindcpp_code(struct_header_filename, struct_name, modified_cpp_filename):
     write_generated_code(
-        struct_header_filename, struct_name, modified_cpp_filename, "attributes", make_struct_attributes_cpp_code)
+        struct_header_filename, struct_name, modified_cpp_filename, "attributes", make_struct_attributes_cpp_code, False)
 
 
 def write_struct_tostring_code(struct_header_filename, struct_name, modified_cpp_filename):
     write_generated_code(
-        struct_header_filename, struct_name, modified_cpp_filename, "tostring", make_struct_tostring_cpp_code)
+        struct_header_filename, struct_name, modified_cpp_filename, "tostring", make_struct_tostring_cpp_code, False)
+
+
+def write_struct_docstring(struct_header_filename, struct_name):
+    modified_py_filename = THIS_DIR + "/../src_python/immvision/__init__.py"
+    write_generated_code(
+        struct_header_filename, struct_name, modified_py_filename, "docstring", make_struct_doc_code, True)
+
+
+def write_struct_piy_code(struct_header_filename, struct_name):
+    modified_py_filename = THIS_DIR + "/../src_python/immvision/cpp_immvision.pyi"
+    write_generated_code(
+        struct_header_filename, struct_name, modified_py_filename, "piy", make_struct_piy_code, True)
 
 
 
@@ -347,6 +441,9 @@ def main():
         write_struct_tostring_code(
             struct_header_filename, struct_name, modified_cpp_filename)
 
+        write_struct_docstring(struct_header_filename, struct_name)
+
+        write_struct_piy_code(struct_header_filename, struct_name)
 
 if __name__ == "__main__":
     main()

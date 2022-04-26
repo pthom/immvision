@@ -25,7 +25,7 @@ def parse_string_replacement(line: str) -> StringReplacement:
     Parses a string of the form
     cv::Matx33d::eye() -> np.eye(3)
     """
-    items = line.split("->")
+    items = line.split(" -> ")
     r = StringReplacement()
     r.replace_what = items[0].strip()
     r.by_what = items[1].strip()
@@ -44,34 +44,38 @@ def parse_string_replacements(lines: str) -> typing.List[StringReplacement]:
 
 
 def _opencv_replacements() -> typing.List[StringReplacement]:
-    replacements = """
-    cv::Size() -> (0, 0)
-    cv::Matx33d::eye() -> np.eye(3)
-    cv::Matx33d -> np.array((3, 3), np.float64)    
-    cv::Size -> (w,h)
-    std::string() -> ""
-    std::string -> str
-    true -> True
-    false -> False
+    replacements = r"""
+    \bcv::Size\(\) -> (0, 0)
+    \bcv::Size\b -> Size
+    \bcv::Matx33d::eye\(\) -> np.eye(3)
+    \bcv::Matx33d\b -> Matx33d
+    \bdouble\b -> float
+    \bcv::Point\b -> Point
     """
     return parse_string_replacements(replacements)
 
 
-def apply_one_replacement(s: str, replacement: StringReplacement) -> str:
-    r, nb = re.subn(r'\b' + replacement.replace_what + r'\b', replacement.by_what , s)
+def _std_replacements() -> typing.List[StringReplacement]:
+    replacements = r"""
+    \bstd::string() -> ""
+    \bstd::string\b -> str
+    \btrue\b -> True
+    \bfalse\b -> False
+    \bstd::vector<([\w:]*)> -> list[\1]
+    """
+    return parse_string_replacements(replacements)
+
+def apply_one_replacement(s: str, replacement: StringReplacement):
+    regex = replacement.replace_what
+    subst = replacement.by_what
+    r, nb = re.subn(regex, subst , s)
     return r
 
-
-def apply_opencv_replacements(s: str) -> str:
+def apply_code_replacements(s: str) ->str:
     r = s
-    for replacement in _opencv_replacements():
+    for replacement in _opencv_replacements() + _std_replacements():
         r = apply_one_replacement(r, replacement)
     return r
-
-
-def test_replacement():
-    s = "zoom_pan_matrix: cv::Matx33d = cv::Matx33d::eye()"
-    print(apply_one_replacement(s, StringReplacement("cv::Matx33d", "blah")))
 
 
 def read_text_file(filename: str) -> str:
@@ -103,7 +107,8 @@ def indent_code_force(code: str, indent_size: int):
 def write_code_between_markers(
         inout_filename: str,
         code_marker: str,
-        code_to_insert: str
+        code_to_insert: str,
+        flag_preserve_left_spaces: bool
     ):
     code_marker_in = f"<autogen:{code_marker}>"
     code_marker_out = f"</autogen:{code_marker}>"
@@ -123,8 +128,11 @@ def write_code_between_markers(
                 while indent_size < len(code_line) and code_line[indent_size] == " ":
                     indent_size += 1
                 output_code = output_code + code_line + "\n"
-                output_code = output_code + "\n\n"
-                output_code = output_code + indent_code_force(code_to_insert, indent_size)
+                output_code = output_code + "\n"
+                if flag_preserve_left_spaces:
+                    output_code = output_code + code_to_insert
+                else:
+                    output_code = output_code + indent_code_force(code_to_insert, indent_size)
         else:
             if not is_inside_autogen_region:
                 output_code = output_code + code_line + "\n"
@@ -138,3 +146,39 @@ def write_code_between_markers(
         output_code = output_code[:-1]
 
     write_text_file(inout_filename, output_code)
+
+
+
+##### Test
+
+
+def test_code_replacements():
+    string_replacement = StringReplacement()
+    string_replacement.replace_what = r"\bcv::Size\(\)"
+    string_replacement.by_what = "(0, 0)"
+    s = "cv::Sizeounette cv::Size s = cv::Size()"
+    r = apply_one_replacement(s, string_replacement)
+    assert(r == "cv::Sizeounette cv::Size s = (0, 0)")
+
+
+    replacements_str = r"""
+    \bcv::Size\(\) -> (0, 0)
+    """
+    replacements_list = parse_string_replacements(replacements_str)
+    s = "cv::Sizeounette cv::Size s = cv::Size()"
+    r = apply_one_replacement(s, replacements_list[0])
+    assert(r == "cv::Sizeounette cv::Size s = (0, 0)")
+
+
+    replacements_str = r"""
+    \bcv::Size\b -> Size
+    """
+    replacements_list = parse_string_replacements(replacements_str)
+    s = "cv::Sizeounette cv::Size s = cv::Size()"
+    r = apply_one_replacement(s, replacements_list[0])
+    assert(r == "cv::Sizeounette Size s = Size()")
+
+
+    s = "cv::Sizeounette cv::Size s = cv::Size()"
+    r = apply_code_replacements(s)
+    assert(r == "cv::Sizeounette Size s = (0, 0)")
