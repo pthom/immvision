@@ -21,6 +21,10 @@ jobs:
         ./docker_run.py -build_image
         ./docker_run.py -create_container
 
+
+    - name: Setup interactive tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: pip install in docker container
       run: |
         cd scripts/docker_clang_build
