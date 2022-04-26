@@ -67,10 +67,10 @@ class Variant_Attribute_CodeRegion:
     struct_attribute: StructAttribute = None
 
 
-@dataclass
 class StructInfos:
-    struct_code: StructCode = None
-    attr_and_regions: list[Variant_Attribute_CodeRegion] = field(default_factory=list)
+    def __init__(self):
+        self.struct_code: StructCode = None
+        self.attr_and_regions = []
     def struct_name(self):
         return self.struct_code.struct_name
 

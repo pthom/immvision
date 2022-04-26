@@ -1,11 +1,6 @@
 * [ ] PIP
-  * [ ] add pyimgui ide autocompletion (pyi): see https://github.com/pyimgui/pyimgui/issues/263
-
- * [ ] adapt window size to content if specified size is none
+  * [ ] Auto generated: doc / piy / toString a la python 
   * [ ] imgui_fig (from imgui_datascience)
-  * [ ] classify code
-    * [ ] Add missing signatures / cpp
-    * [ ] Add nice signatures / python
   * [ ] imgui_runner
       * [ ] change mat type if not castable (and cache)
   * [Later] cf _skbuild_template: add conda & wheels
@@ -72,3 +67,5 @@
   * [N] Copy image to clipboard => voir https://github.com/dacap/clip / Non: rend compilation complexe !
 
 * [?] Plugin python / lldb and gdb 
+
+
