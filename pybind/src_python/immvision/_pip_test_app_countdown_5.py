@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+
+"""
+_pip_test_app_countdown_5: graphical test app that exits after 5 seconds
+
+used only for internal tests
+"""
+
 import imgui
 import immvision
 import immvision.cpp_immvision
@@ -7,14 +14,15 @@ import imgui
 import cv2
 import time
 import os
+import numpy as np
 
 
 def main():
-    print("********* pip_test_app: graphical test app that exits after 5 seconds *********")
+    print("********* _pip_test_app_countdown_5: graphical test app that exits after 5 seconds *********")
     params = imgui_runner.ImguiAppParams()
     THIS_DIR = os.path.dirname(__file__)
 
-    image = cv2.imread(f"{THIS_DIR}/house.jpg")
+    image = np.zeros((800, 600, 3), np.uint8)
     start_time = -1
 
     def chrono_countdown(total_duration):
@@ -36,8 +44,7 @@ def main():
             params.app_shall_exit = True
 
     params.gui_function = my_gui
-    imgui_runner.run(params)
+    imgui_runner.run(my_gui, params)
 
 
-if __name__ == "__main__":
-    main()
+main()
