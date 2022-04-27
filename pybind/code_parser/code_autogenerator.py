@@ -314,7 +314,7 @@ def make_struct_tostring_cpp_code(struct_infos: StructInfos):
         std::string inner;
     '''
 
-    code_inner = 'inner = inner + "ATTR_NAME: " + ToString(v.ATTR_NAME) + "\\n";'
+    code_inner = 'inner = inner + "ATTR_NAME: " + ToString(v.ATTR_NAME_CPP) + "\\n";'
 
     code_outro = f'''
         r = r + IndentLines(inner, 4);
@@ -322,17 +322,33 @@ def make_struct_tostring_cpp_code(struct_infos: StructInfos):
         return r;
     '''
 
-    r = code_intro + "\n";
-    def add_line(l):
-        nonlocal r
-        r = r + l + "\n"
 
-    for info in struct_infos.attr_and_regions:
-        if info.struct_attribute is not None:
-            #         r = r + MakeIndent(indent_size) + "ColorAdjustments: " + ToString(v.ColorAdjustments) + "\n";
-            attr = info.struct_attribute
-            line = code_inner.replace("ATTR_NAME", attr.name_cpp)
-            add_line(line)
+    def dump_attributes(is_python: bool):
+        code = ""
+        for info in struct_infos.attr_and_regions:
+            if info.struct_attribute is not None:
+                #         r = r + MakeIndent(indent_size) + "ColorAdjustments: " + ToString(v.ColorAdjustments) + "\n";
+                attr = info.struct_attribute
+                line = code_inner
+                line = line.replace("ATTR_NAME_CPP", attr.name_cpp)
+                if is_python:
+                    line = line.replace("ATTR_NAME", attr.name_python)
+                else:
+                    line = line.replace("ATTR_NAME", attr.name_cpp)
+                code = code + line + "\n"
+        return code
+
+    r = ""
+    r += code_intro + "\n"
+    r += "#ifdef IMMVISION_BUILD_PYTHON_BINDINGS\n"
+    r += "\n"
+    r += dump_attributes(True)
+    r += "\n"
+    r += "#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS\n"
+    r += "\n"
+    r += dump_attributes(False)
+    r += "\n"
+    r += "#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS\n"
 
     r = r + code_outro
     return code_utils.indent_code_force(r, 8)
@@ -340,13 +356,10 @@ def make_struct_tostring_cpp_code(struct_infos: StructInfos):
 
 def make_struct_piy_code(struct_infos: StructInfos):
     code_intro = f'''class {struct_infos.struct_name()}:
-    """DOC_STRING
-    """
+    "{struct_infos.struct_code.one_line_title}"
     '''
     attr_inner = """    NAME_PYTHON: TYPE_PYTHON = DEFAULT_VALUE_PYTHON"""
     code_outro = ""
-
-    code_intro = code_intro.replace("DOC_STRING", make_struct_doc(struct_infos))
 
     r = code_intro + "\n";
 
@@ -424,8 +437,7 @@ def main():
     struct_header_filename = f"{REPO_DIR}/src/immvision/image_navigator.h"
 
     # Good
-    # struct_names = ["ImageNavigatorParams", "ColorAdjustmentsValues"]
-    struct_names = ["ColorAdjustmentsValues"]
+    struct_names = ["ImageNavigatorParams", "ColorAdjustmentsValues"]
     for struct_name in struct_names:
         modified_cpp_filename = f"{REPO_DIR}/pybind/src_cpp/pybind_image_navigator.cpp"
         write_struct_attributes_pybindcpp_code(

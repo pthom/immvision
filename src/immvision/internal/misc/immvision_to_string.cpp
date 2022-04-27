@@ -16,8 +16,17 @@ namespace ImmVision
         
         std::string inner;
         
+        #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
+        
+        inner = inner + "factor: " + ToString(v.Factor) + "\n";
+        inner = inner + "delta: " + ToString(v.Delta) + "\n";
+        
+        #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
+        
         inner = inner + "Factor: " + ToString(v.Factor) + "\n";
         inner = inner + "Delta: " + ToString(v.Delta) + "\n";
+        
+        #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
         
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -40,6 +49,32 @@ namespace ImmVision
         
         std::string inner;
         
+        #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
+        
+        inner = inner + "image_display_size: " + ToString(v.ImageDisplaySize) + "\n";
+        inner = inner + "legend: " + ToString(v.Legend) + "\n";
+        inner = inner + "zoom_pan_matrix: " + ToString(v.ZoomPanMatrix) + "\n";
+        inner = inner + "zoom_key: " + ToString(v.ZoomKey) + "\n";
+        inner = inner + "color_adjustments: " + ToString(v.ColorAdjustments) + "\n";
+        inner = inner + "color_adjustments_key: " + ToString(v.ColorAdjustmentsKey) + "\n";
+        inner = inner + "pan_with_mouse: " + ToString(v.PanWithMouse) + "\n";
+        inner = inner + "zoom_with_mouse_wheel: " + ToString(v.ZoomWithMouseWheel) + "\n";
+        inner = inner + "is_color_order_bgr: " + ToString(v.IsColorOrderBGR) + "\n";
+        inner = inner + "selected_channel: " + ToString(v.SelectedChannel) + "\n";
+        inner = inner + "show_alpha_channel_checkerboard: " + ToString(v.ShowAlphaChannelCheckerboard) + "\n";
+        inner = inner + "show_grid: " + ToString(v.ShowGrid) + "\n";
+        inner = inner + "draw_values_on_zoomed_pixels: " + ToString(v.DrawValuesOnZoomedPixels) + "\n";
+        inner = inner + "show_image_info: " + ToString(v.ShowImageInfo) + "\n";
+        inner = inner + "show_pixel_info: " + ToString(v.ShowPixelInfo) + "\n";
+        inner = inner + "show_zoom_buttons: " + ToString(v.ShowZoomButtons) + "\n";
+        inner = inner + "show_legend_border: " + ToString(v.ShowLegendBorder) + "\n";
+        inner = inner + "show_options: " + ToString(v.ShowOptions) + "\n";
+        inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
+        inner = inner + "watched_pixels: " + ToString(v.WatchedPixels) + "\n";
+        inner = inner + "highlight_watched_pixels: " + ToString(v.HighlightWatchedPixels) + "\n";
+        
+        #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
+        
         inner = inner + "ImageDisplaySize: " + ToString(v.ImageDisplaySize) + "\n";
         inner = inner + "Legend: " + ToString(v.Legend) + "\n";
         inner = inner + "ZoomPanMatrix: " + ToString(v.ZoomPanMatrix) + "\n";
@@ -61,6 +96,8 @@ namespace ImmVision
         inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "WatchedPixels: " + ToString(v.WatchedPixels) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
+        
+        #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
         
         r = r + IndentLines(inner, 4);
         r += "}";

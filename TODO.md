@@ -1,5 +1,6 @@
 * [ ] PIP
   * [ ] Auto generated: doc / piy / toString a la python 
+    * [ ] Verif qu'elle sont embarquée dans le pip (voir dans site-packages)
   * [ ] imgui_fig (from imgui_datascience)
   * [ ] imgui_runner
       * [ ] change mat type if not castable (and cache)
