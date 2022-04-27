@@ -149,6 +149,8 @@ endif()
 
 # Install
 install(TARGETS cpp_immvision DESTINATION .)
+install(FILES ${THIS_DIR}/src_python/immvision/cpp_immvision.pyi DESTINATION .)
+
 # deploy python lib to source dir (for pip editable mode)
 add_custom_command(
         TARGET cpp_immvision
