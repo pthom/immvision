@@ -4,3 +4,6 @@
 [submodule "pybind/cvnp"]
 	path = pybind/cvnp
 	url = https://github.com/pthom/cvnp.git
+[submodule "external/hello_imgui"]
+	path = external/hello_imgui
+	url = https://github.com/pthom/hello_imgui.git
