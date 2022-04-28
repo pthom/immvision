@@ -13,7 +13,7 @@
 
 
  * [ ] immvision
-     * [ ] ImageOld and Image are the same ? Group them ?
+     * [ ] Faire de external/imgui et hello_imgui des submodules ? Test ensuite avec git + pip only
      * [ ] Only one signature for Image (using struct designated init as named params)
      * [ ] Image returns multiple values (mouse position (double), pixel color (vecdouble), ...)
            Or better, return pointer to params (helps users that did not specify them as a param, they can get it anyway)
