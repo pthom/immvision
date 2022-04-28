@@ -9,7 +9,7 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
 #include "immvision/internal/imgui/image_navigator_widgets.h"
-#include "immvision/internal/image_navigator_cache.h"
+#include "immvision/internal/image_cache.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -21,7 +21,7 @@ namespace ImmVision
 {
     void ClearTextureCache()
     {
-        ImageNavigatorCache::gImageNavigatorTextureCache.ClearImagesCache();
+        ImageCache::gImageNavigatorTextureCache.ClearImagesCache();
     }
 
 
@@ -36,8 +36,8 @@ namespace ImmVision
         //
         // If your editor is able to collapse the lambda definitions, you will see the structure.
 
-        using CachedParams = ImageNavigatorCache::ImageNavigatorTextureCache::CachedParams;
-        using CachedImages = ImageNavigatorCache::ImageNavigatorTextureCache::CachedImages;
+        using CachedParams = ImageCache::ImageTextureCache::CachedParams;
+        using CachedImages = ImageCache::ImageTextureCache::CachedImages;
 
         //
         // Lambda / panel Title
@@ -467,9 +467,9 @@ namespace ImmVision
             return cv::Point2d();
         }
 
-        ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
-        auto &cacheParams = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheParams(image);
-        auto &cacheImages = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheImages(image);
+        ImageCache::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
+        auto &cacheParams = ImageCache::gImageNavigatorTextureCache.GetCacheParams(image);
+        auto &cacheImages = ImageCache::gImageNavigatorTextureCache.GetCacheImages(image);
 
         ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
         cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);

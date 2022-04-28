@@ -1,6 +1,6 @@
 #include "immvision/inspector.h"
 #include "immvision/image_navigator.h"
-#include "immvision/internal/image_navigator_cache.h"
+#include "immvision/internal/image_cache.h"
 #include "immvision/internal/gl/imgui_imm_gl_image.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/imgui/image_navigator_widgets.h"
@@ -55,7 +55,7 @@ namespace ImmVision
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
                 std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
-                auto &cacheImage = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheImages(
+                auto &cacheImage = ImageCache::gImageNavigatorTextureCache.GetCacheImages(
                     s_Inspector_ImagesAndParams[i].Image);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
@@ -89,7 +89,7 @@ namespace ImmVision
                     i.Params.ZoomPanMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
-                ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
+                ImageCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }

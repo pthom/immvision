@@ -2525,6 +2525,228 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_cache.cpp                                                 //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_cache.h included by src/immvision/internal/image_cache.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+namespace ImmVision
+{
+    namespace ImageCache
+    {
+        class ImageTextureCache
+        {
+        public:
+            // members
+            struct CachedParams
+            {
+                // This caches are small and will persist during the application lifetime
+                ImageParams* Params = nullptr;
+                ImVec2 LastDragDelta;
+                std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
+                bool   IsMouseDragging = false;
+                struct ImageParams  PreviousParams;
+            };
+            struct CachedImages
+            {
+                // This caches are heavy and will be destroyed
+                // if not used (after about 5 seconds)
+                cv::Mat     ImageRgbaCache;
+                std::unique_ptr<GlTextureCv> GlTexture;
+            };
+
+            void UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh);
+
+            CachedParams& GetCacheParams(const cv::Mat& image);
+            CachedImages& GetCacheImages(const cv::Mat& image);
+            void ClearImagesCache();
+
+        private:
+            // Methods
+            void UpdateLinkedZooms(const cv::Mat& image);
+            void UpdateLinkedColorAdjustments(const cv::Mat& image);
+
+            internal::Cache<const cv::Mat *, CachedParams> mCacheParams;
+            double mCachedImagesTimeToLive = 5.;
+            internal::ShortLivedCache<const cv::Mat *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
+        };
+
+        extern ImageTextureCache gImageNavigatorTextureCache;
+
+    } // namespace ImageNavigatorUtils
+
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image_cache.cpp continued                                       //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace ImageCache
+    {
+        void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
+        {
+            if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
+                params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
+            if (params->ZoomPanMatrix == cv::Matx33d::eye())
+                params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
+        }
+
+        bool ShallRefreshRgbaCache(const ImageParams& v1, const ImageParams& v2)
+        {
+            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
+                return true;
+            if (v1.SelectedChannel != v2.SelectedChannel)
+                return true;
+            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
+                return true;
+            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
+                return true;
+            return false;
+        }
+
+        bool ShallRefreshTexture(const ImageParams& v1, const ImageParams& v2)
+        {
+            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
+                return true;
+            if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))
+                return true;
+            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
+                return true;
+            if (v1.ShowGrid != v2.ShowGrid)
+                return true;
+            if (v1.SelectedChannel != v2.SelectedChannel)
+                return true;
+            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
+                return true;
+            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
+                return true;
+            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
+                return true;
+            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
+                return true;
+            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
+                return true;
+            return false;
+        }
+
+
+        //
+        // ImageTextureCache impl below
+        //
+
+        void ImageTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh)
+        {
+            auto cacheKey = &image;
+            params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
+
+            bool needsRefreshTexture = refresh;
+            bool shallRefreshRgbaCache = false;
+
+            if (! mCacheParams.Contains(cacheKey))
+            {
+                InitializeMissingParams(params, image);
+                needsRefreshTexture = true;
+                shallRefreshRgbaCache = true;
+                mCacheParams.AddKey(cacheKey);
+            }
+            if (! mCacheImages.Contains(cacheKey))
+            {
+                mCacheImages.AddKey(cacheKey);
+                needsRefreshTexture = true;
+                shallRefreshRgbaCache = true;
+                mCacheImages.Get(cacheKey).GlTexture = std::make_unique<GlTextureCv>();
+            }
+
+            auto& cachedParams = mCacheParams.Get(cacheKey);
+            auto& cachedImages = mCacheImages.Get(cacheKey);
+            cachedParams.Params = params;
+
+            ImageParams oldParams = cachedParams.PreviousParams;
+            *cachedParams.Params = *params;
+
+            if (cachedImages.GlTexture->mImageSize.x == 0.f)
+                needsRefreshTexture = true;
+            if (ShallRefreshTexture(oldParams, *params))
+                needsRefreshTexture = true;
+            if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
+                params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
+                    oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
+            if (needsRefreshTexture)
+            {
+                if (ShallRefreshRgbaCache(oldParams, *params))
+                    shallRefreshRgbaCache = true;
+                ImageNavigatorDrawing::BlitImageNavigatorTexture(
+                    *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
+            }
+
+            if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
+                UpdateLinkedZooms(image);
+            if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
+                UpdateLinkedColorAdjustments(image);
+
+            cachedParams.PreviousParams = *params;
+
+            mCacheImages.ClearOldEntries();
+        }
+
+        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const cv::Mat& image)
+        {
+            return mCacheParams.Get(&image);
+        }
+        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const cv::Mat& image)
+        {
+            return mCacheImages.Get(&image);
+        }
+
+        void ImageTextureCache::ClearImagesCache()
+        {
+            mCacheImages.Clear();
+        }
+
+        void ImageTextureCache::UpdateLinkedZooms(const cv::Mat& image)
+        {
+            auto currentCacheKey = &image;
+            auto & currentCache = mCacheParams.Get(&image);
+            std::string zoomKey = currentCache.Params->ZoomKey;
+            if (zoomKey.empty())
+                return;
+            ZoomPanTransform::MatrixType newZoom = currentCache.Params->ZoomPanMatrix;
+            for (auto& otherCacheKey : mCacheParams.Keys())
+            {
+                CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
+                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ZoomKey == zoomKey))
+                    otherCache.Params->ZoomPanMatrix = newZoom;
+            }
+        }
+        void ImageTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
+        {
+            auto currentCacheKey = &image;
+            auto & currentCache = mCacheParams.Get(&image);
+            std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
+            if (colorKey.empty())
+                return;
+            ColorAdjustmentsValues newColorAdjustments = currentCache.Params->ColorAdjustments;
+            for (auto& otherCacheKey : mCacheParams.Keys())
+            {
+                CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
+                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ColorAdjustmentsKey == colorKey))
+                    otherCache.Params->ColorAdjustments = newColorAdjustments;
+            }
+        }
+
+
+    ImageTextureCache gImageNavigatorTextureCache;
+    } // namespace ImageNavigatorUtils
+
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image_navigator.cpp                                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <opencv2/imgcodecs.hpp>
@@ -4307,75 +4529,19 @@ namespace ImmVision
 //                       src/immvision/internal/image_navigator.cpp continued                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_cache.h included by src/immvision/internal/image_navigator.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    namespace ImageNavigatorCache
-    {
-        class ImageNavigatorTextureCache
-        {
-        public:
-            // members
-            struct CachedParams
-            {
-                // This caches are small and will persist during the application lifetime
-                ImageParams* Params = nullptr;
-                ImVec2 LastDragDelta;
-                std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
-                bool   IsMouseDragging = false;
-                struct ImageParams  PreviousParams;
-            };
-            struct CachedImages
-            {
-                // This caches are heavy and will be destroyed
-                // if not used (after about 5 seconds)
-                cv::Mat     ImageRgbaCache;
-                std::unique_ptr<GlTextureCv> GlTexture;
-            };
-
-            void UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh);
-
-            CachedParams& GetCacheParams(const cv::Mat& image);
-            CachedImages& GetCacheImages(const cv::Mat& image);
-            void ClearImagesCache();
-
-        private:
-            // Methods
-            void UpdateLinkedZooms(const cv::Mat& image);
-            void UpdateLinkedColorAdjustments(const cv::Mat& image);
-
-            internal::Cache<const cv::Mat *, CachedParams> mCacheParams;
-            double mCachedImagesTimeToLive = 5.;
-            internal::ShortLivedCache<const cv::Mat *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
-        };
-
-        extern ImageNavigatorTextureCache gImageNavigatorTextureCache;
-
-    } // namespace ImageNavigatorUtils
-
-
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator.cpp continued                                   //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 namespace ImmVision
 {
     void ClearTextureCache()
     {
-        ImageNavigatorCache::gImageNavigatorTextureCache.ClearImagesCache();
+        ImageCache::gImageNavigatorTextureCache.ClearImagesCache();
     }
 
 
     cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refresh)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
-        // with members = (cv::Mat& image, ImageNavigatorParams* params, bool refresh).
+        // with members = (cv::Mat& image, ImageParams* params, bool refresh).
         //
         // - it begins by defining a set a lambdas for the different operations (they are named fnXXXX)
         // - the core of the function is only a few lines long and begins after the line
@@ -4383,8 +4549,8 @@ namespace ImmVision
         //
         // If your editor is able to collapse the lambda definitions, you will see the structure.
 
-        using CachedParams = ImageNavigatorCache::ImageNavigatorTextureCache::CachedParams;
-        using CachedImages = ImageNavigatorCache::ImageNavigatorTextureCache::CachedImages;
+        using CachedParams = ImageCache::ImageTextureCache::CachedParams;
+        using CachedImages = ImageCache::ImageTextureCache::CachedImages;
 
         //
         // Lambda / panel Title
@@ -4814,9 +4980,9 @@ namespace ImmVision
             return cv::Point2d();
         }
 
-        ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
-        auto &cacheParams = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheParams(image);
-        auto &cacheImages = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheImages(image);
+        ImageCache::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
+        auto &cacheParams = ImageCache::gImageNavigatorTextureCache.GetCacheParams(image);
+        auto &cacheImages = ImageCache::gImageNavigatorTextureCache.GetCacheImages(image);
 
         ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
         cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);
@@ -4856,172 +5022,6 @@ namespace ImmVision
 
 } // namespace ImmVision
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image_navigator_cache.cpp                                       //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace ImageNavigatorCache
-    {
-        void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
-        {
-            if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
-                params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
-            if (params->ZoomPanMatrix == cv::Matx33d::eye())
-                params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
-        }
-
-        bool ShallRefreshRgbaCache(const ImageParams& v1, const ImageParams& v2)
-        {
-            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
-            return false;
-        }
-
-        bool ShallRefreshTexture(const ImageParams& v1, const ImageParams& v2)
-        {
-            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
-                return true;
-            if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))
-                return true;
-            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
-                return true;
-            if (v1.ShowGrid != v2.ShowGrid)
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
-            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
-                return true;
-            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
-                return true;
-            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
-                return true;
-            return false;
-        }
-
-
-        //
-        // ImageNavigatorTextureCache impl below
-        //
-
-        void ImageNavigatorTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh)
-        {
-            auto cacheKey = &image;
-            params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
-
-            bool needsRefreshTexture = refresh;
-            bool shallRefreshRgbaCache = false;
-
-            if (! mCacheParams.Contains(cacheKey))
-            {
-                InitializeMissingParams(params, image);
-                needsRefreshTexture = true;
-                shallRefreshRgbaCache = true;
-                mCacheParams.AddKey(cacheKey);
-            }
-            if (! mCacheImages.Contains(cacheKey))
-            {
-                mCacheImages.AddKey(cacheKey);
-                needsRefreshTexture = true;
-                shallRefreshRgbaCache = true;
-                mCacheImages.Get(cacheKey).GlTexture = std::make_unique<GlTextureCv>();
-            }
-
-            auto& cachedParams = mCacheParams.Get(cacheKey);
-            auto& cachedImages = mCacheImages.Get(cacheKey);
-            cachedParams.Params = params;
-
-            ImageParams oldParams = cachedParams.PreviousParams;
-            *cachedParams.Params = *params;
-
-            if (cachedImages.GlTexture->mImageSize.x == 0.f)
-                needsRefreshTexture = true;
-            if (ShallRefreshTexture(oldParams, *params))
-                needsRefreshTexture = true;
-            if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
-                params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
-                    oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
-            if (needsRefreshTexture)
-            {
-                if (ShallRefreshRgbaCache(oldParams, *params))
-                    shallRefreshRgbaCache = true;
-                ImageNavigatorDrawing::BlitImageNavigatorTexture(
-                    *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
-            }
-
-            if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
-                UpdateLinkedZooms(image);
-            if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
-                UpdateLinkedColorAdjustments(image);
-
-            cachedParams.PreviousParams = *params;
-
-            mCacheImages.ClearOldEntries();
-        }
-
-        ImageNavigatorTextureCache::CachedParams& ImageNavigatorTextureCache::GetCacheParams(const cv::Mat& image)
-        {
-            return mCacheParams.Get(&image);
-        }
-        ImageNavigatorTextureCache::CachedImages& ImageNavigatorTextureCache::GetCacheImages(const cv::Mat& image)
-        {
-            return mCacheImages.Get(&image);
-        }
-
-        void ImageNavigatorTextureCache::ClearImagesCache()
-        {
-            mCacheImages.Clear();
-        }
-
-        void ImageNavigatorTextureCache::UpdateLinkedZooms(const cv::Mat& image)
-        {
-            auto currentCacheKey = &image;
-            auto & currentCache = mCacheParams.Get(&image);
-            std::string zoomKey = currentCache.Params->ZoomKey;
-            if (zoomKey.empty())
-                return;
-            ZoomPanTransform::MatrixType newZoom = currentCache.Params->ZoomPanMatrix;
-            for (auto& otherCacheKey : mCacheParams.Keys())
-            {
-                CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ZoomKey == zoomKey))
-                    otherCache.Params->ZoomPanMatrix = newZoom;
-            }
-        }
-        void ImageNavigatorTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
-        {
-            auto currentCacheKey = &image;
-            auto & currentCache = mCacheParams.Get(&image);
-            std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
-            if (colorKey.empty())
-                return;
-            ColorAdjustmentsValues newColorAdjustments = currentCache.Params->ColorAdjustments;
-            for (auto& otherCacheKey : mCacheParams.Keys())
-            {
-                CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ColorAdjustmentsKey == colorKey))
-                    otherCache.Params->ColorAdjustments = newColorAdjustments;
-            }
-        }
-
-
-    ImageNavigatorTextureCache gImageNavigatorTextureCache;
-    } // namespace ImageNavigatorUtils
-
-
-} // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/imgui/image_navigator_widgets.cpp                               //
@@ -5854,7 +5854,7 @@ namespace ImmVision
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
                 std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
-                auto &cacheImage = ImageNavigatorCache::gImageNavigatorTextureCache.GetCacheImages(
+                auto &cacheImage = ImageCache::gImageNavigatorTextureCache.GetCacheImages(
                     s_Inspector_ImagesAndParams[i].Image);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
@@ -5888,7 +5888,7 @@ namespace ImmVision
                     i.Params.ZoomPanMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
-                ImageNavigatorCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
+                ImageCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }
@@ -6035,7 +6035,7 @@ namespace ImmVision
         using namespace ImmVision::StringUtils;
         
         std::string r;
-        r += "ImageNavigatorParams\n";
+        r += "ImageParams\n";
         r += "{\n";
         
         std::string inner;
@@ -6062,13 +6062,13 @@ namespace ImmVision
 
     std::string ToString(const ImageParams& v)
     {
-        // <autogen:ImageNavigatorParams.tostring> // Autogenerated code below! Do not edit!
+        // <autogen:ImageParams.tostring> // Autogenerated code below! Do not edit!
 
         
         using namespace ImmVision::StringUtils;
         
         std::string r;
-        r += "ImageNavigatorParams\n";
+        r += "ImageParams\n";
         r += "{\n";
         
         std::string inner;
@@ -6127,7 +6127,7 @@ namespace ImmVision
         r += "}";
         return r;
         
-        // </autogen:ImageNavigatorParams.tostring> // Autogenerated code end
+        // </autogen:ImageParams.tostring> // Autogenerated code end
     }
 
 }

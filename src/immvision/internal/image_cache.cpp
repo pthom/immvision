@@ -1,4 +1,4 @@
-#include "immvision/internal/image_navigator_cache.h"
+#include "immvision/internal/image_cache.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/imgui/imgui_imm.h"
@@ -6,7 +6,7 @@
 
 namespace ImmVision
 {
-    namespace ImageNavigatorCache
+    namespace ImageCache
     {
         void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
         {
@@ -56,10 +56,10 @@ namespace ImmVision
 
 
         //
-        // ImageNavigatorTextureCache impl below
+        // ImageTextureCache impl below
         //
 
-        void ImageNavigatorTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh)
+        void ImageTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh)
         {
             auto cacheKey = &image;
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
@@ -114,21 +114,21 @@ namespace ImmVision
             mCacheImages.ClearOldEntries();
         }
 
-        ImageNavigatorTextureCache::CachedParams& ImageNavigatorTextureCache::GetCacheParams(const cv::Mat& image)
+        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const cv::Mat& image)
         {
             return mCacheParams.Get(&image);
         }
-        ImageNavigatorTextureCache::CachedImages& ImageNavigatorTextureCache::GetCacheImages(const cv::Mat& image)
+        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const cv::Mat& image)
         {
             return mCacheImages.Get(&image);
         }
 
-        void ImageNavigatorTextureCache::ClearImagesCache()
+        void ImageTextureCache::ClearImagesCache()
         {
             mCacheImages.Clear();
         }
 
-        void ImageNavigatorTextureCache::UpdateLinkedZooms(const cv::Mat& image)
+        void ImageTextureCache::UpdateLinkedZooms(const cv::Mat& image)
         {
             auto currentCacheKey = &image;
             auto & currentCache = mCacheParams.Get(&image);
@@ -143,7 +143,7 @@ namespace ImmVision
                     otherCache.Params->ZoomPanMatrix = newZoom;
             }
         }
-        void ImageNavigatorTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
+        void ImageTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
         {
             auto currentCacheKey = &image;
             auto & currentCache = mCacheParams.Get(&image);
@@ -160,7 +160,7 @@ namespace ImmVision
         }
 
 
-    ImageNavigatorTextureCache gImageNavigatorTextureCache;
+    ImageTextureCache gImageNavigatorTextureCache;
     } // namespace ImageNavigatorUtils
 
 

@@ -6,9 +6,9 @@
 
 namespace ImmVision
 {
-    namespace ImageNavigatorCache
+    namespace ImageCache
     {
-        class ImageNavigatorTextureCache
+        class ImageTextureCache
         {
         public:
             // members
@@ -45,7 +45,7 @@ namespace ImmVision
             internal::ShortLivedCache<const cv::Mat *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
         };
 
-        extern ImageNavigatorTextureCache gImageNavigatorTextureCache;
+        extern ImageTextureCache gImageNavigatorTextureCache;
 
     } // namespace ImageNavigatorUtils
 
