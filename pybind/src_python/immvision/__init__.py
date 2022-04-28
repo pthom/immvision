@@ -12,28 +12,28 @@ from .cpp_immvision import ImageParams, ColorAdjustmentsValues
 ImageParams.__doc__ = """Set of display parameters and options for an Image
 
 
- ImageParams store the parameters for an Image
+ ImageParams store the parameters for a displayed image
  (as well as user selected watched pixels, selected channel, etc.)
  Its default constructor will give them reasonable choices, which you can adapt to your needs.
  Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
 
  Display size and title
     * image_display_size: Size = (0, 0)
-            Size of the navigator (can be different from the image size)
-    * legend: str = "Image Navigator"
+            Size of the displayed image (can be different from the matrix size)
+    * legend: str = "Image"
             Title displayed in the border
 
  Zoom and Pan (represented by an affine transform matrix, of size 3x3)
     * zoom_pan_matrix: Matx33d = np.eye(3)
             ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
     * zoom_key: str = ""
-            If displaying several navigators, those with the same ZoomKey will zoom and pan together
+            If displaying several images, those with the same ZoomKey will zoom and pan together
 
  Color adjustments
     * color_adjustments: ColorAdjustmentsValues = ColorAdjustmentsValues()
             Color adjustments for float matrixes
     * color_adjustments_key: str = ""
-            If displaying several navigators, those with the same ColorAdjustmentsKey will adjust together
+            If displaying several images, those with the same ColorAdjustmentsKey will adjust together
 
  Zoom and pan with the mouse
     * pan_with_mouse: bool = True
@@ -51,7 +51,7 @@ ImageParams.__doc__ = """Set of display parameters and options for an Image
     * draw_values_on_zoomed_pixels: bool = True
             Pixel values show when the zoom is high
 
- Navigator display options
+ Image display options
     * show_image_info: bool = True
             Show matrix type and size
     * show_pixel_info: bool = True

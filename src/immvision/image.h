@@ -20,7 +20,7 @@ namespace ImmVision
     struct ImageParams
     {
         //
-        // ImageParams store the parameters for an Image
+        // ImageParams store the parameters for a displayed image
         // (as well as user selected watched pixels, selected channel, etc.)
         // Its default constructor will give them reasonable choices, which you can adapt to your needs.
         // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
@@ -30,10 +30,10 @@ namespace ImmVision
         // Display size and title
         //
 
-        // Size of the navigator (can be different from the image size)
+        // Size of the displayed image (can be different from the matrix size)
         cv::Size ImageDisplaySize = cv::Size();
         // Title displayed in the border
-        std::string Legend = "Image Navigator";
+        std::string Legend = "Image";
 
         //
         // Zoom and Pan (represented by an affine transform matrix, of size 3x3)
@@ -41,7 +41,7 @@ namespace ImmVision
 
         // ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
         cv::Matx33d ZoomPanMatrix = cv::Matx33d::eye();
-        // If displaying several navigators, those with the same ZoomKey will zoom and pan together
+        // If displaying several images, those with the same ZoomKey will zoom and pan together
         std::string ZoomKey = "";
 
         //
@@ -49,7 +49,7 @@ namespace ImmVision
         //
         // Color adjustments for float matrixes
         ColorAdjustmentsValues ColorAdjustments = ColorAdjustmentsValues();
-        // If displaying several navigators, those with the same ColorAdjustmentsKey will adjust together
+        // If displaying several images, those with the same ColorAdjustmentsKey will adjust together
         std::string ColorAdjustmentsKey = "";
 
         //
@@ -74,7 +74,7 @@ namespace ImmVision
         bool DrawValuesOnZoomedPixels = true;
 
         //
-        // Navigator display options
+        // Image display options
         //
         // Show matrix type and size
         bool ShowImageInfo = true;
@@ -111,7 +111,7 @@ namespace ImmVision
     cv::Point2d Image(
         const cv::Mat& image,
         const cv::Size& imageDisplaySize = cv::Size(),
-        const std::string& legend = "Image Navigator",
+        const std::string& legend = "Image",
         bool refreshImage = false,
         bool showOptionsWhenAppearing = false,
         const std::string& zoomKey = "",

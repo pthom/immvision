@@ -15,7 +15,7 @@
  * [ ] immvision
      * [ ] ImageOld and Image are the same ? Group them ?
      * [ ] Only one signature for Image (using struct designated init as named params)
-     * [ ] Navigator returns multiple values (mouse position (double), pixel color (vecdouble), ...)
+     * [ ] Image returns multiple values (mouse position (double), pixel color (vecdouble), ...)
            Or better, return pointer to params (helps users that did not specify them as a param, they can get it anyway)
      * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
      *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable

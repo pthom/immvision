@@ -118,20 +118,20 @@ namespace ImmVision
 
         float x_margin = 30.f;
         float y_margin = 5.f;
-        float navigator_info_height = 120.f;
+        float image_info_height = 120.f;
         if (!s_Inspector_ImagesAndParams.empty())
         {
             const auto &params = s_Inspector_ImagesAndParams.front().Params;
             if (!params.ShowImageInfo)
-                navigator_info_height -= 20.f;
+                image_info_height -= 20.f;
             if (!params.ShowPixelInfo)
-                navigator_info_height -= 20.f;
+                image_info_height -= 20.f;
         }
-        float navigator_options_width = showOptionsColumn ? 300.f : 0.f;
+        float image_options_width = showOptionsColumn ? 300.f : 0.f;
         ImVec2 winSize = ImGui::GetWindowSize();
         imageSize = ImVec2(
-            winSize.x - listWidth - x_margin - navigator_options_width,
-            winSize.y - y_margin - navigator_info_height);
+            winSize.x - listWidth - x_margin - image_options_width,
+            winSize.y - y_margin - image_info_height);
         if (imageSize.x < 1.f)
             imageSize.x = 1.f;
         if (imageSize.y < 1.f)
@@ -181,7 +181,7 @@ namespace ImmVision
         ImGui::NextColumn();
 
         //
-        // Second column : navigator
+        // Second column : image
         //
         {
             if (s_Inspector_ImagesAndParams.empty())

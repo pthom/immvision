@@ -188,11 +188,11 @@ namespace ImmVision
 
             }
 
-            //Navigator display options
+            // Image display options
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Options"))
             {
                 {
-                    ImGuiImm::BeginGroupPanel("Navigator display options");
+                    ImGuiImm::BeginGroupPanel("Image display options");
                     ImGui::Checkbox("Show image info", &params->ShowImageInfo);
                     ImGui::Checkbox("Show pixel info", &params->ShowPixelInfo);
                     ImGui::Checkbox("Show zoom buttons", &params->ShowZoomButtons);

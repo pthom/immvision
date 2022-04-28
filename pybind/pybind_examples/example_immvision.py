@@ -59,7 +59,7 @@ def show_camera():
     if show_camera.visible:
         video_ok, video_frame = show_camera.video_capture.read()
         if video_ok:
-            immvision.Image(video_frame, True, (500, 0), True)
+            immvision.Image(video_frame)
             imgui_runner.power_save.set_max_wait_before_next_frame(1/50)
 
 

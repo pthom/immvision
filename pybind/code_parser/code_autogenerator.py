@@ -49,10 +49,10 @@ class CodeRegionComment:
     // (the display size can differ from the image size)                     <=== It can span several lines
     //
 
-    // Size of the navigator (can be different from the image size)          <=== This is StructAttribute.comment
+    // Size of the displayed image (can be different from the matrix size)   <=== This is StructAttribute.comment
     cv::Size ImageDisplaySize = cv::Size();                                   (it should fit on one line)
     // Title displayed in the border
-    std::string Legend = "Image Navigator";
+    std::string Legend = "Image";
     ````
 
     """

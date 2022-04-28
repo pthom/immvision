@@ -23,7 +23,7 @@ class ImageParams:
     
 
     #
-    #  ImageParams store the parameters for an Image
+    #  ImageParams store the parameters for a displayed image
     #  (as well as user selected watched pixels, selected channel, etc.)
     #  Its default constructor will give them reasonable choices, which you can adapt to your needs.
     #  Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
@@ -32,17 +32,17 @@ class ImageParams:
     #
     #  Display size and title
     #
-    # Size of the navigator (can be different from the image size)
+    # Size of the displayed image (can be different from the matrix size)
     image_display_size: Size = (0, 0)
     # Title displayed in the border
-    legend: str = "Image Navigator"
+    legend: str = "Image"
 
     #
     #  Zoom and Pan (represented by an affine transform matrix, of size 3x3)
     #
     # ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
     zoom_pan_matrix: Matx33d = np.eye(3)
-    # If displaying several navigators, those with the same ZoomKey will zoom and pan together
+    # If displaying several images, those with the same ZoomKey will zoom and pan together
     zoom_key: str = ""
 
     #
@@ -50,7 +50,7 @@ class ImageParams:
     #
     # Color adjustments for float matrixes
     color_adjustments: ColorAdjustmentsValues = ColorAdjustmentsValues()
-    # If displaying several navigators, those with the same ColorAdjustmentsKey will adjust together
+    # If displaying several images, those with the same ColorAdjustmentsKey will adjust together
     color_adjustments_key: str = ""
 
     #
@@ -76,7 +76,7 @@ class ImageParams:
     draw_values_on_zoomed_pixels: bool = True
 
     #
-    #  Navigator display options
+    #  Image display options
     #
     # Show matrix type and size
     show_image_info: bool = True
