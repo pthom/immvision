@@ -13,8 +13,8 @@
 
 
  * [ ] immvision
-     * [ ] ImageOld and ImageNavigator are the same ? Group them ?
-     * [ ] Only one signature for ImageNavigator (using struct designated init as named params)
+     * [ ] ImageOld and Image are the same ? Group them ?
+     * [ ] Only one signature for Image (using struct designated init as named params)
      * [ ] Navigator returns multiple values (mouse position (double), pixel color (vecdouble), ...)
            Or better, return pointer to params (helps users that did not specify them as a param, they can get it anyway)
      * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
@@ -63,7 +63,7 @@
   * [ ] Demo with HelloImgui
   * [ ] Test iPhone
 
-* [ ] ImageNavigator
+* [ ] Image
   * [X] Wheel zoom : eat event (i.e avoid scroll)
   * [N] Copy image to clipboard => voir https://github.com/dacap/clip / Non: rend compilation complexe !
 

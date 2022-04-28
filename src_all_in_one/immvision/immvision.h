@@ -24,11 +24,11 @@ namespace ImmVision
     };
 
 
-    // Set of display parameters and options for an ImageNavigator
+    // Set of display parameters and options for an Image
     struct ImageParams
     {
         //
-        // ImageParams store the parameters for an ImageNavigator
+        // ImageParams store the parameters for an Image
         // (as well as user selected watched pixels, selected channel, etc.)
         // Its default constructor will give them reasonable choices, which you can adapt to your needs.
         // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
@@ -113,10 +113,10 @@ namespace ImmVision
     );
 
 
-    cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refreshImage = false);
+    cv::Point2d Image(const cv::Mat& image, ImageParams* params, bool refreshImage = false);
 
 
-    cv::Point2d ImageNavigator(
+    cv::Point2d Image(
         const cv::Mat& image,
         const cv::Size& imageDisplaySize = cv::Size(),
         const std::string& legend = "Image Navigator",

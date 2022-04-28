@@ -25,7 +25,7 @@ namespace ImmVision
     }
 
 
-    cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refresh)
+    cv::Point2d Image(const cv::Mat& image, ImageParams* params, bool refresh)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params, bool refresh).
@@ -471,7 +471,7 @@ namespace ImmVision
         auto &cacheParams = ImageCache::gImageNavigatorTextureCache.GetCacheParams(image);
         auto &cacheImages = ImageCache::gImageNavigatorTextureCache.GetCacheImages(image);
 
-        ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
+        ImGui::PushID("##Image"); ImGui::PushID(&image);
         cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);
         ImGui::PopID(); ImGui::PopID();
 
@@ -479,7 +479,7 @@ namespace ImmVision
     }
 
 
-    cv::Point2d ImageNavigator(
+    cv::Point2d Image(
         const cv::Mat& image,
         const cv::Size& imageDisplaySize,
         const std::string& legend,
@@ -503,7 +503,7 @@ namespace ImmVision
 
         ImageParams* params = & s_Params.at(&image);
 
-        return ImageNavigator(image, params, refreshImage);
+        return Image(image, params, refreshImage);
     }
 
 

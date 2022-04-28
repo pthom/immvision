@@ -28,11 +28,11 @@ namespace ImmVision
     };
 
 
-    // Set of display parameters and options for an ImageNavigator
+    // Set of display parameters and options for an Image
     struct ImageParams
     {
         //
-        // ImageParams store the parameters for an ImageNavigator
+        // ImageParams store the parameters for an Image
         // (as well as user selected watched pixels, selected channel, etc.)
         // Its default constructor will give them reasonable choices, which you can adapt to your needs.
         // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
@@ -117,10 +117,10 @@ namespace ImmVision
     );
 
 
-    cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refreshImage = false);
+    cv::Point2d Image(const cv::Mat& image, ImageParams* params, bool refreshImage = false);
 
 
-    cv::Point2d ImageNavigator(
+    cv::Point2d Image(
         const cv::Mat& image,
         const cv::Size& imageDisplaySize = cv::Size(),
         const std::string& legend = "Image Navigator",
@@ -2091,13 +2091,13 @@ namespace ImmVision
 
             static ImmVision::ImageParams imageParams1;
             imageParams1.ImageDisplaySize = {400, 400};
-            ImmVision::ImageNavigator(mag, &imageParams1);
+            ImmVision::Image(mag, &imageParams1);
 
             ImGui::SameLine();
 
             static ImmVision::ImageParams imageParams2;
             imageParams2.ImageDisplaySize = {400, 400};
-            ImmVision::ImageNavigator(img, &imageParams2);
+            ImmVision::Image(img, &imageParams2);
 
             ImVec2 iconSize(15.f, 15.f);
             ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
@@ -4538,7 +4538,7 @@ namespace ImmVision
     }
 
 
-    cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refresh)
+    cv::Point2d Image(const cv::Mat& image, ImageParams* params, bool refresh)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params, bool refresh).
@@ -4984,7 +4984,7 @@ namespace ImmVision
         auto &cacheParams = ImageCache::gImageNavigatorTextureCache.GetCacheParams(image);
         auto &cacheImages = ImageCache::gImageNavigatorTextureCache.GetCacheImages(image);
 
-        ImGui::PushID("##ImageNavigator"); ImGui::PushID(&image);
+        ImGui::PushID("##Image"); ImGui::PushID(&image);
         cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);
         ImGui::PopID(); ImGui::PopID();
 
@@ -4992,7 +4992,7 @@ namespace ImmVision
     }
 
 
-    cv::Point2d ImageNavigator(
+    cv::Point2d Image(
         const cv::Mat& image,
         const cv::Size& imageDisplaySize,
         const std::string& legend,
@@ -5016,7 +5016,7 @@ namespace ImmVision
 
         ImageParams* params = & s_Params.at(&image);
 
-        return ImageNavigator(image, params, refreshImage);
+        return Image(image, params, refreshImage);
     }
 
 
@@ -5991,7 +5991,7 @@ namespace ImmVision
             if (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size())
             {
                 auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
-                ImageNavigator(imageAndParams.Image, &imageAndParams.Params);
+                Image(imageAndParams.Image, &imageAndParams.Params);
             }
         }
 

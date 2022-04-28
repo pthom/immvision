@@ -10,18 +10,18 @@
 namespace py = pybind11;
 
 
-void ImageNavigator(const cv::Mat& image)
+void Image(const cv::Mat& image)
 {
     transfer_imgui_context();
     cv::Size cv_size(500, 500);
-    ImmVision::ImageNavigator(image, cv_size);
+    ImmVision::Image(image, cv_size);
 }
 
 
 
 void pydef_image(pybind11::module& m)
 {
-    m.def("ImageNavigator", ImageNavigator);
+    m.def("Image", Image);
 
     using namespace ImmVision;
 

@@ -192,7 +192,7 @@ namespace ImmVision
             if (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size())
             {
                 auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
-                ImageNavigator(imageAndParams.Image, &imageAndParams.Params);
+                Image(imageAndParams.Image, &imageAndParams.Params);
             }
         }
 
