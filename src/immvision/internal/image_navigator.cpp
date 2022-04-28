@@ -25,10 +25,10 @@ namespace ImmVision
     }
 
 
-    cv::Point2d ImageNavigator(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
+    cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refresh)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
-        // with members = (cv::Mat& image, ImageNavigatorParams* params, bool refresh).
+        // with members = (cv::Mat& image, ImageParams* params, bool refresh).
         //
         // - it begins by defining a set a lambdas for the different operations (they are named fnXXXX)
         // - the core of the function is only a few lines long and begins after the line
@@ -489,10 +489,10 @@ namespace ImmVision
         const std::string& colorAdjustmentsKey
     )
     {
-        static std::map<const cv::Mat *, ImageNavigatorParams> s_Params;
+        static std::map<const cv::Mat *, ImageParams> s_Params;
         if (s_Params.find(&image) == s_Params.end())
         {
-            ImageNavigatorParams params;
+            ImageParams params;
             params.ImageDisplaySize = imageDisplaySize;
             params.Legend = legend;
             params.ShowOptions = showOptionsWhenAppearing;
@@ -501,7 +501,7 @@ namespace ImmVision
             s_Params[&image] = params;
         }
 
-        ImageNavigatorParams* params = & s_Params.at(&image);
+        ImageParams* params = & s_Params.at(&image);
 
         return ImageNavigator(image, params, refreshImage);
     }

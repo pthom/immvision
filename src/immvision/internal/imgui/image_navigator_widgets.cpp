@@ -29,7 +29,7 @@ namespace ImmVision
         void ShowPixelColorWidget(
             const cv::Mat &image,
             cv::Point pt,
-            const ImageNavigatorParams& params)
+            const ImageParams& params)
         {
             bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
             auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };

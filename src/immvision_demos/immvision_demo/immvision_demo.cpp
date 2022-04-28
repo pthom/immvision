@@ -173,7 +173,7 @@ static void guiFunction()
     {
         ImGui::SameLine();
         {
-            static ImmVision::ImageNavigatorParams imageNavigatorParamsFilter;
+            static ImmVision::ImageParams imageNavigatorParamsFilter;
             imageNavigatorParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
             imageNavigatorParamsFilter.ZoomKey = "i";
             imageNavigatorParamsFilter.ColorAdjustmentsKey = "c";

@@ -15,11 +15,11 @@ namespace ImmVision
             struct CachedParams
             {
                 // This caches are small and will persist during the application lifetime
-                ImageNavigatorParams* NavigatorParams = nullptr;
+                ImageParams* Params = nullptr;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
-                struct ImageNavigatorParams  PreviousParams;
+                struct ImageParams  PreviousParams;
             };
             struct CachedImages
             {
@@ -29,7 +29,7 @@ namespace ImmVision
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
-            void UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh);
+            void UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh);
 
             CachedParams& GetCacheParams(const cv::Mat& image);
             CachedImages& GetCacheImages(const cv::Mat& image);

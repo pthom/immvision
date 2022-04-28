@@ -17,7 +17,7 @@ namespace ImmVision
 
 
     // Set of display parameters and options for an ImageNavigator
-    struct ImageNavigatorParams
+    struct ImageParams
     {
         //
         // ImageNavigatorParams store the parameters for an ImageNavigator
@@ -105,7 +105,7 @@ namespace ImmVision
     );
 
 
-    cv::Point2d ImageNavigator(const cv::Mat& image, ImageNavigatorParams* params, bool refreshImage = false);
+    cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refreshImage = false);
 
 
     cv::Point2d ImageNavigator(

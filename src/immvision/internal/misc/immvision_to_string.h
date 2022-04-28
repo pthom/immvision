@@ -7,5 +7,5 @@
 namespace ImmVision
 {
     std::string ToString(const ColorAdjustmentsValues& params);
-    std::string ToString(const ImageNavigatorParams& params);
+    std::string ToString(const ImageParams& params);
 };

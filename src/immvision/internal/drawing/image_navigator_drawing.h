@@ -7,17 +7,17 @@ namespace ImmVision
 {
     namespace ImageNavigatorDrawing
     {
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params);
+        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params);
 
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params);
+        void DrawGrid(cv::Mat& inOutImageRgba, const ImageParams& params);
 
         cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
-                                         const ImageNavigatorParams& params, bool drawPixelCoords);
+                                         const ImageParams& params, bool drawPixelCoords);
 
         cv::Mat MakeSchoolPaperBackground(cv::Size s);
 
         void BlitImageNavigatorTexture(
-            const ImageNavigatorParams& params,
+            const ImageParams& params,
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,
             bool shall_refresh_rgba,

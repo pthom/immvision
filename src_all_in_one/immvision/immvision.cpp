@@ -29,7 +29,7 @@ namespace ImmVision
 
 
     // Set of display parameters and options for an ImageNavigator
-    struct ImageNavigatorParams
+    struct ImageParams
     {
         //
         // ImageNavigatorParams store the parameters for an ImageNavigator
@@ -117,7 +117,7 @@ namespace ImmVision
     );
 
 
-    cv::Point2d ImageNavigator(const cv::Mat& image, ImageNavigatorParams* params, bool refreshImage = false);
+    cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refreshImage = false);
 
 
     cv::Point2d ImageNavigator(
@@ -1443,17 +1443,17 @@ namespace ImmVision
 {
     namespace ImageNavigatorDrawing
     {
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params);
+        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params);
 
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params);
+        void DrawGrid(cv::Mat& inOutImageRgba, const ImageParams& params);
 
         cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
-                                         const ImageNavigatorParams& params, bool drawPixelCoords);
+                                         const ImageParams& params, bool drawPixelCoords);
 
         cv::Mat MakeSchoolPaperBackground(cv::Size s);
 
         void BlitImageNavigatorTexture(
-            const ImageNavigatorParams& params,
+            const ImageParams& params,
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,
             bool shall_refresh_rgba,
@@ -1474,7 +1474,7 @@ namespace ImmVision
 {
     namespace ImageNavigatorDrawing
     {
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params)
+        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params)
         {
             cv::Mat r = image.clone();
 
@@ -1506,7 +1506,7 @@ namespace ImmVision
             return r;
         }
 
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params)
+        void DrawGrid(cv::Mat& inOutImageRgba, const ImageParams& params)
         {
             double x_spacing = (double) params.ZoomPanMatrix(0, 0);
             double y_spacing = (double) params.ZoomPanMatrix(1, 1);
@@ -1528,7 +1528,7 @@ namespace ImmVision
         }
 
         cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
-                                         const ImageNavigatorParams& params, bool drawPixelCoords)
+                                         const ImageParams& params, bool drawPixelCoords)
         {
             assert(drawingImage.type() == CV_8UC4);
 
@@ -1612,7 +1612,7 @@ namespace ImmVision
         }
 
         void BlitImageNavigatorTexture(
-            const ImageNavigatorParams& params,
+            const ImageParams& params,
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,
             bool shall_refresh_rgba,
@@ -2089,13 +2089,13 @@ namespace ImmVision
             static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
             static cv::Mat img = MakeAdjustLevelsImage();
 
-            static ImmVision::ImageNavigatorParams imageNavigatorParams1;
+            static ImmVision::ImageParams imageNavigatorParams1;
             imageNavigatorParams1.ImageDisplaySize = {400, 400};
             ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
 
             ImGui::SameLine();
 
-            static ImmVision::ImageNavigatorParams imageNavigatorParams2;
+            static ImmVision::ImageParams imageNavigatorParams2;
             imageNavigatorParams2.ImageDisplaySize = {400, 400};
             ImmVision::ImageNavigator(img, &imageNavigatorParams2);
 
@@ -4294,7 +4294,7 @@ namespace ImmVision
     {
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize);
         void ShowImageInfo(const cv::Mat &image, double zoomFactor);
-        void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageNavigatorParams& params);
+        void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageParams& params);
 
         // If true, the collapsing headers will be synced across instances
         extern bool s_CollapsingHeader_CacheState_Sync;
@@ -4323,11 +4323,11 @@ namespace ImmVision
             struct CachedParams
             {
                 // This caches are small and will persist during the application lifetime
-                ImageNavigatorParams* NavigatorParams = nullptr;
+                ImageParams* Params = nullptr;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
-                struct ImageNavigatorParams  PreviousParams;
+                struct ImageParams  PreviousParams;
             };
             struct CachedImages
             {
@@ -4337,7 +4337,7 @@ namespace ImmVision
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
-            void UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh);
+            void UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh);
 
             CachedParams& GetCacheParams(const cv::Mat& image);
             CachedImages& GetCacheImages(const cv::Mat& image);
@@ -4372,7 +4372,7 @@ namespace ImmVision
     }
 
 
-    cv::Point2d ImageNavigator(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
+    cv::Point2d ImageNavigator(const cv::Mat& image, ImageParams* params, bool refresh)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageNavigatorParams* params, bool refresh).
@@ -4836,10 +4836,10 @@ namespace ImmVision
         const std::string& colorAdjustmentsKey
     )
     {
-        static std::map<const cv::Mat *, ImageNavigatorParams> s_Params;
+        static std::map<const cv::Mat *, ImageParams> s_Params;
         if (s_Params.find(&image) == s_Params.end())
         {
-            ImageNavigatorParams params;
+            ImageParams params;
             params.ImageDisplaySize = imageDisplaySize;
             params.Legend = legend;
             params.ShowOptions = showOptionsWhenAppearing;
@@ -4848,7 +4848,7 @@ namespace ImmVision
             s_Params[&image] = params;
         }
 
-        ImageNavigatorParams* params = & s_Params.at(&image);
+        ImageParams* params = & s_Params.at(&image);
 
         return ImageNavigator(image, params, refreshImage);
     }
@@ -4865,7 +4865,7 @@ namespace ImmVision
 {
     namespace ImageNavigatorCache
     {
-        void InitializeMissingParams(ImageNavigatorParams* params, const cv::Mat& image)
+        void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
         {
             if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
                 params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
@@ -4873,7 +4873,7 @@ namespace ImmVision
                 params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
-        bool ShallRefreshRgbaCache(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
+        bool ShallRefreshRgbaCache(const ImageParams& v1, const ImageParams& v2)
         {
             if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
                 return true;
@@ -4886,7 +4886,7 @@ namespace ImmVision
             return false;
         }
 
-        bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
+        bool ShallRefreshTexture(const ImageParams& v1, const ImageParams& v2)
         {
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
@@ -4916,7 +4916,7 @@ namespace ImmVision
         // ImageNavigatorTextureCache impl below
         //
 
-        void ImageNavigatorTextureCache::UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
+        void ImageNavigatorTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh)
         {
             auto cacheKey = &image;
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
@@ -4941,10 +4941,10 @@ namespace ImmVision
 
             auto& cachedParams = mCacheParams.Get(cacheKey);
             auto& cachedImages = mCacheImages.Get(cacheKey);
-            cachedParams.NavigatorParams = params;
+            cachedParams.Params = params;
 
-            ImageNavigatorParams oldParams = cachedParams.PreviousParams;
-            *cachedParams.NavigatorParams = *params;
+            ImageParams oldParams = cachedParams.PreviousParams;
+            *cachedParams.Params = *params;
 
             if (cachedImages.GlTexture->mImageSize.x == 0.f)
                 needsRefreshTexture = true;
@@ -4989,30 +4989,30 @@ namespace ImmVision
         {
             auto currentCacheKey = &image;
             auto & currentCache = mCacheParams.Get(&image);
-            std::string zoomKey = currentCache.NavigatorParams->ZoomKey;
+            std::string zoomKey = currentCache.Params->ZoomKey;
             if (zoomKey.empty())
                 return;
-            ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomPanMatrix;
+            ZoomPanTransform::MatrixType newZoom = currentCache.Params->ZoomPanMatrix;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ZoomKey == zoomKey))
-                    otherCache.NavigatorParams->ZoomPanMatrix = newZoom;
+                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ZoomKey == zoomKey))
+                    otherCache.Params->ZoomPanMatrix = newZoom;
             }
         }
         void ImageNavigatorTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
         {
             auto currentCacheKey = &image;
             auto & currentCache = mCacheParams.Get(&image);
-            std::string colorKey = currentCache.NavigatorParams->ColorAdjustmentsKey;
+            std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
             if (colorKey.empty())
                 return;
-            ColorAdjustmentsValues newColorAdjustments = currentCache.NavigatorParams->ColorAdjustments;
+            ColorAdjustmentsValues newColorAdjustments = currentCache.Params->ColorAdjustments;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ColorAdjustmentsKey == colorKey))
-                    otherCache.NavigatorParams->ColorAdjustments = newColorAdjustments;
+                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ColorAdjustmentsKey == colorKey))
+                    otherCache.Params->ColorAdjustments = newColorAdjustments;
             }
         }
 
@@ -5054,7 +5054,7 @@ namespace ImmVision
         void ShowPixelColorWidget(
             const cv::Mat &image,
             cv::Point pt,
-            const ImageNavigatorParams& params)
+            const ImageParams& params)
         {
             bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
             auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
@@ -5812,7 +5812,7 @@ namespace ImmVision
     struct Inspector_ImageAndParams
     {
         cv::Mat Image;
-        ImageNavigatorParams Params;
+        ImageParams Params;
 
         const cv::Point2d InitialZoomCenter = cv::Point2d();
         double InitialZoomRatio = 1.;
@@ -5833,7 +5833,7 @@ namespace ImmVision
         bool isColorOrderBGR
     )
     {
-        ImageNavigatorParams params;
+        ImageParams params;
         params.Legend = legend;
         params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;
@@ -6019,7 +6019,7 @@ namespace ImmVision
 namespace ImmVision
 {
     std::string ToString(const ColorAdjustmentsValues& params);
-    std::string ToString(const ImageNavigatorParams& params);
+    std::string ToString(const ImageParams& params);
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/misc/immvision_to_string.cpp continued                          //
@@ -6060,7 +6060,7 @@ namespace ImmVision
     }
 
 
-    std::string ToString(const ImageNavigatorParams& v)
+    std::string ToString(const ImageParams& v)
     {
         // <autogen:ImageNavigatorParams.tostring> // Autogenerated code below! Do not edit!
 

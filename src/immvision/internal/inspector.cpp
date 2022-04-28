@@ -13,7 +13,7 @@ namespace ImmVision
     struct Inspector_ImageAndParams
     {
         cv::Mat Image;
-        ImageNavigatorParams Params;
+        ImageParams Params;
 
         const cv::Point2d InitialZoomCenter = cv::Point2d();
         double InitialZoomRatio = 1.;
@@ -34,7 +34,7 @@ namespace ImmVision
         bool isColorOrderBGR
     )
     {
-        ImageNavigatorParams params;
+        ImageParams params;
         params.Legend = legend;
         params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;

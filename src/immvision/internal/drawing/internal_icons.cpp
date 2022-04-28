@@ -290,13 +290,13 @@ namespace ImmVision
             static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
             static cv::Mat img = MakeAdjustLevelsImage();
 
-            static ImmVision::ImageNavigatorParams imageNavigatorParams1;
+            static ImmVision::ImageParams imageNavigatorParams1;
             imageNavigatorParams1.ImageDisplaySize = {400, 400};
             ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
 
             ImGui::SameLine();
 
-            static ImmVision::ImageNavigatorParams imageNavigatorParams2;
+            static ImmVision::ImageParams imageNavigatorParams2;
             imageNavigatorParams2.ImageDisplaySize = {400, 400};
             ImmVision::ImageNavigator(img, &imageNavigatorParams2);
 

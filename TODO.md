@@ -1,9 +1,8 @@
 * [ ] PIP
-  * [ ] Auto generated: doc / piy / toString a la python 
-    * [ ] Verif qu'elle sont embarquée dans le pip (voir dans site-packages)
   * [ ] imgui_fig (from imgui_datascience)
   * [ ] imgui_runner
       * [ ] change mat type if not castable (and cache)
+  * [ ] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics/
   * [Later] cf _skbuild_template: add conda & wheels
   * [Later] pyimgui
       * [ ] PR / Pull request / multisamples = 4
@@ -14,20 +13,21 @@
 
 
  * [ ] immvision
-     * [ ] Image and ImageNavigator are the same ? Group them ?
-   * [ ] Navigator returns multiple values (mouse position (double), pixel color (vecdouble), ...)
-     Store these values in params? / Store Watched pixels values ?
-   * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
-   *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
-   * [ ] Compat Eigen ?
-   * [ ] doc
+     * [ ] ImageOld and ImageNavigator are the same ? Group them ?
+     * [ ] Only one signature for ImageNavigator (using struct designated init as named params)
+     * [ ] Navigator returns multiple values (mouse position (double), pixel color (vecdouble), ...)
+           Or better, return pointer to params (helps users that did not specify them as a param, they can get it anyway)
+     * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
+     *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
+     * [ ] Compat Eigen ?
+     * [ ] doc
   
  * [ ] Inspector:
    * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
    *     Build exe via pip
    * [ ] Handle params zoomCenter, zoomRatio
    * [ ] load images
-   * [ ] List Image
+   * [ ] List ImageOld
      * [ ] Different views : list, thumbs, thumbs size, etc
      * [ ] Remove one image / Remove all
    * [ ] Save inspector setup (options and window size ?)
@@ -48,7 +48,7 @@
   * [ ] Show dates
 
 
-* [ ] Image Debugger
+* [ ] ImageOld Debugger
   * [ ] Compat Eigen ?
   * [ ] AutoDetect Opencv (or Eigen) presence (via OPENCV_VERSION ?)
   * [ ] Tester resistance a fichier corrompu (doit le supprimer !) 
@@ -70,3 +70,6 @@
 * [?] Plugin python / lldb and gdb 
 
 
+* [ ] Videos Docs
+  * [ ] Exemple mandelbrot infinite zoom python
+  * [ ] Exemple matplotlib

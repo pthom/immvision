@@ -8,7 +8,7 @@ namespace ImmVision
 {
     namespace ImageNavigatorCache
     {
-        void InitializeMissingParams(ImageNavigatorParams* params, const cv::Mat& image)
+        void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
         {
             if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
                 params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
@@ -16,7 +16,7 @@ namespace ImmVision
                 params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
-        bool ShallRefreshRgbaCache(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
+        bool ShallRefreshRgbaCache(const ImageParams& v1, const ImageParams& v2)
         {
             if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
                 return true;
@@ -29,7 +29,7 @@ namespace ImmVision
             return false;
         }
 
-        bool ShallRefreshTexture(const ImageNavigatorParams& v1, const ImageNavigatorParams& v2)
+        bool ShallRefreshTexture(const ImageParams& v1, const ImageParams& v2)
         {
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
@@ -59,7 +59,7 @@ namespace ImmVision
         // ImageNavigatorTextureCache impl below
         //
 
-        void ImageNavigatorTextureCache::UpdateCache(const cv::Mat& image, ImageNavigatorParams* params, bool refresh)
+        void ImageNavigatorTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh)
         {
             auto cacheKey = &image;
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
@@ -84,10 +84,10 @@ namespace ImmVision
 
             auto& cachedParams = mCacheParams.Get(cacheKey);
             auto& cachedImages = mCacheImages.Get(cacheKey);
-            cachedParams.NavigatorParams = params;
+            cachedParams.Params = params;
 
-            ImageNavigatorParams oldParams = cachedParams.PreviousParams;
-            *cachedParams.NavigatorParams = *params;
+            ImageParams oldParams = cachedParams.PreviousParams;
+            *cachedParams.Params = *params;
 
             if (cachedImages.GlTexture->mImageSize.x == 0.f)
                 needsRefreshTexture = true;
@@ -132,30 +132,30 @@ namespace ImmVision
         {
             auto currentCacheKey = &image;
             auto & currentCache = mCacheParams.Get(&image);
-            std::string zoomKey = currentCache.NavigatorParams->ZoomKey;
+            std::string zoomKey = currentCache.Params->ZoomKey;
             if (zoomKey.empty())
                 return;
-            ZoomPanTransform::MatrixType newZoom = currentCache.NavigatorParams->ZoomPanMatrix;
+            ZoomPanTransform::MatrixType newZoom = currentCache.Params->ZoomPanMatrix;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ZoomKey == zoomKey))
-                    otherCache.NavigatorParams->ZoomPanMatrix = newZoom;
+                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ZoomKey == zoomKey))
+                    otherCache.Params->ZoomPanMatrix = newZoom;
             }
         }
         void ImageNavigatorTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
         {
             auto currentCacheKey = &image;
             auto & currentCache = mCacheParams.Get(&image);
-            std::string colorKey = currentCache.NavigatorParams->ColorAdjustmentsKey;
+            std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
             if (colorKey.empty())
                 return;
-            ColorAdjustmentsValues newColorAdjustments = currentCache.NavigatorParams->ColorAdjustments;
+            ColorAdjustmentsValues newColorAdjustments = currentCache.Params->ColorAdjustments;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.NavigatorParams->ColorAdjustmentsKey == colorKey))
-                    otherCache.NavigatorParams->ColorAdjustments = newColorAdjustments;
+                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ColorAdjustmentsKey == colorKey))
+                    otherCache.Params->ColorAdjustments = newColorAdjustments;
             }
         }
 

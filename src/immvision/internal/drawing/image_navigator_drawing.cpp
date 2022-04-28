@@ -11,7 +11,7 @@ namespace ImmVision
 {
     namespace ImageNavigatorDrawing
     {
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageNavigatorParams& params)
+        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params)
         {
             cv::Mat r = image.clone();
 
@@ -43,7 +43,7 @@ namespace ImmVision
             return r;
         }
 
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageNavigatorParams& params)
+        void DrawGrid(cv::Mat& inOutImageRgba, const ImageParams& params)
         {
             double x_spacing = (double) params.ZoomPanMatrix(0, 0);
             double y_spacing = (double) params.ZoomPanMatrix(1, 1);
@@ -65,7 +65,7 @@ namespace ImmVision
         }
 
         cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
-                                         const ImageNavigatorParams& params, bool drawPixelCoords)
+                                         const ImageParams& params, bool drawPixelCoords)
         {
             assert(drawingImage.type() == CV_8UC4);
 
@@ -149,7 +149,7 @@ namespace ImmVision
         }
 
         void BlitImageNavigatorTexture(
-            const ImageNavigatorParams& params,
+            const ImageParams& params,
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,
             bool shall_refresh_rgba,

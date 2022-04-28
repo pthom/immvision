@@ -10,7 +10,7 @@ namespace ImmVision
     {
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize);
         void ShowImageInfo(const cv::Mat &image, double zoomFactor);
-        void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageNavigatorParams& params);
+        void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageParams& params);
 
         // If true, the collapsing headers will be synced across instances
         extern bool s_CollapsingHeader_CacheState_Sync;
