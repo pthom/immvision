@@ -21,7 +21,7 @@ namespace ImmVision
 {
     void ClearTextureCache()
     {
-        ImageCache::gImageNavigatorTextureCache.ClearImagesCache();
+        ImageCache::gImageTextureCache.ClearImagesCache();
     }
 
 
@@ -48,7 +48,7 @@ namespace ImmVision
             {
                 if (params->ShowLegendBorder)
                     panelTitle = params->Legend;
-                panelTitle += "##ImageNavigator_" + std::to_string((size_t)&image);
+                panelTitle += "##Image_" + std::to_string((size_t)&image);
             }
             return panelTitle;
         };
@@ -467,9 +467,9 @@ namespace ImmVision
             return cv::Point2d();
         }
 
-        ImageCache::gImageNavigatorTextureCache.UpdateCache(image, params, refresh);
-        auto &cacheParams = ImageCache::gImageNavigatorTextureCache.GetCacheParams(image);
-        auto &cacheImages = ImageCache::gImageNavigatorTextureCache.GetCacheImages(image);
+        ImageCache::gImageTextureCache.UpdateCache(image, params, refresh);
+        auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(image);
+        auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(image);
 
         ImGui::PushID("##Image"); ImGui::PushID(&image);
         cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);

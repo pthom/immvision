@@ -148,7 +148,7 @@ namespace ImmVision
             return mat;
         }
 
-        void BlitImageNavigatorTexture(
+        void BlitImageTexture(
             const ImageParams& params,
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,

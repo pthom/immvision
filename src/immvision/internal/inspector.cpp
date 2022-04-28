@@ -47,7 +47,7 @@ namespace ImmVision
     void priv_Inspector_ShowImagesListbox(float width)
     {
         ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
-        if (ImGui::BeginListBox("##ImageNavigatorList",
+        if (ImGui::BeginListBox("##ImageList",
                                 ImVec2(width - 10.f, ImGui::GetContentRegionAvail().y)))
         {
             for (size_t i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
@@ -55,7 +55,7 @@ namespace ImmVision
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
                 std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
-                auto &cacheImage = ImageCache::gImageNavigatorTextureCache.GetCacheImages(
+                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(
                     s_Inspector_ImagesAndParams[i].Image);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
@@ -89,7 +89,7 @@ namespace ImmVision
                     i.Params.ZoomPanMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
-                ImageCache::gImageNavigatorTextureCache.UpdateCache(i.Image, &i.Params, true);
+                ImageCache::gImageTextureCache.UpdateCache(i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }

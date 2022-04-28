@@ -100,7 +100,7 @@ namespace ImmVision
             {
                 if (ShallRefreshRgbaCache(oldParams, *params))
                     shallRefreshRgbaCache = true;
-                ImageDrawing::BlitImageNavigatorTexture(
+                ImageDrawing::BlitImageTexture(
                     *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
             }
 
@@ -160,8 +160,8 @@ namespace ImmVision
         }
 
 
-    ImageTextureCache gImageNavigatorTextureCache;
-    } // namespace ImageNavigatorUtils
+    ImageTextureCache gImageTextureCache;
+    } // namespace ImageUtils
 
 
 } // namespace ImmVision
