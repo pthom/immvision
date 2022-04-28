@@ -68,10 +68,10 @@ def get_screen_size():
 
 class AutoSizeAppWindow:
     _imgui_app_params: ImguiAppParams = None
-    _frame_counter: int = 0
     _last_seen_imgui_window_size = None
     _computed_sdl_window_size = None
     _sdl_window: SDL_Window = None
+    _flag_is_measuring_size: bool = False
 
     def __init__(self, imgui_app_params: ImguiAppParams, sdl_window: SDL_Window):
         self._imgui_app_params = imgui_app_params
@@ -80,46 +80,71 @@ class AutoSizeAppWindow:
     def _want_autosize(self):
         return self._imgui_app_params.app_window_size[0] == 0 or self._imgui_app_params.app_window_size[1] == 0
 
-    def _compute_sdl_window_size(self):
-        imgui_window_size = imgui.get_window_size()
+    def _move_sdl_window_if_out_of_screen_bounds(self):
+        win_pos = (c_int(), c_int())
+        SDL_GetWindowPosition(self._sdl_window, win_pos[0], win_pos[1])
+        win_size = (c_int(), c_int())
+        SDL_GetWindowSize(self._sdl_window, win_size[0], win_size[1])
+        screen_size = get_screen_size()
 
+        for dim in range(2):
+            if win_pos[dim].value < 0:
+                win_pos[dim].value = 0
+            if win_pos[dim].value + win_size[dim].value > screen_size[dim]:
+                win_pos[dim].value = int(screen_size[dim] / 2. - win_size[dim].value / 2.)
+                if win_pos[dim].value < 0:
+                    win_pos[dim].value = 0
+
+        SDL_SetWindowPosition(self._sdl_window, win_pos[0], win_pos[1])
+
+
+
+    def _force_sdl_window_size(self):
+        user_widgets_size = imgui.get_item_rect_size()
+        widgets_margin = 30
         screen_size = get_screen_size()
 
         self._computed_sdl_window_size = (
-            min(imgui_window_size[0], screen_size[0]),
-            min(imgui_window_size[1], screen_size[0]))
+            min(user_widgets_size[0] + widgets_margin, screen_size[0]),
+            min(user_widgets_size[1] + widgets_margin, screen_size[0]))
 
         r = SDL_SetWindowSize(
             self._sdl_window,
             int(self._computed_sdl_window_size[0]),
             int(self._computed_sdl_window_size[1])
         )
+
         if not((r is None) or (r == 0)):
             print("Error during SDL_SetWindowSize")
+
+        self._move_sdl_window_if_out_of_screen_bounds()
+
+    @staticmethod
+    def _begin_full_size_imgui_window():
+        imgui.set_next_window_position(0, 0)
+        view_port = imgui.get_main_viewport()
+        imgui.set_next_window_position(view_port.pos.x, view_port.pos.y)
+        viewport_size = (float(view_port.size[0]), float(view_port.size[1]))
+        imgui.set_next_window_size(viewport_size[0], viewport_size[1])
+        imgui.begin("Default window", False, imgui.WINDOW_NO_TITLE_BAR | imgui.WINDOW_HORIZONTAL_SCROLLING_BAR)
 
     def begin(self):
         """
         Reproduces imgui.begin behavior for an imgui window that occupies the whole app window
         and that will try to resize the SDL app window to its content size
         """
-        self._frame_counter += 1
-
-        imgui.set_next_window_position(0, 0)
-        if not self._want_autosize():
-            imgui.set_next_window_size(self._imgui_app_params.app_window_size[0], self._imgui_app_params.app_window_size[1])
-            imgui.begin("Default window", False, imgui.WINDOW_NO_TITLE_BAR | imgui.WINDOW_HORIZONTAL_SCROLLING_BAR)
+        AutoSizeAppWindow._begin_full_size_imgui_window()
+        if self._want_autosize() and self._computed_sdl_window_size is None:
+            self._flag_is_measuring_size = True
+            imgui.begin_group()
         else:
-            if self._computed_sdl_window_size is not None:
-                view_port = imgui.get_main_viewport()
-                imgui.set_next_window_position(view_port.pos.x, view_port.pos.y)
-                viewport_size = (float(view_port.size[0]), float(view_port.size[1]))
-                imgui.set_next_window_size(viewport_size[0], viewport_size[1])
-                imgui.begin("Default window", False, imgui.WINDOW_NO_TITLE_BAR | imgui.WINDOW_HORIZONTAL_SCROLLING_BAR)
-            else:
-                imgui.begin("Default window", False, imgui.WINDOW_ALWAYS_AUTO_RESIZE | imgui.WINDOW_NO_TITLE_BAR | imgui.WINDOW_HORIZONTAL_SCROLLING_BAR)
+            self._flag_is_measuring_size = False
 
-                if self._frame_counter == 2:
-                    self._compute_sdl_window_size()
+    def end(self):
+        if self._flag_is_measuring_size:
+            imgui.end_group()
+            self._force_sdl_window_size()
+        imgui.end()
 
 
 def run(gui_function: Callable, imgui_app_params: ImguiAppParams = None):
@@ -158,7 +183,7 @@ def run(gui_function: Callable, imgui_app_params: ImguiAppParams = None):
                 auto_size_app_window.begin()
             gui_function()
             if imgui_app_params.provide_default_window:
-                imgui.end()
+                auto_size_app_window.end()
 
             if imgui_app_params.app_shall_exit:
                 running = False
@@ -207,7 +232,7 @@ def _impl_pysdl2_init(imgui_app_params: ImguiAppParams):
 
     app_window_size = imgui_app_params.app_window_size
     if app_window_size[0] == 0 or app_window_size[1] == 0:
-        app_window_size = get_screen_size()
+        app_window_size = (150, 150)
     window = SDL_CreateWindow(
         imgui_app_params.app_window_title.encode('utf-8'),
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

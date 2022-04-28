@@ -89,7 +89,7 @@ def draw_coords_markers(w, h):
 
 
 def gui_test_autosize(params: imgui_runner.ImguiAppParams):
-    draw_coords_markers(400, 600)
+    draw_coords_markers(100, 700)
     if imgui.button("Exit"):
         params.app_shall_exit = True
 
@@ -102,8 +102,8 @@ def main_autosize():
         gui_test_autosize(params)
 
     imgui_runner.run(my_gui, params)
-    imgui_runner.run(my_gui, params)
-    imgui_runner.run(my_gui, params)
+    #imgui_runner.run(my_gui, params)
+    #imgui_runner.run(my_gui, params)
 
 
 def main():
@@ -117,5 +117,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    # main_autosize()
+    #main()
+    main_autosize()
