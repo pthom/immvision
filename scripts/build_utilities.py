@@ -179,6 +179,15 @@ def decorate_loudly_echo_function_name(fn):
     return wrapper_func
 
 
+def _do_clone_repo(git_repo, folder, branch_or_tag):
+    if not os.path.isdir(f"{EXTERNAL_DIR}/{folder}"):
+        my_chdir(EXTERNAL_DIR)
+        run(f"git clone {git_repo} {folder}")
+    my_chdir(f"{EXTERNAL_DIR}/{folder}")
+    run(f"git checkout {branch_or_tag}")
+    run(f"git pull")
+
+
 ######################################################################
 # cmake and build
 ######################################################################
@@ -284,8 +293,7 @@ def run_build_all():
         return
     my_chdir(INVOKE_DIR)
 
-    # Install third parties imgui and hello_imgui
-    all_imgui_downloads()
+    _check_imgui_version()
 
     # Create virtual env for pybind
     if OPTIONS.build_python_bindings.Value:
@@ -307,73 +315,46 @@ def run_build_all():
 
 
 ######################################################################
-# imgui and hello_imgui
+# imgui
 ######################################################################
-def _do_clone_repo(git_repo, folder, branch_or_tag):
-    if not os.path.isdir(f"{EXTERNAL_DIR}/{folder}"):
-        my_chdir(EXTERNAL_DIR)
-        run(f"git clone {git_repo} {folder}")
-    my_chdir(f"{EXTERNAL_DIR}/{folder}")
-    run(f"git checkout {branch_or_tag}")
-    run(f"git pull")
-
-
-@decorate_loudly_echo_function_name
-def imgui_download():
+def _check_imgui_version():
     """
-    Download imgui into external/imgui/
-    Two versions are avaible:
+    Two versions of imgui are available:
     * standard version: docking branch of the standard repo (https://github.com/ocornut/imgui.git)
     * power save version: see PR https://github.com/ocornut/imgui/pull/4076
       This PR was adapted to imgui docking version of March 2022 here:
       https://github.com/pthom/imgui/tree/docking_powersave
+
+    This checks that the correct one is checked out, based on the use_powersave option
     """
-    git_repo = "https://github.com/pthom/imgui.git" if OPTIONS.use_powersave.Value \
+    imgui_git_repo = "https://github.com/pthom/imgui.git" if OPTIONS.use_powersave.Value \
         else "https://github.com/ocornut/imgui.git"
-    branch = "docking_powersave" if OPTIONS.use_powersave.Value else "docking"
+    imgui_branch = "docking_powersave" if OPTIONS.use_powersave.Value else "docking"
 
     # Check if we changed to/from powersave mode
     if os.path.isdir(f"{EXTERNAL_DIR}/imgui"):
         previous_dir = os.getcwd()
         os.chdir(f"{EXTERNAL_DIR}/imgui")
-        cmd_result = subprocess.check_output("git branch", shell=True).decode("utf-8")
+        cmd_result = subprocess.check_output("git remote show origin", shell=True).decode("utf-8")
         cmd_result_lines = cmd_result.split("\n")
         os.chdir(previous_dir)
-        need_reset_repo = False
-        if OPTIONS.use_powersave.Value and "* docking_powersave" not in cmd_result_lines:
-            need_reset_repo = True
-        if not OPTIONS.use_powersave.Value and "* docking" not in cmd_result_lines:
-            need_reset_repo = True
-        if need_reset_repo:
+        if f"  Fetch URL: {imgui_git_repo}" not in cmd_result_lines:
             my_chdir(EXTERNAL_DIR)
-            print("# Need to re-download imgui (changed powersave mode)")
+            print()
+            print("#             !!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING - MANUAL CLONE REQUIRED !!!!!!!!!!!!!!!!!!!!!!!!")
+            print()
+            print("#                        You need to re-download imgui (changed powersave mode)")
+            print("#                        Please remove external/imgui and re-clone manually, like this:")
             print(f"""
-            # Please remove external/imgui manually:
                 cd {EXTERNAL_DIR}
                 rm -rf imgui
+                git clone {imgui_git_repo}
+                cd {imgui_git_repo}
+                git checkout {imgui_branch}
                 cd -
             """)
+            print("#             !!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING - MANUAL CLONE REQUIRED !!!!!!!!!!!!!!!!!!!!!!!!")
             sys.exit(1)
-
-    _do_clone_repo(git_repo, "imgui", branch)
-
-
-@decorate_loudly_echo_function_name
-def hello_imgui_download():
-    """
-    Download hello_imgui into external/hello_imgui (optional)
-    hello_imgui is not required, and is only used to build the demos
-    and the standalone image debug viewer.
-    """
-    _do_clone_repo("https://github.com/pthom/hello_imgui.git", "hello_imgui", "master")
-
-
-def all_imgui_downloads():
-    """
-    Download imgui and hello_imgui into external/
-    """
-    imgui_download()
-    hello_imgui_download()
 
 
 ######################################################################
@@ -699,15 +680,6 @@ def get_all_function_categories():
         ]
     }
 
-    function_list_third_parties = {
-        "name": "Install imgui third parties",
-        "functions": [
-            all_imgui_downloads,
-            imgui_download,
-            hello_imgui_download,
-        ]
-    }
-
     function_list_build = {
         "name": "Run cmake and build project",
         "functions": [
@@ -751,8 +723,9 @@ def get_all_function_categories():
 
     all_function_categories = [
         function_list_all_in_one,
-        function_list_build, function_list_third_parties,
-        function_list_vcpkg, function_list_emscripten,
+        function_list_build,
+        function_list_vcpkg,
+        function_list_emscripten,
         function_list_advanced,
         function_list_pybind
     ]
