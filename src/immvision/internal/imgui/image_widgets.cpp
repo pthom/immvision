@@ -1,11 +1,11 @@
-#include "immvision/internal/imgui/image_navigator_widgets.h"
+#include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
 
 #include <map>
 
 namespace ImmVision
 {
-    namespace ImageNavigatorWidgets
+    namespace ImageWidgets
     {
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
         {
@@ -113,6 +113,6 @@ namespace ImmVision
             return opened;
         };
 
-    } // namespace ImageNavigatorWidgets
+    } // namespace ImageWidgets
 
 }

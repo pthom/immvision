@@ -4507,12 +4507,12 @@ inline std::string internal::file_dialog::select_folder_vista(IFileDialog *ifd, 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/imgui/image_navigator_widgets.h included by src/immvision/internal/image_navigator.cpp//
+//                       src/immvision/internal/imgui/image_widgets.h included by src/immvision/internal/image_navigator.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace ImmVision
 {
-    namespace ImageNavigatorWidgets
+    namespace ImageWidgets
     {
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize);
         void ShowImageInfo(const cv::Mat &image, double zoomFactor);
@@ -4521,7 +4521,7 @@ namespace ImmVision
         // If true, the collapsing headers will be synced across instances
         extern bool s_CollapsingHeader_CacheState_Sync;
         bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false);
-    } // namespace ImageNavigatorWidgets
+    } // namespace ImageWidgets
 
 }
 
@@ -4614,7 +4614,7 @@ namespace ImmVision
 
                     // Show Color Cell
                     ImGui::TableNextColumn();
-                    ImageNavigatorWidgets::ShowPixelColorWidget(image, watchedPixel, *params);
+                    ImageWidgets::ShowPixelColorWidget(image, watchedPixel, *params);
 
                     // Actions
                     ImGui::TableNextColumn();
@@ -4644,7 +4644,7 @@ namespace ImmVision
             // Adjust float values
             bool hasAdjustFloatValues = true; // ((image.depth() == CV_32F) || (image.depth() == CV_64F));
 
-            if (hasAdjustFloatValues && ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
+            if (hasAdjustFloatValues && ImageWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
                 ImGuiImm::SliderDouble(
@@ -4663,11 +4663,11 @@ namespace ImmVision
             }
 
             // Watched Pixels
-            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))
                 fnWatchedPixels_Gui();
 
             // Image display options
-            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Image Display"))
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Image Display"))
             {
                 if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
                 {
@@ -4702,7 +4702,7 @@ namespace ImmVision
             }
 
             //Navigator display options
-            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Options"))
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Options"))
             {
                 {
                     ImGuiImm::BeginGroupPanel("Navigator display options");
@@ -4725,7 +4725,7 @@ namespace ImmVision
             }
 
             // Save Image
-            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Save"))
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Save"))
             {
                 // Use portable_file_dialogs if available
                 if (pfd::settings::available())
@@ -4889,7 +4889,7 @@ namespace ImmVision
         //
         auto fnShowImage = [&params](CachedImages & cacheImages)
         {
-            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(
+            cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
                     *cacheImages.GlTexture,
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
 
@@ -4914,7 +4914,7 @@ namespace ImmVision
                 ImGui::Text("(%i,%i)", mouseLoc.x, mouseLoc.y);
                 ImGui::SameLine();
             }
-            ImageNavigatorWidgets::ShowPixelColorWidget(image, mouseLoc, *params);
+            ImageWidgets::ShowPixelColorWidget(image, mouseLoc, *params);
         };
 
         //
@@ -4947,7 +4947,7 @@ namespace ImmVision
 
             // Show infos
             if (params->ShowImageInfo)
-                ImageNavigatorWidgets::ShowImageInfo(image, params->ZoomPanMatrix(0, 0));
+                ImageWidgets::ShowImageInfo(image, params->ZoomPanMatrix(0, 0));
             if (params->ShowPixelInfo)
                 fnShowPixelInfo(mouseLocation_originalImage);
             ImGui::EndGroup();
@@ -5024,13 +5024,13 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/imgui/image_navigator_widgets.cpp                               //
+//                       src/immvision/internal/imgui/image_widgets.cpp                                         //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 namespace ImmVision
 {
-    namespace ImageNavigatorWidgets
+    namespace ImageWidgets
     {
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
         {
@@ -5138,7 +5138,7 @@ namespace ImmVision
             return opened;
         };
 
-    } // namespace ImageNavigatorWidgets
+    } // namespace ImageWidgets
 
 }
 
@@ -5941,7 +5941,7 @@ namespace ImmVision
 
     void Inspector_Show()
     {
-        ImageNavigatorWidgets::s_CollapsingHeader_CacheState_Sync = true;
+        ImageWidgets::s_CollapsingHeader_CacheState_Sync = true;
 
         bool showOptionsColumn = true;
         if (!s_Inspector_ImagesAndParams.empty())
@@ -5997,7 +5997,7 @@ namespace ImmVision
 
         ImGui::Columns(1);
 
-        ImageNavigatorWidgets::s_CollapsingHeader_CacheState_Sync = false;
+        ImageWidgets::s_CollapsingHeader_CacheState_Sync = false;
     }
 
     void Inspector_ClearImages()

@@ -3,7 +3,7 @@
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/gl/imgui_imm_gl_image.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
-#include "immvision/internal/imgui/image_navigator_widgets.h"
+#include "immvision/internal/imgui/image_widgets.h"
 
 #include "imgui.h"
 
@@ -142,7 +142,7 @@ namespace ImmVision
 
     void Inspector_Show()
     {
-        ImageNavigatorWidgets::s_CollapsingHeader_CacheState_Sync = true;
+        ImageWidgets::s_CollapsingHeader_CacheState_Sync = true;
 
         bool showOptionsColumn = true;
         if (!s_Inspector_ImagesAndParams.empty())
@@ -198,7 +198,7 @@ namespace ImmVision
 
         ImGui::Columns(1);
 
-        ImageNavigatorWidgets::s_CollapsingHeader_CacheState_Sync = false;
+        ImageWidgets::s_CollapsingHeader_CacheState_Sync = false;
     }
 
     void Inspector_ClearImages()

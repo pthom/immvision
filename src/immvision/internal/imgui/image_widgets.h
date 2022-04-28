@@ -6,7 +6,7 @@
 
 namespace ImmVision
 {
-    namespace ImageNavigatorWidgets
+    namespace ImageWidgets
     {
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize);
         void ShowImageInfo(const cv::Mat &image, double zoomFactor);
@@ -15,6 +15,6 @@ namespace ImmVision
         // If true, the collapsing headers will be synced across instances
         extern bool s_CollapsingHeader_CacheState_Sync;
         bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false);
-    } // namespace ImageNavigatorWidgets
+    } // namespace ImageWidgets
 
 }

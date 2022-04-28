@@ -8,7 +8,7 @@
 #include "immvision/internal/misc/portable_file_dialogs.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
-#include "immvision/internal/imgui/image_navigator_widgets.h"
+#include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -101,7 +101,7 @@ namespace ImmVision
 
                     // Show Color Cell
                     ImGui::TableNextColumn();
-                    ImageNavigatorWidgets::ShowPixelColorWidget(image, watchedPixel, *params);
+                    ImageWidgets::ShowPixelColorWidget(image, watchedPixel, *params);
 
                     // Actions
                     ImGui::TableNextColumn();
@@ -131,7 +131,7 @@ namespace ImmVision
             // Adjust float values
             bool hasAdjustFloatValues = true; // ((image.depth() == CV_32F) || (image.depth() == CV_64F));
 
-            if (hasAdjustFloatValues && ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
+            if (hasAdjustFloatValues && ImageWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
                 ImGuiImm::SliderDouble(
@@ -150,11 +150,11 @@ namespace ImmVision
             }
 
             // Watched Pixels
-            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))
                 fnWatchedPixels_Gui();
 
             // Image display options
-            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Image Display"))
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Image Display"))
             {
                 if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
                 {
@@ -189,7 +189,7 @@ namespace ImmVision
             }
 
             //Navigator display options
-            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Options"))
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Options"))
             {
                 {
                     ImGuiImm::BeginGroupPanel("Navigator display options");
@@ -212,7 +212,7 @@ namespace ImmVision
             }
 
             // Save Image
-            if (ImageNavigatorWidgets::CollapsingHeader_OptionalCacheState("Save"))
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Save"))
             {
                 // Use portable_file_dialogs if available
                 if (pfd::settings::available())
@@ -376,7 +376,7 @@ namespace ImmVision
         //
         auto fnShowImage = [&params](CachedImages & cacheImages)
         {
-            cv::Point2d mouseLocation = ImageNavigatorWidgets::DisplayTexture_TrackMouse(
+            cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
                     *cacheImages.GlTexture,
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
 
@@ -401,7 +401,7 @@ namespace ImmVision
                 ImGui::Text("(%i,%i)", mouseLoc.x, mouseLoc.y);
                 ImGui::SameLine();
             }
-            ImageNavigatorWidgets::ShowPixelColorWidget(image, mouseLoc, *params);
+            ImageWidgets::ShowPixelColorWidget(image, mouseLoc, *params);
         };
 
         //
@@ -434,7 +434,7 @@ namespace ImmVision
 
             // Show infos
             if (params->ShowImageInfo)
-                ImageNavigatorWidgets::ShowImageInfo(image, params->ZoomPanMatrix(0, 0));
+                ImageWidgets::ShowImageInfo(image, params->ZoomPanMatrix(0, 0));
             if (params->ShowPixelInfo)
                 fnShowPixelInfo(mouseLocation_originalImage);
             ImGui::EndGroup();
