@@ -173,22 +173,22 @@ static void guiFunction()
     {
         ImGui::SameLine();
         {
-            static ImmVision::ImageParams imageNavigatorParamsFilter;
-            imageNavigatorParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
-            imageNavigatorParamsFilter.ZoomKey = "i";
-            imageNavigatorParamsFilter.ColorAdjustmentsKey = "c";
-            imageNavigatorParamsFilter.Legend = "X & Y Gradients (see channels 0 & 1)";
+            static ImmVision::ImageParams imageParamsFilter;
+            imageParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
+            imageParamsFilter.ZoomKey = "i";
+            imageParamsFilter.ColorAdjustmentsKey = "c";
+            imageParamsFilter.Legend = "X & Y Gradients (see channels 0 & 1)";
 
             ImmVision::ImageNavigator(
                 gAppState.ImageFiltered,
-                &imageNavigatorParamsFilter,
+                &imageParamsFilter,
                 changed);
 
             static bool zoomApplied = false;
             if (!zoomApplied)
             {
-                imageNavigatorParamsFilter.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
-                    cv::Point2d(1004., 953.), 40., imageNavigatorParamsFilter.ImageDisplaySize);
+                imageParamsFilter.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
+                    cv::Point2d(1004., 953.), 40., imageParamsFilter.ImageDisplaySize);
 
                 zoomApplied = true;
             }

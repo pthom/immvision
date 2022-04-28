@@ -11,6 +11,6 @@ example_immvision.main()
 
 
 # import immvision
-# p = immvision.cpp_immvision.ImageNavigatorParams()
+# p = immvision.cpp_immvision.ImageParams()
 # s = p.__repr__()
 # print(s)

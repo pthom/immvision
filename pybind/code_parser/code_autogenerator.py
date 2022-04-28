@@ -296,7 +296,7 @@ def make_struct_attributes_cpp_code(struct_infos: StructInfos):
 
     for info in struct_infos.attr_and_regions:
         if info.struct_attribute is not None:
-            #   .def_readwrite("ImageDisplaySize", &ImageNavigatorParams::ImageDisplaySize, "The Size")
+            #   .def_readwrite("ImageDisplaySize", &ImageParams::ImageDisplaySize, "The Size")
             attr = info.struct_attribute
             line = f'.def_readwrite("{attr.name_python}", &{struct_infos.struct_name()}::{attr.name_cpp}, "{attr.comment}")'
             add_line(line)

@@ -32,7 +32,7 @@ namespace ImmVision
     struct ImageParams
     {
         //
-        // ImageNavigatorParams store the parameters for an ImageNavigator
+        // ImageParams store the parameters for an ImageNavigator
         // (as well as user selected watched pixels, selected channel, etc.)
         // Its default constructor will give them reasonable choices, which you can adapt to your needs.
         // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
@@ -2089,15 +2089,15 @@ namespace ImmVision
             static cv::Mat mag = MakeMagnifierImage(IconType::ZoomScaleOne);
             static cv::Mat img = MakeAdjustLevelsImage();
 
-            static ImmVision::ImageParams imageNavigatorParams1;
-            imageNavigatorParams1.ImageDisplaySize = {400, 400};
-            ImmVision::ImageNavigator(mag, &imageNavigatorParams1);
+            static ImmVision::ImageParams imageParams1;
+            imageParams1.ImageDisplaySize = {400, 400};
+            ImmVision::ImageNavigator(mag, &imageParams1);
 
             ImGui::SameLine();
 
-            static ImmVision::ImageParams imageNavigatorParams2;
-            imageNavigatorParams2.ImageDisplaySize = {400, 400};
-            ImmVision::ImageNavigator(img, &imageNavigatorParams2);
+            static ImmVision::ImageParams imageParams2;
+            imageParams2.ImageDisplaySize = {400, 400};
+            ImmVision::ImageNavigator(img, &imageParams2);
 
             ImVec2 iconSize(15.f, 15.f);
             ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);

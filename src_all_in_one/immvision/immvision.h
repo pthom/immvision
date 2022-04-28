@@ -28,7 +28,7 @@ namespace ImmVision
     struct ImageParams
     {
         //
-        // ImageNavigatorParams store the parameters for an ImageNavigator
+        // ImageParams store the parameters for an ImageNavigator
         // (as well as user selected watched pixels, selected channel, etc.)
         // Its default constructor will give them reasonable choices, which you can adapt to your needs.
         // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
