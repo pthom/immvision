@@ -4369,6 +4369,7 @@ namespace ImmVision
     void ClearTextureCache()
     {
         ImageCache::gImageTextureCache.ClearImagesCache();
+        Icons::ClearIconsTextureCache();
     }
 
 
