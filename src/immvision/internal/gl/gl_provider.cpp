@@ -2,7 +2,7 @@
 
 #include "immvision/internal/gl/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
-#include "immvision/image_navigator.h"
+#include "immvision/image.h"
 #include <iostream>
 
 namespace ImmVision_GlProvider

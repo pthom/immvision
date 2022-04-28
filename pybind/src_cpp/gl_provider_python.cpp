@@ -1,7 +1,7 @@
 #ifdef IMMVISION_BUILDING_PYBIND
 
 #include "immvision/internal/gl/gl_provider.h"
-#include "immvision/image_navigator.h"
+#include "immvision/image.h"
 #include "cvnp/cvnp.h"
 
 #include <opencv2/core.hpp>

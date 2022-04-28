@@ -1,4 +1,4 @@
-#include "immvision/image_navigator.h"
+#include "immvision/image.h"
 #include "immvision/internal/misc/immvision_to_string.h"
 #include "cvnp/cvnp.h"
 #include "transfer_imgui_context.h"
@@ -19,7 +19,7 @@ void ImageNavigator(const cv::Mat& image)
 
 
 
-void pydef_image_navigator(pybind11::module& m)
+void pydef_image(pybind11::module& m)
 {
     m.def("ImageNavigator", ImageNavigator);
 

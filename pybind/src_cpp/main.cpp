@@ -12,7 +12,7 @@
 
 void pydef_cvnp(pybind11::module& m);
 void pydef_cvnp_test(pybind11::module& m);
-void pydef_image_navigator(pybind11::module& m);
+void pydef_image(pybind11::module& m);
 void pydef_gl_provider_sentinel(pybind11::module& m);
 
 
@@ -33,7 +33,7 @@ PYBIND11_MODULE(cpp_immvision, m)
     pydef_gl_provider_sentinel(m);
     pydef_cvnp(m);
 
-    pydef_image_navigator(m);
+    pydef_image(m);
 
 
 #ifdef VERSION_INFO

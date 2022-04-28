@@ -1,5 +1,5 @@
 #pragma once
-#include "immvision/image_navigator.h"
+#include "immvision/image.h"
 #include "immvision/internal/gl/gl_texture.h"
 #include "immvision/internal/gl/short_lived_cache.h"
 

@@ -434,12 +434,12 @@ def write_struct_piy_code(struct_header_filename, struct_name):
 
 
 def main():
-    struct_header_filename = f"{REPO_DIR}/src/immvision/image_navigator.h"
+    struct_header_filename = f"{REPO_DIR}/src/immvision/image.h"
 
     # Good
     struct_names = ["ImageParams", "ColorAdjustmentsValues"]
     for struct_name in struct_names:
-        modified_cpp_filename = f"{REPO_DIR}/pybind/src_cpp/pybind_image_navigator.cpp"
+        modified_cpp_filename = f"{REPO_DIR}/pybind/src_cpp/pybind_image.cpp"
         write_struct_attributes_pybindcpp_code(
             struct_header_filename,
             struct_name,

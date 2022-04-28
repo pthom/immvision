@@ -1,6 +1,6 @@
 #pragma once
 #include "immvision/internal/gl/gl_texture.h"
-#include "immvision/image_navigator.h"
+#include "immvision/image.h"
 #include "imgui.h"
 #include <opencv2/core.hpp>
 

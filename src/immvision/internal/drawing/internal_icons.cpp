@@ -1,7 +1,7 @@
 #include "immvision/internal/drawing/internal_icons.h"
 #include "immvision/internal/cv/cv_drawing_utils.h"
 #include "immvision/internal/gl/gl_texture.h"
-#include "immvision/image_navigator.h"
+#include "immvision/image.h"
 #include "immvision/internal/imgui/imgui_imm.h"
 #include "immvision/internal/gl/imgui_imm_gl_image.h"
 #include <opencv2/core.hpp>

@@ -1,5 +1,5 @@
 #pragma once
-#include "immvision/image_navigator.h"
+#include "immvision/image.h"
 
 #include <string>
 #include <opencv2/core.hpp>

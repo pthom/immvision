@@ -1,5 +1,5 @@
 #include "immvision/inspector.h"
-#include "immvision/image_navigator.h"
+#include "immvision/image.h"
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/gl/imgui_imm_gl_image.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
