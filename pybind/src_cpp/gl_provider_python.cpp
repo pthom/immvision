@@ -1,7 +1,7 @@
 #ifdef IMMVISION_BUILDING_PYBIND
 
 #include "immvision/internal/gl/gl_provider.h"
-#include "immvision/image.h"
+#include "immvision/image_navigator.h"
 #include "cvnp/cvnp.h"
 
 #include <opencv2/core.hpp>
@@ -52,7 +52,7 @@ namespace ImmVision_GlProvider
     void ResetGlProvider()
     {
         // InitGlProvider must be called before the OpenGl Loader is reset
-        ImmVision::ClearAllTextureCaches();
+        ImmVision::ClearTextureCache();
         gPythonFunctions.release();
     }
 

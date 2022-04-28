@@ -2,7 +2,7 @@
 
 #include "immvision/internal/gl/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
-#include "immvision/image.h"
+#include "immvision/image_navigator.h"
 #include <iostream>
 
 namespace ImmVision_GlProvider
@@ -31,7 +31,7 @@ namespace ImmVision_GlProvider
     {
         // InitGlProvider must be called before the OpenGl Loader is reset
         _AssertOpenGlLoaderWorking();
-        ImmVision::ClearAllTextureCaches();
+        ImmVision::ClearTextureCache();
     }
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)

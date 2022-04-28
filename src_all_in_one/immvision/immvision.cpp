@@ -130,9 +130,17 @@ namespace ImmVision
         const std::string& colorAdjustmentsKey = ""
     );
 
+//    void ImageOld(
+//        const cv::Mat &mat,
+//        bool refresh,
+//        const cv::Size& size = cv::Size(0, 0),
+//        bool isBgrOrBgra = true
+//    );
 
 
-    void ClearNavigatorTextureCache();
+
+
+    void ClearTextureCache();
 
 
 } // namespace ImmVision
@@ -2173,72 +2181,6 @@ namespace ImmVision_GlProvider
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl/gl_provider.cpp continued                                    //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/image.h included by src/immvision/internal/gl/gl_provider.cpp            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
-@@md#ImmVision::Image
-
- __ImmVision::Image()__ will show an image from a cv::Mat.
-
-Two signatures are provided:
-
-* `ImmVision::Image(const cv::Mat &mat, bool refresh, const cv::Size& size = cv::Size(0, 0))`:
-   * `mat` is the image to show
-   * `refresh` indicates whether this cv::Mat was updated since it was last shown.
-     If refresh is false, then the corresponding displayed texture will be fetched from a cache
-     (i.e the cv::Mat data is not transferred again to the GPU)
-     If refresh is true, then the corresponding displayed texture will be refreshed.
-   * `size` is the desired display size.
-        * If it is (0,0) then the actual cv::Mat size will be used.
-        * If it is (w,0) then the display width will be w, and the displayed image height
-          will conform to the vertical/horizontal ratio of the image size.
-        * If it is (0,h) then the display height will be h, and the displayed image width
-          will conform to the vertical/horizontal ratio of the image size.
-        * If it is (w,h) then this is the displayed size
-
-* `ImmVision::ImageStill(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0))`:
-    Same a 'ImmVision::Image` where refresh is set to false
-
-* `ImmVision::ImageAnimated(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0))`:
-    Same a 'ImmVision::Image` where refresh is set to true
-
-* `cv::Point2d ImmVision::GetImageMousePos()`: returns the position of the mouse on the last displayed image.
- This position is in *unscaled image coords*, i.e if the image was displayed with a smaller/bigger size, the returned
- mouse position is still between (0,0) and (image.cols, image.rows)
-
-* `ImmVision::ClearTextureCache()`: clear the internal GPU texture cache. You should rarely/never need to do it.
-  (the cache is handled automatically, and older GPU textures are cleared from the cache after 3 seconds if they are
-  not displayed anymore)
-@@md
-*/
-
-namespace ImmVision
-{
-    void Image(
-        const cv::Mat &mat,
-        bool refresh,
-        const cv::Size& size = cv::Size(0, 0),
-        bool isBgrOrBgra = true
-    );
-
-    inline void ImageStill(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0), bool isBgrOrBgra = true)
-        { Image(mat, false, size, isBgrOrBgra); }
-    inline void ImageAnimated(const cv::Mat &mat, const cv::Size& size = cv::Size(0, 0), bool isBgrOrBgra = true)
-        { Image(mat, true, size, isBgrOrBgra); }
-
-    cv::Point2d GetImageMousePos();
-
-    void ClearImageTextureCache();
-    void ClearAllTextureCaches();
-
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/gl_provider.cpp continued                                    //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <iostream>
 
 namespace ImmVision_GlProvider
@@ -2267,7 +2209,7 @@ namespace ImmVision_GlProvider
     {
         // InitGlProvider must be called before the OpenGl Loader is reset
         _AssertOpenGlLoaderWorking();
-        ImmVision::ClearAllTextureCaches();
+        ImmVision::ClearTextureCache();
     }
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)
@@ -2579,126 +2521,6 @@ namespace ImmVision
         }
 
     } // namespace internal
-} // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image.cpp                                                       //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/immvision.h included by src/immvision/internal/image.cpp                 //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/inspector.h included by src/immvision/immvision.h                        //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    void Inspector_AddImage(
-        const cv::Mat& image,
-        const std::string& legend,
-        const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
-    );
-    void Inspector_Show();
-    void Inspector_ClearImages();
-
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/image.cpp continued                                             //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    namespace internal
-    {
-        double cacheTimeToLive = 5.;
-        ShortLivedCache<const cv::Mat*, std::unique_ptr<GlTextureCv>> gTextureCache(cacheTimeToLive);
-
-
-        struct
-        {
-            cv::Point2d lastDisplayRatio = cv::Point2d(1., 1.);
-            ImVec2      lastImageCursorPos = ImVec2(0.f, 0.f);
-        } gLastImageInfo;
-
-
-    } // namespace internal
-
-
-    void Image(
-        const cv::Mat &mat,
-        bool refresh,
-        const cv::Size& size,
-        bool isBgrOrBgra
-    )
-    {
-        auto & textureCache = internal::gTextureCache;
-        if ( ! textureCache.Contains(&mat))
-        {
-            textureCache.AddKey(&mat);
-            textureCache.Get(&mat) = std::make_unique<GlTextureCv>();
-        }
-
-        auto& glTextureCv = textureCache.Get(&mat);
-
-        // Detect if the texture was not transfered to OpenGL yet
-        if ((glTextureCv->mImageSize.x == 0.f) && (glTextureCv->mImageSize.y == 0.f))
-            refresh = true;
-
-        if (refresh)
-            glTextureCv->BlitMat(mat, isBgrOrBgra);
-
-        ImVec2 sizeImVec2((float)size.width, (float)size.height);
-        ImVec2 displaySize = ImGuiImm::ComputeDisplayImageSize(sizeImVec2, glTextureCv->mImageSize);
-
-        internal::gLastImageInfo.lastDisplayRatio = cv::Point2d(
-            (double)(glTextureCv->mImageSize.x / displaySize.x),
-            (double)(glTextureCv->mImageSize.y / displaySize.y)
-        );
-        internal::gLastImageInfo.lastImageCursorPos = ImGui::GetCursorScreenPos();
-
-        glTextureCv->Draw_DisableDragWindow(displaySize);
-    }
-
-    ImVec2 GetImageMousePos_OnScreen()
-    {
-        ImVec2 mouse = ImGui::GetMousePos();
-        ImVec2 imagePos = internal::gLastImageInfo.lastImageCursorPos;
-
-        return ImVec2(mouse.x - imagePos.x, mouse.y - imagePos.y);
-    }
-
-    cv::Point2d GetImageMousePos()
-    {
-        ImVec2 mousePos_OnScreen = GetImageMousePos_OnScreen();
-        cv::Point2d mousePositionOriginal =
-            {
-                (double)mousePos_OnScreen.x * internal::gLastImageInfo.lastDisplayRatio.x,
-                (double)mousePos_OnScreen.y * internal::gLastImageInfo.lastDisplayRatio.y
-            };
-        return mousePositionOriginal;
-    }
-
-    void ClearImageTextureCache()
-    {
-        internal::gTextureCache.Clear();
-    }
-
-    void ClearAllTextureCaches()
-    {
-        ClearImageTextureCache();
-        Icons::ClearIconsTextureCache();
-        ClearNavigatorTextureCache();
-    }
-    
 } // namespace ImmVision
 
 
@@ -4544,7 +4366,7 @@ namespace ImmVision
 
 namespace ImmVision
 {
-    void ClearNavigatorTextureCache()
+    void ClearTextureCache()
     {
         ImageNavigatorCache::gImageNavigatorTextureCache.ClearImagesCache();
     }
@@ -5958,6 +5780,29 @@ namespace ImGuiImm
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/inspector.cpp                                                   //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/inspector.h included by src/immvision/internal/inspector.cpp             //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    void Inspector_AddImage(
+        const cv::Mat& image,
+        const std::string& legend,
+        const std::string& zoomKey = "",
+        const std::string& colorAdjustmentsKey = "",
+        const cv::Point2d & zoomCenter = cv::Point2d(),
+        double zoomRatio = -1.,
+        bool isColorOrderBGR = true
+    );
+    void Inspector_Show();
+    void Inspector_ClearImages();
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/inspector.cpp continued                                         //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 

@@ -118,9 +118,17 @@ namespace ImmVision
         const std::string& colorAdjustmentsKey = ""
     );
 
+//    void ImageOld(
+//        const cv::Mat &mat,
+//        bool refresh,
+//        const cv::Size& size = cv::Size(0, 0),
+//        bool isBgrOrBgra = true
+//    );
 
 
-    void ClearNavigatorTextureCache();
+
+
+    void ClearTextureCache();
 
 
 } // namespace ImmVision

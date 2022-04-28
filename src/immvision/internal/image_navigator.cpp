@@ -19,7 +19,7 @@
 
 namespace ImmVision
 {
-    void ClearNavigatorTextureCache()
+    void ClearTextureCache()
     {
         ImageNavigatorCache::gImageNavigatorTextureCache.ClearImagesCache();
     }
