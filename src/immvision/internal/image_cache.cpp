@@ -2,7 +2,7 @@
 #include "immvision/internal/cv/color_adjustment_utils.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/imgui/imgui_imm.h"
-#include "immvision/internal/drawing/image_navigator_drawing.h"
+#include "immvision/internal/drawing/image_drawing.h"
 
 namespace ImmVision
 {
@@ -100,7 +100,7 @@ namespace ImmVision
             {
                 if (ShallRefreshRgbaCache(oldParams, *params))
                     shallRefreshRgbaCache = true;
-                ImageNavigatorDrawing::BlitImageNavigatorTexture(
+                ImageDrawing::BlitImageNavigatorTexture(
                     *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
             }
 

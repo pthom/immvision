@@ -5,7 +5,7 @@
 
 namespace ImmVision
 {
-    namespace ImageNavigatorDrawing
+    namespace ImageDrawing
     {
         cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params);
 
@@ -24,6 +24,6 @@ namespace ImmVision
             GlTextureCv* outTexture
         );
 
-    } // namespace ImageNavigatorDrawing
+    } // namespace ImageDrawing
 
 } // namespace ImmVision

@@ -1,4 +1,4 @@
-#include "immvision/internal/drawing/image_navigator_drawing.h"
+#include "immvision/internal/drawing/image_drawing.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/cv_drawing_utils.h"
@@ -9,7 +9,7 @@
 
 namespace ImmVision
 {
-    namespace ImageNavigatorDrawing
+    namespace ImageDrawing
     {
         cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params)
         {
@@ -248,6 +248,6 @@ namespace ImmVision
             outTexture->BlitMat(finalImage, false);
         }
 
-    } // namespace ImageNavigatorDrawing
+    } // namespace ImageDrawing
 
 } // namespace ImmVision

@@ -1385,15 +1385,15 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/image_navigator_drawing.cpp                             //
+//                       src/immvision/internal/drawing/image_drawing.cpp                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/image_navigator_drawing.h included by src/immvision/internal/drawing/image_navigator_drawing.cpp//
+//                       src/immvision/internal/drawing/image_drawing.h included by src/immvision/internal/drawing/image_drawing.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/gl_texture.h included by src/immvision/internal/drawing/image_navigator_drawing.h//
+//                       src/immvision/internal/gl/gl_texture.h included by src/immvision/internal/drawing/image_drawing.h//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <memory>
 
@@ -1436,12 +1436,12 @@ namespace ImmVision
 } // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/image_navigator_drawing.h continued                     //
+//                       src/immvision/internal/drawing/image_drawing.h continued                               //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace ImmVision
 {
-    namespace ImageNavigatorDrawing
+    namespace ImageDrawing
     {
         cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params);
 
@@ -1460,11 +1460,11 @@ namespace ImmVision
             GlTextureCv* outTexture
         );
 
-    } // namespace ImageNavigatorDrawing
+    } // namespace ImageDrawing
 
 } // namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/image_navigator_drawing.cpp continued                   //
+//                       src/immvision/internal/drawing/image_drawing.cpp continued                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <opencv2/imgproc.hpp>
@@ -1472,7 +1472,7 @@ namespace ImmVision
 
 namespace ImmVision
 {
-    namespace ImageNavigatorDrawing
+    namespace ImageDrawing
     {
         cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params)
         {
@@ -1711,7 +1711,7 @@ namespace ImmVision
             outTexture->BlitMat(finalImage, false);
         }
 
-    } // namespace ImageNavigatorDrawing
+    } // namespace ImageDrawing
 
 } // namespace ImmVision
 
@@ -2680,7 +2680,7 @@ namespace ImmVision
             {
                 if (ShallRefreshRgbaCache(oldParams, *params))
                     shallRefreshRgbaCache = true;
-                ImageNavigatorDrawing::BlitImageNavigatorTexture(
+                ImageDrawing::BlitImageNavigatorTexture(
                     *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
             }
 
