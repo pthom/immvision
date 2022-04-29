@@ -24,6 +24,21 @@ namespace ImmVision
     };
 
 
+    // Contains information about the mouse inside an image
+    struct MouseInformation
+    {
+        // Mouse position in the original matrix/buffer (float values). Will be (-1, -1) if mouse is not hovering
+        cv::Point2d MousePosition_Matrix = cv::Point2d(-1., -1.);
+        // Mouse position in the displayed image, which can be zoomed, and only show a subset of the matrix (integer values).
+        // Will be (-1, -1) if mouse is not hovering
+        cv::Point MousePosition_Displayed = cv::Point(-1, -1);
+
+        //
+        // Note: you can query ImGui::IsMouseDown(mouse_button) (c++) or imgui.is_mouse_down(mouse_button) (Python)
+        //
+    };
+
+
     // Set of display parameters and options for an Image
     struct ImageParams
     {
@@ -33,6 +48,12 @@ namespace ImmVision
         // Its default constructor will give them reasonable choices, which you can adapt to your needs.
         // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
         //
+
+        // Refresh Image: images textures are cached. Change this boolean value if your image matrix/buffer has changed
+        bool RefreshImage = false;
+
+        // Mouse position information. These values are filled after displaying an image
+        MouseInformation MouseInfo;
 
         //
         // Display size and title
@@ -116,15 +137,17 @@ namespace ImmVision
     cv::Point2d Image(const cv::Mat& image, ImageParams* params, bool refreshImage = false);
 
 
-    cv::Point2d Image(
-        const cv::Mat& image,
-        const cv::Size& imageDisplaySize = cv::Size(),
-        const std::string& legend = "Image",
-        bool refreshImage = false,
-        bool showOptionsWhenAppearing = false,
-        const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = ""
-    );
+    inline void Image2(const cv::Mat& image, const ImageParams& params) {}
+
+//    cv::Point2d Image(
+//        const cv::Mat& image,
+//        const cv::Size& imageDisplaySize = cv::Size(),
+//        const std::string& legend = "Image",
+//        bool refreshImage = false,
+//        bool showOptionsWhenAppearing = false,
+//        const std::string& zoomKey = "",
+//        const std::string& colorAdjustmentsKey = ""
+//    );
 
 //    void ImageOld(
 //        const cv::Mat &mat,

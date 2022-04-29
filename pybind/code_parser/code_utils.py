@@ -51,6 +51,7 @@ def _opencv_replacements() -> typing.List[StringReplacement]:
     \bcv::Matx33d\b -> Matx33d
     \bdouble\b -> float
     \bcv::Point\b -> Point
+    \bcv::Point2d\b -> Point2d
     """
     return parse_string_replacements(replacements)
 
@@ -84,6 +85,10 @@ def read_text_file(filename: str) -> str:
     return txt
 
 
+def escape_new_lines(code: str) -> str:
+    return code.replace("\n", "\\n")
+
+
 def write_text_file(filename: str, content: str):
     with open(filename, "w") as f:
         f.write(content)
@@ -92,7 +97,12 @@ def write_text_file(filename: str, content: str):
 def indent_code(code: str, indent_size: int):
     lines = code.split("\n")
     indent_str = " " * indent_size
-    lines = map(lambda s: indent_str + s, lines)
+    def indent_line(line):
+        if len(line) == 0:
+            return ""
+        else:
+            return indent_str + line
+    lines = map(indent_line, lines)
     return "\n".join(lines)
 
 
@@ -106,24 +116,24 @@ def indent_code_force(code: str, indent_size: int):
 
 def write_code_between_markers(
         inout_filename: str,
-        code_marker: str,
+        code_marker_in: str,
+        code_marker_out: str,
         code_to_insert: str,
         flag_preserve_left_spaces: bool
     ):
-    code_marker_in = f"<autogen:{code_marker}>"
-    code_marker_out = f"</autogen:{code_marker}>"
-
     input_code = read_text_file(inout_filename)
     input_code_lines = input_code.split("\n")
 
     output_code = ""
     is_inside_autogen_region = False
+    was_replacement_performed = False
     for code_line in input_code_lines:
         if code_marker_in in code_line:
             if is_inside_autogen_region:
                 raise RuntimeError(f"Encountered more than one code_marker: {code_marker_in}")
             else:
                 is_inside_autogen_region = True
+                was_replacement_performed = True
                 indent_size = 0
                 while indent_size < len(code_line) and code_line[indent_size] == " ":
                     indent_size += 1
@@ -145,6 +155,8 @@ def write_code_between_markers(
     if output_code[-1:] == "\n":
         output_code = output_code[:-1]
 
+    if not was_replacement_performed:
+        raise RuntimeError(f"write_code_between_markers: could not find marker {code_marker_in} in file {inout_filename}")
     write_text_file(inout_filename, output_code)
 
 
