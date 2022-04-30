@@ -19,16 +19,16 @@ REPO_DIR = os.path.realpath(THIS_DIR + "/../..")
 
 
 @dataclass
-class StructCode:
-    struct_name: str = ""
-    line_start: int = 0      # starting line of the struct in the whole code
+class PydefCode:
+    name: str = ""
+    line_start: int = 0      # starting line of the struct or function in the whole code
     line_end: int = 0        # end line of the struct
     body_code: str = ""      # the code inside the struct body
-    one_line_title: str = "" # the short title just one line before the struct declaration
+    title: str = ""          # the short title just one line before the struct or function declaration
 
 
 @dataclass
-class StructAttribute:
+class PydefAttribute:
     name_cpp: str = ""
     name_python: str = ""
     type: str = ""
@@ -64,16 +64,16 @@ class CodeRegionComment:
 class Variant_Attribute_CodeRegion:
     line_number: int = 0
     code_region_comment: CodeRegionComment = None
-    struct_attribute: StructAttribute = None
+    attribute: PydefAttribute = None
 
 
 class StructInfos:
     def __init__(self):
-        self.struct_code: StructCode = None
-        self.attr_and_regions = []
+        self.struct_code: PydefCode = None
+        self.attr_and_regions = [] # list[Variant_Attribute_CodeRegion]
 
     def struct_name(self):
-        return self.struct_code.struct_name
+        return self.struct_code.name
 
 
 def find_pydef_cpp_names(whole_file_code: str, pydef_marker: str, fn_extract) -> list[str]:
@@ -120,15 +120,15 @@ def find_pydef_function_names(whole_file_code: str) -> list[str]:
     return find_pydef_cpp_names(whole_file_code, pydef_marker, extract_function_name)
 
 
-def _extract_struct_code(whole_file_code: str, struct_name: str) -> StructCode:
+def _extract_struct_code(whole_file_code: str, struct_name: str) -> PydefCode:
     """
     Very dumb code parser
     :return:
     * an extract of the code, which is the body of the struct
     * the line number where it starts
     """
-    r = StructCode()
-    r.struct_name = struct_name
+    r = PydefCode()
+    r.name = struct_name
 
     code_lines = whole_file_code.split("\n")
 
@@ -147,7 +147,7 @@ def _extract_struct_code(whole_file_code: str, struct_name: str) -> StructCode:
         if f"struct {struct_name}" in code_line:
             in_struct = True
             r.line_start = line_number
-            r.one_line_title = extract_one_line_title(line_number)
+            r.title = extract_one_line_title(line_number)
 
         if "{" in code_line and in_struct:
             nb_accolades += 1
@@ -169,7 +169,7 @@ def _extract_struct_code(whole_file_code: str, struct_name: str) -> StructCode:
     return r
 
 
-def extract_struct_attributes(struct_code: StructCode) -> typing.List[StructAttribute]:
+def extract_struct_attributes(struct_code: PydefCode) -> typing.List[PydefAttribute]:
     """
     *Very* dumb parser, that works with our simple structs
     """
@@ -183,7 +183,7 @@ def extract_struct_attributes(struct_code: StructCode) -> typing.List[StructAttr
             return False
         return True
 
-    def parse_attribute(nb_and_code_line) -> StructAttribute:
+    def parse_attribute(nb_and_code_line) -> PydefAttribute:
         """
         Can handle lines like
             ColorAdjustmentsValues ColorAdjustments = ColorAdjustmentsValues();
@@ -193,7 +193,7 @@ def extract_struct_attributes(struct_code: StructCode) -> typing.List[StructAttr
         line_number = nb_and_code_line[0]
         code_line = nb_and_code_line[1]
 
-        r = StructAttribute()
+        r = PydefAttribute()
         r.line_number = line_number
         code_line = code_line.strip()
         if code_line[-1] == ";":
@@ -210,7 +210,7 @@ def extract_struct_attributes(struct_code: StructCode) -> typing.List[StructAttr
         r.name_python = code_utils.to_snake_case(r.name_cpp)
         return r
 
-    def add_attribute_comment(attribute: StructAttribute) -> str:
+    def add_attribute_comment(attribute: PydefAttribute) -> str:
         # Search for comment beginning with // immediately on top of the attribute
         comment_lines_before_attribute_decl = []
         line_number = attribute.line_number - 1
@@ -234,7 +234,7 @@ def extract_struct_attributes(struct_code: StructCode) -> typing.List[StructAttr
     return all_attributes
 
 
-def extract_code_region_comments(struct_code: StructCode) -> typing.List[CodeRegionComment]:
+def extract_code_region_comments(struct_code: PydefCode) -> typing.List[CodeRegionComment]:
     """
     Code region comments look like this
     //
@@ -292,7 +292,7 @@ def extract_struct_infos(whole_code: str, struct_name: str) -> StructInfos:
     for sa in struct_attributes:
         v = Variant_Attribute_CodeRegion()
         v.line_number = sa.line_number
-        v.struct_attribute = sa
+        v.attribute = sa
         r.attr_and_regions.append(v)
     for cr in code_region_comments:
         v = Variant_Attribute_CodeRegion()
@@ -305,13 +305,13 @@ def extract_struct_infos(whole_code: str, struct_name: str) -> StructInfos:
 
 
 def make_struct_doc(struct_infos: StructInfos) -> str:
-    doc = f"{struct_infos.struct_code.one_line_title}\n\n"
+    doc = f"{struct_infos.struct_code.title}\n\n"
 
     for info in struct_infos.attr_and_regions:
         if info.code_region_comment is not None:
             doc = doc + "\n" + info.code_region_comment.comment + "\n"
-        elif info.struct_attribute is not None:
-            attr = info.struct_attribute
+        elif info.attribute is not None:
+            attr = info.attribute
             attr_doc = f"{attr.name_python}: {attr.type}"
             if len(attr.default_value) > 0:
                 attr_doc = attr_doc + " = " + attr.default_value
@@ -372,7 +372,7 @@ class {struct_name}(cpp_immvision.{struct_name}):
     # code_outro_2 = f'\n\ncpp_immvision.ColorAdjustmentsValues.__doc__ == """{docstring}"""\n\n'
     code_outro_2 = f'\n\n'
 
-    def do_replace(s: str, attr: StructAttribute):
+    def do_replace(s: str, attr: PydefAttribute):
         out = s
         out = out.replace("ATTR_NAME_PYTHON", attr.name_python)
         out = out.replace("ATTR_TYPE", code_utils.apply_code_replacements(attr.type))
@@ -388,14 +388,14 @@ class {struct_name}(cpp_immvision.{struct_name}):
 
     final_code = code_intro
     for info in struct_infos.attr_and_regions:
-        if info.struct_attribute is not None:
-            attr = info.struct_attribute
+        if info.attribute is not None:
+            attr = info.attribute
             final_code += split_comment(attr.comment)
             final_code += do_replace(code_inner_param, attr)
     final_code += code_outro_1
     for info in struct_infos.attr_and_regions:
-        if info.struct_attribute is not None:
-            attr = info.struct_attribute
+        if info.attribute is not None:
+            attr = info.attribute
             final_code += do_replace(code_inner_set, attr)
     final_code += code_outro_2
 
@@ -415,8 +415,8 @@ def generate_pydef_cpp_code(struct_infos: StructInfos) -> str:
 
     r = code_intro
     for info in struct_infos.attr_and_regions:
-        if info.struct_attribute is not None:
-            attr = info.struct_attribute
+        if info.attribute is not None:
+            attr = info.attribute
             code = code_inner
             code = code.replace("ATTR_NAME_PYTHON", attr.name_python)
             code = code.replace("ATTR_NAME_CPP", attr.name_cpp)
@@ -455,9 +455,9 @@ def generate_tostring_cpp_code(struct_infos: StructInfos) -> str:
     def dump_attributes(is_python: bool):
         code = ""
         for info in struct_infos.attr_and_regions:
-            if info.struct_attribute is not None:
+            if info.attribute is not None:
                 #         r = r + MakeIndent(indent_size) + "ColorAdjustments: " + ToString(v.ColorAdjustments) + "\n";
-                attr = info.struct_attribute
+                attr = info.attribute
                 line = code_inner
                 line = line.replace("ATTR_NAME_CPP", attr.name_cpp)
                 if is_python:
@@ -489,7 +489,7 @@ def generate_tostring_decl_h(struct_infos: StructInfos) -> str:
 
 def generate_pyi_python_code(struct_infos: StructInfos) -> str:
     code_intro = f'''class {struct_infos.struct_name()}:
-    "{struct_infos.struct_code.one_line_title}"
+    "{struct_infos.struct_code.title}"
     '''
     attr_inner = """    NAME_PYTHON: TYPE_PYTHON = DEFAULT_VALUE_PYTHON"""
     code_outro = "\n\n"
@@ -508,8 +508,8 @@ def generate_pyi_python_code(struct_infos: StructInfos) -> str:
                 add_line("    # " + line)
             add_line("    #")
 
-        if info.struct_attribute is not None:
-            attr = info.struct_attribute
+        if info.attribute is not None:
+            attr = info.attribute
             for line in attr.comment.split("\n"):
                 add_line("    # " + line)
             line = attr_inner
