@@ -1,7 +1,7 @@
 * [ ] PIP
   * [ ] imgui_fig (from imgui_datascience)
   * [ ] imgui_runner
-      * [ ] change mat type if not castable (and cache)
+    * [ ] change mat type if not castable (and cache)
   * [ ] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics/
   * [Later] cf _skbuild_template: add conda & wheels
   * [Later] pyimgui
@@ -13,7 +13,9 @@
 
 
  * [ ] immvision
-     * [ ] Only one signature for Image (using struct designated init as named params)
+     * [ ] Only one signature for Image 
+       * C++ using struct designated init as named params
+       * Python: needs custom init...
      * [ ] Image returns multiple values (mouse position (double), pixel color (vecdouble), ...)
            Or better, return pointer to params (helps users that did not specify them as a param, they can get it anyway)
      * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 

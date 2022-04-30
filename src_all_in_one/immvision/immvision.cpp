@@ -4736,12 +4736,11 @@ namespace ImmVision
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
 
             MouseInformation mouseInfo;
-
             if (ImGui::IsItemHovered())
-                mouseInfo = MouseInformation {
-                        .MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation),
-                        .MousePosition_Displayed = mouseLocation
-                };
+            {
+                mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
+                mouseInfo.MousePosition_Displayed = mouseLocation;
+            }
 
             return mouseInfo;
         };
