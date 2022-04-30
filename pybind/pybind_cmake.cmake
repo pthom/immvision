@@ -2,6 +2,14 @@
 # CMAKE_CURRENT_LIST_DIR is thus ".." i.e the main repo dir
 set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
+if (NOT DEFINED PYTHON_EXECUTABLE)
+  if (EXISTS ${THIS_DIR}/venv/bin/python)
+    set(PYTHON_EXECUTABLE ${THIS_DIR}/venv/bin/python)
+  else()
+    message(FATAL_ERROR "Please set PYTHON_EXECUTABLE")
+  endif()
+endif()
+
 if(DEFINED ENV{OpenCV_DIR})
   set(OpenCV_DIR $ENV{OpenCV_DIR})
   message(WARNING "Got OpenCV_DIR from enviroment: ${OpenCV_DIR}")
@@ -79,11 +87,9 @@ file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PR
 pybind11_add_module(cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
 target_include_directories(cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(cpp_immvision PUBLIC IMMVISION_BUILD_PYTHON_BINDINGS)
-
 # add cv_np
 add_subdirectory(${THIS_DIR}/cvnp)
 target_link_libraries(cpp_immvision PRIVATE cvnp)
-
 # Compile definitions
 target_compile_definitions(cpp_immvision PRIVATE
     VERSION_INFO=${PROJECT_VERSION}
@@ -92,8 +98,22 @@ target_compile_definitions(cpp_immvision PRIVATE
 )
 
 #
+# pre-build: autogenerate code
 #
-#
+add_custom_target(
+    autogenerate_pybind_infos
+    COMMAND ${PYTHON_EXECUTABLE} ${THIS_DIR}/code_parser/code_autogenerator.py
+    DEPENDS ${THIS_DIR}/../src/immvision/image.h
+    COMMENT "autogenerate python bindings infos"
+    BYPRODUCTS
+      ${THIS_DIR}/src_cpp/pydef_image.cpp
+      ${THIS_DIR}/src_python/immvision/__init__.py
+      ${THIS_DIR}/src_python/immvision/cpp_immvision.pyi
+      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.cpp
+      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.h
+)
+add_dependencies(cpp_immvision autogenerate_pybind_infos)
+
 
 #
 # Link with OpenCV
