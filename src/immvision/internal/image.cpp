@@ -503,4 +503,20 @@ namespace ImmVision
         Image(image, &cached_params);
     }
 
+
+    ImageParams FactorImageParamsDisplayOnly()
+    {
+        ImageParams imageParams;
+        imageParams.ShowOptions = false;
+        imageParams.Legend = "";
+        imageParams.ZoomWithMouseWheel = false;
+        imageParams.PanWithMouse = false;
+        imageParams.ShowPixelInfo = false;
+        imageParams.ShowImageInfo = false;
+        imageParams.ShowLegendBorder = false;
+        imageParams.ShowGrid = false;
+        imageParams.ShowAlphaChannelCheckerboard = false;
+        return imageParams;
+    }
+
 } // namespace ImmVision

@@ -21,7 +21,12 @@ void Image(const cv::Mat& image)
 
 void pydef_image(pybind11::module& m)
 {
+    m.def("make_zoom_pan_matrix", ImmVision::MakeZoomPanMatrix, "Create a zoom/pan matrix centered around a given point of interest");
+    m.def("factor_image_params_display_only", ImmVision::FactorImageParamsDisplayOnly, "Create ImageParams that display the image only, with no decoration, and no user interaction");
+
+
     m.def("Image", Image);
+
 
     using namespace ImmVision;
 

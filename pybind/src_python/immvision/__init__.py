@@ -4,6 +4,7 @@ import cv2
 from .cpp_immvision import __doc__, __version__
 from .cpp_immvision import Image
 from .cpp_immvision import InitGlProvider, ResetGlProvider
+from .cpp_immvision import make_zoom_pan_matrix, factor_image_params_display_only
 from . import cpp_immvision
 from .cv_types import *
 
