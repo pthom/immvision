@@ -3,8 +3,9 @@
 #include "cvnp/cvnp.h"
 #include "transfer_imgui_context.h"
 
-#include <pybind11/pybind11.h>
 #include <opencv2/core.hpp>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 
 namespace py = pybind11;
@@ -14,9 +15,8 @@ void Image(const cv::Mat& image)
 {
     transfer_imgui_context();
     cv::Size cv_size(500, 500);
-    ImmVision::Image2(image, {.ImageDisplaySize = cv_size});
+    ImmVision::Image(image, cv_size);
 }
-
 
 
 void pydef_image(pybind11::module& m)
@@ -35,14 +35,13 @@ void pydef_image(pybind11::module& m)
 
     auto pyClassMouseInformation = py::class_<MouseInformation>(m, "MouseInformation") 
         .def(py::init<>()) 
-        .def_readwrite("mouse_position_matrix", &MouseInformation::MousePosition_Matrix, "Mouse position in the original matrix/buffer (float values). Will be (-1, -1) if mouse is not hovering")
-        .def_readwrite("mouse_position_displayed", &MouseInformation::MousePosition_Displayed, "Mouse position in the displayed image, which can be zoomed, and only show a subset of the matrix (integer values).\nWill be (-1, -1) if mouse is not hovering")
+        .def_readwrite("mouse_position", &MouseInformation::MousePosition, "Mouse position in the original image/matrix\nThis position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image")
+        .def_readwrite("mouse_position_displayed", &MouseInformation::MousePosition_Displayed, "Mouse position in the displayed portion of the image (the original image can be zoomed,\nand only show a subset if it may be shown).\nThis position is given with integer coordinates, and will be (-1, -1) if the mouse is not hovering the image")
         .def("__repr__", [](const MouseInformation& v) { return ToString(v); }); 
 
     auto pyClassImageParams = py::class_<ImageParams>(m, "ImageParams") 
         .def(py::init<>()) 
         .def_readwrite("refresh_image", &ImageParams::RefreshImage, "Refresh Image: images textures are cached. Change this boolean value if your image matrix/buffer has changed")
-        .def_readwrite("mouse_info", &ImageParams::MouseInfo, "Mouse position information. These values are filled after displaying an image")
         .def_readwrite("image_display_size", &ImageParams::ImageDisplaySize, "Size of the displayed image (can be different from the matrix size)")
         .def_readwrite("legend", &ImageParams::Legend, "Title displayed in the border")
         .def_readwrite("zoom_pan_matrix", &ImageParams::ZoomPanMatrix, "ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point")
@@ -64,6 +63,7 @@ void pydef_image(pybind11::module& m)
         .def_readwrite("show_options_in_tooltip", &ImageParams::ShowOptionsInTooltip, "If set to true, then the option panel will be displayed in a transient tooltip window")
         .def_readwrite("watched_pixels", &ImageParams::WatchedPixels, "List of Watched Pixel coordinates")
         .def_readwrite("highlight_watched_pixels", &ImageParams::HighlightWatchedPixels, "Shall the watched pixels be drawn on the image")
+        .def_readwrite("mouse_info", &ImageParams::MouseInfo, "Mouse position information. These values are filled after displaying an image")
         .def("__repr__", [](const ImageParams& v) { return ToString(v); }); 
 
 

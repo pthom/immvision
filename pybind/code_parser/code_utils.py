@@ -46,6 +46,8 @@ def parse_string_replacements(lines: str) -> typing.List[StringReplacement]:
 def _opencv_replacements() -> typing.List[StringReplacement]:
     replacements = r"""
     \bcv::Size\(\) -> (0, 0)
+    \bcv::Point\(-1, -1\) -> (-1, -1)
+    \bcv::Point2d\(-1., -1.\) -> (-1., -1.)
     \bcv::Size\b -> Size
     \bcv::Matx33d::eye\(\) -> np.eye(3)
     \bcv::Matx33d\b -> Matx33d

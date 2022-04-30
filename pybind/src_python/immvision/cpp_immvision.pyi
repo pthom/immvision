@@ -16,11 +16,13 @@ class ColorAdjustmentsValues:
 class MouseInformation:
     "Contains information about the mouse inside an image"
     
-    # Mouse position in the original matrix/buffer (float values). Will be (-1, -1) if mouse is not hovering
-    mouse_position_matrix: Point2d = Point2d(-1., -1.)
-    # Mouse position in the displayed image, which can be zoomed, and only show a subset of the matrix (integer values).
-    # Will be (-1, -1) if mouse is not hovering
-    mouse_position_displayed: Point = Point(-1, -1)
+    # Mouse position in the original image/matrix
+    # This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
+    mouse_position: Point2d = (-1., -1.)
+    # Mouse position in the displayed portion of the image (the original image can be zoomed,
+    # and only show a subset if it may be shown).
+    # This position is given with integer coordinates, and will be (-1, -1) if the mouse is not hovering the image
+    mouse_position_displayed: Point = (-1, -1)
 
     #
     #  Note: you can query ImGui::IsMouseDown(mouse_button) (c++) or imgui.is_mouse_down(mouse_button) (Python)
@@ -39,8 +41,6 @@ class ImageParams:
     #
     # Refresh Image: images textures are cached. Change this boolean value if your image matrix/buffer has changed
     refresh_image: bool = False
-    # Mouse position information. These values are filled after displaying an image
-    mouse_info: MouseInformation = 
 
     #
     #  Display size and title
@@ -111,6 +111,8 @@ class ImageParams:
     watched_pixels: list[Point] = list[Point]()
     # Shall the watched pixels be drawn on the image
     highlight_watched_pixels: bool = True
+    # Mouse position information. These values are filled after displaying an image
+    mouse_info: MouseInformation = MouseInformation()
 
 
 

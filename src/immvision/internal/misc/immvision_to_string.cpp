@@ -47,12 +47,12 @@ namespace ImmVision
 
 #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
-        inner = inner + "mouse_position_matrix: " + ToString(v.MousePosition_Matrix) + "\n";
+        inner = inner + "mouse_position: " + ToString(v.MousePosition) + "\n";
         inner = inner + "mouse_position_displayed: " + ToString(v.MousePosition_Displayed) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
-        inner = inner + "MousePosition_Matrix: " + ToString(v.MousePosition_Matrix) + "\n";
+        inner = inner + "MousePosition: " + ToString(v.MousePosition) + "\n";
         inner = inner + "MousePosition_Displayed: " + ToString(v.MousePosition_Displayed) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
@@ -76,7 +76,6 @@ namespace ImmVision
 #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "refresh_image: " + ToString(v.RefreshImage) + "\n";
-        inner = inner + "mouse_info: " + ToString(v.MouseInfo) + "\n";
         inner = inner + "image_display_size: " + ToString(v.ImageDisplaySize) + "\n";
         inner = inner + "legend: " + ToString(v.Legend) + "\n";
         inner = inner + "zoom_pan_matrix: " + ToString(v.ZoomPanMatrix) + "\n";
@@ -98,11 +97,11 @@ namespace ImmVision
         inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "watched_pixels: " + ToString(v.WatchedPixels) + "\n";
         inner = inner + "highlight_watched_pixels: " + ToString(v.HighlightWatchedPixels) + "\n";
+        inner = inner + "mouse_info: " + ToString(v.MouseInfo) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "RefreshImage: " + ToString(v.RefreshImage) + "\n";
-        inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";
         inner = inner + "ImageDisplaySize: " + ToString(v.ImageDisplaySize) + "\n";
         inner = inner + "Legend: " + ToString(v.Legend) + "\n";
         inner = inner + "ZoomPanMatrix: " + ToString(v.ZoomPanMatrix) + "\n";
@@ -124,6 +123,7 @@ namespace ImmVision
         inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "WatchedPixels: " + ToString(v.WatchedPixels) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
+        inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
