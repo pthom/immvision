@@ -71,12 +71,12 @@ namespace ImmVision
 #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
         std::string ToString(bool v)
         {
-            return (v ? "true" : "false");
+            return (v ? "True" : "False");
         }
 #else
         std::string ToString(bool v)
         {
-            return (v ? "True" : "False");
+            return (v ? "true" : "false");
         }
 #endif
 
