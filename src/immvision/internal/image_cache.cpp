@@ -59,12 +59,12 @@ namespace ImmVision
         // ImageTextureCache impl below
         //
 
-        void ImageTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh)
+        void ImageTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
             auto cacheKey = &image;
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
-            bool needsRefreshTexture = refresh;
+            bool needsRefreshTexture = userRefresh;
             bool shallRefreshRgbaCache = false;
 
             if (! mCacheParams.Contains(cacheKey))
@@ -98,7 +98,7 @@ namespace ImmVision
                     oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
             if (needsRefreshTexture)
             {
-                if (ShallRefreshRgbaCache(oldParams, *params))
+                if (ShallRefreshRgbaCache(oldParams, *params) || userRefresh)
                     shallRefreshRgbaCache = true;
                 ImageDrawing::BlitImageTexture(
                     *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());

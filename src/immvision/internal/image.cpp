@@ -26,10 +26,10 @@ namespace ImmVision
     }
 
 
-    cv::Point2d Image(const cv::Mat& image, ImageParams* params, bool refresh)
+    void Image(const cv::Mat& image, ImageParams* params)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
-        // with members = (cv::Mat& image, ImageParams* params, bool refresh).
+        // with members = (cv::Mat& image, ImageParams* params).
         //
         // - it begins by defining a set a lambdas for the different operations (they are named fnXXXX)
         // - the core of the function is only a few lines long and begins after the line
@@ -375,15 +375,21 @@ namespace ImmVision
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params](CachedImages & cacheImages)
+        auto fnShowImage = [&params](CachedImages & cacheImages) ->  MouseInformation
         {
             cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
                     *cacheImages.GlTexture,
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
 
-            cv::Point2d mouseLocation_originalImage =
-                ImGui::IsItemHovered() ? ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation) : cv::Point2d(-1., -1.);
-            return mouseLocation_originalImage;
+            MouseInformation mouseInfo;
+
+            if (ImGui::IsItemHovered())
+                mouseInfo = MouseInformation {
+                        .MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation),
+                        .MousePosition_Displayed = mouseLocation
+                };
+
+            return mouseInfo;
         };
 
 
@@ -408,19 +414,19 @@ namespace ImmVision
         //
         // Lambda / Show full Gui
         //
-        auto fnShowFullGui = [&](CachedParams& cacheParams, CachedImages &cacheImages)
+        auto fnShowFullGui = [&](CachedParams& cacheParams, CachedImages &cacheImages) -> MouseInformation
         {
 
             ImGui::BeginGroup();
             // Show image
-            cv::Point2d mouseLocation_originalImage = fnShowImage(cacheImages);
+            auto mouseInfo = fnShowImage(cacheImages);
             // Add Watched Pixel on double click
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered())
-                fnWatchedPixels_Add(mouseLocation_originalImage);
+                fnWatchedPixels_Add(mouseInfo.MousePosition);
 
             // Handle Mouse
             fnHandleMouseDragging(cacheParams);
-            fnHandleMouseWheel(mouseLocation_originalImage);
+            fnHandleMouseWheel(mouseInfo.MousePosition);
 
             // Zoom+ / Zoom- buttons
             fnShowZoomButtons();
@@ -437,22 +443,22 @@ namespace ImmVision
             if (params->ShowImageInfo)
                 ImageWidgets::ShowImageInfo(image, params->ZoomPanMatrix(0, 0));
             if (params->ShowPixelInfo)
-                fnShowPixelInfo(mouseLocation_originalImage);
+                fnShowPixelInfo(mouseInfo.MousePosition);
             ImGui::EndGroup();
 
             // Show Options
             fnOptionGui(cacheParams);
 
-            return mouseLocation_originalImage;
+            return mouseInfo;
         };
-        auto fnShowFullGui_WithBorder = [&](CachedParams& cacheParams, CachedImages &cacheImages)
+        auto fnShowFullGui_WithBorder = [&](CachedParams& cacheParams, CachedImages &cacheImages) -> MouseInformation
         {
             // BeginGroupPanel
             bool drawBorder = params->ShowLegendBorder;
             ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
-            cv::Point2d mouseLocation_originalImage = fnShowFullGui(cacheParams, cacheImages);
+            auto mouseInfo = fnShowFullGui(cacheParams, cacheImages);
             ImGuiImm::EndGroupPanel_FlagBorder();
-            return mouseLocation_originalImage;
+            return mouseInfo;
         };
 
 
@@ -465,47 +471,37 @@ namespace ImmVision
         {
             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                "%s -> empty image !!!", params->Legend.c_str());
-            return cv::Point2d();
+            params->MouseInfo = MouseInformation();
         }
 
-        ImageCache::gImageTextureCache.UpdateCache(image, params, refresh);
+        ImageCache::gImageTextureCache.UpdateCache(image, params, params->RefreshImage);
         auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(image);
         auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(image);
 
         ImGui::PushID("##Image"); ImGui::PushID(&image);
-        cv::Point2d mouseLocation_originalImage = fnShowFullGui_WithBorder(cacheParams, cacheImages);
+        params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
         ImGui::PopID(); ImGui::PopID();
-
-        return mouseLocation_originalImage;
     }
 
 
-    cv::Point2d Image(
-        const cv::Mat& image,
-        const cv::Size& imageDisplaySize,
-        const std::string& legend,
-        bool refreshImage,
-        bool showOptionsWhenAppearing,
-        const std::string& zoomKey,
-        const std::string& colorAdjustmentsKey
-    )
+    void Image(const cv::Mat& image,
+               const cv::Size& imageDisplaySize,
+               bool refreshImage,
+               bool showOptions,
+               bool isBgrOrBgra)
     {
         static std::map<const cv::Mat *, ImageParams> s_Params;
         if (s_Params.find(&image) == s_Params.end())
         {
-            ImageParams params;
+            auto params = ImageParams();
+            params.ShowOptions = showOptions;
             params.ImageDisplaySize = imageDisplaySize;
-            params.Legend = legend;
-            params.ShowOptions = showOptionsWhenAppearing;
-            params.ZoomKey = zoomKey;
-            params.ColorAdjustmentsKey = colorAdjustmentsKey;
+            params.RefreshImage = refreshImage;
+            params.IsColorOrderBGR = isBgrOrBgra;
             s_Params[&image] = params;
         }
-
-        ImageParams* params = & s_Params.at(&image);
-
-        return Image(image, params, refreshImage);
+        ImageParams& cached_params = s_Params.at(&image);
+        Image(image, &cached_params);
     }
-
 
 } // namespace ImmVision

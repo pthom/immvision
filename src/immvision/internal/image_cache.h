@@ -29,7 +29,7 @@ namespace ImmVision
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
-            void UpdateCache(const cv::Mat& image, ImageParams* params, bool refresh);
+            void UpdateCache(const cv::Mat& image, ImageParams* params, bool userRefresh);
 
             CachedParams& GetCacheParams(const cv::Mat& image);
             CachedImages& GetCacheImages(const cv::Mat& image);

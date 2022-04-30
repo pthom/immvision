@@ -157,51 +157,56 @@ static void guiFunction()
         changed |= GuiDisplaySize(gAppState.DisplaySize);
     }
 
+    if (changed)
     {
+        gAppState.UpdateImages();
+    }
+
+    {
+        static ImmVision::ImageParams originalImageParams {
+            .RefreshImage = false,
+            .ImageDisplaySize = gAppState.DisplaySize,
+            .Legend = "Original Image",
+            .ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
+                cv::Point2d(1004., 953.), 40., originalImageParams.ImageDisplaySize),
+            .ZoomKey = "i",
+        };
+
+        originalImageParams.ImageDisplaySize = gAppState.DisplaySize;
         ImmVision::Image(
             gAppState.Image,
-            gAppState.DisplaySize,
-            "Original",
-            false, //bool refreshImage = false,
-            true, //bool showOptionsWhenAppearing = false,
-            "i", //const std::string& zoomKey = "",
-            "" //const std::string& colorAdjustmentsKey = ""
-        );
-
+            &originalImageParams);
     }
+
     if (gAppState.ShowImageFiltered)
     {
         ImGui::SameLine();
         {
-            static ImmVision::ImageParams imageParamsFilter;
-            imageParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
-            imageParamsFilter.ZoomKey = "i";
-            imageParamsFilter.ColorAdjustmentsKey = "c";
-            imageParamsFilter.Legend = "X & Y Gradients (see channels 0 & 1)";
+            static ImmVision::ImageParams imageParamsFilter {
+                .RefreshImage = false,
+                .ImageDisplaySize = gAppState.DisplaySize,
+                .Legend = "X & Y Gradients (see channels 0 & 1)",
+                .ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
+                    cv::Point2d(1004., 953.), 40., imageParamsFilter.ImageDisplaySize),
+                .ZoomKey = "i"
+            };
 
+            imageParamsFilter.RefreshImage = changed;
+            imageParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
             ImmVision::Image(
                 gAppState.ImageFiltered,
-                &imageParamsFilter,
-                changed);
-
-            static bool zoomApplied = false;
-            if (!zoomApplied)
-            {
-                imageParamsFilter.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
-                    cv::Point2d(1004., 953.), 40., imageParamsFilter.ImageDisplaySize);
-
-                zoomApplied = true;
-            }
+                &imageParamsFilter);
         }
     }
-
-    if (changed)
-        gAppState.UpdateImages();
 
 
     {
         static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
-        ImmVision::Image(imageTransparent, cv::Size(0, 400));
+        ImmVision::Image(
+            imageTransparent, cv::Size(0, 400),
+            false, // refresh
+            true // show options
+            );
     }
 
 //    ImGui::Begin("Style");
