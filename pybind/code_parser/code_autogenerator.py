@@ -9,6 +9,7 @@ etc.
 import os
 import typing
 from dataclasses import dataclass, field
+from enum import Enum
 
 
 import code_utils
@@ -18,13 +19,18 @@ THIS_DIR = os.path.dirname(__file__)
 REPO_DIR = os.path.realpath(THIS_DIR + "/../..")
 
 
+class PydefType(Enum):
+    STRUCT = "Struct"
+    FUNCTION = "Function"
+
+
 @dataclass
 class PydefCode:
     name: str = ""
+    title: str = ""          # the short title just one line before the struct or function declaration
     line_start: int = 0      # starting line of the struct or function in the whole code
     line_end: int = 0        # end line of the struct
     body_code: str = ""      # the code inside the struct body
-    title: str = ""          # the short title just one line before the struct or function declaration
 
 
 @dataclass
@@ -76,28 +82,64 @@ class StructInfos:
         return self.struct_code.name
 
 
-def find_pydef_cpp_names(whole_file_code: str, pydef_marker: str, fn_extract) -> list[str]:
-    code_lines = whole_file_code.split("\n")
-
-    def skip_comments_under(line_nb: int) -> int :
-        idx = line_nb + 1
-        while idx < len(code_lines) and code_lines[idx].strip().startswith("//"):
-            idx += 1
-        return idx
-
-    cpp_names = []
-    for line_number, code_line in enumerate(code_lines):
-        if pydef_marker in code_line:
-            next_code_line_number = skip_comments_under(line_number)
-            cpp_line = code_lines[next_code_line_number].strip()
-            cpp_name = fn_extract(cpp_line)
-            cpp_names.append(cpp_name)
-
-    return cpp_names
+def fetch_comment_and_start_line(code_lines: list[str], line_nb: int) -> int :
+    comments = []
+    idx = line_nb + 1
+    while idx < len(code_lines):
+        line = code_lines[idx].strip()
+        if not line.startswith("//"):
+            break
+        comments.append(line[2:].strip())
+        idx += 1
+    comment = "\n".join(comments)
+    return comment, idx
 
 
-def find_pydef_struct_names(whole_file_code: str) -> list[str]:
-    def extract_struct_name(line):
+def fill_pydef_body_code(code_lines: list[str], pydef_type: PydefType, pydef_code_inout: PydefCode):
+    body_lines = []
+    lines_under_pydef = code_lines[pydef_code_inout.line_start:]
+    flag_entered_body = False
+    flag_exited_body = False
+
+
+    if pydef_type == PydefType.STRUCT:
+        opening_token = "{"
+        closing_token = "}"
+    elif pydef_type == PydefType.FUNCTION:
+        opening_token = "("
+        closing_token = ")"
+    else:
+        raise(f"fill_pydef_body_code: unsupported pydef_type {pydef_type}")
+
+    nb_opening_tokens = 0
+
+    def count_tokens(line):
+        return line.count(opening_token) - line.count(closing_token)
+
+    def append_body_line(line):
+        if len(line) > 0:
+            body_lines.append(line)
+
+    for line_number, code_line in enumerate(lines_under_pydef):
+        if flag_exited_body:
+            break
+        body_line = ""
+        for character in code_line:
+            nb_opening_tokens += count_tokens(character)
+            if not flag_entered_body and nb_opening_tokens == 1:
+                flag_entered_body = True
+            if flag_entered_body and not flag_exited_body:
+                body_line += character
+            if nb_opening_tokens == 0 and flag_entered_body:
+                flag_exited_body = True
+                pydef_code_inout.line_end = line_number + pydef_code_inout.line_start
+        append_body_line(body_line)
+
+    pydef_code_inout.body_code = "\n".join(body_lines)
+
+
+def find_pydefs_cpp(whole_file_code: str, pydef_type: PydefType) -> list[PydefCode]:
+    def fn_extract_struct_name(line):
         if line.startswith("struct"):
             items = line.split(" ")
             cpp_name = items[1]
@@ -105,68 +147,34 @@ def find_pydef_struct_names(whole_file_code: str) -> list[str]:
         else:
             raise RuntimeError(f"extract_struct_name{line} => no struct found!")
 
-    pydef_marker = "!pydef(struct)"
-    return find_pydef_cpp_names(whole_file_code, pydef_marker, extract_struct_name)
-
-
-def find_pydef_function_names(whole_file_code: str) -> list[str]:
-    def extract_function_name(line: str):
+    def fn_extract_function_name(line: str):
         type_and_fn = line.split(" ")
         fn = type_and_fn[1]
         fn_name = fn[:fn.index("(")]
         return fn_name
 
-    pydef_marker = "!pydef(function)"
-    return find_pydef_cpp_names(whole_file_code, pydef_marker, extract_function_name)
-
-
-def _extract_struct_code(whole_file_code: str, struct_name: str) -> PydefCode:
-    """
-    Very dumb code parser
-    :return:
-    * an extract of the code, which is the body of the struct
-    * the line number where it starts
-    """
-    r = PydefCode()
-    r.name = struct_name
+    if pydef_type == PydefType.STRUCT:
+        pydef_marker = "!pydef(struct)"
+        fn_extract_name = fn_extract_struct_name
+    elif pydef_type == PydefType.FUNCTION:
+        pydef_marker = "!pydef(function)"
+        fn_extract_name = fn_extract_function_name
+    else:
+        raise(f"find_pydefs_cpp: unsupported pydef_type {pydef_type}")
 
     code_lines = whole_file_code.split("\n")
-
-    def extract_one_line_title(line_number: int):
-        if line_number == 0:
-            return ""
-        previous_line = code_lines[line_number - 1]
-        if previous_line.strip().startswith("//"):
-            return previous_line.strip()[2:].strip()
-        return ""
-
-    struct_lines = []
-    in_struct = False
-    nb_accolades = 0
+    pydef_codes = []
     for line_number, code_line in enumerate(code_lines):
-        if f"struct {struct_name}" in code_line:
-            in_struct = True
-            r.line_start = line_number
-            r.title = extract_one_line_title(line_number)
+        if pydef_marker in code_line:
+            pydef_code = PydefCode()
+            pydef_code.title, pydef_code.line_start = fetch_comment_and_start_line(code_lines, line_number)
+            cpp_line = code_lines[pydef_code.line_start].strip()
+            pydef_code.name = fn_extract_name(cpp_line)
+            pydef_codes.append(pydef_code)
 
-        if "{" in code_line and in_struct:
-            nb_accolades += 1
-
-        if "}" in code_line and in_struct:
-            nb_accolades -= 1
-            if nb_accolades == 0:
-                if in_struct:
-                    r.line_end = line_number
-                in_struct = False
-
-        if nb_accolades > 0 and in_struct:
-            struct_lines.append(code_line)
-
-    if struct_lines[0].strip() == "{":
-        struct_lines = struct_lines[1:]
-
-    r.body_code = "\n".join(struct_lines)
-    return r
+    for pydef_code in pydef_codes:
+        fill_pydef_body_code(code_lines, pydef_type, pydef_code)
+    return pydef_codes
 
 
 def extract_struct_attributes(struct_code: PydefCode) -> typing.List[PydefAttribute]:
@@ -179,7 +187,7 @@ def extract_struct_attributes(struct_code: PydefCode) -> typing.List[PydefAttrib
 
     def is_attribute_line(nb_and_code_line) -> bool:
         code_line = nb_and_code_line[1]
-        if code_line.startswith("//") or len(code_line) == 0:
+        if code_line.startswith("//") or len(code_line.strip()) <= 2:
             return False
         return True
 
@@ -284,9 +292,9 @@ def extract_code_region_comments(struct_code: PydefCode) -> typing.List[CodeRegi
     return all_code_region_comments
 
 
-def extract_struct_infos(whole_code: str, struct_name: str) -> StructInfos:
+def extract_struct_infos(pydef_code: PydefCode) -> StructInfos:
     r = StructInfos()
-    r.struct_code = _extract_struct_code(whole_code, struct_name)
+    r.struct_code = pydef_code
     struct_attributes = extract_struct_attributes(r.struct_code)
     code_region_comments = extract_code_region_comments(r.struct_code)
     for sa in struct_attributes:
@@ -536,8 +544,8 @@ def file_full_path(filename):
 def main():
     input_header_file = "src/immvision/image.h"
     whole_header_cpp_code = code_utils.read_text_file(file_full_path(input_header_file))
-    struct_names = find_pydef_struct_names(whole_header_cpp_code)
-    function_names = find_pydef_function_names(whole_header_cpp_code)
+    pydef_codes_functions = find_pydefs_cpp(whole_header_cpp_code, PydefType.FUNCTION)
+    pydef_codes_structs = find_pydefs_cpp(whole_header_cpp_code, PydefType.STRUCT)
     generated_files = [
         AutoGeneratedFile("pybind/src_cpp/pydef_image.cpp", "pydef", generate_pydef_cpp_code),
         AutoGeneratedFile("pybind/src_python/immvision/__init__.py", "init", generate_init_python_code),
@@ -548,8 +556,8 @@ def main():
 
     for generated_file in generated_files:
         generated_code = ""
-        for struct_name in struct_names:
-            struct_infos = extract_struct_infos(whole_header_cpp_code, struct_name)
+        for pydef_code_struct in pydef_codes_structs:
+            struct_infos = extract_struct_infos(pydef_code_struct)
 
             generated_code += generated_file.generator_function(struct_infos)
             code_marker_in = f"<autogen:{generated_file.generator_type}>"
