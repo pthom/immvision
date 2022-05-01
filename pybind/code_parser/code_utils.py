@@ -29,6 +29,8 @@ def parse_string_replacement(line: str) -> StringReplacement:
     r = StringReplacement()
     r.replace_what = items[0].strip()
     r.by_what = items[1].strip()
+    if r.by_what == "REMOVE":
+        r.by_what = ""
     return r
 
 
@@ -51,6 +53,7 @@ def _opencv_replacements() -> typing.List[StringReplacement]:
     \bcv::Size\b -> Size
     \bcv::Matx33d::eye\(\) -> np.eye(3)
     \bcv::Matx33d\b -> Matx33d
+    \bcv::Mat\b -> np.ndarray
     \bdouble\b -> float
     \bcv::Point\b -> Point
     \bcv::Point2d\b -> Point2d
@@ -65,6 +68,9 @@ def _std_replacements() -> typing.List[StringReplacement]:
     \btrue\b -> True
     \bfalse\b -> False
     \bstd::vector<([\w:]*)> -> list[\1]
+    \bconst\b -> REMOVE
+    & -> REMOVE
+    \* -> REMOVE
     """
     return parse_string_replacements(replacements)
 

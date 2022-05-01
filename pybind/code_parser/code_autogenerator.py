@@ -91,17 +91,18 @@ class FunctionsInfos:
         return self.function_code.name
 
 
-def fetch_comment_and_start_line(code_lines: list[str], line_nb: int) -> int :
-    comments = []
+def fetch_title_and_start_line(code_lines: list[str], line_nb: int) -> int :
+    title_lines = []
     idx = line_nb + 1
     while idx < len(code_lines):
         line = code_lines[idx].strip()
         if not line.startswith("//"):
             break
-        comments.append(line[2:].strip())
+        title_lines.append(line[2:].strip())
         idx += 1
-    comment = "\n".join(comments)
-    return comment, idx
+    title = "\n".join(title_lines)
+    title = code_utils.apply_code_replacements(title)
+    return title, idx
 
 
 def fill_pydef_body_code(code_lines: list[str], pydef_type: PydefType, pydef_code_inout: PydefCode):
@@ -176,7 +177,7 @@ def find_pydefs_cpp(whole_file_code: str, pydef_type: PydefType) -> list[PydefCo
     for line_number, code_line in enumerate(code_lines):
         if pydef_marker in code_line:
             pydef_code = PydefCode()
-            pydef_code.title, pydef_code.line_start = fetch_comment_and_start_line(code_lines, line_number)
+            pydef_code.title, pydef_code.line_start = fetch_title_and_start_line(code_lines, line_number)
             cpp_line = code_lines[pydef_code.line_start].strip()
             pydef_code.name = fn_extract_name(cpp_line)
             pydef_codes.append(pydef_code)
@@ -333,21 +334,20 @@ def make_struct_doc(struct_infos: StructInfos) -> str:
 
     for info in struct_infos.attr_and_regions:
         if info.code_region_comment is not None:
-            doc = doc + "\n" + info.code_region_comment.comment + "\n"
+            doc = doc + "\n" + code_utils.apply_code_replacements(info.code_region_comment.comment) + "\n"
         elif info.attribute is not None:
             attr = info.attribute
-            attr_doc = f"{attr.name_python}: {attr.type}"
+            attr_doc = f"{attr.name_python}: {code_utils.apply_code_replacements(attr.type)}"
             if len(attr.default_value) > 0:
-                attr_doc = attr_doc + " = " + attr.default_value
+                attr_doc = attr_doc + " = " + code_utils.apply_code_replacements(attr.default_value)
 
             if len(attr.comment) > 0:
                 comment_lines = attr.comment.split("\n")
                 comment_lines = map(lambda l: "            " + l, comment_lines)
                 comment = "\n".join(comment_lines)
-                attr_doc = attr_doc + "\n" + comment
+                attr_doc = attr_doc + "\n" + code_utils.apply_code_replacements(comment)
             doc = doc + "    * " + attr_doc + "\n"
 
-    doc = code_utils.apply_code_replacements(doc)
     return doc
 
 
@@ -384,7 +384,7 @@ def extract_function_parameters(pydef_code: PydefCode) -> typing.List[PydefAttri
     return all_parameters
 
 
-def generate_init_python_code(struct_infos: StructInfos) -> str:
+def generate_init_struct_python_code(struct_infos: StructInfos) -> str:
     """
     Should generate code that looks like this:
 
@@ -421,12 +421,8 @@ class {struct_name}(cpp_immvision.{struct_name}):
 '''
 
     code_inner_param = "        ATTR_NAME_PYTHON: ATTR_TYPE = ATTR_DEFAULT,\n"
-
     code_outro_1 = f"\n    ):\n        cpp_immvision.{struct_name}.__init__(self)\n"
-
     code_inner_set = "        self.ATTR_NAME_PYTHON = ATTR_NAME_PYTHON\n"
-
-    # code_outro_2 = f'\n\ncpp_immvision.ColorAdjustmentsValues.__doc__ == """{docstring}"""\n\n'
     code_outro_2 = f'\n\n'
 
     def do_replace(s: str, attr: PydefAttribute):
@@ -458,6 +454,59 @@ class {struct_name}(cpp_immvision.{struct_name}):
 
     return final_code
 
+
+def generate_init_function_python_code(function_infos: FunctionsInfos) -> str:
+    """
+    Should generate code like this:
+
+    def image_display(
+        np.ndarray image,
+        Size image_display_size = (0, 0),
+        refresh_image = False
+        ):
+        '''Only, display the image, with no decoration, and no user interaction
+
+
+        '''
+        cpp_immvision.image_display(image, image_display_size, refresh_image)
+    """
+    py_function_name = code_utils.to_snake_case(function_infos.function_name())
+    title = code_utils.indent_code(function_infos.function_code.title, 4)[4:]
+
+    code_intro = f'def {py_function_name}(\n'
+    param_line_template  = f'PARAM_NAME: PARAM_TYPE PARAM_DEFAULT'
+    code_outro = f'):\n    """{title}\n    """\n'
+
+    r = code_intro
+    param_lines = []
+    for param in function_infos.parameters:
+        param_line = param_line_template
+        param_line = param_line.replace("PARAM_TYPE", code_utils.apply_code_replacements(param.type))
+        param_line = param_line.replace("PARAM_NAME", param.name_python)
+        if len(param.default_value) > 0:
+            param_line = param_line.replace("PARAM_DEFAULT", " = "
+                                            + code_utils.apply_code_replacements(param.default_value))
+        else:
+            param_line = param_line.replace(" PARAM_DEFAULT", "")
+        param_lines.append(param_line.strip())
+    params_str = ",\n".join(param_lines)
+    params_str = code_utils.indent_code(params_str, 4)
+    r = r + params_str
+
+    r = r + code_outro
+
+    r = r + f"    r = cpp_immvision.{py_function_name}("
+    params_list = []
+    for param in function_infos.parameters:
+        params_list.append(param.name_python)
+    r = r + ", ".join(params_list)
+
+    r = r + ")\n"
+    r = r + '    print(f"py: r=\\n{r}\\n")\n'
+    r = r + '    return r\n'
+
+    r = r + "\n\n"
+    return r
 
 
 def generate_pydef_struct_cpp_code(struct_infos: StructInfos) -> str:
@@ -608,11 +657,14 @@ def file_full_path(filename):
 def main():
     input_header_file = "src/immvision/image.h"
     whole_header_cpp_code = code_utils.read_text_file(file_full_path(input_header_file))
-    pydef_codes_structs = find_pydefs_cpp(whole_header_cpp_code, PydefType.STRUCT)
 
+    #
+    # Generate structs code
+    #
+    pydef_codes_structs = find_pydefs_cpp(whole_header_cpp_code, PydefType.STRUCT)
     generated_files_structs = [
         AutoGeneratedFile_StructInfos("pybind/src_cpp/pydef_image.cpp", "pydef_struct", generate_pydef_struct_cpp_code),
-        AutoGeneratedFile_StructInfos("pybind/src_python/immvision/__init__.py", "init", generate_init_python_code),
+        AutoGeneratedFile_StructInfos("pybind/src_python/immvision/__init__.py", "init_struct", generate_init_struct_python_code),
         AutoGeneratedFile_StructInfos("pybind/src_python/immvision/cpp_immvision.pyi", "pyi", generate_pyi_python_code),
         AutoGeneratedFile_StructInfos("src/immvision/internal/misc/immvision_to_string.cpp", "tostring", generate_tostring_cpp_code),
         AutoGeneratedFile_StructInfos("src/immvision/internal/misc/immvision_to_string.h", "tostring_decl", generate_tostring_decl_h)
@@ -637,13 +689,13 @@ def main():
         )
 
 
+    #
+    # Generate functions code
+    #
     pydef_codes_functions = find_pydefs_cpp(whole_header_cpp_code, PydefType.FUNCTION)
     generated_files_functions = [
-        AutoGeneratedFile_StructInfos("pybind/src_cpp/pydef_image.cpp", "pydef_function", generate_pydef_function_cpp_code),
-        # AutoGeneratedFile_StructInfos("pybind/src_python/immvision/__init__.py", "init", generate_init_python_code),
-        # AutoGeneratedFile_StructInfos("pybind/src_python/immvision/cpp_immvision.pyi", "pyi", generate_pyi_python_code),
-        # AutoGeneratedFile_StructInfos("src/immvision/internal/misc/immvision_to_string.cpp", "tostring", generate_tostring_cpp_code),
-        # AutoGeneratedFile_StructInfos("src/immvision/internal/misc/immvision_to_string.h", "tostring_decl", generate_tostring_decl_h)
+        AutoGeneratedFile_FunctionsInfos("pybind/src_cpp/pydef_image.cpp", "pydef_function", generate_pydef_function_cpp_code),
+        AutoGeneratedFile_StructInfos("pybind/src_python/immvision/__init__.py", "init_function", generate_init_function_python_code),
     ]
     for generated_file in generated_files_functions:
         generated_code = ""
