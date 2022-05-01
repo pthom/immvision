@@ -98,8 +98,10 @@ def escape_new_lines(code: str) -> str:
 
 
 def write_text_file(filename: str, content: str):
-    with open(filename, "w") as f:
-        f.write(content)
+    old_content = read_text_file(filename)
+    if content != old_content:
+        with open(filename, "w") as f:
+            f.write(content)
 
 
 def indent_code(code: str, indent_size: int):
@@ -165,6 +167,7 @@ def write_code_between_markers(
 
     if not was_replacement_performed:
         raise RuntimeError(f"write_code_between_markers: could not find marker {code_marker_in} in file {inout_filename}")
+
     write_text_file(inout_filename, output_code)
 
 

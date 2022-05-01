@@ -105,13 +105,19 @@ add_custom_target(
     COMMAND ${PYTHON_EXECUTABLE} ${THIS_DIR}/code_parser/code_autogenerator.py
     DEPENDS ${THIS_DIR}/../src/immvision/image.h
     COMMENT "autogenerate python bindings infos"
-    BYPRODUCTS
-      ${THIS_DIR}/src_cpp/pydef_image.cpp
-      ${THIS_DIR}/src_python/immvision/__init__.py
-      ${THIS_DIR}/src_python/immvision/cpp_immvision.pyi
-      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.cpp
-      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.h
+
+    # We can't use BYPRODUCTS, since
+    # "The Makefile Generators will remove BYPRODUCTS and other GENERATED files during make clean."
+    # (cf. https://cmake.org/cmake/help/latest/command/add_custom_target.html)
+    #
+    #    BYPRODUCTS
+    #      ${THIS_DIR}/src_cpp/pydef_image.cpp
+    #      ${THIS_DIR}/src_python/immvision/__init__.py
+    #      ${THIS_DIR}/src_python/immvision/cpp_immvision.pyi
+    #      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.cpp
+    #      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.h
 )
+add_dependencies(autogenerate_pybind_infos immvision)
 add_dependencies(cpp_immvision autogenerate_pybind_infos)
 
 

@@ -10,6 +10,7 @@ import os
 import typing
 from dataclasses import dataclass, field
 from enum import Enum
+import time
 
 
 import code_utils
@@ -654,7 +655,9 @@ def file_full_path(filename):
     return f"{REPO_DIR}/{filename}"
 
 
-def main():
+def code_autogenerator():
+    start = time.time()
+
     input_header_file = "src/immvision/image.h"
     whole_header_cpp_code = code_utils.read_text_file(file_full_path(input_header_file))
 
@@ -714,7 +717,9 @@ def main():
             generated_code,
             flag_preserve_left_spaces
         )
+    elapsed = time.time() - start
+    print(f"  code_autogenerator (took {elapsed:.2f}s)")
 
 
 if __name__ == "__main__":
-    main()
+    code_autogenerator()

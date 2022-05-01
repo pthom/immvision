@@ -3,6 +3,7 @@
 import os
 from sys import version_info
 import typing
+import time
 
 # Global settings
 THIS_DIR = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
@@ -203,11 +204,13 @@ def write_amalgamate_cpp_files(folder, dst_file):
     fwrite_content(dst_file, content)
 
 
-def auto_generate():
+def generate_src_all_in_one():
+    start = time.time()
     write_amalgamate_header_file("src/immvision/immvision.h", f"{ALL_IN_ONE_DIR}/immvision/immvision.h")
     write_amalgamate_cpp_files("src/immvision", f"{ALL_IN_ONE_DIR}/immvision/immvision.cpp")
+    elapsed = time.time() - start
+    print(f"  generate_src_all_in_one (took {elapsed:.2f}s)")
 
 
 if __name__ == "__main__":
-    print("  Running generate_src_all_in_one")
-    auto_generate()
+    generate_src_all_in_one()
