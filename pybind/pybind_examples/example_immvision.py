@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import imgui
 import immvision
-import immvision.cpp_immvision
 import immvision.imgui_runner as imgui_runner
 import imgui
 import numpy as np
@@ -59,7 +58,7 @@ def show_camera():
     if show_camera.visible:
         video_ok, video_frame = show_camera.video_capture.read()
         if video_ok:
-            immvision.Image(video_frame)
+            immvision.image_display(video_frame, image_display_size=(0, 300), refresh_image=True)
             imgui_runner.set_max_wait_before_next_frame(1 / 50)
 
 
@@ -74,7 +73,7 @@ def _test_gui_function(params: imgui_runner.ImguiAppParams):
     imgui.text(immvision.cpp_immvision.VersionInfo())
     show_camera()
     # imgui.same_line()
-    immvision.Image(image)
+    immvision.image_display(image, image_display_size=(0, 300))
 
     elapsed = (time.time_ns() - start_time) / 1E9
     imgui.text(f"elapsed time: {elapsed:.2f}s FPS: {imgui.get_io().framerate:.2f}")

@@ -1,4 +1,7 @@
 * [ ] PIP
+  * [ ] Correct cmake dependencies (always rebuild pip...)
+  * [ ] L'icone "Full View" semble toujour disabled (pb de rendu couleurs ?)
+  * [ ] Correct CI
   * [ ] imgui_fig (from imgui_datascience)
   * [ ] imgui_runner
     * [ ] change mat type if not castable (and cache)

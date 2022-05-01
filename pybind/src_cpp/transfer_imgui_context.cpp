@@ -1,5 +1,7 @@
 #include "imgui.h"
 
+#include <pybind11/pybind11.h>
+
 #include <cstdio>
 #include <cstdlib>
 
@@ -17,8 +19,7 @@ static void    MyFreeWrapper(void* ptr, void* user_data)        { IM_UNUSED(user
 ImGuiContext*   GImGui = NULL;
 #endif
 
-
-void transfer_imgui_context()
+void transfer_imgui_context_python_to_cpp()
 {
     if (ImGui::GetCurrentContext() == NULL)
     {
@@ -30,4 +31,11 @@ void transfer_imgui_context()
         ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
         printf("SetImGuiContextFrom_pyimgui_Context done\n");
     }
+}
+
+
+void pydef_transfer_imgui_context_python_to_cpp(pybind11::module& m)
+{
+    m.def("transfer_imgui_context_python_to_cpp", transfer_imgui_context_python_to_cpp,
+          "Pass ImGui context from python to C++");
 }

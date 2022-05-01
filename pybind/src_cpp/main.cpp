@@ -14,6 +14,7 @@ void pydef_cvnp(pybind11::module& m);
 void pydef_cvnp_test(pybind11::module& m);
 void pydef_image(pybind11::module& m);
 void pydef_gl_provider_sentinel(pybind11::module& m);
+void pydef_transfer_imgui_context_python_to_cpp(pybind11::module& m);
 
 
 std::string VersionInfo()
@@ -32,9 +33,8 @@ PYBIND11_MODULE(cpp_immvision, m)
     pydef_cvnp_test(m);
     pydef_gl_provider_sentinel(m);
     pydef_cvnp(m);
-
+    pydef_transfer_imgui_context_python_to_cpp(m);
     pydef_image(m);
-
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

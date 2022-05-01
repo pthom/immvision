@@ -501,6 +501,7 @@ namespace ImmVision
             s_Params[&image] = params;
         }
         ImageParams& cached_params = s_Params.at(&image);
+
         Image(image, &cached_params);
     }
 

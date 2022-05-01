@@ -10,7 +10,7 @@ from .cv_types import *
 
 
 class ColorAdjustmentsValues(cpp_immvision.ColorAdjustmentsValues):
-    """Color adjustments (esp. useful for a float matrix)
+    """ Color adjustments (esp. useful for a float matrix)
 
     * factor: float = 1.
             Pre-multiply values by a Factor before displaying
@@ -34,7 +34,7 @@ class ColorAdjustmentsValues(cpp_immvision.ColorAdjustmentsValues):
 
 
 class MouseInformation(cpp_immvision.MouseInformation):
-    """Contains information about the mouse inside an image
+    """ Contains information about the mouse inside an image
 
     * mouse_position: Point2d = (-1., -1.)
             Mouse position in the original image/matrix
@@ -66,19 +66,24 @@ class MouseInformation(cpp_immvision.MouseInformation):
 
 
 class ImageParams(cpp_immvision.ImageParams):
-    """Set of display parameters and options for an Image
+    """ Set of display parameters and options for an Image
 
 
  ImageParams store the parameters for a displayed image
  (as well as user selected watched pixels, selected channel, etc.)
  Its default constructor will give them reasonable choices, which you can adapt to your needs.
  Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
+
+ Refresh Images Textures
     * refresh_image: bool = False
-            Refresh Image: images textures are cached. Change this boolean value if your image matrix/buffer has changed
+            Refresh Image: images textures are cached. Set to True if your image matrix/buffer has changed
+            (for example, for live video images)
 
  Display size and title
     * image_display_size: Size = (0, 0)
             Size of the displayed image (can be different from the matrix size)
+            If you specify only the width or height (e.g (300, 0), then the other dimension
+            will be calculated automatically, respecting the original image w/h ratio.
     * legend: str = "Image"
             Title displayed in the border
 
@@ -136,9 +141,12 @@ class ImageParams(cpp_immvision.ImageParams):
     
     def __init__(
         self,
-        # Refresh Image: images textures are cached. Change this boolean value if your image matrix/buffer has changed
+        # Refresh Image: images textures are cached. Set to true if your image matrix/buffer has changed
+        # (for example, for live video images)
         refresh_image: bool = False,
         # Size of the displayed image (can be different from the matrix size)
+        # If you specify only the width or height (e.g (300, 0), then the other dimension
+        # will be calculated automatically, respecting the original image w/h ratio.
         image_display_size: Size = (0, 0),
         # Title displayed in the border
         legend: str = "Image",
@@ -218,8 +226,11 @@ class ImageParams(cpp_immvision.ImageParams):
 
 def factor_image_params_display_only(
 ):
-    """Create ImageParams that display the image only, with no decoration, and no user interaction
+    """ Create ImageParams that display the image only, with no decoration, and no user interaction
     """
+
+    cpp_immvision.transfer_imgui_context_python_to_cpp()
+
     r = cpp_immvision.factor_image_params_display_only()
     return r
 
@@ -228,8 +239,11 @@ def make_zoom_pan_matrix(
     zoom_center:  Point2d,
     zoom_ratio: float,
     displayed_image_size:  Size):
-    """Create a zoom/pan matrix centered around a given point of interest
+    """ Create a zoom/pan matrix centered around a given point of interest
     """
+
+    cpp_immvision.transfer_imgui_context_python_to_cpp()
+
     r = cpp_immvision.make_zoom_pan_matrix(zoom_center, zoom_ratio, displayed_image_size)
     return r
 
@@ -237,14 +251,17 @@ def make_zoom_pan_matrix(
 def image(
     image_matrix:  np.ndarray,
     params: ImageParams):
-    """Display an image, with full user control: zoom, pan, watch pixels, etc.
+    """ Display an image, with full user control: zoom, pan, watch pixels, etc.
 
-    Notes about the ImageParams:
-    - they may be modified by this function (you can extract from them the mouse position, watched pixels, etc.)
-    - thus, their scope should extend beyond the call to Image !
+     Notes about the ImageParams:
+     - they may be modified by this function (you can extract from them the mouse position, watched pixels, etc.)
+     - thus, their scope should extend beyond the call to Image !
 
-    If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
+     If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
     """
+
+    cpp_immvision.transfer_imgui_context_python_to_cpp()
+
     r = cpp_immvision.image(image_matrix, params)
     return r
 
@@ -255,10 +272,21 @@ def image_display(
     refresh_image: bool  = False,
     show_options: bool  = True,
     is_bgr_or_bgra: bool  = True):
-    """Only, display the image, with no decoration, and no user interaction
+    """ Only, display the image, with no decoration, and no user interaction
 
-    Todo: add a global for isBgrOrBgra
+     Parameters:
+          - imageDisplaySize:
+              Size of the displayed image (can be different from the matrix size)
+              If you specify only the width or height (e.g (300, 0), then the other dimension
+              will be calculated automatically, respecting the original image w/h ratio.
+          - refreshImage: images textures are cached. Set to True if your image matrix/buffer has changed
+              (for example, for live video images)
+
+     Todo: add a global for isBgrOrBgra
     """
+
+    cpp_immvision.transfer_imgui_context_python_to_cpp()
+
     r = cpp_immvision.image_display(image_matrix, image_display_size, refresh_image, show_options, is_bgr_or_bgra)
     return r
 

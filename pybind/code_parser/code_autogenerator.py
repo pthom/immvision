@@ -98,7 +98,7 @@ def fetch_title_and_start_line(code_lines: list[str], line_nb: int) -> int :
         line = code_lines[idx].strip()
         if not line.startswith("//"):
             break
-        title_lines.append(line[2:].strip())
+        title_lines.append(line[2:])
         idx += 1
     title = "\n".join(title_lines)
     title = code_utils.apply_code_replacements(title)
@@ -495,6 +495,7 @@ def generate_init_function_python_code(function_infos: FunctionsInfos) -> str:
 
     r = r + code_outro
 
+    r = r + "\n    cpp_immvision.transfer_imgui_context_python_to_cpp()\n\n"
     r = r + f"    r = cpp_immvision.{py_function_name}("
     params_list = []
     for param in function_infos.parameters:

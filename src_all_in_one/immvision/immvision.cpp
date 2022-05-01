@@ -58,7 +58,12 @@ namespace ImmVision
         // Its values will be updated when the user pans or zooms the image, adds watched pixels, etc.
         //
 
-        // Refresh Image: images textures are cached. Change this boolean value if your image matrix/buffer has changed
+        //
+        // Refresh Images Textures
+        //
+
+        // Refresh Image: images textures are cached. Set to true if your image matrix/buffer has changed
+        // (for example, for live video images)
         bool RefreshImage = false;
 
         //
@@ -66,6 +71,8 @@ namespace ImmVision
         //
 
         // Size of the displayed image (can be different from the matrix size)
+        // If you specify only the width or height (e.g (300, 0), then the other dimension
+        // will be calculated automatically, respecting the original image w/h ratio.
         cv::Size ImageDisplaySize = cv::Size();
         // Title displayed in the border
         std::string Legend = "Image";
@@ -164,6 +171,14 @@ namespace ImmVision
 
     // !pydef_function
     // Only, display the image, with no decoration, and no user interaction
+    //
+    // Parameters:
+    //      - imageDisplaySize:
+    //          Size of the displayed image (can be different from the matrix size)
+    //          If you specify only the width or height (e.g (300, 0), then the other dimension
+    //          will be calculated automatically, respecting the original image w/h ratio.
+    //      - refreshImage: images textures are cached. Set to true if your image matrix/buffer has changed
+    //          (for example, for live video images)
     //
     // Todo: add a global for isBgrOrBgra
     void ImageDisplay(
@@ -4881,6 +4896,7 @@ namespace ImmVision
             s_Params[&image] = params;
         }
         ImageParams& cached_params = s_Params.at(&image);
+
         Image(image, &cached_params);
     }
 
