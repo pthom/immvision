@@ -17,18 +17,11 @@ void pydef_gl_provider_sentinel(pybind11::module& m);
 void pydef_transfer_imgui_context_python_to_cpp(pybind11::module& m);
 
 
-std::string VersionInfo()
-{
-    char msg[2000];
-    snprintf(msg, 2000, "immvision version %s (date: %s)\n", IMMVISION_VERSION, __TIMESTAMP__);
-    return msg;
-}
 
 
-PYBIND11_MODULE(cpp_immvision, m)
+PYBIND11_MODULE(_cpp_immvision, m)
 {
     m.doc() = "immvision: immediate image debugger and insights";
-    m.def("VersionInfo", VersionInfo);
 
     pydef_cvnp_test(m);
     pydef_gl_provider_sentinel(m);

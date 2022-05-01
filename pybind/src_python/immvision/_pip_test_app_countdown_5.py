@@ -8,7 +8,7 @@ used only for internal tests
 
 import imgui
 import immvision
-import immvision.cpp_immvision
+import immvision._cpp_immvision
 import immvision.imgui_runner as imgui_runner
 import imgui
 import cv2
@@ -36,7 +36,7 @@ def main():
         chrono = chrono_countdown(3)
         imgui.text(f"Chrono: {chrono:.2f}s")
         imgui.new_line()
-        imgui.text(immvision.cpp_immvision.VersionInfo())
+        imgui.text(immvision._cpp_immvision.VersionInfo())
         imgui.text(f"FPS: {imgui.get_io().framerate:.2f}")
         immvision.Image(image)
         if chrono < 0:

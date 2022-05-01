@@ -178,5 +178,13 @@ namespace ImmVision
         );
 
 
+    // !pydef_function
+    // Clears the internal texture cache of immvision (this is done automatically at exit time)
     void ClearTextureCache();
+
+
+    // !pydef_function
+    // Return immvision version info
+    std::string VersionInfo();
+
 } // namespace ImmVision

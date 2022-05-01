@@ -7,7 +7,7 @@ will handle everything at its creation/destruction.
 """
 
 import cv2
-from .cpp_immvision import InitGlProvider, ResetGlProvider
+from ._cpp_immvision import InitGlProvider, ResetGlProvider
 
 class GlProviderSentinel(object):
     def __init__(self):

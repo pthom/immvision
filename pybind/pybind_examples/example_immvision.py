@@ -70,7 +70,7 @@ image = image.astype(np.int32)
 
 
 def _test_gui_function(params: imgui_runner.ImguiAppParams):
-    imgui.text(immvision.cpp_immvision.VersionInfo())
+    imgui.text(immvision.version_info())
     show_camera()
     # imgui.same_line()
     immvision.image_display(image, image_display_size=(0, 300))

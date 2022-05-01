@@ -9,8 +9,6 @@ sys.path.append(path_examples)
 import example_immvision
 example_immvision.main()
 
-
 # import immvision
-# p = immvision.cpp_immvision.ImageParams()
-# s = p.__repr__()
-# print(s)
+# m = immvision.make_zoom_pan_matrix((12.34, 56.789), 2.25, (300, 200))
+# print(m)

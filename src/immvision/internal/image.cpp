@@ -521,4 +521,12 @@ namespace ImmVision
         return imageParams;
     }
 
+
+    std::string VersionInfo()
+    {
+        char msg[2000];
+        snprintf(msg, 2000, "immvision version %s (%s)", IMMVISION_VERSION, __TIMESTAMP__);
+        return msg;
+    }
+
 } // namespace ImmVision

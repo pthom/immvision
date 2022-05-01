@@ -84,14 +84,14 @@ endif()
 #
 file(GLOB_RECURSE sources_immvision_pybind ${THIS_DIR}/src_cpp/*.cpp ${THIS_DIR}/src_cpp/*.h)
 file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PROJECT_SOURCE_DIR}/src/immvision/*.cpp)
-pybind11_add_module(cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
-target_include_directories(cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
-target_compile_definitions(cpp_immvision PUBLIC IMMVISION_BUILD_PYTHON_BINDINGS)
+pybind11_add_module(_cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
+target_include_directories(_cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_compile_definitions(_cpp_immvision PUBLIC IMMVISION_BUILD_PYTHON_BINDINGS)
 # add cv_np
 add_subdirectory(${THIS_DIR}/cvnp)
-target_link_libraries(cpp_immvision PRIVATE cvnp)
+target_link_libraries(_cpp_immvision PRIVATE cvnp)
 # Compile definitions
-target_compile_definitions(cpp_immvision PRIVATE
+target_compile_definitions(_cpp_immvision PRIVATE
     VERSION_INFO=${PROJECT_VERSION}
     IMMVISION_COMPILATION_TIMESTAMP="${IMMVISION_COMPILATION_TIMESTAMP}"
     IMMVISION_BUILDING_PYBIND
@@ -113,12 +113,12 @@ add_custom_target(
     #    BYPRODUCTS
     #      ${THIS_DIR}/src_cpp/pydef_image.cpp
     #      ${THIS_DIR}/src_python/immvision/__init__.py
-    #      ${THIS_DIR}/src_python/immvision/cpp_immvision.pyi
+    #      ${THIS_DIR}/src_python/immvision/_cpp_immvision.pyi
     #      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.cpp
     #      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.h
 )
 add_dependencies(autogenerate_pybind_infos immvision)
-add_dependencies(cpp_immvision autogenerate_pybind_infos)
+add_dependencies(_cpp_immvision autogenerate_pybind_infos)
 
 
 #
@@ -128,14 +128,14 @@ find_package(OpenCV)
 if (NOT OpenCV_FOUND)
   message(FATAL_ERROR ${opencv_install_help})
 endif()
-target_link_libraries(cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
+target_link_libraries(_cpp_immvision PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
 #
 # Include path for imgui
 #
 set(imgui_source_dir ${PROJECT_SOURCE_DIR}/external/imgui)
 file(GLOB imgui_sources ${imgui_source_dir}/*.h ${imgui_source_dir}/*.cpp)
-target_include_directories(cpp_immvision PRIVATE ${imgui_source_dir})
+target_include_directories(_cpp_immvision PRIVATE ${imgui_source_dir})
 
 
 #
@@ -162,28 +162,28 @@ if (link_with_imgui)
   add_library(imgui_pybind STATIC ${imgui_sources})
   target_compile_options(imgui_pybind PRIVATE -fPIC)
   target_include_directories(imgui_pybind PUBLIC ${imgui_source_dir})
-  target_link_libraries(cpp_immvision PRIVATE imgui_pybind)
+  target_link_libraries(_cpp_immvision PRIVATE imgui_pybind)
 
   # Link with a shared pybind library  ==> undefined symbol: _ZN5ImGui11PopStyleVarEi (ImGui::PopStyleVar(int)) !!!
   #  pybind11_add_module(imgui_pybind SHARED ${imgui_sources})
   #  target_include_directories(imgui_pybind PUBLIC ${imgui_source_dir})
-  #  target_link_libraries(cpp_immvision PRIVATE imgui_pybind)
-  #  target_compile_definitions(cpp_immvision PRIVATE IMMVISION_CREATE_GIMGUI_POINTER)
+  #  target_link_libraries(_cpp_immvision PRIVATE imgui_pybind)
+  #  target_compile_definitions(_cpp_immvision PRIVATE IMMVISION_CREATE_GIMGUI_POINTER)
   #  install(TARGETS imgui_pybind DESTINATION .)
 endif()
 
 
 # Install
-install(TARGETS cpp_immvision DESTINATION .)
-install(FILES ${THIS_DIR}/src_python/immvision/cpp_immvision.pyi DESTINATION .)
+install(TARGETS _cpp_immvision DESTINATION .)
+install(FILES ${THIS_DIR}/src_python/immvision/_cpp_immvision.pyi DESTINATION .)
 
 # deploy python lib to source dir (for pip editable mode)
 add_custom_command(
-        TARGET cpp_immvision
+        TARGET _cpp_immvision
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:cpp_immvision>
-        ${THIS_DIR}/src_python/immvision/$<TARGET_FILE_NAME:cpp_immvision>
+        $<TARGET_FILE:_cpp_immvision>
+        ${THIS_DIR}/src_python/immvision/$<TARGET_FILE_NAME:_cpp_immvision>
 )
 
 # Note: no install for imgui_pybind since it is a static library
@@ -202,4 +202,4 @@ add_custom_command(
 add_executable(pybind_native_debug ${THIS_DIR}/pybind_native_debug/pybind_native_debug.cpp)
 target_link_libraries(pybind_native_debug PRIVATE pybind11::embed)
 target_include_directories(pybind_native_debug PRIVATE ${pybind11_INCLUDE_DIRS})
-add_dependencies(pybind_native_debug cpp_immvision)
+add_dependencies(pybind_native_debug _cpp_immvision)
