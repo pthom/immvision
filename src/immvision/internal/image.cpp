@@ -483,11 +483,12 @@ namespace ImmVision
     }
 
 
-    void Image(const cv::Mat& image,
-               const cv::Size& imageDisplaySize,
-               bool refreshImage,
-               bool showOptions,
-               bool isBgrOrBgra)
+    void ImageDisplay(
+        const cv::Mat& image,
+        const cv::Size& imageDisplaySize,
+        bool refreshImage,
+        bool showOptions,
+        bool isBgrOrBgra)
     {
         static std::map<const cv::Mat *, ImageParams> s_Params;
         if (s_Params.find(&image) == s_Params.end())

@@ -202,7 +202,7 @@ static void guiFunction()
 
     {
         static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
-        ImmVision::Image(
+        ImmVision::ImageDisplay(
             imageTransparent, cv::Size(0, 400),
             false, // refresh
             true // show options

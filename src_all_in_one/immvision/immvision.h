@@ -14,7 +14,7 @@
 
 namespace ImmVision
 {
-    // !pydef(struct)
+    // !pydef_struct
     // Color adjustments (esp. useful for a float matrix)
     struct ColorAdjustmentsValues
     {
@@ -25,7 +25,7 @@ namespace ImmVision
     };
 
 
-    // !pydef(struct)
+    // !pydef_struct
     // Contains information about the mouse inside an image
     struct MouseInformation
     {
@@ -43,7 +43,7 @@ namespace ImmVision
     };
 
 
-    // !pydef(struct)
+    // !pydef_struct
     // Set of display parameters and options for an Image
     struct ImageParams
     {
@@ -133,12 +133,12 @@ namespace ImmVision
     };
 
 
-    // !pydef(function)
+    // !pydef_function
     // Create ImageParams that display the image only, with no decoration, and no user interaction
     ImageParams FactorImageParamsDisplayOnly();
 
 
-    // !pydef(function)
+    // !pydef_function
     // Create a zoom/pan matrix centered around a given point of interest
     cv::Matx33d MakeZoomPanMatrix(
         const cv::Point2d & zoomCenter,
@@ -147,7 +147,7 @@ namespace ImmVision
     );
 
 
-    // !pydef(function)
+    // !pydef_function
     // Immvision::Image(cv::Mat& image, ImageParams* params)
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
@@ -159,14 +159,14 @@ namespace ImmVision
     void Image(const cv::Mat& image, ImageParams* params);
 
 
-    // !pydef(function)
     // Only, display the image, with no decoration, and no user interaction
-    void Image(const cv::Mat& image,
-               const cv::Size& imageDisplaySize = cv::Size(),
-               bool refreshImage = false,
-               bool showOptions = true,
-               bool isBgrOrBgra = true
-               );
+    void ImageDisplay(
+        const cv::Mat& image,
+        const cv::Size& imageDisplaySize = cv::Size(),
+        bool refreshImage = false,
+        bool showOptions = true,
+        bool isBgrOrBgra = true // add a global default for this
+        );
 
 
     void ClearTextureCache();
