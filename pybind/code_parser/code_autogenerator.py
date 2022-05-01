@@ -92,7 +92,7 @@ class FunctionsInfos:
         return self.function_code.name
 
 
-def fetch_title_and_start_line(code_lines: list[str], line_nb: int) -> int :
+def fetch_title_and_start_line(code_lines: typing.List[str], line_nb: int) -> int :
     title_lines = []
     idx = line_nb + 1
     while idx < len(code_lines):
@@ -106,7 +106,7 @@ def fetch_title_and_start_line(code_lines: list[str], line_nb: int) -> int :
     return title, idx
 
 
-def fill_pydef_body_code(code_lines: list[str], pydef_type: PydefType, pydef_code_inout: PydefCode):
+def fill_pydef_body_code(code_lines: typing.List[str], pydef_type: PydefType, pydef_code_inout: PydefCode):
     body_lines = []
     lines_under_pydef = code_lines[pydef_code_inout.line_start:]
     flag_entered_body = False

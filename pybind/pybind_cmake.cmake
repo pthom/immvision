@@ -117,7 +117,9 @@ add_custom_target(
     #      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.cpp
     #      ${THIS_DIR}/../src/immvision/internal/misc/immvision_to_string.h
 )
-add_dependencies(autogenerate_pybind_infos immvision)
+if (TARGET immvision)
+  add_dependencies(autogenerate_pybind_infos immvision)
+endif()
 add_dependencies(_cpp_immvision autogenerate_pybind_infos)
 
 
