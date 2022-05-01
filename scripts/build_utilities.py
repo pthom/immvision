@@ -58,8 +58,12 @@ VENV_PARENT_DIR = f"{REPO_DIR}" if not IS_DOCKER_BUILDER else "/"
 VENV_NAME = "venv"
 VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
 # use "source" for bash, but for docker we may get "sh" which uses "." instead
-source_cmd = ". "
-VENV_RUN_SOURCE = f"{source_cmd} {VENV_DIR}/bin/activate && "
+
+if os.name == "nt":
+    VENV_RUN_SOURCE = f"{VENV_DIR}\\Scripts\\activate && "
+else:
+    source_cmd = ". "
+    VENV_RUN_SOURCE = f"{source_cmd} {VENV_DIR}/bin/activate && "
 VENV_PACKAGES_DIR = f"{VENV_DIR}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
 
 VCPKG_BASENAME = "vcpkg" if not IS_DOCKER_BUILDER else "vcpkg_docker"
@@ -67,9 +71,14 @@ VCPKG_DIR = f"{REPO_DIR}/external/{VCPKG_BASENAME}"
 
 
 def has_program(program_name):
-    paths = os.environ['PATH'].split(":")
+    if os.name == "nt":
+        paths = os.environ['PATH'].split(";")
+    else:
+        paths = os.environ['PATH'].split(":")
     for path in paths:
         prog_path = f"{path}/{program_name}"
+        if os.name == "nt":
+            prog_path += ".exe"
         if os.path.exists(prog_path) and os.path.isfile(prog_path):
             return True
     return False
@@ -248,7 +257,10 @@ def run_cmake():
 
     if OPTIONS.build_python_bindings.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_BUILD_PYTHON_BINDINGS=ON"
-        cmake_cmd = cmake_cmd + f"{new_line} -DPYTHON_EXECUTABLE={VENV_DIR}/bin/python"
+        if os.name == "nt":
+            cmake_cmd = cmake_cmd + f"{new_line} -DPYTHON_EXECUTABLE={VENV_DIR}/Scripts/python.exe"
+        else:
+            cmake_cmd = cmake_cmd + f"{new_line} -DPYTHON_EXECUTABLE={VENV_DIR}/bin/python"
 
     cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
     cmake_cmd = cmake_cmd + f"{new_line} -B ."
