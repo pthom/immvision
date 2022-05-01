@@ -502,7 +502,6 @@ def generate_init_function_python_code(function_infos: FunctionsInfos) -> str:
     r = r + ", ".join(params_list)
 
     r = r + ")\n"
-    r = r + '    print(f"py: r=\\n{r}\\n")\n'
     r = r + '    return r\n'
 
     r = r + "\n\n"

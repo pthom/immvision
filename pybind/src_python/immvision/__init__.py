@@ -221,7 +221,6 @@ def factor_image_params_display_only(
     """Create ImageParams that display the image only, with no decoration, and no user interaction
     """
     r = cpp_immvision.factor_image_params_display_only()
-    print(f"py: r=\n{r}\n")
     return r
 
 
@@ -232,7 +231,6 @@ def make_zoom_pan_matrix(
     """Create a zoom/pan matrix centered around a given point of interest
     """
     r = cpp_immvision.make_zoom_pan_matrix(zoom_center, zoom_ratio, displayed_image_size)
-    print(f"py: r=\n{r}\n")
     return r
 
 
@@ -248,7 +246,6 @@ def image(
     If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
     """
     r = cpp_immvision.image(image_matrix, params)
-    print(f"py: r=\n{r}\n")
     return r
 
 
@@ -263,7 +260,6 @@ def image_display(
     Todo: add a global for isBgrOrBgra
     """
     r = cpp_immvision.image_display(image_matrix, image_display_size, refresh_image, show_options, is_bgr_or_bgra)
-    print(f"py: r=\n{r}\n")
     return r
 
 

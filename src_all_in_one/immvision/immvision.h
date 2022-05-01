@@ -148,7 +148,6 @@ namespace ImmVision
 
 
     // !pydef_function
-    // Immvision::Image(cv::Mat& image, ImageParams* params)
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
     // Notes about the ImageParams:
@@ -156,16 +155,19 @@ namespace ImmVision
     // - thus, their scope should extend beyond the call to Image !
     //
     // If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
-    void Image(const cv::Mat& image, ImageParams* params);
+    void Image(const cv::Mat& imageMatrix, ImageParams* params);
 
 
+    // !pydef_function
     // Only, display the image, with no decoration, and no user interaction
+    //
+    // Todo: add a global for isBgrOrBgra
     void ImageDisplay(
-        const cv::Mat& image,
+        const cv::Mat& imageMatrix,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
         bool showOptions = true,
-        bool isBgrOrBgra = true // add a global default for this
+        bool isBgrOrBgra = true
         );
 
 
