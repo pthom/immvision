@@ -3,4 +3,3 @@ immvision/__pycache__
 **/*.a
 **/*.lib
 **/*.pyd
-**/immvision.egg-info

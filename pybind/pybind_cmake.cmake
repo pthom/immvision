@@ -3,8 +3,11 @@
 set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
 if (NOT DEFINED PYTHON_EXECUTABLE)
-  if (EXISTS ${THIS_DIR}/venv/bin/python)
-    set(PYTHON_EXECUTABLE ${THIS_DIR}/venv/bin/python)
+  message(WARNING "Search for python")
+  if (WIN32 AND EXISTS ${CMAKE_SOURCE_DIR}/venv/Scripts/python.exe)
+    set(PYTHON_EXECUTABLE ${CMAKE_SOURCE_DIR}/venv/Scripts/python.exe)
+  elseif(EXISTS ${CMAKE_SOURCE_DIR}/venv/bin/python)
+    set(PYTHON_EXECUTABLE ${CMAKE_SOURCE_DIR}/venv/bin/python)
   else()
     message(FATAL_ERROR "Please set PYTHON_EXECUTABLE")
   endif()
