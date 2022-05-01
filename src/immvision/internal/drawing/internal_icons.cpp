@@ -169,24 +169,23 @@ namespace ImmVision
                     corner.y = (y == 0) ? decal : 1. - decal;
                     double moveX = (x == 0) ? length_x : -length_x;
                     double moveY = (y == 0) ? length_y : -length_y;
-                    cv::Point2d a = corner;
-                    cv::Point2d b(a.x + moveX, a.y);
-                    cv::Point2d c(a.x, a.y + moveY);
+                    cv::Point2d pt_x(corner.x + moveX, corner.y);
+                    cv::Point2d pt_y(corner.x, corner.y + moveY);
+                    int thickness = ScaleInt(0.09);
                     CvDrawingUtils::line(
-                        m, //image,
-                        ScalePoint(a),
-                        ScalePoint(b),
+                        m,
+                        ScalePoint(corner),
+                        ScalePoint(pt_x),
                         color,
-                        ScaleInt(0.06)
+                        thickness
                     );
                     CvDrawingUtils::line(
-                        m, //image,
-                        ScalePoint(a),
-                        ScalePoint(c),
+                        m,
+                        ScalePoint(corner),
+                        ScalePoint(pt_y),
                         color,
-                        ScaleInt(0.06)
+                        thickness
                     );
-
                 }
             }
             return m;
