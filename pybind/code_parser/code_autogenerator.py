@@ -77,7 +77,7 @@ class Variant_Attribute_CodeRegion:
 class StructInfos:
     def __init__(self):
         self.struct_code: PydefCode = None
-        self.attr_and_regions = [] # list[Variant_Attribute_CodeRegion]
+        self.attr_and_regions = [] # typing.List[Variant_Attribute_CodeRegion]
 
     def struct_name(self):
         return self.struct_code.name
@@ -149,7 +149,7 @@ def fill_pydef_body_code(code_lines: typing.List[str], pydef_type: PydefType, py
     pydef_code_inout.body_code = "\n".join(body_lines)[1:-1]
 
 
-def find_pydefs_cpp(whole_file_code: str, pydef_type: PydefType) -> list[PydefCode]:
+def find_pydefs_cpp(whole_file_code: str, pydef_type: PydefType) -> typing.List[PydefCode]:
     def fn_extract_struct_name(line):
         if line.startswith("struct"):
             items = line.split(" ")

@@ -36,7 +36,7 @@ def main():
         chrono = chrono_countdown(3)
         imgui.text(f"Chrono: {chrono:.2f}s")
         imgui.new_line()
-        imgui.text(immvision._cpp_immvision.VersionInfo())
+        imgui.text(immvision._cpp_immvision.version_info())
         imgui.text(f"FPS: {imgui.get_io().framerate:.2f}")
         immvision.Image(image)
         if chrono < 0:
