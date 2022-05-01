@@ -92,7 +92,7 @@ class FunctionsInfos:
         return self.function_code.name
 
 
-def fetch_title_and_start_line(code_lines: list[str], line_nb: int) -> int :
+def fetch_title_and_start_line(code_lines: typing.List[str], line_nb: int) -> int :
     title_lines = []
     idx = line_nb + 1
     while idx < len(code_lines):
