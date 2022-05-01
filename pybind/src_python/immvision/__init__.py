@@ -1,5 +1,6 @@
 from . import _cpp_immvision
 from .cv_types import *
+from . import imgui_runner
 __version__ = _cpp_immvision.__version__
 
 
@@ -224,9 +225,6 @@ class ImageParams(_cpp_immvision.ImageParams):
 def factor_image_params_display_only():
     """ Create ImageParams that display the image only, with no decoration, and no user interaction
     """
-
-    _cpp_immvision.transfer_imgui_context_python_to_cpp()
-
     r = _cpp_immvision.factor_image_params_display_only()
     return r
 
@@ -237,9 +235,6 @@ def make_zoom_pan_matrix(
     displayed_image_size:  Size):
     """ Create a zoom/pan matrix centered around a given point of interest
     """
-
-    _cpp_immvision.transfer_imgui_context_python_to_cpp()
-
     r = _cpp_immvision.make_zoom_pan_matrix(zoom_center, zoom_ratio, displayed_image_size)
     return r
 
@@ -249,11 +244,14 @@ def image(
     params: ImageParams):
     """ Display an image, with full user control: zoom, pan, watch pixels, etc.
 
-     Notes about the ImageParams:
-     - they may be modified by this function (you can extract from them the mouse position, watched pixels, etc.)
-     - thus, their scope should extend beyond the call to Image !
+     Notes:
 
-     If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
+     - the ImageParams may be modified by this function: you can extract from them
+       the mouse position, watched pixels, etc. Thus, their scope should extend beyond the call to Image !
+       If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
+
+     - This function requires that both imgui and OpenGL were initialized.
+       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     """
 
     _cpp_immvision.transfer_imgui_context_python_to_cpp()
@@ -278,6 +276,9 @@ def image_display(
           - refreshImage: images textures are cached. Set to True if your image matrix/buffer has changed
               (for example, for live video images)
 
+     Note: this function requires that both imgui and OpenGL were initialized.
+           (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
+
      Todo: add a global for isBgrOrBgra
     """
 
@@ -289,6 +290,9 @@ def image_display(
 
 def clear_texture_cache():
     """ Clears the internal texture cache of immvision (this is done automatically at exit time)
+
+     Note: this function requires that both imgui and OpenGL were initialized.
+           (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     """
 
     _cpp_immvision.transfer_imgui_context_python_to_cpp()
