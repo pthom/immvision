@@ -149,11 +149,14 @@ namespace ImmVision
     // !pydef_function
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
-    // Notes about the ImageParams:
-    // - they may be modified by this function (you can extract from them the mouse position, watched pixels, etc.)
-    // - thus, their scope should extend beyond the call to Image !
+    // Notes:
     //
-    // If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
+    // - the ImageParams may be modified by this function: you can extract from them
+    //   the mouse position, watched pixels, etc. Thus, their scope should extend beyond the call to Image !
+    //   If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
+    //
+    // - This function requires that both imgui and OpenGL were initialized.
+    //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     void Image(const cv::Mat& imageMatrix, ImageParams* params);
 
 
@@ -168,6 +171,9 @@ namespace ImmVision
     //      - refreshImage: images textures are cached. Set to true if your image matrix/buffer has changed
     //          (for example, for live video images)
     //
+    // Note: this function requires that both imgui and OpenGL were initialized.
+    //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
+    //
     // Todo: add a global for isBgrOrBgra
     void ImageDisplay(
         const cv::Mat& imageMatrix,
@@ -180,6 +186,9 @@ namespace ImmVision
 
     // !pydef_function
     // Clears the internal texture cache of immvision (this is done automatically at exit time)
+    //
+    // Note: this function requires that both imgui and OpenGL were initialized.
+    //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     void ClearTextureCache();
 
 

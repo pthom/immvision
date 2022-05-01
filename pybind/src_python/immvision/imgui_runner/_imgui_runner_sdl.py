@@ -53,14 +53,14 @@ class _PowerSave:
         return self._max_wait_before_next_frame_seconds
 
 
-POWER_SAVE =  _PowerSave()
+_POWER_SAVE =  _PowerSave()
 
 
 def set_max_wait_before_next_frame(time_seconds):
-    POWER_SAVE.set_max_wait_before_next_frame(time_seconds)
+    _POWER_SAVE.set_max_wait_before_next_frame(time_seconds)
 
 
-def get_screen_size():
+def _get_screen_size():
     margin_x = 30
     margin_y = 50
     display_index = 0
@@ -75,7 +75,7 @@ def get_screen_size():
 APP_WINDOW_POS_INI_FILE = "imgui_sdl.ini"
 
 
-class AutoSizeAppWindow:
+class _AutoSizeAppWindow:
     """
     This class can resize the SDL window to the size of the imgui widgets seen on the first frame
     """
@@ -97,7 +97,7 @@ class AutoSizeAppWindow:
         SDL_GetWindowPosition(self._sdl_window, win_pos[0], win_pos[1])
         win_size = (c_int(), c_int())
         SDL_GetWindowSize(self._sdl_window, win_size[0], win_size[1])
-        screen_size = get_screen_size()
+        screen_size = _get_screen_size()
 
         for dim in range(2):
             if win_pos[dim].value < 0:
@@ -112,7 +112,7 @@ class AutoSizeAppWindow:
     def _force_sdl_window_size(self):
         user_widgets_size = imgui.get_item_rect_size()
         widgets_margin = 30
-        screen_size = get_screen_size()
+        screen_size = _get_screen_size()
 
         self._computed_sdl_window_size = (
             min(user_widgets_size[0] + widgets_margin, screen_size[0]),
@@ -144,7 +144,7 @@ class AutoSizeAppWindow:
         Reproduces imgui.begin behavior for an imgui window that occupies the whole app window
         and that will try to resize the SDL app window to its content size
         """
-        AutoSizeAppWindow._begin_full_size_imgui_window()
+        _AutoSizeAppWindow._begin_full_size_imgui_window()
         if self._want_autosize() and self._computed_sdl_window_size is None:
             self._flag_is_measuring_size = True
             imgui.begin_group()
@@ -167,16 +167,16 @@ def run(gui_function: Callable, imgui_app_params: ImguiAppParams = None):
     was_sdl_position_saved = False
 
     window, gl_context = _impl_pysdl2_init(imgui_app_params)
-    auto_size_app_window = AutoSizeAppWindow(imgui_app_params, window)
+    auto_size_app_window = _AutoSizeAppWindow(imgui_app_params, window)
     imgui.create_context()
     impl = SDL2Renderer(window)
 
-    POWER_SAVE.USE_POWER_SAVE = imgui_app_params.use_power_save
+    _POWER_SAVE.USE_POWER_SAVE = imgui_app_params.use_power_save
     event = SDL_Event()
 
     while running:
 
-        if POWER_SAVE.USE_POWER_SAVE:
+        if _POWER_SAVE.USE_POWER_SAVE:
             _impl_sdl2_wait_for_event_power_save(window)
 
         while SDL_PollEvent(ctypes.byref(event)) != 0:
@@ -187,7 +187,7 @@ def run(gui_function: Callable, imgui_app_params: ImguiAppParams = None):
         impl.process_inputs()
 
         imgui.new_frame()
-        POWER_SAVE.on_new_frame()
+        _POWER_SAVE.on_new_frame()
 
         def gui_handler():
             nonlocal running, auto_size_app_window, was_sdl_position_saved
@@ -316,7 +316,7 @@ def _impl_pysdl2_init(imgui_app_params: ImguiAppParams):
 def _impl_sdl2_wait_for_event_power_save(window):
     window_flags = SDL_GetWindowFlags(window)
     window_is_hidden = window_flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED) > 0
-    waiting_time = POWER_SAVE._idle_wait_time if window_is_hidden else POWER_SAVE._max_wait_before_next_frame_seconds
+    waiting_time = _POWER_SAVE._idle_wait_time if window_is_hidden else _POWER_SAVE._max_wait_before_next_frame_seconds
     if waiting_time > 0:
         waiting_time_ms = int(1000.0 * waiting_time)
         SDL_WaitEventTimeout(None, waiting_time_ms)

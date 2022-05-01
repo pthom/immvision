@@ -456,6 +456,13 @@ class {struct_name}(_cpp_immvision.{struct_name}):
     return final_code
 
 
+def does_function_require_opengl_and_imgui(function_infos: FunctionsInfos) -> bool:
+    title = function_infos.function_code.title
+    if "imgui" in title.lower() and "opengl" in title.lower() and "initialized" in title.lower():
+        return True
+    return False
+
+
 def generate_init_function_python_code(function_infos: FunctionsInfos) -> str:
     """
     Should generate code like this:
@@ -506,7 +513,7 @@ def generate_init_function_python_code(function_infos: FunctionsInfos) -> str:
     r = r + code_outro
 
     # make sure to transfer the ImGui context before doing anything related to ImGui or OpenGL
-    if not "version_info" in code_utils.to_snake_case(function_infos.function_name()):
+    if does_function_require_opengl_and_imgui(function_infos):
         r = r + "\n    _cpp_immvision.transfer_imgui_context_python_to_cpp()\n\n"
 
     r = r + f"    r = _cpp_immvision.{py_function_name}("
