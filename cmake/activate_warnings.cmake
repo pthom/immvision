@@ -49,6 +49,7 @@ macro(immvision_activate_warnings)
 
         set(ignored_warnings
             4005 # macro redefinition
+            5054 # operator '+': deprecated between enumerations of different types (see not below)
             )
         foreach(ignored_warning ${ignored_warnings})
             set(warning_flags ${warning_flags} "/wd${ignored_warning}")
@@ -60,3 +61,12 @@ macro(immvision_activate_warnings)
         message("add_compile_options(${warning_flags})")
     endif()
 endmacro()
+
+
+# Note: the warning 5054 happens inside OpenCV
+# it would be better to mark OpenCV as an external library, with a solution close to this
+# See https://docs.microsoft.com/en-us/cpp/build/reference/external-external-headers-diagnostics?view=msvc-160
+# if (WIN32)
+#     message(WARNING "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} /external:I ${OpenCV_INCLUDE_DIRS})")
+#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /experimental:external /external:I ${OpenCV_INCLUDE_DIRS}")
+# endif()

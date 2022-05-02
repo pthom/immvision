@@ -9,9 +9,3 @@ target_link_libraries(${target_name} PUBLIC
     immvision_gl_loader
     opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs
     )
-
-add_custom_command(
-    TARGET immvision
-    PRE_BUILD
-    COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../pybind/code_parser/code_autogenerator.py
-)

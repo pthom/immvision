@@ -2,16 +2,14 @@
 # CMAKE_CURRENT_LIST_DIR is thus ".." i.e the main repo dir
 set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
+
 if (NOT DEFINED PYTHON_EXECUTABLE)
   message(WARNING "Search for python")
-  if (WIN32 AND EXISTS ${CMAKE_SOURCE_DIR}/venv/Scripts/python.exe)
-    set(PYTHON_EXECUTABLE ${CMAKE_SOURCE_DIR}/venv/Scripts/python.exe)
-  elseif(EXISTS ${CMAKE_SOURCE_DIR}/venv/bin/python)
-    set(PYTHON_EXECUTABLE ${CMAKE_SOURCE_DIR}/venv/bin/python)
-  else()
-    message(FATAL_ERROR "Please set PYTHON_EXECUTABLE")
-  endif()
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  message(WARNING "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
+  set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
 endif()
+
 
 if(DEFINED ENV{OpenCV_DIR})
   set(OpenCV_DIR $ENV{OpenCV_DIR})
