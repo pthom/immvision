@@ -6,6 +6,7 @@ from imgui.integrations.glfw import GlfwRenderer
 from .gui_types import WindowPosition, WindowSize, WindowBounds
 from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
 import OpenGL.GL as gl
+import time
 
 
 class GlfwBackend(AnyBackend):
@@ -94,6 +95,8 @@ class GlfwBackend(AnyBackend):
         self.imgui_gl_renderer.render(draw_data)
 
     def destroy_imgui_gl_renderer(self):
+        glfw.hide_window(self.app_window)
+        time.sleep(0.3)
         self.imgui_gl_renderer.shutdown()
 
     def destroy_window(self):

@@ -1,3 +1,5 @@
+import time
+
 from .any_backend import AnyBackend
 from sdl2 import *
 from typing import Optional, Tuple
@@ -86,6 +88,8 @@ class SdlBackend(AnyBackend):
         self.imgui_gl_renderer = SDL2Renderer(self.app_window)
 
     def destroy_imgui_gl_renderer(self):
+        SDL_HideWindow(self.app_window)
+        time.sleep(0.5)
         self.imgui_gl_renderer.shutdown()
 
     def is_window_hidden(self) -> bool:
@@ -147,4 +151,7 @@ class SdlBackend(AnyBackend):
         SDL_Quit()
 
     def raise_window(self):
+        # Despite those efforts, the app does not come to the front under MacOS
+        SDL_ShowWindow(self.app_window)
+        SDL_FlashWindow(self.app_window, SDL_FLASH_UNTIL_FOCUSED)
         SDL_RaiseWindow(self.app_window)
