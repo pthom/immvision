@@ -26,6 +26,10 @@ class AutoSizeAppWindow:
         window_bounds = self._backend.get_window_bounds()
         screen_bounds = self._backend.get_current_monitor_work_area()
 
+        # transform tuples into lists to make them mutable
+        window_bounds.window_position = list(window_bounds.window_position)
+        window_bounds.window_size = list(window_bounds.window_size)
+
         if not self._imgui_app_params_helper.has_windows_position_info():
             window_bounds.window_position = (
                 screen_bounds.center()[0] - int(window_bounds.window_size[0] / 2),
