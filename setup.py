@@ -19,7 +19,14 @@ setup(
     author="Pascal Thomet",
     license="",
     install_requires=['PyOpenGL','pysdl2', 'pysdl2-dll', 'opencv-python', 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'],
-    packages=find_packages(where="pybind/src_python"),
+
+    # Warning! The package list should perhaps be :
+    #       packages= ["immvision", "imgui_runner"]
+    #  or even
+    #       packages= = find_packages(where="pybind/src_python")
+    # However, the pip editable mode fails miserably when there are several packages (or subpackages) mentioned here
+    # By chance, we can still import immvision and immvision.imgui_runner this way
+    packages= ["immvision"],
     package_dir={"": "pybind/src_python"},
     cmake_install_dir="pybind/src_python/immvision",
     include_package_data=True,
