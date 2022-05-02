@@ -4,10 +4,17 @@ set(THIS_DIR ${PROJECT_SOURCE_DIR}/pybind)
 
 
 if (NOT DEFINED PYTHON_EXECUTABLE)
-  message(WARNING "Search for python")
-  find_package(Python3 COMPONENTS Interpreter QUIET)
-  message(WARNING "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
-  set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+#  message(WARNING "Search for python")
+#  find_package(Python3 COMPONENTS Interpreter QUIET)
+#  message(WARNING "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
+#  set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+  if (WIN32 AND EXISTS ${CMAKE_SOURCE_DIR}/venv/Scripts/python.exe)
+    set(PYTHON_EXECUTABLE ${CMAKE_SOURCE_DIR}/venv/Scripts/python.exe)
+  elseif(EXISTS ${CMAKE_SOURCE_DIR}/venv/bin/python)
+    set(PYTHON_EXECUTABLE ${CMAKE_SOURCE_DIR}/venv/bin/python)
+  else()
+    message(FATAL_ERROR "Please set PYTHON_EXECUTABLE")
+  endif()
 endif()
 
 
