@@ -19,14 +19,19 @@ class ImguiAppParams:
     # app_window_size: Application window size:
     # if app_window_size==None and app_window_size_restore_last==False:
     #     then, the app window size will try to match the widgets size.
-    app_window_size: Optional[WindowSize] = None
+    app_window_size: Optional[WindowSize] = None #(800, 600)
     # restore_last_window_size: should we restore the application window size of the last run
     # if app_window_size_restore_last==True, the app window size will not try to match the widgets size.
     app_window_size_restore_last: bool = False
-    # Make the App window almost full screen?
+    # Make the App window maximized (i.e almost full screen, except dock, taskbar, etc)
     # If app_window_size_maximized==True, then use the whole usable area on the screen
     # (i.e except the dock, start menu and taskbar)
-    app_window_size_maximized: bool = False
+    app_window_maximized: bool = False
+    # Make the app full screen (i.e hide the taskbar, dock, etc).
+    # By default, the resolution will not be changed, except if app_window_size is filled.
+    # The application will be displayed full screen on the monitor given by app_window_position_monitor_index
+    # (Warning: there might be issues with Mac Retina displays, and possibly other high dpi screens)
+    app_window_full_screen: bool = True
 
     #
     # Application window position options
@@ -39,7 +44,7 @@ class ImguiAppParams:
     app_window_position_restore_last: bool = True
     # Monitor index, where the application will be shown:
     # used only if app_window_position is None and (app_window_position_restore_last==False or unknown)
-    app_window_position_monitor_index: int = 0
+    app_window_monitor_index: int = 1
 
     #
     # imgui options
@@ -85,7 +90,7 @@ class _ImguiAppParamsHelper:
         self.imgui_app_params = imgui_app_params
 
     def has_windows_size_info(self):
-        if self.imgui_app_params.app_window_size_maximized:
+        if self.imgui_app_params.app_window_maximized or self.imgui_app_params.app_window_full_screen:
             return True
         if self.imgui_app_params.app_window_size is not None:
             return True
@@ -94,7 +99,7 @@ class _ImguiAppParamsHelper:
         return False
 
     def has_windows_position_info(self):
-        if self.imgui_app_params.app_window_size_maximized:
+        if self.imgui_app_params.app_window_maximized:
             return True
         if self.imgui_app_params.app_window_position is not None:
             return True
@@ -105,9 +110,12 @@ class _ImguiAppParamsHelper:
     def app_window_bounds_initial(self, monitor_work_area: WindowBounds) -> WindowBounds:
         window_bounds = WindowBounds()
 
-        if self.imgui_app_params.app_window_size_maximized:
+        if self.imgui_app_params.app_window_maximized:
             window_bounds = monitor_work_area
             return window_bounds
+
+        if self.imgui_app_params.app_window_full_screen:
+            return WindowBounds()
 
         # Window size
         if self.imgui_app_params.app_window_size is not None:

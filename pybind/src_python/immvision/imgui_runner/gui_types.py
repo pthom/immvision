@@ -34,7 +34,7 @@ class WindowBounds:
             return False
         if pixel[0] >= self.bottom_right_corner()[0]:
             return False
-        if pixel[1] < self.top_left_corner()[1]:
+        if pixel[1] < self.bottom_right_corner()[1]:
             return False
         if pixel[1] >= self.bottom_right_corner()[1]:
             return False

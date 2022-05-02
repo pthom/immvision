@@ -39,16 +39,39 @@ class GlfwBackend(AnyBackend):
 
         window_bounds = self.initial_window_bounds()
 
-        # Create a windowed mode window and its OpenGL context
-        no_window_shared_resources = None
-        no_full_screen_monitor = None
-        self.app_window = glfw.create_window(
-            window_bounds.window_size[0],
-            window_bounds.window_size[1],
-            self.imgui_app_params.app_window_title,
-            no_full_screen_monitor,
-            no_window_shared_resources
-        )
+        if self.imgui_app_params.app_window_full_screen:
+            # Create a full screen window
+            monitor_idx = self.imgui_app_params.app_window_monitor_index
+            nb_monitors = self.get_nb_monitors()
+            assert 0 <= monitor_idx < nb_monitors
+            monitor = glfw.get_monitors()[monitor_idx]
+            video_mode = glfw.get_video_mode(monitor)
+            glfw.window_hint(glfw.RED_BITS, video_mode.bits.red)
+            glfw.window_hint(glfw.GREEN_BITS, video_mode.bits.green)
+            glfw.window_hint(glfw.BLUE_BITS, video_mode.bits.blue)
+            glfw.window_hint(glfw.REFRESH_RATE, video_mode.refresh_rate)
+            if self.imgui_app_params.app_window_size is None:
+                video_size = (video_mode.size.width, video_mode.size.height)
+            else:
+                video_size = self.imgui_app_params.app_window_size
+            self.app_window = glfw.create_window(
+                video_size[0], video_size[1],
+                self.imgui_app_params.app_window_title,
+                monitor,
+                None
+            )
+
+        else:
+            # Create a windowed mode window
+            no_window_shared_resources = None
+            no_full_screen_monitor = None
+            self.app_window = glfw.create_window(
+                window_bounds.window_size[0],
+                window_bounds.window_size[1],
+                self.imgui_app_params.app_window_title,
+                no_full_screen_monitor,
+                no_window_shared_resources
+            )
 
         glfw.make_context_current(self.app_window)
 

@@ -118,9 +118,9 @@ class AnyBackend(ABC):
 
         # if no position given, place the app at the center of the selected monitor
         window_size = window_bounds.window_size
-        assert self.imgui_app_params.app_window_position_monitor_index >= 0
-        assert self.imgui_app_params.app_window_position_monitor_index < self.get_nb_monitors()
-        monitor_work_area = self.get_monitor_work_area_from_index(self.imgui_app_params.app_window_position_monitor_index)
+        assert self.imgui_app_params.app_window_monitor_index >= 0
+        assert self.imgui_app_params.app_window_monitor_index < self.get_nb_monitors()
+        monitor_work_area = self.get_monitor_work_area_from_index(self.imgui_app_params.app_window_monitor_index)
         monitor_center = monitor_work_area.center()
         window_position = (monitor_center[0] - int(window_size[0] / 2), monitor_center[1] - int(window_size[1] / 2))
         return window_position
@@ -130,11 +130,13 @@ class AnyBackend(ABC):
         return self.get_monitor_work_area_from_index(monitor_index)
 
     def initial_window_bounds(self):
-        monitor_work_area = self.get_monitor_work_area_from_index(self.imgui_app_params.app_window_position_monitor_index)
+        monitor_work_area = self.get_monitor_work_area_from_index(self.imgui_app_params.app_window_monitor_index)
         window_bounds = self.imgui_app_params_helper.app_window_bounds_initial(monitor_work_area)
         return window_bounds
 
     def get_monitor_index_from_window_position(self, window_position: WindowPosition) -> int:
+        if self.imgui_app_params.app_window_full_screen:
+            return self.imgui_app_params.app_window_monitor_index
         for monitor_index in range(self.get_nb_monitors()):
             monitor_work_area = self.get_monitor_work_area_from_index(monitor_index)
             if monitor_work_area.contains(window_position):
