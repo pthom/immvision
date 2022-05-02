@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from .imgui_app_params import _ImguiAppParamsHelper, ImguiAppParams
 from typing import Tuple, Any, Optional
 from imgui.integrations.opengl import BaseOpenGLRenderer
-from .backend_types import WindowPosition, WindowSize, WindowBounds
+from .gui_types import WindowPosition, WindowSize, WindowBounds
 
 
 class AnyBackend(ABC):
@@ -12,7 +12,7 @@ class AnyBackend(ABC):
     app_window: Any = None
     imgui_gl_renderer : BaseOpenGLRenderer = None
 
-    def __init__(self, imgui_app_params_helper):
+    def __init__(self, imgui_app_params_helper: _ImguiAppParamsHelper):
         self.imgui_app_params_helper = imgui_app_params_helper
         self.imgui_app_params = self.imgui_app_params_helper.imgui_app_params
 
@@ -128,3 +128,15 @@ class AnyBackend(ABC):
     def get_current_monitor_work_area(self) -> int:
         monitor_index = self.get_monitor_index_from_window_position(self.get_window_position())
         return self.get_monitor_work_area_from_index(monitor_index)
+
+    def initial_window_bounds(self):
+        monitor_work_area = self.get_monitor_work_area_from_index(self.imgui_app_params.app_window_position_monitor_index)
+        window_bounds = self.imgui_app_params_helper.app_window_bounds_initial(monitor_work_area)
+        return window_bounds
+
+    def get_monitor_index_from_window_position(self, window_position: WindowPosition) -> int:
+        for monitor_index in range(self.get_nb_monitors()):
+            monitor_work_area = self.get_monitor_work_area_from_index(monitor_index)
+            if monitor_work_area.contains(window_position):
+                return monitor_index
+        raise RuntimeError(f"get_monitor_index_from_window_position: window_position={window_position} not in any monitor!")

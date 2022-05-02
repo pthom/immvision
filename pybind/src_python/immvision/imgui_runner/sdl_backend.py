@@ -3,7 +3,7 @@ from sdl2 import *
 from typing import Optional, Tuple
 from .power_save import power_save_instance
 from imgui.integrations.sdl2 import SDL2Renderer
-from .backend_types import WindowPosition, WindowSize, WindowBounds
+from .gui_types import WindowPosition, WindowSize, WindowBounds
 from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
 import ctypes
 
@@ -17,13 +17,6 @@ class SdlBackend(AnyBackend):
     def get_nb_monitors(self):
         r = SDL_GetNumVideoDisplays()
         return r
-
-    def get_monitor_index_from_window_position(self, window_position: WindowPosition) -> int:
-        for monitor_index in range(self.get_nb_monitors()):
-            monitor_work_area = self.get_monitor_work_area_from_index(monitor_index)
-            if monitor_work_area.contains(window_position):
-                return monitor_index
-        raise RuntimeError(f"get_monitor_index_from_window_position: window_position={window_position} not in any monitor!")
 
     def get_monitor_work_area_from_index(self, monitor_index: int) -> WindowBounds:
         monitor_index_c = c_int()
@@ -62,8 +55,7 @@ class SdlBackend(AnyBackend):
 
         window_flags = (SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
 
-        window_bounds = self.imgui_app_params_helper.app_window_bounds_initial(
-                            self.get_monitor_work_area_from_index(self.imgui_app_params.app_window_position_monitor_index))
+        window_bounds = self.initial_window_bounds()
         window_position = self.initial_window_position(window_bounds)
 
         window = SDL_CreateWindow(

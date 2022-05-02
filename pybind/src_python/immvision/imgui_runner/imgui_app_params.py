@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Tuple, Optional
 import os
-from .backend_types import Color_RGBA_Float, WindowSize, WindowPosition, WindowBounds
+from .gui_types import Color_RGBA_Float, WindowSize, WindowPosition, WindowBounds
 
 
 APP_WINDOW_POS_INI_FILE = "imgui_app_window.ini"
@@ -112,7 +112,7 @@ class _ImguiAppParamsHelper:
         else:
             if self.imgui_app_params.app_window_size_restore_last:
                 window_bounds_last_run = self._read_last_run_window_bounds()
-                if window_bounds_last_run.window_size is not None:
+                if window_bounds_last_run is not None and window_bounds_last_run.window_size is not None:
                     window_bounds.window_size = window_bounds_last_run.window_size
                 else:
                     pass
@@ -125,12 +125,12 @@ class _ImguiAppParamsHelper:
         else:
             if self.imgui_app_params.app_window_position_restore_last:
                 window_bounds_last_run = self._read_last_run_window_bounds()
-                if window_bounds_last_run.window_position is not None:
+                if window_bounds_last_run is not None and window_bounds_last_run.window_position is not None:
                     window_bounds.window_position = window_bounds_last_run.window_position
                 else:
                     pass
             else:
-                window_bounds.window_position = None
+                window_bounds.window_position = monitor_work_area.win_position_centered(window_bounds.window_size)
 
         return window_bounds
 
@@ -145,7 +145,7 @@ WindowSize={window_bounds.window_size[0]},{window_bounds.window_size[1]}
 
     def _read_last_run_window_bounds(self) -> Optional[WindowBounds]:
         if not os.path.isfile(APP_WINDOW_POS_INI_FILE):
-            return None
+            return WindowBounds()
         try:
             with open(APP_WINDOW_POS_INI_FILE, "r") as f:
                 lines = f.readlines()

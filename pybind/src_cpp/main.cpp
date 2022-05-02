@@ -17,8 +17,6 @@ void pydef_gl_provider_sentinel(pybind11::module& m);
 void pydef_transfer_imgui_context_python_to_cpp(pybind11::module& m);
 
 
-
-
 PYBIND11_MODULE(_cpp_immvision, m)
 {
     m.doc() = "immvision: immediate image debugger and insights";

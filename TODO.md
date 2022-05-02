@@ -1,11 +1,12 @@
 * [ ] PIP
-  * [ ] Correct cmake dependencies (always rebuild pip...)
-  * [ ] L'icone "Full View" semble toujour disabled (pb de rendu couleurs ?)
-  * [ ] Correct CI
   * [ ] imgui_fig (from imgui_datascience)
   * [ ] imgui_runner
     * [ ] change mat type if not castable (and cache)
-  * [ ] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics/
+    * [ ] try other backend
+  * [ ] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
+  * [Later] ToString => To/FromJson (use nlohmman)
+  * [Later] Add mix color precise + demos & video
+  * [Later] Add implot : https://github.com/epezent/implot
   * [Later] cf _skbuild_template: add conda & wheels
   * [Later] pyimgui
       * [ ] PR / Pull request / multisamples = 4

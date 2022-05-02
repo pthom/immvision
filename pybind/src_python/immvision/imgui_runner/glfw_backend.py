@@ -1,141 +1,120 @@
 from .any_backend import AnyBackend
-from sdl2 import *
+import glfw
 from typing import Optional, Tuple, Any
 from .power_save import power_save_instance
-from imgui.integrations.sdl2 import SDL2Renderer
-from .imgui_app_params import get_app_window_size_initial
-import ctypes
+from imgui.integrations.glfw import GlfwRenderer
+from .gui_types import WindowPosition, WindowSize, WindowBounds
+from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
+import OpenGL.GL as gl
 
 
-class SdlBackend(AnyBackend):
-    def __init__(self, imgui_app_params):
-        AnyBackend.__init__(self, imgui_app_params)
+class GlfwBackend(AnyBackend):
+    def __init__(self, imgui_app_params_helper: _ImguiAppParamsHelper):
+        AnyBackend.__init__(self, imgui_app_params_helper)
 
-    def get_screen_size(self):
-        margin_x = 30
-        margin_y = 50
-        display_index = 0
+    def get_nb_monitors(self):
+        monitors = glfw.get_monitors()
+        assert len(monitors) > 0
+        return len(monitors)
 
-        display_mode = SDL_DisplayMode()
-        r = SDL_GetCurrentDisplayMode(display_index, display_mode)
-        if not((r is None) or (r == 0)):
-            raise RuntimeError("Could not query SDL_GetCurrentDisplayMode")
-        return display_mode.w - margin_x, display_mode.h - margin_y
+    def get_monitor_work_area_from_index(self, monitor_index: int) -> WindowBounds:
+        monitors = glfw.get_monitors()
+        assert monitor_index >= 0
+        assert monitor_index < len(monitors)
+        x, y, w, h = glfw.get_monitor_workarea(monitors[monitor_index])
+        return WindowBounds((x, y), (w, h))
 
-    def init_backend(
-            self,
-            window_position: Optional[Tuple[int, int]],
-            window_size: Tuple[int, int]
-        ):
-        if SDL_Init(SDL_INIT_EVERYTHING) < 0:
-            print("Error:SDL_Init failed! SDL Error: " + SDL_GetError().decode("utf-8"))
+    def init_backend(self):
+        if not glfw.init():
+            print("Could not initialize OpenGL context")
             exit(1)
 
-        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)
-        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24)
-        SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8)
-        SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1)
+        # OS X supports only forward-compatible core profiles from 3.2
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
 
-        if self.imgui_app_params.gl_multisamples > 0:
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1)
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, self.imgui_app_params.gl_multisamples)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
 
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE)
+        window_bounds = self.initial_window_bounds()
 
-        SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, b"1")
-        SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, b"1")
+        # Create a windowed mode window and its OpenGL context
+        no_window_shared_resources = None
+        no_full_screen_monitor = None
+        self.app_window = glfw.create_window(
+            window_bounds.window_size[0],
+            window_bounds.window_size[1],
+            self.imgui_app_params.app_window_title,
+            no_full_screen_monitor,
+            no_window_shared_resources
+        )
 
-        window_flags = (SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
+        glfw.make_context_current(self.app_window)
 
-        if window_position is None:
-            sdl_window_position = (SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED)
-        else:
-            sdl_window_position = (window_position[0], window_position[1])
+        if not self.app_window:
+            glfw.terminate()
+            raise RuntimeError("Glfw: Could not initialize Window")
 
-        window = SDL_CreateWindow(
-            self.imgui_app_params.app_window_title.encode('utf-8'),
-            sdl_window_position[0], sdl_window_position[1],
-            window_size[0], window_size[1],
-            window_flags)
-        if window is None:
-            print("Error: SDL_CreateWindow failed! SDL Error: " + SDL_GetError().decode("utf-8"))
-            exit(1)
+        if window_bounds.window_position is not None:
+            self.set_window_position(window_bounds.window_position)
 
-        gl_context = SDL_GL_CreateContext(window)
-        if gl_context is None:
-            print("Error: SDL_GL_CreateContext failed! SDL Error: " + SDL_GetError().decode("utf-8"))
-            exit(1)
+        self.raise_window()
 
-        SDL_GL_MakeCurrent(window, gl_context)
+    def init_imgui_gl_renderer(self):
+        self.imgui_gl_renderer = GlfwRenderer(self.app_window)
 
-        swap_interval_result = SDL_GL_SetSwapInterval(1)  # Enable vsync
-        if swap_interval_result < 0:
-            print(f"Warning, SDL_GL_SetSwapInterval returned {SDL_GL_SetSwapInterval}")
-
-        SDL_RaiseWindow(window)
-        self.gl_context = gl_context
-        self.app_window = window
-
-    def init_gl_renderer(self):
-        self.gl_renderer = SDL2Renderer(self.app_window)
+    def destroy_imgui_gl_renderer(self):
+        self.imgui_gl_renderer.shutdown()
 
     def wait_for_event_power_save(self):
-        window_flags = SDL_GetWindowFlags(self.app_window)
-        window_is_hidden = window_flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED) > 0
-        waiting_time = power_save_instance()._idle_wait_time if window_is_hidden else power_save_instance().get_event_waiting_time()
+        waiting_time = power_save_instance().get_event_waiting_timeout(self.is_window_hidden())
         if waiting_time > 0:
-            waiting_time_ms = int(1000.0 * waiting_time)
-            SDL_WaitEventTimeout(None, waiting_time_ms)
+            glfw.wait_events_timeout(waiting_time)
 
-    def get_window_position(self) -> Tuple[int, int]:
-        win_pos = (c_int(), c_int())
-        SDL_GetWindowPosition(self.app_window, win_pos[0], win_pos[1])
-        return win_pos[0].value, win_pos[1].value
+    def get_window_position(self) -> WindowPosition:
+        return glfw.get_window_pos(self.app_window)
 
-    def set_window_position(self, window_position: Tuple[int, int]):
-        SDL_SetWindowPosition(self.app_window, window_position[0], window_position[1])
+    def set_window_position(self, window_position: WindowPosition):
+        glfw.set_window_pos(self.app_window, window_position[0], window_position[1])
 
     def get_window_size(self):
-        win_size = (c_int(), c_int())
-        SDL_GetWindowSize(self.app_window, win_size[0], win_size[1])
-        return win_size[0].value, win_size[1].value
+        return glfw.get_window_size(self.app_window)
 
-    def set_window_size(self, window_size:Tuple[int, int]):
-        r = SDL_SetWindowSize(self.app_window, window_size[0], window_size[1])
-        if not((r is None) or (r == 0)):
-            print("Error during SDL_SetWindowSize")
+    def set_window_size(self, window_size: WindowSize):
+        glfw.set_window_size(self.app_window, window_size[0], window_size[1])
 
     def poll_events(self):
-        was_window_closed = False
-        event = SDL_Event()
-        while SDL_PollEvent(ctypes.byref(event)) != 0:
-            if event.type == SDL_QUIT:
-                was_window_closed = True
-                break
-            self.gl_renderer.process_event(event)
-        self.gl_renderer.process_inputs()
-        return was_window_closed
+        glfw.poll_events()
+        self.imgui_gl_renderer.process_inputs()
+
+    def should_window_close(self) -> bool:
+        return glfw.window_should_close(self.app_window)
 
     def render_gl_draw_data(self, draw_data):
-        self.gl_renderer.render(draw_data)
+        self.imgui_gl_renderer.render(draw_data)
 
-    def shutdown_gl_renderer(self):
-        self.gl_renderer.shutdown()
+    def destroy_imgui_gl_renderer(self):
+        self.imgui_gl_renderer.shutdown()
 
     def destroy_window(self):
-        SDL_DestroyWindow(self.app_window)
+        # glfw: destroy_window is a No-Op
+        pass
+
+    def destroy_gl_context(self):
+        # glfw: destroy_gl_context is a No-Op
+        pass
 
     def swap_window(self):
-        SDL_GL_SwapWindow(self.app_window)
+        glfw.swap_buffers(self.app_window)
 
-    def delete_gl_context(self):
-        SDL_GL_DeleteContext(self.gl_context)
-
-    def destroy_window(self):
-        SDL_DestroyWindow(self.app_window)
+    def is_window_hidden(self) -> bool:
+        r = glfw.get_window_attrib(self.app_window, glfw.VISIBLE)
+        return r > 0
 
     def quit(self):
-        SDL_Quit()
+        glfw.terminate()
+
+    def raise_window(self):
+        glfw.show_window(self.app_window)
+        glfw.focus_window(self.app_window)
+        glfw.request_window_attention(self.app_window)

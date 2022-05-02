@@ -3,7 +3,7 @@ import imgui
 import os
 from typing import Tuple, Optional
 from .any_backend import AnyBackend
-from .backend_types import WindowPosition, WindowSize
+from .gui_types import WindowPosition, WindowSize
 
 
 class AutoSizeAppWindow:

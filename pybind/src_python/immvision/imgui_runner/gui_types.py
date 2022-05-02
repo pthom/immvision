@@ -5,9 +5,13 @@ from dataclasses import dataclass
 # it should take no parameter and return nothing (use lambdas if you need to capture the global app state)
 GuiFunction = Callable[[], None]
 
+Float_Between_0_1 = float
+Color_RGBA_Float = Tuple[Float_Between_0_1, Float_Between_0_1, Float_Between_0_1, Float_Between_0_1]
+
 WindowPosition = Tuple[int, int]
 WindowSize = Tuple[int, int]
 Pixel = Tuple[int, int]
+
 
 @dataclass
 class WindowBounds:
@@ -36,6 +40,8 @@ class WindowBounds:
             return False
         return True
 
+    def win_position_centered(self, window_size: WindowSize) -> Pixel:
+        r = ( self.center()[0] - int(window_size[0] / 2),
+              self.center()[1] - int(window_size[1]/ 2) )
+        return r
 
-Float_Between_0_1 = float
-Color_RGBA_Float = Tuple[Float_Between_0_1, Float_Between_0_1, Float_Between_0_1, Float_Between_0_1]

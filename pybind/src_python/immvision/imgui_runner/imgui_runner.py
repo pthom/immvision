@@ -11,7 +11,7 @@ from typing import Callable
 from .power_save import power_save_instance
 from .auto_size_app_window import AutoSizeAppWindow
 from .any_backend import AnyBackend
-from .backend_types import GuiFunction
+from .gui_types import GuiFunction
 
 
 def run_with_backend(gui_function: GuiFunction, backend: AnyBackend, imgui_app_params_helper: _ImguiAppParamsHelper = None):
