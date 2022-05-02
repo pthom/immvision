@@ -36,9 +36,9 @@ def main():
         chrono = chrono_countdown(3)
         imgui.text(f"Chrono: {chrono:.2f}s")
         imgui.new_line()
-        imgui.text(immvision._cpp_immvision.VersionInfo())
+        imgui.text(immvision._cpp_immvision.version_info())
         imgui.text(f"FPS: {imgui.get_io().framerate:.2f}")
-        immvision.Image(image)
+        immvision.image(image)
         if chrono < 0:
             print("********* pip_test_app: exit *********")
             params.app_shall_exit = True
