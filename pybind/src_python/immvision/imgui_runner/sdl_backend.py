@@ -55,16 +55,36 @@ class SdlBackend(AnyBackend):
         SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, b"1")
         SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, b"1")
 
-        window_flags = (SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
+        if self.imgui_app_params.app_window_full_screen:
+            # Create a full screen window
+            monitor_idx = self.imgui_app_params.app_window_monitor_index
+            nb_monitors = self.get_nb_monitors()
+            assert 0 <= monitor_idx < nb_monitors
+            monitor_bounds = self.get_monitor_work_area_from_index(monitor_idx)
+            if self.imgui_app_params.app_window_size is None:
+                video_size = (monitor_bounds.window_size[0], monitor_bounds.window_size[1])
+            else:
+                video_size = self.imgui_app_params.app_window_size
 
-        window_bounds = self.initial_window_bounds()
-        window_position = self.initial_window_position(window_bounds)
-
-        window = SDL_CreateWindow(
-            self.imgui_app_params.app_window_title.encode('utf-8'),
-            window_position[0], window_position[1],
-            window_bounds.window_size[0], window_bounds.window_size[1],
-            window_flags)
+            window_flags = (SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI)
+            if self.imgui_app_params.app_window_size is None:
+                window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP
+            else:
+                window_flags |= SDL_WINDOW_FULLSCREEN
+            window = SDL_CreateWindow(
+                self.imgui_app_params.app_window_title.encode('utf-8'),
+                monitor_bounds.window_position[0], monitor_bounds.window_position[1],
+                video_size[0], video_size[1],
+                window_flags)
+        else:
+            window_bounds = self.initial_window_bounds()
+            window_position = self.initial_window_position(window_bounds)
+            window_flags = (SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
+            window = SDL_CreateWindow(
+                self.imgui_app_params.app_window_title.encode('utf-8'),
+                window_position[0], window_position[1],
+                window_bounds.window_size[0], window_bounds.window_size[1],
+                window_flags)
         if window is None:
             print("Error: SDL_CreateWindow failed! SDL Error: " + SDL_GetError().decode("utf-8"))
             exit(1)

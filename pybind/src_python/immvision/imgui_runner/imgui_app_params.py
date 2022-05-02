@@ -30,8 +30,8 @@ class ImguiAppParams:
     # Make the app full screen (i.e hide the taskbar, dock, etc).
     # By default, the resolution will not be changed, except if app_window_size is filled.
     # The application will be displayed full screen on the monitor given by app_window_position_monitor_index
-    # (Warning: there might be issues with Mac Retina displays, and possibly other high dpi screens)
-    app_window_full_screen: bool = True
+    # (Note: there might be issues with Mac Retina displays when using Glfw backend: switch to sdl in this case)
+    app_window_full_screen: bool = False
 
     #
     # Application window position options
@@ -44,13 +44,14 @@ class ImguiAppParams:
     app_window_position_restore_last: bool = True
     # Monitor index, where the application will be shown:
     # used only if app_window_position is None and (app_window_position_restore_last==False or unknown)
-    app_window_monitor_index: int = 1
+    app_window_monitor_index: int = 0
 
     #
     # imgui options
     #
 
-    # Provide a default full *imgui* window inside the app
+    # Provide a default full *imgui* window inside the app, i.e a background on which you can place any widget
+    # if provide_default_window==False, then the application will *not* adapt it window size to its widgets.
     provide_default_window: bool = True
 
 
@@ -74,12 +75,14 @@ class ImguiAppParams:
     gl_clear_color: Color_RGBA_Float = (1., 1., 1., 1)
 
     #
-    # Flag to handle the application lifetime
+    # Flags to handle the application lifetime
     #
 
     # Change this bool to True when you want to exit
     app_shall_exit: bool = False
     # Change this bool to True when you want the window to be brought to the top
+    # at one moment during the execution. It will be brought to top at the next frame
+    # (warning, does not always work on MacOS with SDL)
     app_shall_raise_window = False
 
 

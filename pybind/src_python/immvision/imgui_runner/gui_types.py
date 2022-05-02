@@ -30,14 +30,11 @@ class WindowBounds:
         return r
 
     def contains(self, pixel: Pixel) -> bool:
-        if pixel[0] < self.top_left_corner()[0]:
-            return False
-        if pixel[0] >= self.bottom_right_corner()[0]:
-            return False
-        if pixel[1] < self.bottom_right_corner()[1]:
-            return False
-        if pixel[1] >= self.bottom_right_corner()[1]:
-            return False
+        for dim in range(2):
+            if pixel[dim] < self.top_left_corner()[dim]:
+                return False
+            if pixel[dim] < self.top_left_corner()[dim]:
+                return False
         return True
 
     def win_position_centered(self, window_size: WindowSize) -> Pixel:
@@ -45,3 +42,15 @@ class WindowBounds:
               self.center()[1] - int(window_size[1]/ 2) )
         return r
 
+    def distance_from_pixel(self, point: Pixel):
+        def dist_from_interval(a, b, x):
+            if x < a:
+                return a - x
+            elif x > b:
+                return x - b
+            else:
+                return 0
+        distance = 0
+        for dim in range(2):
+            distance += dist_from_interval(self.top_left_corner()[dim], self.bottom_right_corner()[dim], point[dim])
+        return distance

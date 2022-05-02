@@ -141,4 +141,17 @@ class AnyBackend(ABC):
             monitor_work_area = self.get_monitor_work_area_from_index(monitor_index)
             if monitor_work_area.contains(window_position):
                 return monitor_index
-        raise RuntimeError(f"get_monitor_index_from_window_position: window_position={window_position} not in any monitor!")
+
+        #
+        # Handle failure and lost windows:
+        # if we did not find any monitor containing the window position, place the window inside the closest monitor
+        #
+        distances = []
+        for monitor_index in range(self.get_nb_monitors()):
+            distances.append(self.get_monitor_work_area_from_index(monitor_index).distance_from_pixel(window_position))
+        min_distance = min(distances)
+        best_monitor_idx = distances.index(min_distance)
+
+        new_window_position = self.get_monitor_work_area_from_index(best_monitor_idx).window_position
+        self.set_window_position(new_window_position)
+        return best_monitor_idx
