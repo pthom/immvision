@@ -77,6 +77,8 @@ def _test_gui_function(params: imgui_runner.ImguiAppParams):
 
     elapsed = (time.time_ns() - start_time) / 1E9
     imgui.text(f"elapsed time: {elapsed:.2f}s FPS: {imgui.get_io().framerate:.2f}")
+    if imgui.button("Exit"):
+        params.app_shall_exit = True
 
 
 def draw_coords_markers(w, h):

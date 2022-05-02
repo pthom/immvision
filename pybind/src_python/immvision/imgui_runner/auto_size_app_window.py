@@ -1,46 +1,54 @@
-from .imgui_app_params import ImguiAppParams
+from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
 import imgui
 import os
 from typing import Tuple, Optional
 from .any_backend import AnyBackend
+from .backend_types import WindowPosition, WindowSize
 
 
 class AutoSizeAppWindow:
     """
     This class can resize the app window to the size of the imgui widgets seen on the first frame
     """
-    _imgui_app_params: ImguiAppParams = None
-    _last_seen_imgui_window_size : Optional[Tuple[int, int]]= None
-    _computed_window_size: Optional[Tuple[int, int]] = None
+    _imgui_app_params_helper: _ImguiAppParamsHelper = None
+    _imgui_app_params: ImguiAppParams
+    _last_seen_imgui_window_size : Optional[WindowSize]= None
+    _computed_window_size: Optional[WindowSize] = None
     _backend: AnyBackend = None
     _flag_is_measuring_size: bool = False
 
-    def __init__(self, imgui_app_params: ImguiAppParams, backend: AnyBackend):
-        self._imgui_app_params = imgui_app_params
+    def __init__(self, imgui_app_params_helper: _ImguiAppParamsHelper, backend: AnyBackend):
+        self._imgui_app_params_helper = imgui_app_params_helper
+        self._imgui_app_params = self._imgui_app_params_helper.imgui_app_params
         self._backend = backend
 
-    def _want_autosize(self):
-        return self._imgui_app_params.app_window_size[0] == 0 or self._imgui_app_params.app_window_size[1] == 0
-
     def _move_window_if_out_of_screen_bounds(self):
-        win_pos = list(self._backend.get_window_position())
-        win_size = self._backend.get_window_size()
-        screen_size = self._backend.get_screen_size()
+        window_bounds = self._backend.get_window_bounds()
+        screen_bounds = self._backend.get_current_monitor_work_area()
+
+        if not self._imgui_app_params_helper.has_windows_position_info():
+            window_bounds.window_position = (
+                screen_bounds.center()[0] - int(window_bounds.window_size[0] / 2),
+                screen_bounds.center()[1] - int(window_bounds.window_size[1] / 2))
 
         for dim in range(2):
-            if win_pos[dim] < 0:
-                win_pos[dim] = 0
-            if win_pos[dim] + win_size[dim] > screen_size[dim]:
-                win_pos[dim] = screen_size[dim] - win_size[dim]
-                if win_pos[dim] < 0:
-                    win_pos[dim] = 0
+            # if window is to the left or to the top, move it
+            if window_bounds.window_position[dim] < screen_bounds.window_position[dim]:
+                window_bounds.window_position[dim] = screen_bounds.window_position[dim]
+            # if the window is too big and does not fit the bottom right corner, try to move it
+            if window_bounds.bottom_right_corner()[dim] >= screen_bounds.bottom_right_corner()[dim]:
+                window_bounds.window_position[dim] = \
+                    screen_bounds.bottom_right_corner()[dim] - window_bounds.window_size[dim]
+            # if it was not enough, resize it
+            if window_bounds.bottom_right_corner()[dim] >= screen_bounds.bottom_right_corner()[dim]:
+                window_bounds.window_size[dim] = screen_bounds.window_size[dim]
 
-        self._backend.set_window_position(win_pos)
+        self._backend.set_window_bounds(window_bounds)
 
     def _force_window_size(self):
         user_widgets_size = imgui.get_item_rect_size()
         widgets_margin = 30
-        screen_size = self._backend.get_screen_size()
+        screen_size = self._backend.get_current_monitor_work_area().window_size
 
         self._computed_window_size = (
             min(int(user_widgets_size[0]) + widgets_margin, screen_size[0]),
@@ -65,7 +73,7 @@ class AutoSizeAppWindow:
         and that will try to resize the SDL app window to its content size
         """
         AutoSizeAppWindow._begin_full_size_imgui_window()
-        if self._want_autosize() and self._computed_window_size is None:
+        if self._imgui_app_params_helper.want_autosize() and self._computed_window_size is None:
             self._flag_is_measuring_size = True
             imgui.begin_group()
         else:

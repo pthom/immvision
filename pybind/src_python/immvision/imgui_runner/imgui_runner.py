@@ -1,7 +1,7 @@
 import os.path
 
 from immvision import _gl_provider_sentinel
-from .imgui_app_params import ImguiAppParams, last_run_window_position, write_last_run_window_position, get_app_window_size_initial
+from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
 import OpenGL.GL as gl
 
 import imgui
@@ -11,31 +11,31 @@ from typing import Callable
 from .power_save import power_save_instance
 from .auto_size_app_window import AutoSizeAppWindow
 from .any_backend import AnyBackend
+from .backend_types import GuiFunction
 
 
-def run(gui_function: Callable, backend: AnyBackend, imgui_app_params: ImguiAppParams = None):
-    if imgui_app_params is None:
-        imgui_app_params = ImguiAppParams()
-
-    imgui_app_params.app_shall_exit = False
+def run_with_backend(gui_function: GuiFunction, backend: AnyBackend, imgui_app_params_helper: _ImguiAppParamsHelper = None):
     running = True
+    imgui_app_params = imgui_app_params_helper.imgui_app_params
     was_window_position_saved = False
 
-    backend.init_backend(last_run_window_position(), get_app_window_size_initial(imgui_app_params))
-    auto_size_app_window = AutoSizeAppWindow(imgui_app_params, backend)
+    backend.init_backend()
+
+    auto_size_app_window = AutoSizeAppWindow(imgui_app_params_helper, backend)
+
     imgui.create_context()
 
     power_save_instance().use_power_save = imgui_app_params.use_power_save
 
-    backend.init_gl_renderer()
+    backend.init_imgui_gl_renderer()
 
     while running:
 
         if power_save_instance().use_power_save:
             backend.wait_for_event_power_save()
 
-        was_window_closed = backend.poll_events()
-        if was_window_closed:
+        backend.poll_events()
+        if backend.should_window_close():
             break
 
         imgui.new_frame()
@@ -51,12 +51,12 @@ def run(gui_function: Callable, backend: AnyBackend, imgui_app_params: ImguiAppP
 
             if imgui_app_params.app_shall_exit:
                 running = False
-                write_last_run_window_position(backend.get_window_position())
+                imgui_app_params_helper.write_last_run_window_bounds(backend.get_window_bounds())
                 was_window_position_saved = True
                 backend.destroy_window()
         gui_handler()
 
-        bg = imgui_app_params.background_color
+        bg = imgui_app_params.gl_clear_color
         gl.glClearColor(bg[0], bg[1], bg[2], bg[3])
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
@@ -65,13 +65,13 @@ def run(gui_function: Callable, backend: AnyBackend, imgui_app_params: ImguiAppP
         backend.swap_window()
 
     if not was_window_position_saved:
-        write_last_run_window_position(backend.get_window_position())
+        imgui_app_params_helper.write_last_run_window_bounds(backend.get_window_bounds())
 
-    backend.shutdown_gl_renderer()
+    backend.destroy_imgui_gl_renderer()
     ctx = imgui.get_current_context()
     if ctx is not None:
         imgui.destroy_context(ctx)
 
-    backend.delete_gl_context()
+    backend.destroy_gl_context()
     backend.destroy_window()
     backend.quit()

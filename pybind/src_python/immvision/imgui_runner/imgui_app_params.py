@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Tuple, Optional
 import os
+from .backend_types import Color_RGBA_Float, WindowSize, WindowPosition, WindowBounds
 
-Float_Between_0_1 = float
 
 APP_WINDOW_POS_INI_FILE = "imgui_app_window.ini"
 
@@ -11,54 +11,156 @@ APP_WINDOW_POS_INI_FILE = "imgui_app_window.ini"
 class ImguiAppParams:
     # Title and Size
     app_window_title: str = "ImGui Application"
-    # app_window_size: Application window size: if you do not change it,
-    # the app window size will try to match the combined widgets size.
-    app_window_size: Tuple[int, int] = (0, 0)
+
+    #
+    # Application window size options
+    #
+
+    # app_window_size: Application window size:
+    # if app_window_size==None and app_window_size_restore_last==False:
+    #     then, the app window size will try to match the combined widgets size.
+    app_window_size: Optional[WindowSize] = None
+    # restore_last_window_size: should we restore the application window size of the last run
+    # if app_window_size_restore_last==True, the app window size will not try to match the combined widgets size.
+    app_window_size_restore_last: bool = False
+    # Make the App window almost full screen?
+    # If app_window_size_maximized==True, then use the whole usable area on the screen
+    # (i.e except the dock, start menu and taskbar)
+    app_window_size_maximized: bool = False
+
+    #
+    # Application window position options
+    #
+
+    # app_window_position: Application window position
+    # if app_window_position==None the app window size will center on the screen
+    app_window_position: Optional[WindowPosition] = None
+    # restore_last_window_position: should we restore the application window position of the last run
+    app_window_position_restore_last: bool = True
+    # Monitor index, where the application will be shown:
+    # used only if app_window_position is None and (app_window_position_restore_last==False or unknown)
+    app_window_position_monitor_index: int = 0
+
+    #
+    # imgui options
+    #
+
     # Provide a default full *imgui* window inside the app
     provide_default_window: bool = True
-    # Make the App window almost full screen?
-    windowed_full_screen: bool = False
+
+    #
+    # Flag to quit the application
+    #
+
     # Change this bool to True when you want to exit
     app_shall_exit: bool = False
+
+    #
+    # Power save options
+    #
+
     # Use power save: if this is true, you can increase manually the idle FPS by calling
     # imgui_runner.power_save.set_max_wait_before_next_frame( 1 / desired_fps)
     use_power_save: bool = True
+
+    #
+    # OpenGL options
+    #
+
     # Anti-aliasing number of samples
     # - if the call to SDL_GL_CreateContext fails, try reducing the value to zero
     # - if you want better antialiasing, you can also increase it
     gl_multisamples = 4
-    # Background color (i.e glClearColor)
-    background_color: Tuple[Float_Between_0_1, Float_Between_0_1, Float_Between_0_1, Float_Between_0_1] = (1., 1., 1., 1)
+    # OpenGl clear color (i.e glClearColor)
+    gl_clear_color: Color_RGBA_Float = (1., 1., 1., 1)
 
 
-def get_app_window_size_initial(imgui_app_params: ImguiAppParams) -> Tuple[int, int]:
-    r = imgui_app_params.app_window_size
-    if r[0] == 0 or r[1] == 0:
-        r = (150, 150)
-    return r
+class _ImguiAppParamsHelper:
+    imgui_app_params: ImguiAppParams
+
+    def __init__(self, imgui_app_params: ImguiAppParams):
+        self.imgui_app_params = imgui_app_params
+
+    def has_windows_size_info(self):
+        if self.imgui_app_params.app_window_size_maximized:
+            return True
+        if self.imgui_app_params.app_window_size is not None:
+            return True
+        if self.imgui_app_params.app_window_size_restore_last and self._read_last_run_window_bounds().window_size is not None:
+            return True
+        return False
+
+    def has_windows_position_info(self):
+        if self.imgui_app_params.app_window_size_maximized:
+            return True
+        if self.imgui_app_params.app_window_position is not None:
+            return True
+        if self.imgui_app_params.app_window_position_restore_last and self._read_last_run_window_bounds().window_position is not None:
+            return True
+        return False
+
+    def app_window_bounds_initial(self, monitor_work_area: WindowBounds) -> WindowBounds:
+        window_bounds = WindowBounds()
+
+        if self.imgui_app_params.app_window_size_maximized:
+            window_bounds = monitor_work_area
+            return window_bounds
+
+        # Window size
+        if self.imgui_app_params.app_window_size is not None:
+            window_bounds.window_size = self.imgui_app_params.app_window_size
+        else:
+            if self.imgui_app_params.app_window_size_restore_last:
+                window_bounds_last_run = self._read_last_run_window_bounds()
+                if window_bounds_last_run.window_size is not None:
+                    window_bounds.window_size = window_bounds_last_run.window_size
+                else:
+                    pass
+            else:
+                window_bounds.window_size = (150, 150)
+
+        # Window position
+        if self.imgui_app_params.app_window_position is not None:
+            window_bounds.window_position = self.imgui_app_params.app_window_position
+        else:
+            if self.imgui_app_params.app_window_position_restore_last:
+                window_bounds_last_run = self._read_last_run_window_bounds()
+                if window_bounds_last_run.window_position is not None:
+                    window_bounds.window_position = window_bounds_last_run.window_position
+                else:
+                    pass
+            else:
+                window_bounds.window_position = None
+
+        return window_bounds
 
 
-def write_last_run_window_position(win_pos: Tuple[int, int]):
-    with open(APP_WINDOW_POS_INI_FILE, "w") as f:
-        f.write(f"""
+    def write_last_run_window_bounds(self, window_bounds: WindowBounds):
+        with open(APP_WINDOW_POS_INI_FILE, "w") as f:
+            f.write(f"""
 [WIN]
-WinPosition={win_pos[0]},{win_pos[1]}
+WindowPosition={window_bounds.window_position[0]},{window_bounds.window_position[1]}
+WindowSize={window_bounds.window_size[0]},{window_bounds.window_size[1]}
     """)
 
+    def _read_last_run_window_bounds(self) -> Optional[WindowBounds]:
+        if not os.path.isfile(APP_WINDOW_POS_INI_FILE):
+            return None
+        try:
+            with open(APP_WINDOW_POS_INI_FILE, "r") as f:
+                lines = f.readlines()
 
-def last_run_window_position() -> Optional[Tuple[int, int]]:
-    if not os.path.isfile(APP_WINDOW_POS_INI_FILE):
-        return None
-    try:
-        with open(APP_WINDOW_POS_INI_FILE, "r") as f:
-            lines = f.readlines()
+            window_bounds = WindowBounds()
+            for line in lines:
+                if "WindowPosition=" in line:
+                    items = line[len("WindowPosition="):].split(",")
+                    window_bounds.window_position = (int(items[0]), int(items[1]))
+                if "WindowSize=" in line:
+                    items = line[len("WindowSize="):].split(",")
+                    window_bounds.window_size = (int(items[0]), int(items[1]))
+            return window_bounds
+        except Exception:
+            return WindowBounds()
 
-        r = None
-        for line in lines:
-            if "WinPosition=" in line:
-                sizes_str = line[len("WinPosition="):].split(",")
-                r = (int(sizes_str[0]), int(sizes_str[1]))
-        return r
-    except Exception:
-        return None
-
+    def want_autosize(self) -> bool:
+        return not self.has_windows_size_info()

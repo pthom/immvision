@@ -10,8 +10,10 @@ class _PowerSave:
         assert(time_seconds >= 0)
         self._max_wait_before_next_frame_seconds = time_seconds
 
-    def get_event_waiting_time(self):
-        return self._max_wait_before_next_frame_seconds
+    def get_event_waiting_timeout(self, window_is_hidden: bool) -> float:
+        "Return a time to wait, in *seconds*"
+        waiting_time = self._idle_wait_time if window_is_hidden else self._max_wait_before_next_frame_seconds
+        return waiting_time
 
 
 _POWER_SAVE =  _PowerSave()
