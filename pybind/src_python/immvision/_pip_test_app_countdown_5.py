@@ -38,7 +38,7 @@ def main():
         imgui.new_line()
         imgui.text(immvision._cpp_immvision.version_info())
         imgui.text(f"FPS: {imgui.get_io().framerate:.2f}")
-        immvision.image(image)
+        immvision.image_display(image)
         if chrono < 0:
             print("********* pip_test_app: exit *********")
             params.app_shall_exit = True
