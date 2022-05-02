@@ -48,12 +48,6 @@ class ImguiAppParams:
     # Provide a default full *imgui* window inside the app
     provide_default_window: bool = True
 
-    #
-    # Flag to quit the application
-    #
-
-    # Change this bool to True when you want to exit
-    app_shall_exit: bool = False
 
     #
     # Power save options
@@ -73,6 +67,15 @@ class ImguiAppParams:
     gl_multisamples = 4
     # OpenGl clear color (i.e glClearColor)
     gl_clear_color: Color_RGBA_Float = (1., 1., 1., 1)
+
+    #
+    # Flag to handle the application lifetime
+    #
+
+    # Change this bool to True when you want to exit
+    app_shall_exit: bool = False
+    # Change this bool to True when you want the window to be brought to the top
+    app_shall_raise_window = False
 
 
 class _ImguiAppParamsHelper:

@@ -41,6 +41,10 @@ def run_with_backend(gui_function: GuiFunction, backend: AnyBackend, imgui_app_p
         imgui.new_frame()
         power_save_instance().on_new_frame()
 
+        if imgui_app_params.app_shall_raise_window:
+            backend.raise_window()
+            imgui_app_params.app_shall_raise_window = False
+
         def gui_handler():
             nonlocal running, auto_size_app_window, was_window_position_saved
             if imgui_app_params.provide_default_window:
