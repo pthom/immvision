@@ -8,7 +8,7 @@ from .gui_types import GuiFunction
 from .backend_factory import factor_backend as _factor_backend, BackendType
 
 
-BACKEND_TYPE = BackendType.GLFW
+BACKEND_TYPE = BackendType.SDL
 
 
 def run(gui_function: GuiFunction, imgui_app_params: ImguiAppParams = None):

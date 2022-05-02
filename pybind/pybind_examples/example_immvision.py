@@ -15,8 +15,8 @@ def static_vars(**kwargs):
         for k in kwargs:
             setattr(func, k, kwargs[k])
         return func
-
     return decorate
+
 
 # cf cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/
 def mandelbrot(height, width, x=-0.5, y=0, zoom=1, max_iterations=100):
