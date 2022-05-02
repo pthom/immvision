@@ -1,4 +1,8 @@
 * [ ] PIP
+  * [ ] Pb / pip install editable: besoin d'editer venv/lib/python3.9/site-packages/easy-install.pth
+        pour mettre dedans 
+                  /Users/pascal/dvp/OpenSource/ImGuiWork/immvision/pybind/src_python
+       et venv/lib/python3.9/site-packages/immvision.egg-link ne sert a rien...
   * [ ] imgui_fig (from imgui_datascience)
   * [ ] imgui_runner
     * [ ] change mat type if not castable (and cache)

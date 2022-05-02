@@ -18,10 +18,10 @@ class ImguiAppParams:
 
     # app_window_size: Application window size:
     # if app_window_size==None and app_window_size_restore_last==False:
-    #     then, the app window size will try to match the combined widgets size.
+    #     then, the app window size will try to match the widgets size.
     app_window_size: Optional[WindowSize] = None
     # restore_last_window_size: should we restore the application window size of the last run
-    # if app_window_size_restore_last==True, the app window size will not try to match the combined widgets size.
+    # if app_window_size_restore_last==True, the app window size will not try to match the widgets size.
     app_window_size_restore_last: bool = False
     # Make the App window almost full screen?
     # If app_window_size_maximized==True, then use the whole usable area on the screen
