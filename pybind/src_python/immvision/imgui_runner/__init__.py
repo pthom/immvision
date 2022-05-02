@@ -1,6 +1,3 @@
-from ast import Return
-from typing import Callable
-
 from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
 from .power_save import set_max_wait_before_next_frame
 from .imgui_runner import run_with_backend

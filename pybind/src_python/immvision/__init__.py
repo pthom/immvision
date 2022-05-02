@@ -1,6 +1,5 @@
 from . import _cpp_immvision
 from .cv_types import *
-from . import imgui_runner
 __version__ = _cpp_immvision.__version__
 
 
