@@ -4,6 +4,7 @@ from matplotlib import patheffects
 
 import imgui
 import immvision.imgui_runner
+import immvision
 
 
 def mandelbrot(height, width, x=-0.5, y=0, zoom=1, max_iterations=100):
