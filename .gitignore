@@ -8,3 +8,4 @@ install/
 .vscode/
 _skbuild/
 **/imgui.ini
+**/imgui_app_window.ini

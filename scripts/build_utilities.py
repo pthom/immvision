@@ -60,10 +60,10 @@ VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
 # use "source" for bash, but for docker we may get "sh" which uses "." instead
 
 if os.name == "nt":
-    VENV_RUN_SOURCE = f"{VENV_DIR}\\Scripts\\activate && "
+    VENV_RUN_SOURCE = f"{VENV_DIR}\\Scripts\\activate "
 else:
     source_cmd = ". "
-    VENV_RUN_SOURCE = f"{source_cmd} {VENV_DIR}/bin/activate && "
+    VENV_RUN_SOURCE = f"{source_cmd} {VENV_DIR}/bin/activate "
 VENV_PACKAGES_DIR = f"{VENV_DIR}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
 
 VCPKG_BASENAME = "vcpkg" if not IS_DOCKER_BUILDER else "vcpkg_docker"
@@ -270,7 +270,7 @@ def run_cmake():
         cmake_cmd = cmake_cmd + f"{new_line} -A {arch}"
 
     if OPTIONS.build_python_bindings.Value:
-        cmake_cmd = f"{VENV_RUN_SOURCE} {cmake_cmd}"
+        cmake_cmd = f"{VENV_RUN_SOURCE} && {cmake_cmd}"
     run(cmake_cmd)
 
 
@@ -324,6 +324,11 @@ def run_build_all():
 
     # Launch the build
     run_build()
+
+    if OPTIONS.build_python_bindings.Value:
+        py_install_stubs()
+        pybind_pip_install_editable()
+
 
 
 ######################################################################
@@ -608,7 +613,7 @@ def pybind_make_venv():
     my_chdir(f"{VENV_PARENT_DIR}")
     if not os.path.isdir(VENV_NAME):
         run(f"python3 -m venv {VENV_NAME}")
-    cmd = f"{VENV_RUN_SOURCE} pip install -v -r {REPO_DIR}/pybind/requirements_dev_pybind.txt"
+    cmd = f"{VENV_RUN_SOURCE} && pip install -v -r {REPO_DIR}/pybind/requirements_dev_pybind.txt"
     run(cmd)
 
     print(f"""
@@ -631,7 +636,7 @@ def pybind_clone_pyimgui():
     _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", "pthom/docking_powsersave")
     my_chdir("pyimgui")
     run("git submodule update --init")
-    run(f"{VENV_RUN_SOURCE} pip install .")
+    run(f"{VENV_RUN_SOURCE} && pip install .")
 
 
 def _pybind_pip_install(editable: bool):
@@ -645,8 +650,12 @@ def _pybind_pip_install(editable: bool):
     ls_install_dir = ls_echo_dir(f"{REPO_DIR}/pybind/src_python/immvision") if editable \
         else ls_echo_dir(f"{VENV_PACKAGES_DIR}/immvision")
 
+    editable_env_variable = "export IMMVISION_PIP_EDITABLE=1" if editable else "unset IMMVISION_PIP_EDITABLE"
+
     my_chdir(REPO_DIR)
     commands = f"""
+        ## Set or unset IMMVISION_PIP_EDITABLE
+        {editable_env_variable}
         ## Suppress temp build dir
         rm -rf {REPO_DIR}/_skbuild
         ## create virtual environment in venv
@@ -665,6 +674,7 @@ def _pybind_pip_install(editable: bool):
         python3 -c 'import immvision'
     """
     run(commands, chain_commands=True)
+
 
 @decorate_loudly_echo_function_name
 def pybind_pip_install_editable():
@@ -687,26 +697,13 @@ def py_install_stubs():
     """
     Install stubs for python (useful to help opencv development in your IDE
     """
-    def install_cv2_stub():
-        import cv2
-        package_name = "cv2"
-        stub_url = f"https://raw.githubusercontent.com/microsoft/python-type-stubs/main/{package_name}/__init__.pyi"
-        package_path = os.path.dirname(cv2.__file__)
-        package_stub_path = f"{package_path}/__init__.pyi"
+    def install_stub(package_name, stub_url):
+        package_stub_path = f"{VENV_PACKAGES_DIR}/{package_name}/__init_pyi"
         cmd = f"curl {stub_url} -o {package_stub_path}"
         run(cmd)
 
-    def install_imgui_stub():
-        import imgui
-        package_name = "imgui"
-        stub_url = f"https://raw.githubusercontent.com/masc-it/pyimgui-interface-generator/master/imgui.pyi"
-        package_path = os.path.dirname(imgui.__file__)
-        package_stub_path = f"{package_path}/__init__.pyi"
-        cmd = f"curl {stub_url} -o {package_stub_path}"
-        run(cmd)
-
-    install_cv2_stub()
-    install_imgui_stub()
+    install_stub("cv2", "https://raw.githubusercontent.com/microsoft/python-type-stubs/main/cv2/__init__.pyi")
+    install_stub("imgui", "https://raw.githubusercontent.com/masc-it/pyimgui-interface-generator/master/imgui.pyi")
 
 
 ######################################################################
@@ -785,7 +782,7 @@ def display_options_impl(as_command_line_flags: bool):
     for option_name, option_variable in option_vars.items():
         option_name = option_name.lower()
         if as_command_line_flags:
-            option_intro = f"\t[--{option_name}=True|False]".ljust(40)
+            option_intro = f"\t[--{option_name}=True | False]".ljust(40)
             option_desc = option_variable.Description.ljust(60)
             print(f"{option_intro}    {option_desc}\tDefault={option_variable.Value}")
         else:
@@ -824,8 +821,10 @@ def show_help():
         source ~/emsdk/emsdk_env.sh")
     if OPTIONS.only_echo_command.Value:
         print(f"""
-        Currently, commands are only output to the terminal. To run them, add 'run' as first param i.e 
+        Currently, commands are only output to the terminal. To run them, add 'run' as first or last parameter i.e 
                 {sys.argv[0]} run ...
+        or
+                {sys.argv[0]} .... run 
         """)
 
 
@@ -882,6 +881,9 @@ def main():
     if len(sys.argv) >= 2 and sys.argv[1].lower() == "run":
         OPTIONS.only_echo_command.Value = False
         sys.argv = sys.argv[0:1] + sys.argv[2:]
+    if len(sys.argv) >= 2 and sys.argv[-1].lower() == "run":
+        OPTIONS.only_echo_command.Value = False
+        sys.argv = sys.argv[:-1]
     for arg in sys.argv[1:]:
         if not arg.startswith("-"):
             show_help()
@@ -908,15 +910,20 @@ def main():
     for command in commands:
         print(f"# Running command: {command.__name__}")
         if OPTIONS.only_echo_command.Value:
-            run_command = f"{sys.argv[0]} run {' '.join(sys.argv[1:])}"
+            run_command_1 = f"{sys.argv[0]} run {' '.join(sys.argv[1:])}"
+            run_command_2 = f"{sys.argv[0]} {' '.join(sys.argv[1:])} run"
             print(f"""
             ***************************************************************************
             Nothing will be  done on the system! You will be shown the commands to run, 
             and you can copy-paste them.
             
-            If you want to run them, add "run" as a first parameter, i.e
+            If you want to run them, add "run" as a first or last parameter, i.e
             
-            {run_command}
+            {run_command_1}
+            
+            or
+            
+            {run_command_2}
             
             ***************************************************************************
             """)

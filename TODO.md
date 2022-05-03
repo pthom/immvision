@@ -1,10 +1,7 @@
-Bugs en cours:
-    - CI pip (No module named 'immvision.imgui_runner')
-    - install spdlog
+    
+* [ ] image_display: bare
 
 * [ ] PIP
-  * [ ] imgui_fig (from imgui_datascience)
-    * [ ] Plante au deuxieme lancement sous jupyter...
   * [ ] change mat type if not castable (and cache)
   * [Later] SDL Raise window
   * [Later] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
@@ -23,13 +20,11 @@ Bugs en cours:
  * [ ] immvision
      * [ ] Only one signature for Image 
        * C++ using struct designated init as named params
-       * Python: needs custom init...
-     * [ ] Image returns multiple values (mouse position (double), pixel color (vecdouble), ...)
-           Or better, return pointer to params (helps users that did not specify them as a param, they can get it anyway)
      * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
      *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
      * [ ] Compat Eigen ?
      * [ ] doc
+     * [Later] logs with spdlog
   
  * [ ] Inspector:
    * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
