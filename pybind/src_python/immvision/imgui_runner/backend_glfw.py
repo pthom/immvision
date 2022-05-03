@@ -1,3 +1,5 @@
+import logging
+
 from .backend_any import BackendAny
 import glfw
 from .power_save import power_save_instance
@@ -5,6 +7,15 @@ from imgui.integrations.glfw import GlfwRenderer
 from .gui_types import WindowPosition, WindowSize, WindowBounds
 import OpenGL.GL as gl
 import time
+from . import _DEBUG_IMGUI_RUNNER
+from .debug_utils import log
+
+
+if _DEBUG_IMGUI_RUNNER:
+    from .debug_utils import verbose_function
+    glfw.set_window_pos = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(glfw.set_window_pos)
+    glfw.create_window = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(glfw.create_window)
+    glfw.set_window_size = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(glfw.set_window_size)
 
 
 class BackendGlfw(BackendAny):
@@ -25,8 +36,7 @@ class BackendGlfw(BackendAny):
 
     def init_backend(self):
         if not glfw.init():
-            print("Could not initialize OpenGL context")
-            exit(1)
+            log(logging.ERROR, "glfw.init failed!")
 
     def init_backend_window(
             self,
@@ -45,8 +55,6 @@ class BackendGlfw(BackendAny):
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
 
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
-
-        window_bounds = self.initial_window_bounds()
 
         if fullscreen:
             # Create a full screen window
@@ -85,7 +93,7 @@ class BackendGlfw(BackendAny):
 
         if not self.app_window:
             glfw.terminate()
-            raise RuntimeError("Glfw: Could not initialize Window")
+            log(logging.ERROR, "Glfw: Could not initialize Window")
 
         if window_bounds.window_position is not None:
             self.set_window_position(window_bounds.window_position)

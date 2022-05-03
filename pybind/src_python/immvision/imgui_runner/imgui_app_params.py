@@ -11,7 +11,7 @@ APP_WINDOW_POS_INI_FILE = "imgui_app_window.ini"
 @dataclass
 class ImguiAppParams:
     # Title and Size
-    app_window_title: str = "ImGui Application"
+    app_window_title: str = ""
 
     #
     # Application window size options
@@ -45,7 +45,7 @@ class ImguiAppParams:
     app_window_position_restore_last: bool = True
     # Monitor index, where the application will be shown:
     # used only if app_window_position is None and (app_window_position_restore_last==False or unknown)
-    app_window_monitor_index: int = 1
+    app_window_monitor_index: int = 0
 
     #
     # imgui options

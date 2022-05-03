@@ -10,11 +10,12 @@ import ctypes
 from . import _DEBUG_IMGUI_RUNNER
 from .debug_utils import log
 
+
 if _DEBUG_IMGUI_RUNNER:
     pass
     from .debug_utils import verbose_function
-    #SDL_CreateWindow = verbose_function(dump_args=True, dump_args_at_exit=True, dump_return=True)(SDL_CreateWindow)
-    #SDL_SetWindowPosition = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(SDL_SetWindowPosition)
+    SDL_CreateWindow = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(SDL_CreateWindow)
+    SDL_SetWindowPosition = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(SDL_SetWindowPosition)
     #SDL_SetWindowSize = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(SDL_SetWindowSize)
     #SDL_GetWindowPosition = verbose_function(dump_args=True, dump_args_at_exit=True, dump_return=True)(SDL_GetWindowPosition)
 

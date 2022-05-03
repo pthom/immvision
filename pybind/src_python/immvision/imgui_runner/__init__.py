@@ -1,4 +1,4 @@
-_DEBUG_IMGUI_RUNNER = True
+_DEBUG_IMGUI_RUNNER = False
 from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
 from .power_save import set_max_wait_before_next_frame
 from .imgui_runner import run_with_backend as _run_with_backend

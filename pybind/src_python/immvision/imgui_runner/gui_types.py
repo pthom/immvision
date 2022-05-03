@@ -85,7 +85,7 @@ class WindowBounds:
             # if the window is too big and does not fit the bottom right corner, try to move it
             if window_bounds_new.bottom_right_corner()[dim] >= self.bottom_right_corner()[dim]:
                 window_bounds_new.window_position[dim] = \
-                    self.bottom_right_corner()[dim] - window_bounds_new.window_size[dim]
+                    self.bottom_right_corner()[dim] - 1 - window_bounds_new.window_size[dim]
             # if it was not enough, resize it
             if window_bounds_new.bottom_right_corner()[dim] >= self.bottom_right_corner()[dim]:
                 window_bounds_new.window_size[dim] = self.window_size[dim]
