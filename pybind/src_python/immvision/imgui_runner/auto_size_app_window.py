@@ -2,8 +2,8 @@ from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
 import imgui
 import os
 from typing import Tuple, Optional
-from .any_backend import AnyBackend
-from .gui_types import WindowPosition, WindowSize
+from .backend_any import BackendAny
+from .gui_types import WindowPosition, WindowSize, WindowBounds
 
 
 class AutoSizeAppWindow:
@@ -14,40 +14,13 @@ class AutoSizeAppWindow:
     _imgui_app_params: ImguiAppParams
     _last_seen_imgui_window_size : Optional[WindowSize]= None
     _computed_window_size: Optional[WindowSize] = None
-    _backend: AnyBackend = None
+    _backend: BackendAny = None
     _flag_is_measuring_size: bool = False
 
-    def __init__(self, imgui_app_params_helper: _ImguiAppParamsHelper, backend: AnyBackend):
+    def __init__(self, imgui_app_params_helper: _ImguiAppParamsHelper, backend: BackendAny):
         self._imgui_app_params_helper = imgui_app_params_helper
         self._imgui_app_params = self._imgui_app_params_helper.imgui_app_params
         self._backend = backend
-
-    def _move_window_if_out_of_screen_bounds(self):
-        window_bounds = self._backend.get_window_bounds()
-        screen_bounds = self._backend.get_current_monitor_work_area()
-
-        # transform tuples into lists to make them mutable
-        window_bounds.window_position = list(window_bounds.window_position)
-        window_bounds.window_size = list(window_bounds.window_size)
-
-        if not self._imgui_app_params_helper.has_windows_position_info():
-            window_bounds.window_position = (
-                screen_bounds.center()[0] - int(window_bounds.window_size[0] / 2),
-                screen_bounds.center()[1] - int(window_bounds.window_size[1] / 2))
-
-        for dim in range(2):
-            # if window is to the left or to the top, move it
-            if window_bounds.window_position[dim] < screen_bounds.window_position[dim]:
-                window_bounds.window_position[dim] = screen_bounds.window_position[dim]
-            # if the window is too big and does not fit the bottom right corner, try to move it
-            if window_bounds.bottom_right_corner()[dim] >= screen_bounds.bottom_right_corner()[dim]:
-                window_bounds.window_position[dim] = \
-                    screen_bounds.bottom_right_corner()[dim] - window_bounds.window_size[dim]
-            # if it was not enough, resize it
-            if window_bounds.bottom_right_corner()[dim] >= screen_bounds.bottom_right_corner()[dim]:
-                window_bounds.window_size[dim] = screen_bounds.window_size[dim]
-
-        self._backend.set_window_bounds(window_bounds)
 
     def _force_window_size(self):
         user_widgets_size = imgui.get_item_rect_size()
@@ -59,8 +32,6 @@ class AutoSizeAppWindow:
             min(int(user_widgets_size[1]) + widgets_margin, screen_size[0]))
 
         self._backend.set_window_size(self._computed_window_size)
-        self._move_window_if_out_of_screen_bounds()
-
 
     @staticmethod
     def _begin_full_size_imgui_window():

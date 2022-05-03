@@ -1,16 +1,23 @@
+Bugs en cours:
+    - move bizarre
+    - CI pip (No module named 'immvision.imgui_runner')
+    - Bug / 2eme affichage fig 
+    - bug a l'init (ERROR: Setting <View: 0x7f82416bbf30> as the first responder for window <Window)
+
+    - install spdlog
+
 * [ ] PIP
   * [ ] imgui_fig (from imgui_datascience)
-  * [ ] imgui_runner
-    * [ ] change mat type if not castable (and cache)
-    * [ ] Full screen
-    * [Later] SDL Raise window
-  * [ ] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
+    * [ ] Plante au deuxieme lancement sous jupyter...
+  * [ ] change mat type if not castable (and cache)
+  * [Later] SDL Raise window
+  * [Later] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
+  * [Later] Check if it is reasonnable to share matrixes memory
   * [Later] ToString => To/FromJson (use nlohmman)
   * [Later] Add mix color precise + demos & video
   * [Later] Add implot : https://github.com/epezent/implot
   * [Later] cf _skbuild_template: add conda & wheels
   * [Later] pyimgui
-      * [ ] PR / Pull request / multisamples = 4
       * [ ] PR / Propose imgui_runner (power_save, change window size, etc)
       * [Later] imgui & pyimgui : utiliser branche docking sans powersave / ou bien branche master & official?
   * Read https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/

@@ -118,5 +118,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    #main_autosize()
+    #main()
+    main_autosize()

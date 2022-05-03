@@ -1,8 +1,9 @@
+import logging
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import Optional, List
 import os
 from .gui_types import Color_RGBA_Float, WindowSize, WindowPosition, WindowBounds
-
+from . import _DEBUG_IMGUI_RUNNER
 
 APP_WINDOW_POS_INI_FILE = "imgui_app_window.ini"
 
@@ -19,7 +20,7 @@ class ImguiAppParams:
     # app_window_size: Application window size:
     # if app_window_size==None and app_window_size_restore_last==False:
     #     then, the app window size will try to match the widgets size.
-    app_window_size: Optional[WindowSize] = None #(800, 600)
+    app_window_size: Optional[WindowSize] = None
     # restore_last_window_size: should we restore the application window size of the last run
     # if app_window_size_restore_last==True, the app window size will not try to match the widgets size.
     app_window_size_restore_last: bool = False
@@ -44,7 +45,7 @@ class ImguiAppParams:
     app_window_position_restore_last: bool = True
     # Monitor index, where the application will be shown:
     # used only if app_window_position is None and (app_window_position_restore_last==False or unknown)
-    app_window_monitor_index: int = 0
+    app_window_monitor_index: int = 1
 
     #
     # imgui options
@@ -53,7 +54,6 @@ class ImguiAppParams:
     # Provide a default full *imgui* window inside the app, i.e a background on which you can place any widget
     # if provide_default_window==False, then the application will *not* adapt it window size to its widgets.
     provide_default_window: bool = True
-
 
     #
     # Power save options
@@ -97,7 +97,7 @@ class _ImguiAppParamsHelper:
             return True
         if self.imgui_app_params.app_window_size is not None:
             return True
-        if self.imgui_app_params.app_window_size_restore_last and self._read_last_run_window_bounds().window_size is not None:
+        if self.imgui_app_params.app_window_size_restore_last and _ImguiAppParamsHelper._read_last_run_window_bounds().window_size is not None:
             return True
         return False
 
@@ -106,58 +106,83 @@ class _ImguiAppParamsHelper:
             return True
         if self.imgui_app_params.app_window_position is not None:
             return True
-        if self.imgui_app_params.app_window_position_restore_last and self._read_last_run_window_bounds().window_position is not None:
+        if self.imgui_app_params.app_window_position_restore_last and _ImguiAppParamsHelper._read_last_run_window_bounds().window_position is not None:
             return True
         return False
 
-    def app_window_bounds_initial(self, monitor_work_area: WindowBounds) -> WindowBounds:
-        window_bounds = WindowBounds()
+    def app_window_bounds_initial(
+            self,
+            all_monitor_work_areas: List[WindowBounds],
+            real_window_size_after_auto_size: Optional[WindowSize]
+            ) -> WindowBounds:
 
+        # if maximized, use the full work area of the selected monitor
         if self.imgui_app_params.app_window_maximized:
-            window_bounds = monitor_work_area
+            window_bounds = all_monitor_work_areas[self.imgui_app_params.app_window_monitor_index]
             return window_bounds
 
+        # if full screen, let the backend handle the positioning, but pass the size
+        # so that it can change the resolution if required
         if self.imgui_app_params.app_window_full_screen:
-            return WindowBounds()
+            return WindowBounds(None, self.imgui_app_params.app_window_size)
+
+        #
+        # Standard windowed mode
+        #
+        window_bounds_last_run = _ImguiAppParamsHelper._read_last_run_window_bounds()
 
         # Window size
-        if self.imgui_app_params.app_window_size is not None:
-            window_bounds.window_size = self.imgui_app_params.app_window_size
-        else:
-            if self.imgui_app_params.app_window_size_restore_last:
-                window_bounds_last_run = self._read_last_run_window_bounds()
-                if window_bounds_last_run is not None and window_bounds_last_run.window_size is not None:
-                    window_bounds.window_size = window_bounds_last_run.window_size
-                else:
-                    pass
+        def compute_size() -> WindowSize:
+            if real_window_size_after_auto_size is not None:
+                return real_window_size_after_auto_size
+            if self.imgui_app_params.app_window_size is not None:
+                return self.imgui_app_params.app_window_size
+            if self.imgui_app_params.app_window_size_restore_last \
+                    and window_bounds_last_run is not None \
+                    and window_bounds_last_run.window_size is not None:
+                return window_bounds_last_run.window_size
             else:
-                window_bounds.window_size = (150, 150)
+                return (150, 150)
+
+        window_size = compute_size()
 
         # Window position
-        if self.imgui_app_params.app_window_position is not None:
-            window_bounds.window_position = self.imgui_app_params.app_window_position
-        else:
-            if self.imgui_app_params.app_window_position_restore_last:
-                window_bounds_last_run = self._read_last_run_window_bounds()
-                if window_bounds_last_run is not None and window_bounds_last_run.window_position is not None:
-                    window_bounds.window_position = window_bounds_last_run.window_position
-                else:
-                    pass
+        def center_window_on_monitor() -> WindowPosition:
+            monitor_idx = self.imgui_app_params.app_window_monitor_index
+            assert 0 <= monitor_idx < len(all_monitor_work_areas)
+            pos = all_monitor_work_areas[monitor_idx].win_position_centered(window_size)
+            return pos
+
+        def compute_position() -> WindowPosition:
+            if self.imgui_app_params.app_window_position is not None:
+                return self.imgui_app_params.app_window_position
+
+            if self.imgui_app_params.app_window_position_restore_last \
+                    and window_bounds_last_run is not None \
+                    and window_bounds_last_run.window_position is not None:
+                return window_bounds_last_run.window_position
             else:
-                window_bounds.window_position = monitor_work_area.win_position_centered(window_bounds.window_size)
+                return center_window_on_monitor()
 
-        return window_bounds
+        window_position = compute_position()
 
+        window_bounds_initial = WindowBounds(window_position, window_size)
+        return window_bounds_initial
 
-    def write_last_run_window_bounds(self, window_bounds: WindowBounds):
-        with open(APP_WINDOW_POS_INI_FILE, "w") as f:
-            f.write(f"""
+    @staticmethod
+    def write_last_run_window_bounds(window_bounds: WindowBounds):
+        content = f"""
 [WIN]
 WindowPosition={window_bounds.window_position[0]},{window_bounds.window_position[1]}
 WindowSize={window_bounds.window_size[0]},{window_bounds.window_size[1]}
-    """)
+    """
+        with open(APP_WINDOW_POS_INI_FILE, "w") as f:
+            f.write(content)
+        if _DEBUG_IMGUI_RUNNER:
+            logging.debug(f"write_last_run_window_bounds:{content}")
 
-    def _read_last_run_window_bounds(self) -> Optional[WindowBounds]:
+    @staticmethod
+    def _read_last_run_window_bounds() -> Optional[WindowBounds]:
         if not os.path.isfile(APP_WINDOW_POS_INI_FILE):
             return WindowBounds()
         try:
