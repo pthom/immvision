@@ -6,3 +6,4 @@ Pixel = typing.Tuple[float, float]
 Matx33d = np.ndarray((3,3), np.float64)
 Point = typing.Tuple[int, int]
 Point2d = typing.Tuple[float, float]
+Color_RGBA_Int = typing.Tuple[int, int, int, int]

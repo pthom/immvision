@@ -8,6 +8,7 @@ pysdl2-dll
 pytest
 prettyprinter
 glfw
+matplotlib
 
 #
 # this will `pip install imgui` (provided by pyimgui)
