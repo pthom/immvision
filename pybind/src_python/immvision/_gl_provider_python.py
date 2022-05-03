@@ -4,13 +4,18 @@ import cv2
 import numpy as np
 import imgui
 import typing
+import logging
+from . import _DEBUG_GL_TEXTURES
+
 
 COUNTER_Blit_RGBA_Buffer = 0
 
+
 def _Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
-    global COUNTER_Blit_RGBA_Buffer
-    COUNTER_Blit_RGBA_Buffer += 1
-    print(f"py Blit_RGBA_Buffer {COUNTER_Blit_RGBA_Buffer=}")
+    if _DEBUG_GL_TEXTURES:
+        global COUNTER_Blit_RGBA_Buffer
+        COUNTER_Blit_RGBA_Buffer += 1
+        logging.debug(f"_gl_provider_python.py: Blit_RGBA_Buffer {COUNTER_Blit_RGBA_Buffer=}")
     width = img_rgba.shape[1]
     height = img_rgba.shape[0]
     gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
@@ -34,6 +39,8 @@ def _Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
 
 
 def _GenTexture() -> int:
+    if _DEBUG_GL_TEXTURES:
+        logging.debug(f"_gl_provider_python.py: _GenTexture")
     try:
         texture_id = gl.glGenTextures(1)
     except Exception as e:
@@ -42,6 +49,8 @@ def _GenTexture() -> int:
 
 
 def _DeleteTexture(texture_id: int):
+    if _DEBUG_GL_TEXTURES:
+        logging.debug(f"_gl_provider_python.py: _DeleteTexture")
     try:
         gl.glDeleteTextures([texture_id])
     except Exception as e:
@@ -88,11 +97,14 @@ def _get_imgui_context_ptr():
     nb_contexts = len(imgui.core._contexts) # noqa
     if nb_contexts == 0:
         msg = "python: _get_imgui_context_id: No Context !"
+        logging.error(msg)
         raise RuntimeError(msg)
     elif nb_contexts > 1:
         msg = f"python: _get_imgui_context_id: More than one context (found {nb_contexts})!"
+        logging.error(msg)
         raise RuntimeError(msg)
 
     imgui_context_ptr = list(imgui.core._contexts.keys())[0] # noqa
-    print(f"python: _get_imgui_context_id() -> {hex(imgui_context_ptr)}")
+    if _DEBUG_GL_TEXTURES:
+        logging.warning(f"_gl_provider_python.py: _get_imgui_context_id() -> {hex(imgui_context_ptr)}")
     return imgui_context_ptr

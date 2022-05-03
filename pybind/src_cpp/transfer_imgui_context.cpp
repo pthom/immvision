@@ -1,5 +1,5 @@
 #include "imgui.h"
-
+#include "immvision/image.h"
 #include <pybind11/pybind11.h>
 
 #include <cstdio>
@@ -28,8 +28,17 @@ void transfer_imgui_context_python_to_cpp()
         printf("cpp: SetImGuiContextFrom_pyimgui_Context(%p) (got pointer from Python)\n", (void *)contextPointer);
         ImGui::SetCurrentContext((ImGuiContext*)contextPointer);
         //ImGui::SetAllocatorFunctions(MyMallocWrapper, MyFreeWrapper);
-        ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
-        printf("SetImGuiContextFrom_pyimgui_Context done\n");
+    }
+    else
+    {
+        size_t pythonContextPointer = GetPythonImGuiContextPointer();
+        size_t cppContextPointer = (size_t)ImGui::GetCurrentContext();
+        if (pythonContextPointer != cppContextPointer)
+        {
+            printf("pythonContextPointer differs from ImGui::GetCurrentContext()! The graphical app was perhaps restarted...\n");
+            ImGui::SetCurrentContext((ImGuiContext*)pythonContextPointer);
+            ImmVision::ClearTextureCache();
+        }
     }
 }
 

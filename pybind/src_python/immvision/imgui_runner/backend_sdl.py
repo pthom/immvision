@@ -8,17 +8,22 @@ from imgui.integrations.sdl2 import SDL2Renderer
 from .gui_types import WindowPosition, WindowSize, WindowBounds
 import ctypes
 from . import _DEBUG_IMGUI_RUNNER
-from .debug_utils import log
+from .debug_utils import log, verbose_function
+
+
+def verbose_function_standard(fn):
+    return fn
 
 
 if _DEBUG_IMGUI_RUNNER:
-    pass
+    logging.basicConfig(level=logging.DEBUG)
+
     from .debug_utils import verbose_function
     SDL_CreateWindow = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(SDL_CreateWindow)
     SDL_SetWindowPosition = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(SDL_SetWindowPosition)
-    #SDL_SetWindowSize = verbose_function(dump_args=True, dump_args_at_exit=False, dump_return=True)(SDL_SetWindowSize)
-    #SDL_GetWindowPosition = verbose_function(dump_args=True, dump_args_at_exit=True, dump_return=True)(SDL_GetWindowPosition)
 
+    def verbose_function_standard(fn):
+        return verbose_function(dump_args=True, dump_return=True, dump_args_at_exit=False)(fn)
 
 
 class BackendSdl(BackendAny):
@@ -44,11 +49,13 @@ class BackendSdl(BackendAny):
         monitor_bounds.window_size = (usable_bounds.w, usable_bounds.h)
         return monitor_bounds
 
+    @verbose_function_standard
     def init_backend(self):
         if SDL_Init(SDL_INIT_EVERYTHING) < 0:
             log(logging.ERROR, "Error:SDL_Init failed! SDL Error: " + SDL_GetError().decode("utf-8"))
             exit(1)
 
+    @verbose_function_standard
     def init_backend_window(
             self,
             window_title: str,
@@ -125,9 +132,11 @@ class BackendSdl(BackendAny):
         self.gl_context = gl_context
         self.app_window = window
 
+    @verbose_function_standard
     def init_imgui_gl_renderer(self):
         self.imgui_gl_renderer = SDL2Renderer(self.app_window)
 
+    @verbose_function_standard
     def destroy_imgui_gl_renderer(self):
         SDL_HideWindow(self.app_window)
         time.sleep(0.5)
@@ -184,15 +193,18 @@ class BackendSdl(BackendAny):
     def render_gl_draw_data(self, draw_data):
         self.imgui_gl_renderer.render(draw_data)
 
+    @verbose_function_standard
     def destroy_window(self):
         SDL_DestroyWindow(self.app_window)
 
     def swap_window(self):
         SDL_GL_SwapWindow(self.app_window)
 
+    @verbose_function_standard
     def destroy_gl_context(self):
         SDL_GL_DeleteContext(self.gl_context)
 
+    @verbose_function_standard
     def quit(self):
         SDL_Quit()
 

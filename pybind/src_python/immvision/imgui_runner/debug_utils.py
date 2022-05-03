@@ -101,7 +101,6 @@ def verbose_function(dump_args: bool = True, dump_return: bool = False, dump_arg
     return inner
 
 
-
 from dataclasses import dataclass
 
 @dataclass

@@ -1,9 +1,5 @@
 Bugs en cours:
-    - move bizarre
     - CI pip (No module named 'immvision.imgui_runner')
-    - Bug / 2eme affichage fig 
-    - bug a l'init (ERROR: Setting <View: 0x7f82416bbf30> as the first responder for window <Window)
-
     - install spdlog
 
 * [ ] PIP

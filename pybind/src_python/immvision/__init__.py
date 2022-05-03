@@ -1,3 +1,4 @@
+_DEBUG_GL_TEXTURES = False
 from . import _cpp_immvision
 from .cv_types import *
 __version__ = _cpp_immvision.__version__
