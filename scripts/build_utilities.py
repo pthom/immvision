@@ -666,7 +666,7 @@ def _pybind_pip_install(editable: bool):
     """
     run(commands, chain_commands=True)
 
-
+@decorate_loudly_echo_function_name
 def pybind_pip_install_editable():
     """
     Runs `pip install --editable .` in the main directory and checks that the module works
@@ -674,11 +674,26 @@ def pybind_pip_install_editable():
     _pybind_pip_install(True)
 
 
+@decorate_loudly_echo_function_name
 def pybind_pip_install():
     """
     Runs `pip install .` in the main directory and checks that the module works
     """
     _pybind_pip_install(False)
+
+
+@decorate_loudly_echo_function_name
+def py_install_stubs():
+    """
+    Install stubs for python (useful to help opencv development in your IDE
+    """
+    import cv2
+    package_name = "cv2"
+    stub_url = f"https://raw.githubusercontent.com/microsoft/python-type-stubs/main/{package_name}/__init__.pyi"
+    package_path = os.path.dirname(cv2.__file__)
+    package_stub_path = f"{package_path}/{package_name}.pyi"
+    cmd = f"curl {stub_url} -o {package_stub_path}"
+    run(cmd)
 
 
 ######################################################################
@@ -726,6 +741,7 @@ def get_all_function_categories():
     function_list_pybind = {
         "name": "Functions to build python bindings (immvision_pybind)",
         "functions": [
+            py_install_stubs,
             pybind_make_venv,
             pybind_clone_pyimgui,
             pybind_pip_install,
