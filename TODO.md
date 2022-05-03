@@ -1,6 +1,3 @@
-    
-* [ ] image_display: bare
-
 * [ ] PIP
   * [ ] change mat type if not castable (and cache)
   * [Later] SDL Raise window

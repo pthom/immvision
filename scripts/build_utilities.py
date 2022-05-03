@@ -698,7 +698,7 @@ def py_install_stubs():
     Install stubs for python (useful to help opencv development in your IDE
     """
     def install_stub(package_name, stub_url):
-        package_stub_path = f"{VENV_PACKAGES_DIR}/{package_name}/__init_pyi"
+        package_stub_path = f"{VENV_PACKAGES_DIR}/{package_name}/__init__.pyi"
         cmd = f"curl {stub_url} -o {package_stub_path}"
         run(cmd)
 
