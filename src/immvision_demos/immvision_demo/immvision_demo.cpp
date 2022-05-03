@@ -136,7 +136,7 @@ struct AppState
 static AppState gAppState;
 
 
-static void guiFunction()
+void guiFunction()
 {
     if (gAppState.Image.empty())
     {
@@ -234,10 +234,14 @@ void guiImageDisplayOnly()
     //static cv::Mat image = cv::imread("resources/house.jpg", cv::IMREAD_UNCHANGED);
     //static cv::Mat image = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
 
+#ifdef __EMSCRIPTEN__
+    static cv::Mat image = cv::imread("resources/house.jpg", cv::IMREAD_UNCHANGED);
+#else
     static cv::VideoCapture cap(0);
     static cv::Mat image;
     cap >> image;
     ImGui::SetMaxWaitBeforeNextFrame(1. / 100.);
+#endif
 
     cv::Point2d mousePosition = ImmVision::ImageDisplay(
         image,
