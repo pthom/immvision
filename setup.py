@@ -1,4 +1,8 @@
 import sys
+import logging
+import os
+# from setuptools import find_packages
+
 
 try:
     from skbuild import setup
@@ -10,7 +14,30 @@ except ImportError:
     )
     raise
 
-from setuptools import find_packages
+
+INSTALL_REQUIRES = ['PyOpenGL','pysdl2', 'pysdl2-dll', 'opencv-python', 'numpy', 'matplotlib', 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave']
+PACKAGES = ["immvision", "immvision/imgui_runner"]
+
+
+if "IMMVISION_PIP_EDITABLE" in os.environ:
+    logging.warning("""
+    IMMVISION_PIP_EDITABLE is set: skipping requirements.Use
+        unset IMMVISION_PIP_EDITABLE 
+    to deactivate this""")
+
+    # Speedup build in editable mode. Make sure to install the requirements manually before
+    INSTALL_REQUIRES = []
+
+    # Warning! The package list should be :
+    #       packages= ["immvision", "immvision/imgui_runner"]
+    # However, the pip editable mode fails when there are several packages (or subpackages)
+    PACKAGES= ["immvision"]
+else:
+    logging.warning("""
+    IMMVISION_PIP_EDITABLE is not set. Use
+        export IMMVISION_PIP_EDITABLE=1
+    to activate it.""")
+
 
 setup(
     name="immvision",
@@ -18,15 +45,10 @@ setup(
     description="immvision: immediate image debugger and insights",
     author="Pascal Thomet",
     license="",
-    install_requires=['PyOpenGL','pysdl2', 'pysdl2-dll', 'opencv-python', 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave'],
 
-    # Warning! The package list should perhaps be :
-    #       packages= ["immvision", "imgui_runner"]
-    #  or even
-    #       packages= = find_packages(where="pybind/src_python")
-    # However, the pip editable mode fails miserably when there are several packages (or subpackages) mentioned here
-    # By chance, we can still import immvision and immvision.imgui_runner this way
-    packages= ["immvision"],
+    packages= PACKAGES,
+    install_requires= INSTALL_REQUIRES,
+
     package_dir={"": "pybind/src_python"},
     cmake_install_dir="pybind/src_python/immvision",
     include_package_data=True,
