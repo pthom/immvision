@@ -687,13 +687,26 @@ def py_install_stubs():
     """
     Install stubs for python (useful to help opencv development in your IDE
     """
-    import cv2
-    package_name = "cv2"
-    stub_url = f"https://raw.githubusercontent.com/microsoft/python-type-stubs/main/{package_name}/__init__.pyi"
-    package_path = os.path.dirname(cv2.__file__)
-    package_stub_path = f"{package_path}/{package_name}.pyi"
-    cmd = f"curl {stub_url} -o {package_stub_path}"
-    run(cmd)
+    def install_cv2_stub():
+        import cv2
+        package_name = "cv2"
+        stub_url = f"https://raw.githubusercontent.com/microsoft/python-type-stubs/main/{package_name}/__init__.pyi"
+        package_path = os.path.dirname(cv2.__file__)
+        package_stub_path = f"{package_path}/__init__.pyi"
+        cmd = f"curl {stub_url} -o {package_stub_path}"
+        run(cmd)
+
+    def install_imgui_stub():
+        import imgui
+        package_name = "imgui"
+        stub_url = f"https://raw.githubusercontent.com/masc-it/pyimgui-interface-generator/master/imgui.pyi"
+        package_path = os.path.dirname(imgui.__file__)
+        package_stub_path = f"{package_path}/__init__.pyi"
+        cmd = f"curl {stub_url} -o {package_stub_path}"
+        run(cmd)
+
+    install_cv2_stub()
+    install_imgui_stub()
 
 
 ######################################################################
@@ -871,21 +884,21 @@ def main():
         sys.argv = sys.argv[0:1] + sys.argv[2:]
     for arg in sys.argv[1:]:
         if not arg.startswith("-"):
-            print(f"Bad argument: {arg}")
             show_help()
+            print(f"Bad argument: {arg}")
             return 1
     try:
         parse_args_options()
     except ValueError as e:
-        print(f"Error: {e}\n")
         show_help()
+        print(f"Error: {e}\n")
         return 1
 
     try:
         commands = parse_args_commands()
     except ValueError as e:
-        print(f"Error: {e}\n")
         show_help()
+        print(f"Error: {e}\n")
         return 1
 
     if len(commands) == 0:
