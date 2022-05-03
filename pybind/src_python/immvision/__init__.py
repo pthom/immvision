@@ -122,10 +122,12 @@ class ImageParams(_cpp_immvision.ImageParams):
             Show buttons that enable to zoom in/out (the mouse wheel also zoom)
     * show_legend_border: bool = True
             Show a rectangular border with the legend
-    * show_options: bool = False
+    * show_options_panel: bool = False
             Open the options panel
     * show_options_in_tooltip: bool = False
             If set to True, then the option panel will be displayed in a transient tooltip window
+    * show_options_button: bool = True
+            If set to False, then the Options button will not be displayed
 
  Watched Pixels
     * watched_pixels: list[Point] = list[Point]()
@@ -179,9 +181,11 @@ class ImageParams(_cpp_immvision.ImageParams):
         # Show a rectangular border with the legend
         show_legend_border: bool = True,
         # Open the options panel
-        show_options: bool = False,
+        show_options_panel: bool = False,
         # If set to true, then the option panel will be displayed in a transient tooltip window
         show_options_in_tooltip: bool = False,
+        # If set to false, then the Options button will not be displayed
+        show_options_button: bool = True,
         # List of Watched Pixel coordinates
         watched_pixels: list[Point] = list[Point](),
         # Shall the watched pixels be drawn on the image
@@ -209,8 +213,9 @@ class ImageParams(_cpp_immvision.ImageParams):
         self.show_pixel_info = show_pixel_info
         self.show_zoom_buttons = show_zoom_buttons
         self.show_legend_border = show_legend_border
-        self.show_options = show_options
+        self.show_options_panel = show_options_panel
         self.show_options_in_tooltip = show_options_in_tooltip
+        self.show_options_button = show_options_button
         self.watched_pixels = watched_pixels
         self.highlight_watched_pixels = highlight_watched_pixels
         self.mouse_info = mouse_info
@@ -261,30 +266,41 @@ def image(
 
 
 def image_display(
-    image_matrix:  np.ndarray,
+    mat:  np.ndarray,
     image_display_size:  Size  = (0, 0),
     refresh_image: bool  = False,
-    show_options: bool  = True,
+    show_options_button: bool  = True,
     is_bgr_or_bgra: bool  = True):
     """ Only, display the image, with no decoration, and no user interaction
 
      Parameters:
+          - mat:
+              The image to display
           - imageDisplaySize:
-              Size of the displayed image (can be different from the matrix size)
+              Size of the displayed image (can be different from the mat size)
               If you specify only the width or height (e.g (300, 0), then the other dimension
               will be calculated automatically, respecting the original image w/h ratio.
           - refreshImage: images textures are cached. Set to True if your image matrix/buffer has changed
               (for example, for live video images)
+          - showOptionsButton: If True, show an option button that opens the option panel
+          - isBgrOrBgra: set to True if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+
+     Returns:
+          The mouse position in `mat` original image coordinates, as float values.
+          (i.e. it does not matter if imageDisplaySize is different from mat.size())
+          It will return (-1., -1.) if the mouse is not hovering the image.
+
+          Note: use ImGui::IsMouseDown(mouse_button) (C++) or imgui.is_mouse_down(mouse_button) (Python)
+                to query more information about the mouse.
 
      Note: this function requires that both imgui and OpenGL were initialized.
            (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
 
-     Todo: add a global for isBgrOrBgra
     """
 
     _cpp_immvision.transfer_imgui_context_python_to_cpp()
 
-    r = _cpp_immvision.image_display(image_matrix, image_display_size, refresh_image, show_options, is_bgr_or_bgra)
+    r = _cpp_immvision.image_display(mat, image_display_size, refresh_image, show_options_button, is_bgr_or_bgra)
     return r
 
 

@@ -93,8 +93,9 @@ namespace ImmVision
         inner = inner + "show_pixel_info: " + ToString(v.ShowPixelInfo) + "\n";
         inner = inner + "show_zoom_buttons: " + ToString(v.ShowZoomButtons) + "\n";
         inner = inner + "show_legend_border: " + ToString(v.ShowLegendBorder) + "\n";
-        inner = inner + "show_options: " + ToString(v.ShowOptions) + "\n";
+        inner = inner + "show_options_panel: " + ToString(v.ShowOptionsPanel) + "\n";
         inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
+        inner = inner + "show_options_button: " + ToString(v.ShowOptionsButton) + "\n";
         inner = inner + "watched_pixels: " + ToString(v.WatchedPixels) + "\n";
         inner = inner + "highlight_watched_pixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "mouse_info: " + ToString(v.MouseInfo) + "\n";
@@ -119,8 +120,9 @@ namespace ImmVision
         inner = inner + "ShowPixelInfo: " + ToString(v.ShowPixelInfo) + "\n";
         inner = inner + "ShowZoomButtons: " + ToString(v.ShowZoomButtons) + "\n";
         inner = inner + "ShowLegendBorder: " + ToString(v.ShowLegendBorder) + "\n";
-        inner = inner + "ShowOptions: " + ToString(v.ShowOptions) + "\n";
+        inner = inner + "ShowOptionsPanel: " + ToString(v.ShowOptionsPanel) + "\n";
         inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
+        inner = inner + "ShowOptionsButton: " + ToString(v.ShowOptionsButton) + "\n";
         inner = inner + "WatchedPixels: " + ToString(v.WatchedPixels) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";

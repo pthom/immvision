@@ -205,7 +205,7 @@ static void guiFunction()
         ImmVision::ImageDisplay(
             imageTransparent, cv::Size(0, 400),
             false, // refresh
-            true // show options
+            false // show options button
             );
     }
 
@@ -219,13 +219,46 @@ static void guiFunction()
 }
 
 
-#include "immvision/internal/drawing/internal_icons.h"
+void guiImageDisplayOnly()
+{
+    {
+        static cv::Mat image2 = cv::imread("resources/house.jpg", cv::IMREAD_UNCHANGED);
+        static ImmVision::ImageParams params;
+        params.ImageDisplaySize = cv::Size(0, 300);
+        ImmVision::Image(image2, &params);
+    }
+    ImGui::SameLine();
+
+    ImGui::BeginGroup();
+
+    //static cv::Mat image = cv::imread("resources/house.jpg", cv::IMREAD_UNCHANGED);
+    //static cv::Mat image = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
+
+    static cv::VideoCapture cap(0);
+    static cv::Mat image;
+    cap >> image;
+    ImGui::SetMaxWaitBeforeNextFrame(1. / 100.);
+
+    cv::Point2d mousePosition = ImmVision::ImageDisplay(
+        image,
+        cv::Size(0, 300),
+        true, // refresh
+        true // show options button
+    );
+    ImGui::Text("Mouse position %.2lf, %.2lf", mousePosition.x, mousePosition.y);
+    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+    ImGui::EndGroup();
+}
+
+
 int main(int, char* [])
 {
     HelloImGui::RunnerParams params;
     params.appWindowParams.windowSize = {1000.f, 800.f};
     params.appWindowParams.windowTitle = "ImmVision Demo";
-    params.callbacks.ShowGui = guiFunction;
+    //params.callbacks.ShowGui = guiFunction;
+    params.callbacks.ShowGui = guiImageDisplayOnly;
     HelloImGui::Run(params);
 
     return 0;

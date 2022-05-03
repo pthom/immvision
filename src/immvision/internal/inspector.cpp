@@ -39,7 +39,7 @@ namespace ImmVision
         params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;
         params.ColorAdjustmentsKey = colorAdjustmentsKey;
-        params.ShowOptions = true;
+        params.ShowOptionsPanel = true;
 
         s_Inspector_ImagesAndParams.push_back({image, params, zoomCenter, zoomRatio});
     }
@@ -104,7 +104,7 @@ namespace ImmVision
                 v.Params.ShowPixelInfo = currentParams.ShowPixelInfo;
                 v.Params.ShowZoomButtons = currentParams.ShowZoomButtons;
                 v.Params.ShowLegendBorder = currentParams.ShowLegendBorder;
-                v.Params.ShowOptions = currentParams.ShowOptions;
+                v.Params.ShowOptionsPanel = currentParams.ShowOptionsPanel;
                 v.Params.ShowOptionsInTooltip = currentParams.ShowOptionsInTooltip;
                 v.Params.PanWithMouse = currentParams.PanWithMouse;
                 v.Params.ZoomWithMouseWheel = currentParams.ZoomWithMouseWheel;
@@ -148,7 +148,7 @@ namespace ImmVision
         if (!s_Inspector_ImagesAndParams.empty())
         {
             const auto& params = s_Inspector_ImagesAndParams.front().Params;
-            if ( (params.ShowOptionsInTooltip) || (!params.ShowOptions))
+            if ( (params.ShowOptionsInTooltip) || (!params.ShowOptionsPanel))
                 showOptionsColumn = false;
         }
 

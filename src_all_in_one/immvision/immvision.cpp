@@ -127,9 +127,11 @@ namespace ImmVision
         // Show a rectangular border with the legend
         bool ShowLegendBorder = true;
         // Open the options panel
-        bool ShowOptions = false;
+        bool ShowOptionsPanel = false;
         // If set to true, then the option panel will be displayed in a transient tooltip window
         bool ShowOptionsInTooltip = false;
+        // If set to false, then the Options button will not be displayed
+        bool ShowOptionsButton = true;
 
         //
         // Watched Pixels
@@ -176,22 +178,33 @@ namespace ImmVision
     // Only, display the image, with no decoration, and no user interaction
     //
     // Parameters:
+    //      - mat:
+    //          The image to display
     //      - imageDisplaySize:
-    //          Size of the displayed image (can be different from the matrix size)
+    //          Size of the displayed image (can be different from the mat size)
     //          If you specify only the width or height (e.g (300, 0), then the other dimension
     //          will be calculated automatically, respecting the original image w/h ratio.
     //      - refreshImage: images textures are cached. Set to true if your image matrix/buffer has changed
     //          (for example, for live video images)
+    //      - showOptionsButton: If true, show an option button that opens the option panel
+    //      - isBgrOrBgra: set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    //
+    // Returns:
+    //      The mouse position in `mat` original image coordinates, as double values.
+    //      (i.e. it does not matter if imageDisplaySize is different from mat.size())
+    //      It will return (-1., -1.) if the mouse is not hovering the image.
+    //
+    //      Note: use ImGui::IsMouseDown(mouse_button) (C++) or imgui.is_mouse_down(mouse_button) (Python)
+    //            to query more information about the mouse.
     //
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
-    // Todo: add a global for isBgrOrBgra
-    void ImageDisplay(
-        const cv::Mat& imageMatrix,
+    cv::Point2d ImageDisplay(
+        const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
-        bool showOptions = true,
+        bool showOptionsButton = true,
         bool isBgrOrBgra = true
         );
 
@@ -4476,7 +4489,7 @@ namespace ImmVision
 
             wasWatchedPixelAdded = true;
             if (! params->ShowOptionsInTooltip)
-                params->ShowOptions = true;
+                params->ShowOptionsPanel = true;
         };
         auto fnWatchedPixels_Gui = [&params, &image]()
         {
@@ -4619,7 +4632,7 @@ namespace ImmVision
                 if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
                 {
                     if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
-                        params->ShowOptions = true;
+                        params->ShowOptionsPanel = true;
                 }
             }
 
@@ -4671,7 +4684,7 @@ namespace ImmVision
             if (params->ShowOptionsInTooltip)
                 ImGui::OpenPopup("Options");
             else
-                params->ShowOptions = !params->ShowOptions;
+                params->ShowOptionsPanel = !params->ShowOptionsPanel;
         };
         auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams)
         {
@@ -4683,7 +4696,7 @@ namespace ImmVision
                     ImGui::EndPopup();
                 }
             }
-            else if (params->ShowOptions)
+            else if (params->ShowOptionsPanel)
             {
                 ImGui::SameLine();
                 ImGui::BeginGroup();
@@ -4798,7 +4811,6 @@ namespace ImmVision
                 mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
                 mouseInfo.MousePosition_Displayed = mouseLocation;
             }
-
             return mouseInfo;
         };
 
@@ -4841,6 +4853,7 @@ namespace ImmVision
             // Zoom+ / Zoom- buttons
             fnShowZoomButtons();
             // adjust button
+            if (params->ShowOptionsButton)
             {
                 if (!params->ShowZoomButtons)
                     ImGui::NewLine();
@@ -4882,6 +4895,7 @@ namespace ImmVision
             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                "%s -> empty image !!!", params->Legend.c_str());
             params->MouseInfo = MouseInformation();
+            return;
         }
 
         ImageCache::gImageTextureCache.UpdateCache(image, params, params->RefreshImage);
@@ -4894,33 +4908,35 @@ namespace ImmVision
     }
 
 
-    void ImageDisplay(
-        const cv::Mat& image,
+    cv::Point2d ImageDisplay(
+        const cv::Mat& mat,
         const cv::Size& imageDisplaySize,
         bool refreshImage,
-        bool showOptions,
+        bool showOptionsButton,
         bool isBgrOrBgra)
     {
         static std::map<const cv::Mat *, ImageParams> s_Params;
-        if (s_Params.find(&image) == s_Params.end())
+        if (s_Params.find(&mat) == s_Params.end())
         {
-            auto params = ImageParams();
-            params.ShowOptions = showOptions;
+            auto params = FactorImageParamsDisplayOnly();
+            params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
             params.IsColorOrderBGR = isBgrOrBgra;
-            s_Params[&image] = params;
+            s_Params[&mat] = params;
         }
-        ImageParams& cached_params = s_Params.at(&image);
+        ImageParams& cached_params = s_Params.at(&mat);
 
-        Image(image, &cached_params);
+        Image(mat, &cached_params);
+        return cached_params.MouseInfo.MousePosition;
     }
 
 
     ImageParams FactorImageParamsDisplayOnly()
     {
         ImageParams imageParams;
-        imageParams.ShowOptions = false;
+        imageParams.ShowOptionsButton = false;
+        imageParams.ShowOptionsPanel = false;
         imageParams.Legend = "";
         imageParams.ZoomWithMouseWheel = false;
         imageParams.PanWithMouse = false;
@@ -4929,6 +4945,7 @@ namespace ImmVision
         imageParams.ShowLegendBorder = false;
         imageParams.ShowGrid = false;
         imageParams.ShowAlphaChannelCheckerboard = false;
+        imageParams.ShowZoomButtons = false;
         return imageParams;
     }
 
@@ -5924,7 +5941,7 @@ namespace ImmVision
         params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;
         params.ColorAdjustmentsKey = colorAdjustmentsKey;
-        params.ShowOptions = true;
+        params.ShowOptionsPanel = true;
 
         s_Inspector_ImagesAndParams.push_back({image, params, zoomCenter, zoomRatio});
     }
@@ -5989,7 +6006,7 @@ namespace ImmVision
                 v.Params.ShowPixelInfo = currentParams.ShowPixelInfo;
                 v.Params.ShowZoomButtons = currentParams.ShowZoomButtons;
                 v.Params.ShowLegendBorder = currentParams.ShowLegendBorder;
-                v.Params.ShowOptions = currentParams.ShowOptions;
+                v.Params.ShowOptionsPanel = currentParams.ShowOptionsPanel;
                 v.Params.ShowOptionsInTooltip = currentParams.ShowOptionsInTooltip;
                 v.Params.PanWithMouse = currentParams.PanWithMouse;
                 v.Params.ZoomWithMouseWheel = currentParams.ZoomWithMouseWheel;
@@ -6033,7 +6050,7 @@ namespace ImmVision
         if (!s_Inspector_ImagesAndParams.empty())
         {
             const auto& params = s_Inspector_ImagesAndParams.front().Params;
-            if ( (params.ShowOptionsInTooltip) || (!params.ShowOptions))
+            if ( (params.ShowOptionsInTooltip) || (!params.ShowOptionsPanel))
                 showOptionsColumn = false;
         }
 
@@ -6208,8 +6225,9 @@ namespace ImmVision
         inner = inner + "show_pixel_info: " + ToString(v.ShowPixelInfo) + "\n";
         inner = inner + "show_zoom_buttons: " + ToString(v.ShowZoomButtons) + "\n";
         inner = inner + "show_legend_border: " + ToString(v.ShowLegendBorder) + "\n";
-        inner = inner + "show_options: " + ToString(v.ShowOptions) + "\n";
+        inner = inner + "show_options_panel: " + ToString(v.ShowOptionsPanel) + "\n";
         inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
+        inner = inner + "show_options_button: " + ToString(v.ShowOptionsButton) + "\n";
         inner = inner + "watched_pixels: " + ToString(v.WatchedPixels) + "\n";
         inner = inner + "highlight_watched_pixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "mouse_info: " + ToString(v.MouseInfo) + "\n";
@@ -6234,8 +6252,9 @@ namespace ImmVision
         inner = inner + "ShowPixelInfo: " + ToString(v.ShowPixelInfo) + "\n";
         inner = inner + "ShowZoomButtons: " + ToString(v.ShowZoomButtons) + "\n";
         inner = inner + "ShowLegendBorder: " + ToString(v.ShowLegendBorder) + "\n";
-        inner = inner + "ShowOptions: " + ToString(v.ShowOptions) + "\n";
+        inner = inner + "ShowOptionsPanel: " + ToString(v.ShowOptionsPanel) + "\n";
         inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
+        inner = inner + "ShowOptionsButton: " + ToString(v.ShowOptionsButton) + "\n";
         inner = inner + "WatchedPixels: " + ToString(v.WatchedPixels) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";

@@ -65,7 +65,7 @@ namespace ImmVision
 
             wasWatchedPixelAdded = true;
             if (! params->ShowOptionsInTooltip)
-                params->ShowOptions = true;
+                params->ShowOptionsPanel = true;
         };
         auto fnWatchedPixels_Gui = [&params, &image]()
         {
@@ -208,7 +208,7 @@ namespace ImmVision
                 if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
                 {
                     if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
-                        params->ShowOptions = true;
+                        params->ShowOptionsPanel = true;
                 }
             }
 
@@ -260,7 +260,7 @@ namespace ImmVision
             if (params->ShowOptionsInTooltip)
                 ImGui::OpenPopup("Options");
             else
-                params->ShowOptions = !params->ShowOptions;
+                params->ShowOptionsPanel = !params->ShowOptionsPanel;
         };
         auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams)
         {
@@ -272,7 +272,7 @@ namespace ImmVision
                     ImGui::EndPopup();
                 }
             }
-            else if (params->ShowOptions)
+            else if (params->ShowOptionsPanel)
             {
                 ImGui::SameLine();
                 ImGui::BeginGroup();
@@ -387,7 +387,6 @@ namespace ImmVision
                 mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
                 mouseInfo.MousePosition_Displayed = mouseLocation;
             }
-
             return mouseInfo;
         };
 
@@ -430,6 +429,7 @@ namespace ImmVision
             // Zoom+ / Zoom- buttons
             fnShowZoomButtons();
             // adjust button
+            if (params->ShowOptionsButton)
             {
                 if (!params->ShowZoomButtons)
                     ImGui::NewLine();
@@ -471,6 +471,7 @@ namespace ImmVision
             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                "%s -> empty image !!!", params->Legend.c_str());
             params->MouseInfo = MouseInformation();
+            return;
         }
 
         ImageCache::gImageTextureCache.UpdateCache(image, params, params->RefreshImage);
@@ -483,33 +484,35 @@ namespace ImmVision
     }
 
 
-    void ImageDisplay(
-        const cv::Mat& image,
+    cv::Point2d ImageDisplay(
+        const cv::Mat& mat,
         const cv::Size& imageDisplaySize,
         bool refreshImage,
-        bool showOptions,
+        bool showOptionsButton,
         bool isBgrOrBgra)
     {
         static std::map<const cv::Mat *, ImageParams> s_Params;
-        if (s_Params.find(&image) == s_Params.end())
+        if (s_Params.find(&mat) == s_Params.end())
         {
-            auto params = ImageParams();
-            params.ShowOptions = showOptions;
+            auto params = FactorImageParamsDisplayOnly();
+            params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
             params.IsColorOrderBGR = isBgrOrBgra;
-            s_Params[&image] = params;
+            s_Params[&mat] = params;
         }
-        ImageParams& cached_params = s_Params.at(&image);
+        ImageParams& cached_params = s_Params.at(&mat);
 
-        Image(image, &cached_params);
+        Image(mat, &cached_params);
+        return cached_params.MouseInfo.MousePosition;
     }
 
 
     ImageParams FactorImageParamsDisplayOnly()
     {
         ImageParams imageParams;
-        imageParams.ShowOptions = false;
+        imageParams.ShowOptionsButton = false;
+        imageParams.ShowOptionsPanel = false;
         imageParams.Legend = "";
         imageParams.ZoomWithMouseWheel = false;
         imageParams.PanWithMouse = false;
@@ -518,6 +521,7 @@ namespace ImmVision
         imageParams.ShowLegendBorder = false;
         imageParams.ShowGrid = false;
         imageParams.ShowAlphaChannelCheckerboard = false;
+        imageParams.ShowZoomButtons = false;
         return imageParams;
     }
 

@@ -107,9 +107,11 @@ class ImageParams:
     # Show a rectangular border with the legend
     show_legend_border: bool = True
     # Open the options panel
-    show_options: bool = False
+    show_options_panel: bool = False
     # If set to true, then the option panel will be displayed in a transient tooltip window
     show_options_in_tooltip: bool = False
+    # If set to false, then the Options button will not be displayed
+    show_options_button: bool = True
 
     #
     #  Watched Pixels

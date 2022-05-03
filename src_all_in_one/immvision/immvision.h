@@ -123,9 +123,11 @@ namespace ImmVision
         // Show a rectangular border with the legend
         bool ShowLegendBorder = true;
         // Open the options panel
-        bool ShowOptions = false;
+        bool ShowOptionsPanel = false;
         // If set to true, then the option panel will be displayed in a transient tooltip window
         bool ShowOptionsInTooltip = false;
+        // If set to false, then the Options button will not be displayed
+        bool ShowOptionsButton = true;
 
         //
         // Watched Pixels
@@ -172,22 +174,33 @@ namespace ImmVision
     // Only, display the image, with no decoration, and no user interaction
     //
     // Parameters:
+    //      - mat:
+    //          The image to display
     //      - imageDisplaySize:
-    //          Size of the displayed image (can be different from the matrix size)
+    //          Size of the displayed image (can be different from the mat size)
     //          If you specify only the width or height (e.g (300, 0), then the other dimension
     //          will be calculated automatically, respecting the original image w/h ratio.
     //      - refreshImage: images textures are cached. Set to true if your image matrix/buffer has changed
     //          (for example, for live video images)
+    //      - showOptionsButton: If true, show an option button that opens the option panel
+    //      - isBgrOrBgra: set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    //
+    // Returns:
+    //      The mouse position in `mat` original image coordinates, as double values.
+    //      (i.e. it does not matter if imageDisplaySize is different from mat.size())
+    //      It will return (-1., -1.) if the mouse is not hovering the image.
+    //
+    //      Note: use ImGui::IsMouseDown(mouse_button) (C++) or imgui.is_mouse_down(mouse_button) (Python)
+    //            to query more information about the mouse.
     //
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
-    // Todo: add a global for isBgrOrBgra
-    void ImageDisplay(
-        const cv::Mat& imageMatrix,
+    cv::Point2d ImageDisplay(
+        const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
-        bool showOptions = true,
+        bool showOptionsButton = true,
         bool isBgrOrBgra = true
         );
 
