@@ -1,4 +1,4 @@
-from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
+from ._imgui_app_params_helper import _ImguiAppParamsHelper
 import imgui
 import os
 from typing import Tuple, Optional
@@ -11,7 +11,6 @@ class AutoSizeAppWindow:
     This class can resize the app window to the size of the imgui widgets seen on the first frame
     """
     _imgui_app_params_helper: _ImguiAppParamsHelper = None
-    _imgui_app_params: ImguiAppParams
     _last_seen_imgui_window_size : Optional[WindowSize]= None
     _computed_window_size: Optional[WindowSize] = None
     _backend: BackendAny = None
@@ -19,7 +18,6 @@ class AutoSizeAppWindow:
 
     def __init__(self, imgui_app_params_helper: _ImguiAppParamsHelper, backend: BackendAny):
         self._imgui_app_params_helper = imgui_app_params_helper
-        self._imgui_app_params = self._imgui_app_params_helper.imgui_app_params
         self._backend = backend
 
     def _force_window_size(self):

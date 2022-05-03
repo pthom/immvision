@@ -1,7 +1,8 @@
 import os.path
 
 from immvision import _gl_provider_sentinel
-from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
+from .imgui_app_params import ImguiAppParams
+from ._imgui_app_params_helper import _ImguiAppParamsHelper
 import OpenGL.GL as gl
 
 import imgui

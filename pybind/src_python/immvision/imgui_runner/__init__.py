@@ -1,5 +1,6 @@
 _DEBUG_IMGUI_RUNNER = False
-from .imgui_app_params import ImguiAppParams, _ImguiAppParamsHelper
+from .imgui_app_params import ImguiAppParams
+from ._imgui_app_params_helper import _ImguiAppParamsHelper
 from .power_save import set_max_wait_before_next_frame
 from .imgui_runner import run_with_backend as _run_with_backend
 from .gui_types import GuiFunction
@@ -18,7 +19,7 @@ def run(gui_function: GuiFunction, imgui_app_params: ImguiAppParams = None):
     imgui_app_params_helper = _ImguiAppParamsHelper(imgui_app_params)
     _IMGUI_APP_PARAMS_HELPER_MAIN = imgui_app_params_helper
 
-    backend = _factor_backend(_BACKEND_TYPE, imgui_app_params_helper)
+    backend = _factor_backend(_BACKEND_TYPE)
     _run_with_backend(gui_function, backend, imgui_app_params_helper)
 
 
