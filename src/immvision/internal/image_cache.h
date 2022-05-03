@@ -40,9 +40,9 @@ namespace ImmVision
             void UpdateLinkedZooms(const cv::Mat& image);
             void UpdateLinkedColorAdjustments(const cv::Mat& image);
 
-            internal::Cache<const cv::Mat *, CachedParams> mCacheParams;
+            internal::Cache<const uchar *, CachedParams> mCacheParams;
             double mCachedImagesTimeToLive = 5.;
-            internal::ShortLivedCache<const cv::Mat *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
+            internal::ShortLivedCache<const uchar *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
         };
 
         extern ImageTextureCache gImageTextureCache;

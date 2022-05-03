@@ -31,9 +31,11 @@ namespace ImmVision
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params).
         //
-        // - it begins by defining a set a lambdas for the different operations (they are named fnXXXX)
+        // - it begins by defining a set a lambdas that display various widgets
+        //   for the different zones of the Gui (those lambdas are named fnXXXX)
+        //
         // - the core of the function is only a few lines long and begins after the line
-        //    "Core of the function below (there are only lambdas declarations before"
+        //    "Core of the function below"
         //
         // If your editor is able to collapse the lambda definitions, you will see the structure.
 

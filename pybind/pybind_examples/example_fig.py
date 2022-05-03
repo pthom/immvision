@@ -84,14 +84,22 @@ mandelbrot_ax = mandelbrot_figure()
 fig_classic = make_figure_classic()
 
 
-def gui():
-    refresh = False
-    immvision.figure_display(mandelbrot_ax.figure, (300, 0), refresh)
-    # immvision.figure_display(fig_classic, (600, 0), refresh)
+def gui1():
+    immvision.figure_display(mandelbrot_ax.figure, (300, 0))
     if imgui.button("Exit"):
         immvision.imgui_runner.exit_app()
 
 
-immvision.imgui_runner.run(gui)
-immvision.imgui_runner.run(gui)
+def gui2():
+    immvision.figure_display(fig_classic, (600, 0))
+    imgui.same_line()
+    immvision.figure_display(mandelbrot_ax.figure, (600, 0))
+    if imgui.button("Exit"):
+        immvision.imgui_runner.exit_app()
+
+
+immvision.imgui_runner.run(gui2)
+immvision.imgui_runner.run(gui1)
+immvision.imgui_runner.run(gui2)
+immvision.imgui_runner.run(gui1)
 # immvision.imgui_runner.run(gui)

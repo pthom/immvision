@@ -4425,9 +4425,9 @@ namespace ImmVision
             void UpdateLinkedZooms(const cv::Mat& image);
             void UpdateLinkedColorAdjustments(const cv::Mat& image);
 
-            internal::Cache<const cv::Mat *, CachedParams> mCacheParams;
+            internal::Cache<const uchar *, CachedParams> mCacheParams;
             double mCachedImagesTimeToLive = 5.;
-            internal::ShortLivedCache<const cv::Mat *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
+            internal::ShortLivedCache<const uchar *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
         };
 
         extern ImageTextureCache gImageTextureCache;
@@ -4455,9 +4455,11 @@ namespace ImmVision
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params).
         //
-        // - it begins by defining a set a lambdas for the different operations (they are named fnXXXX)
+        // - it begins by defining a set a lambdas that display various widgets
+        //   for the different zones of the Gui (those lambdas are named fnXXXX)
+        //
         // - the core of the function is only a few lines long and begins after the line
-        //    "Core of the function below (there are only lambdas declarations before"
+        //    "Core of the function below"
         //
         // If your editor is able to collapse the lambda definitions, you will see the structure.
 
@@ -5021,7 +5023,7 @@ namespace ImmVision
 
         void ImageTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
-            auto cacheKey = &image;
+            auto cacheKey = image.data;
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
             bool needsRefreshTexture = userRefresh;
@@ -5076,11 +5078,11 @@ namespace ImmVision
 
         ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const cv::Mat& image)
         {
-            return mCacheParams.Get(&image);
+            return mCacheParams.Get(image.data);
         }
         ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const cv::Mat& image)
         {
-            return mCacheImages.Get(&image);
+            return mCacheImages.Get(image.data);
         }
 
         void ImageTextureCache::ClearImagesCache()
@@ -5090,8 +5092,8 @@ namespace ImmVision
 
         void ImageTextureCache::UpdateLinkedZooms(const cv::Mat& image)
         {
-            auto currentCacheKey = &image;
-            auto & currentCache = mCacheParams.Get(&image);
+            auto currentCacheKey = image.data;
+            auto & currentCache = mCacheParams.Get(image.data);
             std::string zoomKey = currentCache.Params->ZoomKey;
             if (zoomKey.empty())
                 return;
@@ -5105,8 +5107,8 @@ namespace ImmVision
         }
         void ImageTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
         {
-            auto currentCacheKey = &image;
-            auto & currentCache = mCacheParams.Get(&image);
+            auto currentCacheKey = image.data;
+            auto & currentCache = mCacheParams.Get(image.data);
             std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
             if (colorKey.empty())
                 return;

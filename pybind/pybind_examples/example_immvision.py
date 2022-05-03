@@ -8,7 +8,9 @@ import cv2
 import time
 import os
 
+
 THIS_DIR = os.path.dirname(__file__)
+
 
 def static_vars(**kwargs):
     def decorate(func):

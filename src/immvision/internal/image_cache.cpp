@@ -61,7 +61,7 @@ namespace ImmVision
 
         void ImageTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
-            auto cacheKey = &image;
+            auto cacheKey = image.data;
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
             bool needsRefreshTexture = userRefresh;
@@ -116,11 +116,11 @@ namespace ImmVision
 
         ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const cv::Mat& image)
         {
-            return mCacheParams.Get(&image);
+            return mCacheParams.Get(image.data);
         }
         ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const cv::Mat& image)
         {
-            return mCacheImages.Get(&image);
+            return mCacheImages.Get(image.data);
         }
 
         void ImageTextureCache::ClearImagesCache()
@@ -130,8 +130,8 @@ namespace ImmVision
 
         void ImageTextureCache::UpdateLinkedZooms(const cv::Mat& image)
         {
-            auto currentCacheKey = &image;
-            auto & currentCache = mCacheParams.Get(&image);
+            auto currentCacheKey = image.data;
+            auto & currentCache = mCacheParams.Get(image.data);
             std::string zoomKey = currentCache.Params->ZoomKey;
             if (zoomKey.empty())
                 return;
@@ -145,8 +145,8 @@ namespace ImmVision
         }
         void ImageTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
         {
-            auto currentCacheKey = &image;
-            auto & currentCache = mCacheParams.Get(&image);
+            auto currentCacheKey = image.data;
+            auto & currentCache = mCacheParams.Get(image.data);
             std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
             if (colorKey.empty())
                 return;
