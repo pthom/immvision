@@ -4,12 +4,14 @@ from .power_save import _power_save_instance
 from .auto_size_app_window import AutoSizeAppWindow
 from .backend_any import BackendAny
 from .gui_types import GuiFunction
+import traceback
 
 import imgui
 import imgui.internal
 
 import OpenGL.GL as gl
 from typing import Any
+import logging
 
 _CURRENT_BACKEND: BackendAny = None
 
@@ -46,6 +48,22 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
     backend.init_imgui_gl_renderer()
 
     _gl_provider_sentinel.create_sentinel()
+
+    def cleanup():
+        if not was_window_position_saved:
+            _ImguiAppParamsHelper.write_last_run_window_bounds(backend.get_window_bounds())
+
+        _gl_provider_sentinel.destroy_sentinel()
+        backend.destroy_imgui_gl_renderer()
+        ctx = imgui.get_current_context()
+        if ctx is not None:
+            imgui.destroy_context(ctx)
+
+        backend.destroy_gl_context()
+        backend.destroy_window()
+        backend.quit()
+
+
 
     frame_idx = 0
     while running:
@@ -88,7 +106,21 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
             nonlocal running, auto_size_app_window, was_window_position_saved
             if imgui_app_params.provide_default_window:
                 auto_size_app_window.begin()
-            gui_function()
+
+            try:
+                gui_function()
+            except Exception as e:
+                # Early handling of user exceptions
+                logging.error(f"\n\n\nPanic! imgui_runner.run: exception in user code! \n    {e}\n\n")
+                traceback.print_exception(e, e, e.__traceback__)
+
+                # It is very likely that there is an error in your gui function which was just executed
+                # Look at the back trace
+                breakpoint()
+                # rethrow the exception: this will be caught just few lines below,
+                # where some cleanup will be done before rethrowing
+                raise
+
             if imgui_app_params.provide_default_window:
                 auto_size_app_window.end()
 
@@ -97,7 +129,17 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
                 _ImguiAppParamsHelper.write_last_run_window_bounds(backend.get_window_bounds())
                 was_window_position_saved = True
                 backend.destroy_window()
-        gui_handler()
+        try:
+            gui_handler()
+        except Exception as e:
+            # Late handling of user exceptions: cleanup and rethrow
+            logging.error(f"Panic! Will try to do some cleanup...")
+            was_window_position_saved = True
+            backend.destroy_window()
+            cleanup()
+            logging.error(f"Panic! Cleanup ok. Will rethrow the exception...")
+            raise
+
 
         bg = imgui_app_params.gl_clear_color
         gl.glClearColor(bg[0], bg[1], bg[2], bg[3])
@@ -107,19 +149,8 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
         backend.render_gl_draw_data(imgui.get_draw_data())
         backend.swap_window()
 
-    if not was_window_position_saved:
-        _ImguiAppParamsHelper.write_last_run_window_bounds(backend.get_window_bounds())
+    cleanup()
 
-    _gl_provider_sentinel.destroy_sentinel()
-
-    backend.destroy_imgui_gl_renderer()
-    ctx = imgui.get_current_context()
-    if ctx is not None:
-        imgui.destroy_context(ctx)
-
-    backend.destroy_gl_context()
-    backend.destroy_window()
-    backend.quit()
 
 
 def get_backend_app_window() -> Any:

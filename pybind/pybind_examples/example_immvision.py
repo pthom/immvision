@@ -76,6 +76,7 @@ def _test_gui_function(params: imgui_runner.ImguiAppParams):
     show_camera()
     # imgui.same_line()
     immvision.image_display("image", image, image_display_size=(0, 300))
+    immvision.image_display(0, 1, 2, 3)
 
     elapsed = (time.time_ns() - start_time) / 1E9
     imgui.text(f"elapsed time: {elapsed:.2f}s FPS: {imgui.get_io().framerate:.2f}")
