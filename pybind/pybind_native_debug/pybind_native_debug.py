@@ -9,4 +9,7 @@ sys.path.append(path_examples)
 # import example_immvision
 # example_immvision.main()
 
-import example_fig
+# import example_fig
+
+import mandelbrot
+mandelbrot.playground()
