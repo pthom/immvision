@@ -9,7 +9,7 @@ import imgui
 
 import imgui.internal
 from typing import Callable
-from .power_save import power_save_instance
+from .power_save import _power_save_instance
 from .auto_size_app_window import AutoSizeAppWindow
 from .backend_any import BackendAny
 from .gui_types import GuiFunction
@@ -38,7 +38,8 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
 
     imgui.create_context()
 
-    power_save_instance().use_power_save = imgui_app_params.use_power_save
+    if imgui_app_params.use_power_save is not None:
+        _power_save_instance().use_power_save = imgui_app_params.use_power_save
 
     backend.init_imgui_gl_renderer()
 
@@ -65,7 +66,7 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
                 all_monitors_work_areas, real_window_size_after_auto_size)
             backend.set_window_position(window_bounds.window_position)
 
-        if power_save_instance().use_power_save:
+        if _power_save_instance().use_power_save:
             backend.wait_for_event_power_save()
 
         backend.poll_events()
@@ -73,7 +74,7 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
             break
 
         imgui.new_frame()
-        power_save_instance().on_new_frame()
+        _power_save_instance().on_new_frame()
 
         if imgui_app_params.app_shall_raise_window:
             backend.raise_window()

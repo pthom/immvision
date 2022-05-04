@@ -2,7 +2,7 @@ import logging
 
 from .backend_any import BackendAny
 import glfw
-from .power_save import power_save_instance
+from .power_save import _power_save_instance
 from imgui.integrations.glfw import GlfwRenderer
 from .gui_types import WindowPosition, WindowSize, WindowBounds
 import OpenGL.GL as gl
@@ -107,7 +107,7 @@ class BackendGlfw(BackendAny):
         self.imgui_gl_renderer.shutdown()
 
     def wait_for_event_power_save(self):
-        waiting_time = power_save_instance().get_event_waiting_timeout(self.is_window_hidden())
+        waiting_time = _power_save_instance().get_event_waiting_timeout(self.is_window_hidden())
         if waiting_time > 0:
             glfw.wait_events_timeout(waiting_time)
 

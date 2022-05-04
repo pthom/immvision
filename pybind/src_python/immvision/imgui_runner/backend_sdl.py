@@ -3,7 +3,7 @@ import time
 
 from .backend_any import BackendAny
 from sdl2 import *
-from .power_save import power_save_instance
+from .power_save import _power_save_instance
 from imgui.integrations.sdl2 import SDL2Renderer
 from .gui_types import WindowPosition, WindowSize, WindowBounds
 import ctypes
@@ -148,7 +148,7 @@ class BackendSdl(BackendAny):
         return window_is_hidden
 
     def wait_for_event_power_save(self):
-        waiting_time_s = power_save_instance().get_event_waiting_timeout(self.is_window_hidden())
+        waiting_time_s = _power_save_instance().get_event_waiting_timeout(self.is_window_hidden())
         if waiting_time_s > 0:
             waiting_time_ms = int(1000.0 * waiting_time_s)
             SDL_WaitEventTimeout(None, waiting_time_ms)

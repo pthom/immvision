@@ -57,9 +57,10 @@ class ImguiAppParams:
     # Power save options
     #
 
-    # Use power save: if this is true, you can increase manually the idle FPS by calling
-    # imgui_runner.power_save.set_max_wait_before_next_frame( 1 / desired_fps)
-    use_power_save: bool = True
+    # Use power save:
+    # if the param `use_power_save` is None, then the default will be used (i.e. power_save is active)
+    # see doc inside power_save.py
+    use_power_save: Optional[bool] = None
 
     #
     # OpenGL options

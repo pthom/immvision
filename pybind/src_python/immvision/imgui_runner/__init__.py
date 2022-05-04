@@ -1,7 +1,7 @@
-_DEBUG_IMGUI_RUNNER = False
+_DEBUG_IMGUI_RUNNER = False  # should be before the imports, since it is used by them
 from .imgui_app_params import ImguiAppParams
 from ._imgui_app_params_helper import _ImguiAppParamsHelper
-from .power_save import set_max_wait_before_next_frame
+from .power_save import power_save_set_max_wait_next_frame, power_save_enable, power_save_disable
 from .imgui_runner import run_with_backend as _run_with_backend
 from .gui_types import GuiFunction
 from .backend_factory import factor_backend as _factor_backend, BackendType

@@ -61,7 +61,7 @@ def show_camera():
         video_ok, video_frame = show_camera.video_capture.read()
         if video_ok:
             immvision.image_display(video_frame, image_display_size=(0, 300), refresh_image=True)
-            imgui_runner.set_max_wait_before_next_frame(1 / 50)
+            imgui_runner.power_save_set_max_wait_next_frame(1 / 50)
 
 
 start_time = time.time_ns()

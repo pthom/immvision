@@ -7,9 +7,12 @@ from numba import njit
 import numba
 from dataclasses import dataclass
 from immvision.debug_utils import timeit
+import imgui
+import immvision
+import immvision.imgui_runner
 
 PreciseFloat = np.float128
-ColorType = np.float64
+ColorType = np.float32
 
 
 @njit
@@ -71,30 +74,13 @@ def mandelbrot_numba(
     return result
 
 
-# cf https://mandelbrot.dev/
-MANDELBROT_POI = [
-    0.28439 - 0.01359j,
-    0.28443 - 0.01273j,
-    -0.79619 - 0.18323j,
-    -0.748986 + 0.055768j,
-    -0.658448 - 0.466852j,
-    -0.715181 - 0.230028j,
-    0.148865892 + 0.642407724j,
-    -0.596360941 + 0.662749640j,
-    -1.99991175020 + 0j,
-    -1.67440967428 + 0.00004716557j,
-    -0.139975337339 -0.992076239092j,
-    0.432456684114 -0.340532264460j,
-]
-
-
 @dataclass
 class MandelbrotParams:
     width: int = 800
     height: int = 600
     # x in [-2, 1] and y in [-1, 1]
-    x: PreciseFloat = MANDELBROT_POI[0].real
-    y: PreciseFloat = MANDELBROT_POI[0].imag
+    x: PreciseFloat = -0.5
+    y: PreciseFloat = 0.
     zoom: PreciseFloat = 1
     max_iterations: int = 100
 
@@ -102,8 +88,91 @@ class MandelbrotParams:
         return mandelbrot_numba(self.width, self.height, self.x, self.y, self.zoom, self.max_iterations)
 
 
+@dataclass
+class MandelbrotApp:
+    mandelbrot_params: MandelbrotParams = MandelbrotParams()
+    image_params: immvision.ImageParams = immvision.ImageParams()
+    idx_poi: int = 0
+    image: np.ndarray = None
+    # cf https://mandelbrot.dev/
+    mandelbrot_poi_list = [
+        0.28439 - 0.01359j,
+        0.28443 - 0.01273j,
+        -0.79619 - 0.18323j,
+        -0.748986 + 0.055768j,
+        -0.658448 - 0.466852j,
+        -0.715181 - 0.230028j,
+        0.148865892 + 0.642407724j,
+        -0.596360941 + 0.662749640j,
+        -1.99991175020 + 0j,
+        -1.67440967428 + 0.00004716557j,
+        -0.139975337339 -0.992076239092j,
+        0.432456684114 -0.340532264460j,
+        ]
 
-def playground():
+    def __init__(self):
+        self.move_to_poi()
+        self.update_image()
+
+    def move_to_poi(self):
+        self.mandelbrot_params.x = self.mandelbrot_poi_list[self.idx_poi].real
+        self.mandelbrot_params.y = self.mandelbrot_poi_list[self.idx_poi].imag
+
+    def update_image(self):
+        self.image = self.mandelbrot_params.mandelbrot_image()
+
+    def gui(self):
+        params = self.mandelbrot_params
+
+        needs_refresh = False
+
+        # Show FPS
+        imgui.text(f"FPS: {imgui.get_io().framerate:.1f}")
+
+        # Change location to interesting location
+        changed, self.idx_poi = imgui.slider_int(
+            "interesting location", self.idx_poi,
+            0, len(self.mandelbrot_poi_list) - 1)
+        if changed:
+            needs_refresh = True
+            self.move_to_poi()
+
+        # Edit zoom
+        logarithmic_flag=(1<<4) | (1<<5)
+        changed, params.zoom = imgui.slider_float("zoom", params.zoom, 0.5, 1E12, flags=logarithmic_flag)
+        if changed: needs_refresh = True
+
+        # Edit max_iterations
+        changed, params.max_iterations = imgui.slider_int("iterations", params.max_iterations, 1, 1000)
+        if changed: needs_refresh = True
+
+        # Edit image size
+        imgui.set_next_item_width(200)
+        changed, params.width =imgui.slider_int("Width", params.width, 400, 2000)
+        if changed: needs_refresh = True
+        imgui.same_line()
+        imgui.set_next_item_width(200)
+        changed, params.height =imgui.slider_int("Height", params.height, 400, 2000)
+        if changed: needs_refresh = True
+
+        # Edit position
+        changed, params.x = imgui.slider_float("x", params.x, -2., 1., "%.6f")
+        if changed: needs_refresh = True
+        changed, params.y = imgui.slider_float("y", params.y, -1., 1., "%.6f")
+        if changed: needs_refresh = True
+
+        # recalculate image if needed
+        self.image_params.refresh_image = needs_refresh
+        if needs_refresh:
+            self.update_image()
+        immvision.image(self.image, self.image_params)
+
+    def run(self):
+        immvision.imgui_runner.power_save_disable()
+        immvision.imgui_runner.run(lambda: self.gui())
+
+
+def playground0():
     # Try mandelbrot_numba standalone
     params = MandelbrotParams()
     mandel_image = params.mandelbrot_image()
@@ -112,6 +181,11 @@ def playground():
     mandel_image = np.clip(mandel_image*255, 0, 255).astype(np.uint8)
     mandel_image = Image.fromarray(mandel_image)
     mandel_image.show()
+
+
+def playground():
+    app = MandelbrotApp()
+    app.run()
 
 
 def measure_perf():
@@ -125,6 +199,5 @@ def measure_perf():
 
 
 if __name__ == "__main__":
-    #playground()
-    measure_perf()
-
+    playground()
+    # measure_perf()
