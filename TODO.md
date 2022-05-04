@@ -1,7 +1,6 @@
 * [ ] Harden 
-    * [ ] Catch & rethrow exception (C++ and Python). Do cleanup!
-
-    * copy debug_utils from immvision to imgui_runner
+  * window sometimes remains opened at exit (notebook, sdl)
+  * copy debug_utils from immvision to imgui_runner
 
 * [ ] PIP
   * [ ] change mat type if not castable (and cache)

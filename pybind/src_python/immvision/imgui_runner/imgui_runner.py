@@ -4,14 +4,16 @@ from .power_save import _power_save_instance
 from .auto_size_app_window import AutoSizeAppWindow
 from .backend_any import BackendAny
 from .gui_types import GuiFunction
-import traceback
 
 import imgui
 import imgui.internal
 
 import OpenGL.GL as gl
 from typing import Any
+import traceback
 import logging
+import time
+
 
 _CURRENT_BACKEND: BackendAny = None
 
@@ -50,6 +52,7 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
     _gl_provider_sentinel.create_sentinel()
 
     def cleanup():
+        backend.destroy_window()
         if not was_window_position_saved:
             _ImguiAppParamsHelper.write_last_run_window_bounds(backend.get_window_bounds())
 
@@ -60,7 +63,12 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
             imgui.destroy_context(ctx)
 
         backend.destroy_gl_context()
+
+        # when using jupyter  notebook, with SDL, on MacOS, the window sometimes does not close
+        # attempt to convince it a little more with a second call to close + sleep
         backend.destroy_window()
+        time.sleep(0.2)
+
         backend.quit()
 
 
