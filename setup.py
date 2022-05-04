@@ -15,7 +15,7 @@ except ImportError:
     raise
 
 
-INSTALL_REQUIRES = ['PyOpenGL','pysdl2', 'pysdl2-dll', 'opencv-python', 'numpy', 'matplotlib', 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave']
+INSTALL_REQUIRES = ['PyOpenGL','pysdl2', 'pysdl2-dll', 'glfw', 'opencv-python', 'numpy', 'matplotlib', 'imgui @ git+https://github.com/pthom/pyimgui.git@pthom/docking_powersave']
 PACKAGES = ["immvision", "immvision/imgui_runner"]
 
 
