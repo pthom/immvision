@@ -9,6 +9,10 @@ pytest
 prettyprinter
 glfw
 matplotlib
+numba
+scipy
+colorama
+
 
 #
 # this will `pip install imgui` (provided by pyimgui)

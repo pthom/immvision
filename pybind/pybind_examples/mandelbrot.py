@@ -1,0 +1,130 @@
+"""
+Calculate Mandelbrot with numba
+"""
+import numpy as np
+from PIL import Image
+from numba import njit
+import numba
+from dataclasses import dataclass
+from immvision.debug_utils import timeit
+
+PreciseFloat = np.float128
+ColorType = np.float64
+
+
+@njit
+def lerp(a, b, x):
+    return a + (b - a) * x
+
+
+@njit(cache=True, nogil=True, parallel=True)
+def mandelbrot_numba(
+    width: int, 
+    height: int, 
+    x_center: PreciseFloat,
+    y_center: PreciseFloat,
+    zoom: PreciseFloat,
+    max_iterations: int
+    ) -> np.ndarray:
+    result = np.zeros((height, width), ColorType)
+
+    # Compute boundings
+    x_width: PreciseFloat = 1.5
+    y_height: PreciseFloat = 1.5 * height / width
+    x_from = x_center - x_width / zoom
+    x_to = x_center + x_width / zoom
+    y_from = y_center - y_height / zoom
+    y_to = y_center + y_height / zoom
+
+    for iy in numba.prange(height):  # parallel loop! (speedup by a factor of 7 on an 8 cores machines)
+        ky: PreciseFloat = iy / height
+        y0 = lerp(y_from, y_to, ky)
+        for ix in range(width):
+            kx: PreciseFloat = ix / width
+
+            # start iteration 
+            x0 = lerp(x_from, x_to, kx)
+
+            x: PreciseFloat = 0.0
+            y: PreciseFloat = 0.0
+
+            # perform Mandelbrot set iterations
+            escaped = False
+            for iteration in range(max_iterations):
+                x_new = x * x - y * y + x0
+                y = 2 * x * y + y0
+                x = x_new
+
+                # if escaped
+                norm2 = x * x + y * y
+                if norm2 > 4.0:
+                    escaped = True
+                    # color using pretty linear gradient
+                    color:ColorType = 1.0 - 0.01 * (iteration - np.log2(np.log2(norm2)))
+                    break
+
+            if not escaped:
+                color = 0.0
+
+            result[iy, ix] = color
+
+    return result
+
+
+# cf https://mandelbrot.dev/
+MANDELBROT_POI = [
+    0.28439 - 0.01359j,
+    0.28443 - 0.01273j,
+    -0.79619 - 0.18323j,
+    -0.748986 + 0.055768j,
+    -0.658448 - 0.466852j,
+    -0.715181 - 0.230028j,
+    0.148865892 + 0.642407724j,
+    -0.596360941 + 0.662749640j,
+    -1.99991175020 + 0j,
+    -1.67440967428 + 0.00004716557j,
+    -0.139975337339 -0.992076239092j,
+    0.432456684114 -0.340532264460j,
+]
+
+
+@dataclass
+class MandelbrotParams:
+    width: int = 800
+    height: int = 600
+    # x in [-2, 1] and y in [-1, 1]
+    x: PreciseFloat = MANDELBROT_POI[0].real
+    y: PreciseFloat = MANDELBROT_POI[0].imag
+    zoom: PreciseFloat = 1
+    max_iterations: int = 100
+
+    def mandelbrot_image(self):
+        return mandelbrot_numba(self.width, self.height, self.x, self.y, self.zoom, self.max_iterations)
+
+
+
+def playground():
+    # Try mandelbrot_numba standalone
+    params = MandelbrotParams()
+    mandel_image = params.mandelbrot_image()
+
+    # convert from float in [0, 1] to to uint8 in [0, 255] for PIL
+    mandel_image = np.clip(mandel_image*255, 0, 255).astype(np.uint8)
+    mandel_image = Image.fromarray(mandel_image)
+    mandel_image.show()
+
+
+def measure_perf():
+    params = MandelbrotParams()
+
+    @timeit(nb_calls=100, print_all_times=False, numba_skip_first_compil=True)
+    def truc():
+        m = params.mandelbrot_image()
+
+    truc()
+
+
+if __name__ == "__main__":
+    #playground()
+    measure_perf()
+

@@ -33,6 +33,7 @@ def verbose_function(dump_args: bool = True, dump_return: bool = False, dump_arg
     :param dump_return: output function return values
     :param dump_args_at_exit: output function args at exit, for functions that modify their input args
     """
+
     def inner(func):
         def wrapper(*args, **kwargs):
             def indent(s: str, indent_size: int):
@@ -53,14 +54,15 @@ def verbose_function(dump_args: bool = True, dump_return: bool = False, dump_arg
                     func_args = signature.bind(*args, **kwargs).arguments
                     func_args_strs = map(do_dump_arg_multiline, func_args.items())
                     func_args_str = joining_str.join(func_args_strs)
-                    arg_str =  f"{func_args_str}"
+                    arg_str = f"{func_args_str}"
                 except ValueError:
                     # For native functions, the signature cannot be inspected
-                    annotated_args = map(lambda arg_and_idx: (f"arg_{arg_and_idx[0]}", str(arg_and_idx[1])), enumerate(args))
-                    args_strs = list(map(do_dump_arg_multiline, annotated_args ))
+                    annotated_args = map(lambda arg_and_idx: (f"arg_{arg_and_idx[0]}", str(arg_and_idx[1])),
+                                         enumerate(args))
+                    args_strs = list(map(do_dump_arg_multiline, annotated_args))
                     kwargs_strs = list(map(do_dump_arg_multiline, kwargs.items()))
                     func_args_str = joining_str.join(args_strs + kwargs_strs)
-                    arg_str =  f"{func_args_str}"
+                    arg_str = f"{func_args_str}"
                 return arg_str
 
             def do_dump_fn_name():
@@ -103,18 +105,10 @@ def verbose_function(dump_args: bool = True, dump_return: bool = False, dump_arg
             return function_output
 
         return wrapper
+
     return inner
 
 
-def _print_duration(duration_s: float):
-    if duration_s < 1E-6:
-        return f"{duration_s * 1E9:.3f}ns"
-    elif duration_s < 1E-3:
-        return f"{duration_s * 1E6:.3f}μs"
-    elif duration_s < 1.:
-        return f"{duration_s * 1E3:.3f}ms"
-    else:
-        return f"{duration_s * 1E0:.3f}s"
 
 
 @dataclass
@@ -128,26 +122,41 @@ class TimeItData:
     def __init__(self, execution_times: List[float]):
         self.execution_times = execution_times
         self.mean_time_s = statistics.mean(execution_times)
-        self.standard_deviation_s = statistics.stdev(execution_times)
+        if len(execution_times) > 1:
+            self.standard_deviation_s = statistics.stdev(execution_times)
         self.min_time_s = min(execution_times)
         self.max_time_s = max(execution_times)
 
     def __str__(self):
+        def format_duration(duration_s: float):
+            if duration_s < 1E-6:
+                return f"{duration_s * 1E9:.3f}ns"
+            elif duration_s < 1E-3:
+                return f"{duration_s * 1E6:.3f}μs"
+            elif duration_s < 1.:
+                return f"{duration_s * 1E3:.3f}ms"
+            else:
+                return f"{duration_s * 1E0:.3f}s"
+
         time_str = "time" if len(self.execution_times) == 1 else "times"
-        r = f"Average:{_print_duration(self.mean_time_s)} "  \
-            f"Deviation:{_print_duration(self.standard_deviation_s)} "  \
-            f"Max:{_print_duration(self.max_time_s)} " \
-            f"Min:{_print_duration(self.min_time_s)} " \
-            f" (ran {len(self.execution_times)} {time_str})"
+        deviation_str = f"Deviation:{format_duration(self.standard_deviation_s)} " if self.standard_deviation_s > 0. \
+                        else ""
+        r = f"Average:{format_duration(self.mean_time_s)} " \
+            + deviation_str \
+            + f"Max:{format_duration(self.max_time_s)} " \
+            + f"Min:{format_duration(self.min_time_s)} " \
+            + f" (ran {len(self.execution_times)} {time_str})"
         return r
 
 
 class timeit:
     """decorator for benchmarking"""
-    def __init__(self, nb_calls:int = 100, fmt='completed {:s} in {:.3f} seconds'):
+
+    def __init__(self, nb_calls: int = 100, print_all_times: bool = False, numba_skip_first_compil: bool = False):
         # there is no need to make a class for a decorator if there are no parameters
-        self.fmt = fmt
         self.nb_calls = nb_calls
+        self.print_all_times = print_all_times
+        self.numba_skip_first_compil = numba_skip_first_compil
 
     def __call__(self, fn):
         # returns the decorator itself, which accepts a function and returns another function
@@ -158,16 +167,24 @@ class timeit:
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             # the wrapper passes all parameters to the function being decorated
-            for i in range(self.nb_calls):
+            nb_calls = self.nb_calls
+            if self.numba_skip_first_compil:
+                nb_calls += 1
+            for i in range(nb_calls):
                 t1 = time.time()
                 res = fn(*args, **kwargs)
                 t2 = time.time()
-                execution_times.append(t2 - t1)
+                if i != 0 or not self.numba_skip_first_compil:
+                    execution_times.append(t2 - t1)
 
             timeit_data = TimeItData(execution_times)
-            logging.warning(timeit_data)
-            # print(timeit_data)
+
+            msg = f"{fn.__name__} benchmark: {str(timeit_data)}"
+            if self.print_all_times:
+                msg += "\nTimes: " + str(execution_times)
+            logging.warning(msg)
             return res
+
         return wrapper
 
 
@@ -220,7 +237,7 @@ def test_dump_args_native_functions():
     import cv2
     import numpy as np
     m = np.zeros((2, 2, 3), np.uint8)
-    m[:,:,:] = (1, 2, 3)
+    m[:, :, :] = (1, 2, 3)
     cv2.cvtColor = verbose_function(dump_return=True, dump_args_at_exit=True)(cv2.cvtColor)
     m2 = np.zeros((2, 2, 3), np.uint8)
     cv2.cvtColor(m, cv2.COLOR_BGR2GRAY, dst=m2)
@@ -229,6 +246,6 @@ def test_dump_args_native_functions():
 def test_timeit():
     @timeit(nb_calls=10000)
     def fn():
-        return 2 +2
+        return 2 + 2
 
     fn()
