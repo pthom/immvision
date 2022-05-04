@@ -1,21 +1,27 @@
 import os.path
 
+# Do not remove this import (_gl_provider_sentinel), it acts as a sentinel that guards the texture cache
 from immvision import _gl_provider_sentinel
-from .imgui_app_params import ImguiAppParams
+
 from ._imgui_app_params_helper import _ImguiAppParamsHelper
-import OpenGL.GL as gl
-
-import imgui
-
-import imgui.internal
-from typing import Callable
 from .power_save import _power_save_instance
 from .auto_size_app_window import AutoSizeAppWindow
 from .backend_any import BackendAny
 from .gui_types import GuiFunction
 
+import imgui
+import imgui.internal
+
+import OpenGL.GL as gl
+from typing import Any
+
+_CURRENT_BACKEND: BackendAny = None
+
 
 def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_params_helper: _ImguiAppParamsHelper = None):
+    global _CURRENT_BACKEND
+    _CURRENT_BACKEND = backend
+
     running = True
     imgui_app_params = imgui_app_params_helper.imgui_app_params
     was_window_position_saved = False
@@ -114,3 +120,21 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
     backend.destroy_gl_context()
     backend.destroy_window()
     backend.quit()
+
+
+def get_backend_app_window() -> Any:
+    """
+    Returns the current backend window.
+        - For Sdl, it will be a SDL_Window
+        - For Glfw, it will be a GLFWwindow
+    """
+    return _CURRENT_BACKEND.app_window()
+
+
+def get_backend_gl_context() -> Any:
+    """
+    Returns the current backend OpenGl context
+        - For Sdl, it will be a SDL_GlContext
+        - For Glfw, it is None
+    """
+    return _CURRENT_BACKEND.gl_context

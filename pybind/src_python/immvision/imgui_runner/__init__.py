@@ -3,6 +3,7 @@ from .imgui_app_params import ImguiAppParams
 from ._imgui_app_params_helper import _ImguiAppParamsHelper
 from .power_save import power_save_set_max_wait_next_frame, power_save_enable, power_save_disable
 from .imgui_runner import run_with_backend as _run_with_backend
+from .imgui_runner import get_backend_app_window, get_backend_gl_context
 from .gui_types import GuiFunction
 from .backend_factory import factor_backend as _factor_backend, BackendType
 
