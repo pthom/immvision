@@ -558,7 +558,7 @@ def generate_pydef_struct_cpp_code(struct_infos: StructInfos) -> str:
 def generate_pydef_function_cpp_code(function_infos: FunctionsInfos) -> str:
     fn_name_python = code_utils.to_snake_case(function_infos.function_name())
     fn_name_cpp = function_infos.function_name()
-    title = function_infos.function_code.title.replace("\n", "\\n")
+    title = function_infos.function_code.title.replace("\n", "\\n").replace('"', '\\"')
     s = f'        m.def("{fn_name_python}", ImmVision::{fn_name_cpp}, "{title}");\n'
     return s
 
