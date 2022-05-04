@@ -10,6 +10,7 @@
 #include "immvision/internal/cv/color_adjustment_utils.h"
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
+#include "immvision/internal/misc/panic.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -473,11 +474,21 @@ namespace ImmVision
         }
 
         ImGui::PushID(label_id.c_str());
-        ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
-        auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
-        auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
-
-        params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
+        try
+        {
+            ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
+            auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
+            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
+            params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
+        }
+        catch(std::exception& e)
+        {
+            Panic(e);
+        }
+        catch(...)
+        {
+            Panic_UnknownCause();
+        }
         ImGui::PopID();
     }
 
