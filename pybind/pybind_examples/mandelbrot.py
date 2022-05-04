@@ -163,11 +163,10 @@ class MandelbrotApp:
         if changed: needs_refresh = True
 
         # recalculate image if needed
-        # needs_refresh = True                              KK -> this makes the key bug very apparent!!!
         self.image_params.refresh_image = needs_refresh
         if needs_refresh:
             self.update_image()
-        immvision.image(self.image, self.image_params)
+        immvision.image("mandelbrot", self.image, self.image_params)
 
     def run(self):
         immvision.imgui_runner.power_save_disable()

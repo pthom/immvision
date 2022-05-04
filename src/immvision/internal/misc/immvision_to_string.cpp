@@ -77,7 +77,6 @@ namespace ImmVision
 
         inner = inner + "refresh_image: " + ToString(v.RefreshImage) + "\n";
         inner = inner + "image_display_size: " + ToString(v.ImageDisplaySize) + "\n";
-        inner = inner + "legend: " + ToString(v.Legend) + "\n";
         inner = inner + "zoom_pan_matrix: " + ToString(v.ZoomPanMatrix) + "\n";
         inner = inner + "zoom_key: " + ToString(v.ZoomKey) + "\n";
         inner = inner + "color_adjustments: " + ToString(v.ColorAdjustments) + "\n";
@@ -92,7 +91,6 @@ namespace ImmVision
         inner = inner + "show_image_info: " + ToString(v.ShowImageInfo) + "\n";
         inner = inner + "show_pixel_info: " + ToString(v.ShowPixelInfo) + "\n";
         inner = inner + "show_zoom_buttons: " + ToString(v.ShowZoomButtons) + "\n";
-        inner = inner + "show_legend_border: " + ToString(v.ShowLegendBorder) + "\n";
         inner = inner + "show_options_panel: " + ToString(v.ShowOptionsPanel) + "\n";
         inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "show_options_button: " + ToString(v.ShowOptionsButton) + "\n";
@@ -104,7 +102,6 @@ namespace ImmVision
 
         inner = inner + "RefreshImage: " + ToString(v.RefreshImage) + "\n";
         inner = inner + "ImageDisplaySize: " + ToString(v.ImageDisplaySize) + "\n";
-        inner = inner + "Legend: " + ToString(v.Legend) + "\n";
         inner = inner + "ZoomPanMatrix: " + ToString(v.ZoomPanMatrix) + "\n";
         inner = inner + "ZoomKey: " + ToString(v.ZoomKey) + "\n";
         inner = inner + "ColorAdjustments: " + ToString(v.ColorAdjustments) + "\n";
@@ -119,7 +116,6 @@ namespace ImmVision
         inner = inner + "ShowImageInfo: " + ToString(v.ShowImageInfo) + "\n";
         inner = inner + "ShowPixelInfo: " + ToString(v.ShowPixelInfo) + "\n";
         inner = inner + "ShowZoomButtons: " + ToString(v.ShowZoomButtons) + "\n";
-        inner = inner + "ShowLegendBorder: " + ToString(v.ShowLegendBorder) + "\n";
         inner = inner + "ShowOptionsPanel: " + ToString(v.ShowOptionsPanel) + "\n";
         inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "ShowOptionsButton: " + ToString(v.ShowOptionsButton) + "\n";

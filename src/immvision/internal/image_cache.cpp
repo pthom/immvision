@@ -4,10 +4,20 @@
 #include "immvision/internal/imgui/imgui_imm.h"
 #include "immvision/internal/drawing/image_drawing.h"
 
+
 namespace ImmVision
 {
     namespace ImageCache
     {
+
+        static KeyType hash_str(const std::string& str)
+        {
+            std::string str2 = str + "mlkyqsdadsfklqqsmax!(((!' "; // I let my cat walk on the keyboard
+            const std::hash<std::string> hasher;
+            size_t hashResult = hasher(str2);
+            return hashResult;
+        }
+
         void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
         {
             if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
@@ -59,9 +69,9 @@ namespace ImmVision
         // ImageTextureCache impl below
         //
 
-        void ImageTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool userRefresh)
+        void ImageTextureCache::UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
-            auto cacheKey = image.data;
+            auto cacheKey = GetID(id_label);
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
             bool needsRefreshTexture = userRefresh;
@@ -105,22 +115,27 @@ namespace ImmVision
             }
 
             if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
-                UpdateLinkedZooms(image);
+                UpdateLinkedZooms(id_label);
             if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
-                UpdateLinkedColorAdjustments(image);
+                UpdateLinkedColorAdjustments(id_label);
 
             cachedParams.PreviousParams = *params;
 
             mCacheImages.ClearOldEntries();
         }
 
-        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const cv::Mat& image)
+        KeyType ImageTextureCache::GetID(const std::string& id_label)
         {
-            return mCacheParams.Get(image.data);
+            return hash_str(id_label);
         }
-        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const cv::Mat& image)
+
+        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const std::string& id_label)
         {
-            return mCacheImages.Get(image.data);
+            return mCacheParams.Get(GetID(id_label));
+        }
+        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const std::string& id_label)
+        {
+            return mCacheImages.Get(GetID(id_label));
         }
 
         void ImageTextureCache::ClearImagesCache()
@@ -128,10 +143,10 @@ namespace ImmVision
             mCacheImages.Clear();
         }
 
-        void ImageTextureCache::UpdateLinkedZooms(const cv::Mat& image)
+        void ImageTextureCache::UpdateLinkedZooms(const std::string& id_label)
         {
-            auto currentCacheKey = image.data;
-            auto & currentCache = mCacheParams.Get(image.data);
+            auto currentCacheKey = GetID(id_label);
+            auto & currentCache = mCacheParams.Get(currentCacheKey);
             std::string zoomKey = currentCache.Params->ZoomKey;
             if (zoomKey.empty())
                 return;
@@ -143,10 +158,10 @@ namespace ImmVision
                     otherCache.Params->ZoomPanMatrix = newZoom;
             }
         }
-        void ImageTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
+        void ImageTextureCache::UpdateLinkedColorAdjustments(const std::string& id_label)
         {
-            auto currentCacheKey = image.data;
-            auto & currentCache = mCacheParams.Get(image.data);
+            auto currentCacheKey = GetID(id_label);
+            auto & currentCache = mCacheParams.Get(currentCacheKey);
             std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
             if (colorKey.empty())
                 return;

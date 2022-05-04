@@ -74,8 +74,6 @@ namespace ImmVision
         // If you specify only the width or height (e.g (300, 0), then the other dimension
         // will be calculated automatically, respecting the original image w/h ratio.
         cv::Size ImageDisplaySize = cv::Size();
-        // Title displayed in the border
-        std::string Legend = "Image";
 
         //
         // Zoom and Pan (represented by an affine transform matrix, of size 3x3)
@@ -124,8 +122,6 @@ namespace ImmVision
         bool ShowPixelInfo = true;
         // Show buttons that enable to zoom in/out (the mouse wheel also zoom)
         bool ShowZoomButtons = true;
-        // Show a rectangular border with the legend
-        bool ShowLegendBorder = true;
         // Open the options panel
         bool ShowOptionsPanel = false;
         // If set to true, then the option panel will be displayed in a transient tooltip window
@@ -163,33 +159,73 @@ namespace ImmVision
     // !pydef_function
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
-    // Notes:
+    // :param label_id
+    //     A legend that will be displayed.
+    //     Important notes:
+    //         - With ImGui and ImmVision, widgets *must* have a unique Ids.
+    //           For this widget, the id is given by this label.
+    //           Two widgets (for example) two images *cannot* have the same label or the same id!
     //
-    // - the ImageParams may be modified by this function: you can extract from them
-    //   the mouse position, watched pixels, etc. Thus, their scope should extend beyond the call to Image !
-    //   If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
+    //           If they do, they might not refresh correctly!
+    //           To circumvent this, you can:
+    //              - Call `ImGui::PushID("some_unique_string")` at the start of your function,
+    //                and `ImGui::PopID()` at the end.
+    //              - Or modify your label like this:
+    //                  "MyLabel##some_unique_id"
+    //                  (the part after "##" will not be displayed but will be part of the id)
+    //        - To display an empty legend, use "##_some_unique_id"
+    //
+    // :param mat
+    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    //
+    // :param params
+    //     Complete options (as modifiable inputs), and outputs (mouse position, watched pixels, etc)
+    //     @see ImageParams structure.
+    //     The ImageParams may be modified by this function: you can extract from them
+    //     the mouse position, watched pixels, etc.
+    //     Important note:
+    //         ImageParams is an input-output parameter, passed as a pointer.
+    //         Its scope should be wide enough so that it is preserved from frame to frame.
+    //         !! If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams !!
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    void Image(const cv::Mat& imageMatrix, ImageParams* params);
+    void Image(const std::string& label_id, const cv::Mat& mat, ImageParams* params);
 
 
     // !pydef_function
     // Only, display the image, with no decoration, and no user interaction
     //
     // Parameters:
-    //      - mat:
-    //          The image to display
-    //      - imageDisplaySize:
-    //          Size of the displayed image (can be different from the mat size)
-    //          If you specify only the width or height (e.g (300, 0), then the other dimension
-    //          will be calculated automatically, respecting the original image w/h ratio.
-    //      - refreshImage: images textures are cached. Set to true if your image matrix/buffer has changed
-    //          (for example, for live video images)
-    //      - showOptionsButton: If true, show an option button that opens the option panel
-    //      - isBgrOrBgra: set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    // :param label
+    //     A legend that will be displayed.
+    //     Important notes:
+    //         - With ImGui and ImmVision, widgets must have a unique Ids. For this widget, the id is given by this label.
+    //           Two widgets (for example) two images *cannot* have the same label or the same id!
+    //           If they do, they might not refresh correctly!
+    //           To circumvent this, you can modify your label like this:
+    //              "MyLabel##some_unique_id"    (the part after "##" will not be displayed but will be part of the id)
+    //        - To display an empty legend, use "##_some_unique_id"
     //
-    // Returns:
+    // :param Mat:
+    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    //
+    // :param imageDisplaySize:
+    //     Size of the displayed image (can be different from the mat size)
+    //     If you specify only the width or height (e.g (300, 0), then the other dimension
+    //     will be calculated automatically, respecting the original image w/h ratio.
+    //
+    // :param refreshImage:
+    //     images textures are cached. Set to true if your image matrix/buffer has changed
+    //     (for example, for live video images)
+    //
+    // :param showOptionsButton:
+    //     If true, show an option button that opens the option panel
+    //
+    // :param isBgrOrBgra:
+    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    //
+    // :return:
     //      The mouse position in `mat` original image coordinates, as double values.
     //      (i.e. it does not matter if imageDisplaySize is different from mat.size())
     //      It will return (-1., -1.) if the mouse is not hovering the image.
@@ -201,6 +237,7 @@ namespace ImmVision
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
     cv::Point2d ImageDisplay(
+        const std::string& label_id,
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
@@ -2168,13 +2205,13 @@ namespace ImmVision
 
             static ImmVision::ImageParams imageParams1;
             imageParams1.ImageDisplaySize = {400, 400};
-            ImmVision::Image(mag, &imageParams1);
+            ImmVision::Image("test", mag, &imageParams1);
 
             ImGui::SameLine();
 
             static ImmVision::ImageParams imageParams2;
             imageParams2.ImageDisplaySize = {400, 400};
-            ImmVision::Image(img, &imageParams2);
+            ImmVision::Image("test2", img, &imageParams2);
 
             ImVec2 iconSize(15.f, 15.f);
             ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
@@ -4393,6 +4430,8 @@ namespace ImmVision
 {
     namespace ImageCache
     {
+        using KeyType = std::size_t;
+
         class ImageTextureCache
         {
         public:
@@ -4414,20 +4453,21 @@ namespace ImmVision
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
-            void UpdateCache(const cv::Mat& image, ImageParams* params, bool userRefresh);
 
-            CachedParams& GetCacheParams(const cv::Mat& image);
-            CachedImages& GetCacheImages(const cv::Mat& image);
+            void UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh);
+            KeyType GetID(const std::string& id_label);
+            CachedParams& GetCacheParams(const std::string& id_label);
+            CachedImages& GetCacheImages(const std::string& id_label);
             void ClearImagesCache();
 
         private:
             // Methods
-            void UpdateLinkedZooms(const cv::Mat& image);
-            void UpdateLinkedColorAdjustments(const cv::Mat& image);
+            void UpdateLinkedZooms(const std::string& id_label);
+            void UpdateLinkedColorAdjustments(const std::string& id_label);
 
-            internal::Cache<const uchar *, CachedParams> mCacheParams;
+            internal::Cache<KeyType, CachedParams> mCacheParams;
             double mCachedImagesTimeToLive = 5.;
-            internal::ShortLivedCache<const uchar *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
+            internal::ShortLivedCache<KeyType, CachedImages> mCacheImages { mCachedImagesTimeToLive };
         };
 
         extern ImageTextureCache gImageTextureCache;
@@ -4450,7 +4490,7 @@ namespace ImmVision
     }
 
 
-    void Image(const cv::Mat& image, ImageParams* params)
+    void Image(const std::string& label_id, const cv::Mat& image, ImageParams* params)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params).
@@ -4467,19 +4507,15 @@ namespace ImmVision
         using CachedImages = ImageCache::ImageTextureCache::CachedImages;
 
         //
-        // Lambda / panel Title
+        // Lambda / is Label visible
         //
-        auto fnPanelTitle = [&params, &image]()
-        {
-            std::string panelTitle;
-            {
-                if (params->ShowLegendBorder)
-                    panelTitle = params->Legend;
-                panelTitle += "##Image_" + std::to_string((size_t)&image);
-            }
-            return panelTitle;
+        auto fnIsLabelVisible = [&label_id]() -> bool {
+            if (label_id.empty())
+                return false;
+            if (label_id.find("##") == 0)
+                return false;
+            return true;
         };
-
         //
         // Lambdas / Watched Pixels
         //
@@ -4623,7 +4659,6 @@ namespace ImmVision
                     ImGui::Checkbox("Show image info", &params->ShowImageInfo);
                     ImGui::Checkbox("Show pixel info", &params->ShowPixelInfo);
                     ImGui::Checkbox("Show zoom buttons", &params->ShowZoomButtons);
-                    ImGui::Checkbox("Show legend border", &params->ShowLegendBorder);
                     ImGuiImm::EndGroupPanel();
                 }
 
@@ -4879,8 +4914,9 @@ namespace ImmVision
         auto fnShowFullGui_WithBorder = [&](CachedParams& cacheParams, CachedImages &cacheImages) -> MouseInformation
         {
             // BeginGroupPanel
-            bool drawBorder = params->ShowLegendBorder;
-            ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
+            bool drawBorder =  fnIsLabelVisible();
+            std::string title = label_id + "##title";
+            ImGuiImm::BeginGroupPanel_FlagBorder(title.c_str(), drawBorder);
             auto mouseInfo = fnShowFullGui(cacheParams, cacheImages);
             ImGuiImm::EndGroupPanel_FlagBorder();
             return mouseInfo;
@@ -4895,22 +4931,23 @@ namespace ImmVision
         if (image.empty())
         {
             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
-                               "%s -> empty image !!!", params->Legend.c_str());
+                               "%s -> empty image !!!", label_id.c_str());
             params->MouseInfo = MouseInformation();
             return;
         }
 
-        ImageCache::gImageTextureCache.UpdateCache(image, params, params->RefreshImage);
-        auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(image);
-        auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(image);
+        ImGui::PushID(label_id.c_str());
+        ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
+        auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
+        auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
 
-        ImGui::PushID("##Image"); ImGui::PushID(&image);
         params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
-        ImGui::PopID(); ImGui::PopID();
+        ImGui::PopID();
     }
 
 
     cv::Point2d ImageDisplay(
+        const std::string& label_id,
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize,
         bool refreshImage,
@@ -4929,7 +4966,7 @@ namespace ImmVision
         }
         ImageParams& cached_params = s_Params.at(&mat);
 
-        Image(mat, &cached_params);
+        Image(label_id, mat, &cached_params);
         return cached_params.MouseInfo.MousePosition;
     }
 
@@ -4939,12 +4976,10 @@ namespace ImmVision
         ImageParams imageParams;
         imageParams.ShowOptionsButton = false;
         imageParams.ShowOptionsPanel = false;
-        imageParams.Legend = "";
         imageParams.ZoomWithMouseWheel = false;
         imageParams.PanWithMouse = false;
         imageParams.ShowPixelInfo = false;
         imageParams.ShowImageInfo = false;
-        imageParams.ShowLegendBorder = false;
         imageParams.ShowGrid = false;
         imageParams.ShowAlphaChannelCheckerboard = false;
         imageParams.ShowZoomButtons = false;
@@ -4966,10 +5001,20 @@ namespace ImmVision
 //                       src/immvision/internal/image_cache.cpp                                                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 namespace ImmVision
 {
     namespace ImageCache
     {
+
+        static KeyType hash_str(const std::string& str)
+        {
+            std::string str2 = str + "mlkyqsdadsfklqqsmax!(((!' "; // I let my cat walk on the keyboard
+            const std::hash<std::string> hasher;
+            size_t hashResult = hasher(str2);
+            return hashResult;
+        }
+
         void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
         {
             if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
@@ -5021,9 +5066,9 @@ namespace ImmVision
         // ImageTextureCache impl below
         //
 
-        void ImageTextureCache::UpdateCache(const cv::Mat& image, ImageParams* params, bool userRefresh)
+        void ImageTextureCache::UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
-            auto cacheKey = image.data;
+            auto cacheKey = GetID(id_label);
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
             bool needsRefreshTexture = userRefresh;
@@ -5067,22 +5112,27 @@ namespace ImmVision
             }
 
             if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
-                UpdateLinkedZooms(image);
+                UpdateLinkedZooms(id_label);
             if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
-                UpdateLinkedColorAdjustments(image);
+                UpdateLinkedColorAdjustments(id_label);
 
             cachedParams.PreviousParams = *params;
 
             mCacheImages.ClearOldEntries();
         }
 
-        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const cv::Mat& image)
+        KeyType ImageTextureCache::GetID(const std::string& id_label)
         {
-            return mCacheParams.Get(image.data);
+            return hash_str(id_label);
         }
-        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const cv::Mat& image)
+
+        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const std::string& id_label)
         {
-            return mCacheImages.Get(image.data);
+            return mCacheParams.Get(GetID(id_label));
+        }
+        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const std::string& id_label)
+        {
+            return mCacheImages.Get(GetID(id_label));
         }
 
         void ImageTextureCache::ClearImagesCache()
@@ -5090,10 +5140,10 @@ namespace ImmVision
             mCacheImages.Clear();
         }
 
-        void ImageTextureCache::UpdateLinkedZooms(const cv::Mat& image)
+        void ImageTextureCache::UpdateLinkedZooms(const std::string& id_label)
         {
-            auto currentCacheKey = image.data;
-            auto & currentCache = mCacheParams.Get(image.data);
+            auto currentCacheKey = GetID(id_label);
+            auto & currentCache = mCacheParams.Get(currentCacheKey);
             std::string zoomKey = currentCache.Params->ZoomKey;
             if (zoomKey.empty())
                 return;
@@ -5105,10 +5155,10 @@ namespace ImmVision
                     otherCache.Params->ZoomPanMatrix = newZoom;
             }
         }
-        void ImageTextureCache::UpdateLinkedColorAdjustments(const cv::Mat& image)
+        void ImageTextureCache::UpdateLinkedColorAdjustments(const std::string& id_label)
         {
-            auto currentCacheKey = image.data;
-            auto & currentCache = mCacheParams.Get(image.data);
+            auto currentCacheKey = GetID(id_label);
+            auto & currentCache = mCacheParams.Get(currentCacheKey);
             std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
             if (colorKey.empty())
                 return;
@@ -5916,6 +5966,7 @@ namespace ImmVision
 {
     struct Inspector_ImageAndParams
     {
+        std::string Label;
         cv::Mat Image;
         ImageParams Params;
 
@@ -5939,13 +5990,13 @@ namespace ImmVision
     )
     {
         ImageParams params;
-        params.Legend = legend;
         params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;
         params.ColorAdjustmentsKey = colorAdjustmentsKey;
         params.ShowOptionsPanel = true;
 
-        s_Inspector_ImagesAndParams.push_back({image, params, zoomCenter, zoomRatio});
+        std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
+        s_Inspector_ImagesAndParams.push_back({label, image, params, zoomCenter, zoomRatio});
     }
 
     void priv_Inspector_ShowImagesListbox(float width)
@@ -5958,9 +6009,9 @@ namespace ImmVision
             {
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
-                std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
+                std::string id = s_Inspector_ImagesAndParams[i].Label + "##_" + std::to_string(i);
                 auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(
-                    s_Inspector_ImagesAndParams[i].Image);
+                    s_Inspector_ImagesAndParams[i].Label);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
@@ -5993,7 +6044,8 @@ namespace ImmVision
                     i.Params.ZoomPanMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
-                ImageCache::gImageTextureCache.UpdateCache(i.Image, &i.Params, true);
+
+                ImageCache::gImageTextureCache.UpdateCache(i.Label, i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }
@@ -6007,7 +6059,6 @@ namespace ImmVision
                 v.Params.ShowImageInfo = currentParams.ShowImageInfo;
                 v.Params.ShowPixelInfo = currentParams.ShowPixelInfo;
                 v.Params.ShowZoomButtons = currentParams.ShowZoomButtons;
-                v.Params.ShowLegendBorder = currentParams.ShowLegendBorder;
                 v.Params.ShowOptionsPanel = currentParams.ShowOptionsPanel;
                 v.Params.ShowOptionsInTooltip = currentParams.ShowOptionsInTooltip;
                 v.Params.PanWithMouse = currentParams.PanWithMouse;
@@ -6096,7 +6147,7 @@ namespace ImmVision
             if (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size())
             {
                 auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
-                Image(imageAndParams.Image, &imageAndParams.Params);
+                Image(imageAndParams.Label, imageAndParams.Image, &imageAndParams.Params);
             }
         }
 
@@ -6211,7 +6262,6 @@ namespace ImmVision
 
         inner = inner + "refresh_image: " + ToString(v.RefreshImage) + "\n";
         inner = inner + "image_display_size: " + ToString(v.ImageDisplaySize) + "\n";
-        inner = inner + "legend: " + ToString(v.Legend) + "\n";
         inner = inner + "zoom_pan_matrix: " + ToString(v.ZoomPanMatrix) + "\n";
         inner = inner + "zoom_key: " + ToString(v.ZoomKey) + "\n";
         inner = inner + "color_adjustments: " + ToString(v.ColorAdjustments) + "\n";
@@ -6226,7 +6276,6 @@ namespace ImmVision
         inner = inner + "show_image_info: " + ToString(v.ShowImageInfo) + "\n";
         inner = inner + "show_pixel_info: " + ToString(v.ShowPixelInfo) + "\n";
         inner = inner + "show_zoom_buttons: " + ToString(v.ShowZoomButtons) + "\n";
-        inner = inner + "show_legend_border: " + ToString(v.ShowLegendBorder) + "\n";
         inner = inner + "show_options_panel: " + ToString(v.ShowOptionsPanel) + "\n";
         inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "show_options_button: " + ToString(v.ShowOptionsButton) + "\n";
@@ -6238,7 +6287,6 @@ namespace ImmVision
 
         inner = inner + "RefreshImage: " + ToString(v.RefreshImage) + "\n";
         inner = inner + "ImageDisplaySize: " + ToString(v.ImageDisplaySize) + "\n";
-        inner = inner + "Legend: " + ToString(v.Legend) + "\n";
         inner = inner + "ZoomPanMatrix: " + ToString(v.ZoomPanMatrix) + "\n";
         inner = inner + "ZoomKey: " + ToString(v.ZoomKey) + "\n";
         inner = inner + "ColorAdjustments: " + ToString(v.ColorAdjustments) + "\n";
@@ -6253,7 +6301,6 @@ namespace ImmVision
         inner = inner + "ShowImageInfo: " + ToString(v.ShowImageInfo) + "\n";
         inner = inner + "ShowPixelInfo: " + ToString(v.ShowPixelInfo) + "\n";
         inner = inner + "ShowZoomButtons: " + ToString(v.ShowZoomButtons) + "\n";
-        inner = inner + "ShowLegendBorder: " + ToString(v.ShowLegendBorder) + "\n";
         inner = inner + "ShowOptionsPanel: " + ToString(v.ShowOptionsPanel) + "\n";
         inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "ShowOptionsButton: " + ToString(v.ShowOptionsButton) + "\n";

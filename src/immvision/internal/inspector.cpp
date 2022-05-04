@@ -12,6 +12,7 @@ namespace ImmVision
 {
     struct Inspector_ImageAndParams
     {
+        std::string Label;
         cv::Mat Image;
         ImageParams Params;
 
@@ -35,13 +36,13 @@ namespace ImmVision
     )
     {
         ImageParams params;
-        params.Legend = legend;
         params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;
         params.ColorAdjustmentsKey = colorAdjustmentsKey;
         params.ShowOptionsPanel = true;
 
-        s_Inspector_ImagesAndParams.push_back({image, params, zoomCenter, zoomRatio});
+        std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
+        s_Inspector_ImagesAndParams.push_back({label, image, params, zoomCenter, zoomRatio});
     }
 
     void priv_Inspector_ShowImagesListbox(float width)
@@ -54,9 +55,9 @@ namespace ImmVision
             {
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
-                std::string id = s_Inspector_ImagesAndParams[i].Params.Legend + "##_" + std::to_string(i);
+                std::string id = s_Inspector_ImagesAndParams[i].Label + "##_" + std::to_string(i);
                 auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(
-                    s_Inspector_ImagesAndParams[i].Image);
+                    s_Inspector_ImagesAndParams[i].Label);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
@@ -89,7 +90,8 @@ namespace ImmVision
                     i.Params.ZoomPanMatrix = ZoomPanTransform::MakeZoomMatrix(
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
-                ImageCache::gImageTextureCache.UpdateCache(i.Image, &i.Params, true);
+
+                ImageCache::gImageTextureCache.UpdateCache(i.Label, i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }
@@ -103,7 +105,6 @@ namespace ImmVision
                 v.Params.ShowImageInfo = currentParams.ShowImageInfo;
                 v.Params.ShowPixelInfo = currentParams.ShowPixelInfo;
                 v.Params.ShowZoomButtons = currentParams.ShowZoomButtons;
-                v.Params.ShowLegendBorder = currentParams.ShowLegendBorder;
                 v.Params.ShowOptionsPanel = currentParams.ShowOptionsPanel;
                 v.Params.ShowOptionsInTooltip = currentParams.ShowOptionsInTooltip;
                 v.Params.PanWithMouse = currentParams.PanWithMouse;
@@ -192,7 +193,7 @@ namespace ImmVision
             if (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size())
             {
                 auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
-                Image(imageAndParams.Image, &imageAndParams.Params);
+                Image(imageAndParams.Label, imageAndParams.Image, &imageAndParams.Params);
             }
         }
 

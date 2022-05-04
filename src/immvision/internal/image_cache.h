@@ -8,6 +8,8 @@ namespace ImmVision
 {
     namespace ImageCache
     {
+        using KeyType = std::size_t;
+
         class ImageTextureCache
         {
         public:
@@ -29,20 +31,21 @@ namespace ImmVision
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
-            void UpdateCache(const cv::Mat& image, ImageParams* params, bool userRefresh);
 
-            CachedParams& GetCacheParams(const cv::Mat& image);
-            CachedImages& GetCacheImages(const cv::Mat& image);
+            void UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh);
+            KeyType GetID(const std::string& id_label);
+            CachedParams& GetCacheParams(const std::string& id_label);
+            CachedImages& GetCacheImages(const std::string& id_label);
             void ClearImagesCache();
 
         private:
             // Methods
-            void UpdateLinkedZooms(const cv::Mat& image);
-            void UpdateLinkedColorAdjustments(const cv::Mat& image);
+            void UpdateLinkedZooms(const std::string& id_label);
+            void UpdateLinkedColorAdjustments(const std::string& id_label);
 
-            internal::Cache<const uchar *, CachedParams> mCacheParams;
+            internal::Cache<KeyType, CachedParams> mCacheParams;
             double mCachedImagesTimeToLive = 5.;
-            internal::ShortLivedCache<const uchar *, CachedImages> mCacheImages { mCachedImagesTimeToLive };
+            internal::ShortLivedCache<KeyType, CachedImages> mCacheImages { mCachedImagesTimeToLive };
         };
 
         extern ImageTextureCache gImageTextureCache;

@@ -166,7 +166,6 @@ void guiFunction()
         static ImmVision::ImageParams originalImageParams {
             .RefreshImage = false,
             .ImageDisplaySize = gAppState.DisplaySize,
-            .Legend = "Original Image",
             .ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
                 cv::Point2d(1004., 953.), 40., originalImageParams.ImageDisplaySize),
             .ZoomKey = "i",
@@ -174,6 +173,7 @@ void guiFunction()
 
         originalImageParams.ImageDisplaySize = gAppState.DisplaySize;
         ImmVision::Image(
+            "Original Image",
             gAppState.Image,
             &originalImageParams);
     }
@@ -185,7 +185,6 @@ void guiFunction()
             static ImmVision::ImageParams imageParamsFilter {
                 .RefreshImage = false,
                 .ImageDisplaySize = gAppState.DisplaySize,
-                .Legend = "X & Y Gradients (see channels 0 & 1)",
                 .ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
                     cv::Point2d(1004., 953.), 40., imageParamsFilter.ImageDisplaySize),
                 .ZoomKey = "i"
@@ -194,6 +193,7 @@ void guiFunction()
             imageParamsFilter.RefreshImage = changed;
             imageParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
             ImmVision::Image(
+                "X & Y Gradients (see channels 0 & 1)",
                 gAppState.ImageFiltered,
                 &imageParamsFilter);
         }
@@ -203,9 +203,10 @@ void guiFunction()
     {
         static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
         ImmVision::ImageDisplay(
+            "Transparent image",
             imageTransparent, cv::Size(0, 400),
             false, // refresh
-            false // show options button
+            true // show options button
             );
     }
 
@@ -225,7 +226,7 @@ void guiImageDisplayOnly()
         static cv::Mat image2 = cv::imread("resources/house.jpg", cv::IMREAD_UNCHANGED);
         static ImmVision::ImageParams params;
         params.ImageDisplaySize = cv::Size(0, 300);
-        ImmVision::Image(image2, &params);
+        ImmVision::Image("House", image2, &params);
     }
     ImGui::SameLine();
 
@@ -244,6 +245,7 @@ void guiImageDisplayOnly()
 #endif
 
     cv::Point2d mousePosition = ImmVision::ImageDisplay(
+        "image",
         image,
         cv::Size(0, 300),
         true, // refresh
@@ -261,8 +263,8 @@ int main(int, char* [])
     HelloImGui::RunnerParams params;
     params.appWindowParams.windowSize = {1000.f, 800.f};
     params.appWindowParams.windowTitle = "ImmVision Demo";
-    //params.callbacks.ShowGui = guiFunction;
-    params.callbacks.ShowGui = guiImageDisplayOnly;
+    params.callbacks.ShowGui = guiFunction;
+    //params.callbacks.ShowGui = guiImageDisplayOnly;
     HelloImGui::Run(params);
 
     return 0;

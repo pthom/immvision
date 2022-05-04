@@ -82,8 +82,6 @@ class ImageParams(_cpp_immvision.ImageParams):
             Size of the displayed image (can be different from the matrix size)
             If you specify only the width or height (e.g (300, 0), then the other dimension
             will be calculated automatically, respecting the original image w/h ratio.
-    * legend: str = "Image"
-            Title displayed in the border
 
  Zoom and Pan (represented by an affine transform matrix, of size 3x3)
     * zoom_pan_matrix: Matx33d = np.eye(3)
@@ -120,8 +118,6 @@ class ImageParams(_cpp_immvision.ImageParams):
             Show pixel values
     * show_zoom_buttons: bool = True
             Show buttons that enable to zoom in/out (the mouse wheel also zoom)
-    * show_legend_border: bool = True
-            Show a rectangular border with the legend
     * show_options_panel: bool = False
             Open the options panel
     * show_options_in_tooltip: bool = False
@@ -148,8 +144,6 @@ class ImageParams(_cpp_immvision.ImageParams):
         # If you specify only the width or height (e.g (300, 0), then the other dimension
         # will be calculated automatically, respecting the original image w/h ratio.
         image_display_size: Size = (0, 0),
-        # Title displayed in the border
-        legend: str = "Image",
         # ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
         zoom_pan_matrix: Matx33d = np.eye(3),
         # If displaying several images, those with the same ZoomKey will zoom and pan together
@@ -178,8 +172,6 @@ class ImageParams(_cpp_immvision.ImageParams):
         show_pixel_info: bool = True,
         # Show buttons that enable to zoom in/out (the mouse wheel also zoom)
         show_zoom_buttons: bool = True,
-        # Show a rectangular border with the legend
-        show_legend_border: bool = True,
         # Open the options panel
         show_options_panel: bool = False,
         # If set to true, then the option panel will be displayed in a transient tooltip window
@@ -197,7 +189,6 @@ class ImageParams(_cpp_immvision.ImageParams):
         _cpp_immvision.ImageParams.__init__(self)
         self.refresh_image = refresh_image
         self.image_display_size = image_display_size
-        self.legend = legend
         self.zoom_pan_matrix = zoom_pan_matrix
         self.zoom_key = zoom_key
         self.color_adjustments = color_adjustments
@@ -212,7 +203,6 @@ class ImageParams(_cpp_immvision.ImageParams):
         self.show_image_info = show_image_info
         self.show_pixel_info = show_pixel_info
         self.show_zoom_buttons = show_zoom_buttons
-        self.show_legend_border = show_legend_border
         self.show_options_panel = show_options_panel
         self.show_options_in_tooltip = show_options_in_tooltip
         self.show_options_button = show_options_button
@@ -245,15 +235,39 @@ def make_zoom_pan_matrix(
 
 
 def image(
-    image_matrix:  np.ndarray,
+    label_id:  str,
+    mat:  np.ndarray,
     params: ImageParams):
     """ Display an image, with full user control: zoom, pan, watch pixels, etc.
 
-     Notes:
+     :param label_id
+         A legend that will be displayed.
+         Important notes:
+             - With ImGui and ImmVision, widgets must have a unique Ids.
+               For this widget, the id is given by this label.
+               Two widgets (for example) two images cannot have the same label or the same id!
 
-     - the ImageParams may be modified by this function: you can extract from them
-       the mouse position, watched pixels, etc. Thus, their scope should extend beyond the call to Image !
-       If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
+               If they do, they might not refresh correctly!
+               To circumvent this, you can:
+                  - Call `ImGui::PushID("some_unique_string")` at the start of your function,
+                    and `ImGui::PopID()` at the end.
+                  - Or modify your label like this:
+                      "MyLabel##some_unique_id"
+                      (the part after "##" will not be displayed but will be part of the id)
+            - To display an empty legend, use "##_some_unique_id"
+
+     :param mat
+         An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+
+     :param params
+         Complete options (as modifiable inputs), and outputs (mouse position, watched pixels, etc)
+         @see ImageParams structure.
+         The ImageParams may be modified by this function: you can extract from them
+         the mouse position, watched pixels, etc.
+         Important note:
+             ImageParams is an input-output parameter, passed as a pointer.
+             Its scope should be wide enough so that it is preserved from frame to frame.
+             !! If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams !!
 
      - This function requires that both imgui and OpenGL were initialized.
        (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
@@ -261,11 +275,12 @@ def image(
 
     _cpp_immvision.transfer_imgui_context_python_to_cpp()
 
-    r = _cpp_immvision.image(image_matrix, params)
+    r = _cpp_immvision.image(label_id, mat, params)
     return r
 
 
 def image_display(
+    label_id:  str,
     mat:  np.ndarray,
     image_display_size:  Size  = (0, 0),
     refresh_image: bool  = False,
@@ -274,18 +289,35 @@ def image_display(
     """ Only, display the image, with no decoration, and no user interaction
 
      Parameters:
-          - mat:
-              The image to display
-          - imageDisplaySize:
-              Size of the displayed image (can be different from the mat size)
-              If you specify only the width or height (e.g (300, 0), then the other dimension
-              will be calculated automatically, respecting the original image w/h ratio.
-          - refreshImage: images textures are cached. Set to True if your image matrix/buffer has changed
-              (for example, for live video images)
-          - showOptionsButton: If True, show an option button that opens the option panel
-          - isBgrOrBgra: set to True if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+     :param label
+         A legend that will be displayed.
+         Important notes:
+             - With ImGui and ImmVision, widgets must have a unique Ids. For this widget, the id is given by this label.
+               Two widgets (for example) two images cannot have the same label or the same id!
+               If they do, they might not refresh correctly!
+               To circumvent this, you can modify your label like this:
+                  "MyLabel##some_unique_id"    (the part after "##" will not be displayed but will be part of the id)
+            - To display an empty legend, use "##_some_unique_id"
 
-     Returns:
+     :param Mat:
+         An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+
+     :param imageDisplaySize:
+         Size of the displayed image (can be different from the mat size)
+         If you specify only the width or height (e.g (300, 0), then the other dimension
+         will be calculated automatically, respecting the original image w/h ratio.
+
+     :param refreshImage:
+         images textures are cached. Set to True if your image matrix/buffer has changed
+         (for example, for live video images)
+
+     :param showOptionsButton:
+         If True, show an option button that opens the option panel
+
+     :param isBgrOrBgra:
+         set to True if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+
+     :return:
           The mouse position in `mat` original image coordinates, as float values.
           (i.e. it does not matter if imageDisplaySize is different from mat.size())
           It will return (-1., -1.) if the mouse is not hovering the image.
@@ -300,7 +332,7 @@ def image_display(
 
     _cpp_immvision.transfer_imgui_context_python_to_cpp()
 
-    r = _cpp_immvision.image_display(mat, image_display_size, refresh_image, show_options_button, is_bgr_or_bgra)
+    r = _cpp_immvision.image_display(label_id, mat, image_display_size, refresh_image, show_options_button, is_bgr_or_bgra)
     return r
 
 

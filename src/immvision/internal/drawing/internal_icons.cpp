@@ -291,13 +291,13 @@ namespace ImmVision
 
             static ImmVision::ImageParams imageParams1;
             imageParams1.ImageDisplaySize = {400, 400};
-            ImmVision::Image(mag, &imageParams1);
+            ImmVision::Image("test", mag, &imageParams1);
 
             ImGui::SameLine();
 
             static ImmVision::ImageParams imageParams2;
             imageParams2.ImageDisplaySize = {400, 400};
-            ImmVision::Image(img, &imageParams2);
+            ImmVision::Image("test2", img, &imageParams2);
 
             ImVec2 iconSize(15.f, 15.f);
             ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);

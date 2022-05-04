@@ -86,15 +86,15 @@ fig_classic = make_figure_classic()
 
 
 def gui1():
-    immvision.figure_display(mandelbrot_ax.figure, (300, 0))
+    immvision.figure_display("mandelbrot_ax", mandelbrot_ax.figure, (300, 0))
     if imgui.button("Exit"):
         immvision.imgui_runner.exit_app()
 
 
 def gui2():
-    immvision.figure_display(fig_classic, (600, 0))
+    immvision.figure_display("fig_classic", fig_classic, (600, 0))
     imgui.same_line()
-    immvision.figure_display(mandelbrot_ax.figure, (600, 0))
+    immvision.figure_display("mandelbrot", mandelbrot_ax.figure, (600, 0))
     if imgui.button("Exit"):
         immvision.imgui_runner.exit_app()
 

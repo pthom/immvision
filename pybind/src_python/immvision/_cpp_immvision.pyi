@@ -54,8 +54,6 @@ class ImageParams:
     # If you specify only the width or height (e.g (300, 0), then the other dimension
     # will be calculated automatically, respecting the original image w/h ratio.
     image_display_size: Size = (0, 0)
-    # Title displayed in the border
-    legend: str = "Image"
 
     #
     #  Zoom and Pan (represented by an affine transform matrix, of size 3x3)
@@ -104,8 +102,6 @@ class ImageParams:
     show_pixel_info: bool = True
     # Show buttons that enable to zoom in/out (the mouse wheel also zoom)
     show_zoom_buttons: bool = True
-    # Show a rectangular border with the legend
-    show_legend_border: bool = True
     # Open the options panel
     show_options_panel: bool = False
     # If set to true, then the option panel will be displayed in a transient tooltip window

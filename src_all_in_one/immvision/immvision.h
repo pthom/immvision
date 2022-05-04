@@ -70,8 +70,6 @@ namespace ImmVision
         // If you specify only the width or height (e.g (300, 0), then the other dimension
         // will be calculated automatically, respecting the original image w/h ratio.
         cv::Size ImageDisplaySize = cv::Size();
-        // Title displayed in the border
-        std::string Legend = "Image";
 
         //
         // Zoom and Pan (represented by an affine transform matrix, of size 3x3)
@@ -120,8 +118,6 @@ namespace ImmVision
         bool ShowPixelInfo = true;
         // Show buttons that enable to zoom in/out (the mouse wheel also zoom)
         bool ShowZoomButtons = true;
-        // Show a rectangular border with the legend
-        bool ShowLegendBorder = true;
         // Open the options panel
         bool ShowOptionsPanel = false;
         // If set to true, then the option panel will be displayed in a transient tooltip window
@@ -159,33 +155,73 @@ namespace ImmVision
     // !pydef_function
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
-    // Notes:
+    // :param label_id
+    //     A legend that will be displayed.
+    //     Important notes:
+    //         - With ImGui and ImmVision, widgets *must* have a unique Ids.
+    //           For this widget, the id is given by this label.
+    //           Two widgets (for example) two images *cannot* have the same label or the same id!
     //
-    // - the ImageParams may be modified by this function: you can extract from them
-    //   the mouse position, watched pixels, etc. Thus, their scope should extend beyond the call to Image !
-    //   If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams!
+    //           If they do, they might not refresh correctly!
+    //           To circumvent this, you can:
+    //              - Call `ImGui::PushID("some_unique_string")` at the start of your function,
+    //                and `ImGui::PopID()` at the end.
+    //              - Or modify your label like this:
+    //                  "MyLabel##some_unique_id"
+    //                  (the part after "##" will not be displayed but will be part of the id)
+    //        - To display an empty legend, use "##_some_unique_id"
+    //
+    // :param mat
+    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    //
+    // :param params
+    //     Complete options (as modifiable inputs), and outputs (mouse position, watched pixels, etc)
+    //     @see ImageParams structure.
+    //     The ImageParams may be modified by this function: you can extract from them
+    //     the mouse position, watched pixels, etc.
+    //     Important note:
+    //         ImageParams is an input-output parameter, passed as a pointer.
+    //         Its scope should be wide enough so that it is preserved from frame to frame.
+    //         !! If you cannot zoom/pan in a displayed image, extend the scope of the ImageParams !!
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    void Image(const cv::Mat& imageMatrix, ImageParams* params);
+    void Image(const std::string& label_id, const cv::Mat& mat, ImageParams* params);
 
 
     // !pydef_function
     // Only, display the image, with no decoration, and no user interaction
     //
     // Parameters:
-    //      - mat:
-    //          The image to display
-    //      - imageDisplaySize:
-    //          Size of the displayed image (can be different from the mat size)
-    //          If you specify only the width or height (e.g (300, 0), then the other dimension
-    //          will be calculated automatically, respecting the original image w/h ratio.
-    //      - refreshImage: images textures are cached. Set to true if your image matrix/buffer has changed
-    //          (for example, for live video images)
-    //      - showOptionsButton: If true, show an option button that opens the option panel
-    //      - isBgrOrBgra: set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    // :param label
+    //     A legend that will be displayed.
+    //     Important notes:
+    //         - With ImGui and ImmVision, widgets must have a unique Ids. For this widget, the id is given by this label.
+    //           Two widgets (for example) two images *cannot* have the same label or the same id!
+    //           If they do, they might not refresh correctly!
+    //           To circumvent this, you can modify your label like this:
+    //              "MyLabel##some_unique_id"    (the part after "##" will not be displayed but will be part of the id)
+    //        - To display an empty legend, use "##_some_unique_id"
     //
-    // Returns:
+    // :param Mat:
+    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    //
+    // :param imageDisplaySize:
+    //     Size of the displayed image (can be different from the mat size)
+    //     If you specify only the width or height (e.g (300, 0), then the other dimension
+    //     will be calculated automatically, respecting the original image w/h ratio.
+    //
+    // :param refreshImage:
+    //     images textures are cached. Set to true if your image matrix/buffer has changed
+    //     (for example, for live video images)
+    //
+    // :param showOptionsButton:
+    //     If true, show an option button that opens the option panel
+    //
+    // :param isBgrOrBgra:
+    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    //
+    // :return:
     //      The mouse position in `mat` original image coordinates, as double values.
     //      (i.e. it does not matter if imageDisplaySize is different from mat.size())
     //      It will return (-1., -1.) if the mouse is not hovering the image.
@@ -197,6 +233,7 @@ namespace ImmVision
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
     cv::Point2d ImageDisplay(
+        const std::string& label_id,
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,

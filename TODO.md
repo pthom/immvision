@@ -1,5 +1,4 @@
 * [ ] Harden 
-    * [ ] Keys given by user Bug / pan mandelbrot: probablement un probleme de cle du cache (les data des images varient beaucoup)
     * [ ] Catch & rethrow exception (C++ and Python). Do cleanup!
 
     * copy debug_utils from immvision to imgui_runner

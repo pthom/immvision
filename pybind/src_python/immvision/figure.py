@@ -38,21 +38,25 @@ def _fig_to_array(fig: matplotlib.figure.Figure, refresh: bool, bg_color: Color_
 
 
 
-def figure(fig: matplotlib.figure.Figure, params: ImageParams, bg_color = _DEFAULT_BG_COLOR):
+def figure(label_id: str, fig: matplotlib.figure.Figure, params: ImageParams, bg_color = _DEFAULT_BG_COLOR):
     """
     Display a matplotlib figure with options to navigate the figure as a normal image.
     Most of the time, you will prefer to use figure_display, which displays the figure alone.
 
+    :param label_id:
+        The label to display. Should be unique. If you do not want the label to show, use a string like
+        "##some_unique_id". Everything after "##" is hidden
     :param fig: the figure to display
     :param params: see ImageParams definition
     :param bg_color: many figures have a transparent border. You can change the color of this border
     """
     m = _fig_to_array(fig, params.refresh_image, bg_color)
     params.is_color_order_bgr = False
-    image(m, params)
+    image(label_id, m, params)
 
 
 def figure_display(
+        label_id: str,
         fig: matplotlib.figure.Figure,
         image_display_size:  Size  = (0, 0),
         refresh_image: bool  = False,
@@ -62,6 +66,9 @@ def figure_display(
     """
     immvision.figure_display will display a matplotlib figure
 
+    :param label_id:
+        The label to display. Should be unique. If you do not want the label to show, use a string like
+        "##some_unique_id". Everything after "##" is hidden
     :param fig: the figure to display
         If you created the figure with plt.subplots (fig, ax = plt.subplots(...)) then pass fig as an argument
         If you created the figure with plt.imshow, use this:  ax = plt.imshow(...); immvision.figure_display(ax.figure)
@@ -80,4 +87,4 @@ def figure_display(
     m = _fig_to_array(fig, refresh_image, bg_color)
     is_bgr = False
     # print(f"{nparray_address(m)} => Python image_display size={m.shape[1]}, {m.shape[0]}")
-    image_display(m, image_display_size, refresh_image, show_options_button, is_bgr)    
+    image_display(label_id, m, image_display_size, refresh_image, show_options_button, is_bgr)

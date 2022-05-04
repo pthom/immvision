@@ -60,7 +60,7 @@ def show_camera():
     if show_camera.visible:
         video_ok, video_frame = show_camera.video_capture.read()
         if video_ok:
-            immvision.image_display(video_frame, image_display_size=(0, 300), refresh_image=True)
+            immvision.image_display("video", video_frame, image_display_size=(0, 300), refresh_image=True)
             imgui_runner.power_save_set_max_wait_next_frame(1 / 50)
 
 
@@ -75,7 +75,7 @@ def _test_gui_function(params: imgui_runner.ImguiAppParams):
     imgui.text(immvision.version_info())
     show_camera()
     # imgui.same_line()
-    immvision.image_display(image, image_display_size=(0, 300))
+    immvision.image_display("image", image, image_display_size=(0, 300))
 
     elapsed = (time.time_ns() - start_time) / 1E9
     imgui.text(f"elapsed time: {elapsed:.2f}s FPS: {imgui.get_io().framerate:.2f}")
@@ -120,5 +120,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #main()
-    main_autosize()
+    main()
+    #main_autosize()

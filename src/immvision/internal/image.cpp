@@ -26,7 +26,7 @@ namespace ImmVision
     }
 
 
-    void Image(const cv::Mat& image, ImageParams* params)
+    void Image(const std::string& label_id, const cv::Mat& image, ImageParams* params)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params).
@@ -43,19 +43,15 @@ namespace ImmVision
         using CachedImages = ImageCache::ImageTextureCache::CachedImages;
 
         //
-        // Lambda / panel Title
+        // Lambda / is Label visible
         //
-        auto fnPanelTitle = [&params, &image]()
-        {
-            std::string panelTitle;
-            {
-                if (params->ShowLegendBorder)
-                    panelTitle = params->Legend;
-                panelTitle += "##Image_" + std::to_string((size_t)&image);
-            }
-            return panelTitle;
+        auto fnIsLabelVisible = [&label_id]() -> bool {
+            if (label_id.empty())
+                return false;
+            if (label_id.find("##") == 0)
+                return false;
+            return true;
         };
-
         //
         // Lambdas / Watched Pixels
         //
@@ -199,7 +195,6 @@ namespace ImmVision
                     ImGui::Checkbox("Show image info", &params->ShowImageInfo);
                     ImGui::Checkbox("Show pixel info", &params->ShowPixelInfo);
                     ImGui::Checkbox("Show zoom buttons", &params->ShowZoomButtons);
-                    ImGui::Checkbox("Show legend border", &params->ShowLegendBorder);
                     ImGuiImm::EndGroupPanel();
                 }
 
@@ -455,8 +450,9 @@ namespace ImmVision
         auto fnShowFullGui_WithBorder = [&](CachedParams& cacheParams, CachedImages &cacheImages) -> MouseInformation
         {
             // BeginGroupPanel
-            bool drawBorder = params->ShowLegendBorder;
-            ImGuiImm::BeginGroupPanel_FlagBorder(fnPanelTitle().c_str(), drawBorder);
+            bool drawBorder =  fnIsLabelVisible();
+            std::string title = label_id + "##title";
+            ImGuiImm::BeginGroupPanel_FlagBorder(title.c_str(), drawBorder);
             auto mouseInfo = fnShowFullGui(cacheParams, cacheImages);
             ImGuiImm::EndGroupPanel_FlagBorder();
             return mouseInfo;
@@ -471,22 +467,23 @@ namespace ImmVision
         if (image.empty())
         {
             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
-                               "%s -> empty image !!!", params->Legend.c_str());
+                               "%s -> empty image !!!", label_id.c_str());
             params->MouseInfo = MouseInformation();
             return;
         }
 
-        ImageCache::gImageTextureCache.UpdateCache(image, params, params->RefreshImage);
-        auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(image);
-        auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(image);
+        ImGui::PushID(label_id.c_str());
+        ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
+        auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
+        auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
 
-        ImGui::PushID("##Image"); ImGui::PushID(&image);
         params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
-        ImGui::PopID(); ImGui::PopID();
+        ImGui::PopID();
     }
 
 
     cv::Point2d ImageDisplay(
+        const std::string& label_id,
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize,
         bool refreshImage,
@@ -505,7 +502,7 @@ namespace ImmVision
         }
         ImageParams& cached_params = s_Params.at(&mat);
 
-        Image(mat, &cached_params);
+        Image(label_id, mat, &cached_params);
         return cached_params.MouseInfo.MousePosition;
     }
 
@@ -515,12 +512,10 @@ namespace ImmVision
         ImageParams imageParams;
         imageParams.ShowOptionsButton = false;
         imageParams.ShowOptionsPanel = false;
-        imageParams.Legend = "";
         imageParams.ZoomWithMouseWheel = false;
         imageParams.PanWithMouse = false;
         imageParams.ShowPixelInfo = false;
         imageParams.ShowImageInfo = false;
-        imageParams.ShowLegendBorder = false;
         imageParams.ShowGrid = false;
         imageParams.ShowAlphaChannelCheckerboard = false;
         imageParams.ShowZoomButtons = false;
