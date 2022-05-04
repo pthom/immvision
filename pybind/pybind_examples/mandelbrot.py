@@ -96,6 +96,7 @@ class MandelbrotApp:
     image: np.ndarray = None
     # cf https://mandelbrot.dev/
     mandelbrot_poi_list = [
+        -0.5,
         0.28439 - 0.01359j,
         0.28443 - 0.01273j,
         -0.79619 - 0.18323j,
@@ -162,6 +163,7 @@ class MandelbrotApp:
         if changed: needs_refresh = True
 
         # recalculate image if needed
+        # needs_refresh = True                              KK -> this makes the key bug very apparent!!!
         self.image_params.refresh_image = needs_refresh
         if needs_refresh:
             self.update_image()
