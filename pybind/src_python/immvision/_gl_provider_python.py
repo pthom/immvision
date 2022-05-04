@@ -37,7 +37,6 @@ def _Blit_RGBA_Buffer(img_rgba: np.ndarray, texture_id: int) -> None:
     gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
 
 
-
 def _GenTexture() -> int:
     if _DEBUG_GL_TEXTURES:
         logging.debug(f"_gl_provider_python.py: _GenTexture")

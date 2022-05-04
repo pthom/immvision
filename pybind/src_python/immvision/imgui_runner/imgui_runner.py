@@ -1,8 +1,4 @@
-import os.path
-
-# Do not remove this import (_gl_provider_sentinel), it acts as a sentinel that guards the texture cache
 from immvision import _gl_provider_sentinel
-
 from ._imgui_app_params_helper import _ImguiAppParamsHelper
 from .power_save import _power_save_instance
 from .auto_size_app_window import AutoSizeAppWindow
@@ -48,6 +44,8 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
         _power_save_instance().use_power_save = imgui_app_params.use_power_save
 
     backend.init_imgui_gl_renderer()
+
+    _gl_provider_sentinel.create_sentinel()
 
     frame_idx = 0
     while running:
@@ -111,6 +109,8 @@ def run_with_backend(gui_function: GuiFunction, backend: BackendAny, imgui_app_p
 
     if not was_window_position_saved:
         _ImguiAppParamsHelper.write_last_run_window_bounds(backend.get_window_bounds())
+
+    _gl_provider_sentinel.destroy_sentinel()
 
     backend.destroy_imgui_gl_renderer()
     ctx = imgui.get_current_context()
