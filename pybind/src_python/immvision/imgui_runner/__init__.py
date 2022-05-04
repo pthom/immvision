@@ -8,7 +8,7 @@ from .gui_types import GuiFunction
 from .backend_factory import factor_backend as _factor_backend, BackendType
 
 
-_BACKEND_TYPE = BackendType.SDL
+_BACKEND_TYPE = BackendType.GLFW
 _IMGUI_APP_PARAMS_HELPER_MAIN: _ImguiAppParamsHelper = None
 
 
