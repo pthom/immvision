@@ -187,12 +187,17 @@ class MandelbrotApp
     int idx_poi = 0;
     cv::Mat image;
     std::optional<PreciseCoords> last_mouse_coords;
+    ImmVision::ImageParams image_params;
 
 public:
     MandelbrotApp() : self(*this)
     {
         self.move_to_poi();
         self.update_image();
+
+        self.image_params.ZoomWithMouseWheel = false;
+        self.image_params.PanWithMouse = false;
+        self.image_params.AddWatchedPixelOnDoubleClick = false;
     }
 
     void move_to_poi()
@@ -287,9 +292,10 @@ public:
         // recalculate image if needed
         if (needs_refresh)
             self.update_image();
+        self.image_params.RefreshImage = needs_refresh;
 
-        cv::Point2d mouse_position = ImmVision::ImageDisplay(
-            "mandelbrot", self.image, cv::Size(), needs_refresh, true);
+        ImmVision::Image("mandelbrot", self.image, &self.image_params);
+        cv::Point2d mouse_position = self.image_params.MouseInfo.MousePosition;
         if (mouse_position.x > 0.)
         {
             auto complex_coords = self.mandelbrot_params.pixel_to_complex_coords(mouse_position);

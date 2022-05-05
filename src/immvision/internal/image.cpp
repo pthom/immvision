@@ -508,7 +508,7 @@ namespace ImmVision
         static std::map<const cv::Mat *, ImageParams> s_Params;
         if (s_Params.find(&mat) == s_Params.end())
         {
-            auto params = FactorImageParamsDisplayOnly();
+            ImageParams params = showOptionsButton ? ImageParams() : FactorImageParamsDisplayOnly();
             s_Params[&mat] = params;
         }
 
@@ -528,16 +528,18 @@ namespace ImmVision
     ImageParams FactorImageParamsDisplayOnly()
     {
         ImageParams imageParams;
-        imageParams.ShowOptionsButton = false;
-        imageParams.ShowOptionsPanel = false;
-        imageParams.ZoomWithMouseWheel = false;
-        imageParams.PanWithMouse = false;
-        imageParams.ShowPixelInfo = false;
-        imageParams.ShowImageInfo = false;
-        imageParams.ShowGrid = false;
-        imageParams.ShowAlphaChannelCheckerboard = false;
-        imageParams.ShowZoomButtons = false;
-        imageParams.AddWatchedPixelOnDoubleClick = false;
+        {
+            imageParams.ShowOptionsButton = false;
+            imageParams.ShowOptionsPanel = false;
+            imageParams.ZoomWithMouseWheel = false;
+            imageParams.PanWithMouse = false;
+            imageParams.ShowPixelInfo = false;
+            imageParams.ShowImageInfo = false;
+            imageParams.ShowGrid = false;
+            imageParams.ShowAlphaChannelCheckerboard = false;
+            imageParams.ShowZoomButtons = false;
+            imageParams.AddWatchedPixelOnDoubleClick = false;
+        }
         return imageParams;
     }
 
