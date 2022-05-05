@@ -6,7 +6,9 @@ namespace ImmVision
 {
     namespace MathUtils
     {
-        inline int RoundInt(double v);
+        int RoundInt(double v);
+        double MaximumValue(const std::vector<double> &v);
+        double MinimumValue(const std::vector<double> &v);
 
         inline double Lerp(double a, double b, double x) noexcept
         {

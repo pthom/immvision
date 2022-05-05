@@ -126,9 +126,11 @@ namespace ImmVision
         auto fnColormap = [&params]()
         {
             auto guiAction = Colormap::ShowColormapsGui(params->ColorAdjustments.Colormap);
-            if (guiAction.Action == Colormap::GuiAction::Clicked)
+            if (guiAction.Action == Colormap::GuiAction::Apply)
                 params->ColorAdjustments.Colormap = guiAction.ColormapName;
-            if (guiAction.Action == Colormap::GuiAction::Hovered)
+            else if (guiAction.Action == Colormap::GuiAction::UnApply)
+                    params->ColorAdjustments.Colormap  = "";
+            else if (guiAction.Action == Colormap::GuiAction::Hovered)
                 params->ColorAdjustments._ColormapHovered = guiAction.ColormapName;
             else
                 params->ColorAdjustments._ColormapHovered = "";

@@ -17,7 +17,7 @@ namespace ImmVision
 {
     namespace Colormap
     {
-        enum class GuiAction { None, Hovered, Clicked };
+        enum class GuiAction { None, Hovered, Apply, UnApply };
 
         struct ColormapGuiResult
         {
@@ -25,7 +25,7 @@ namespace ImmVision
             GuiAction Action = GuiAction::None;
         };
 
-        ColormapGuiResult ShowColormapsGui(const std::string& currentColormap);
+        ColormapGuiResult ShowColormapsGui(const std::string& selectedColormapName);
 
         std::vector<std::string> AvailableColormaps();
 

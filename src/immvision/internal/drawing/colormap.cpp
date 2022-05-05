@@ -93,48 +93,68 @@ namespace ImmVision
         }
 
 
-        ColormapGuiResult ShowColormapsGui(const std::string& currentColormap)
+        ColormapGuiResult ShowColormapsGui(const std::string& selectedColormapName)
         {
+            static std::string lastUnselectedColormap = "";
+
+
             ColormapGuiResult r;
             FillTextureCache();
 
             for (const auto& kv: sColormapsTexturesCache)
             {
-                ImVec4 colorNormal(1.f, 1.f, 1.f, 1.f);
-                ImVec4 colorHovered(1.f, 1.f, 0.2f, 1.f);
-                ImVec4 colorSelected(0.4f, 0.4f, 1.f, 1.f);
+                std::string colormapName = kv.first;
+                bool isSelected = (colormapName == selectedColormapName);
+
+                ImVec4 colorNormal(0.7f, 0.7f, 0.7f, 1.f);
+                ImVec4 colorSelected(1.f, 1.f, 0.2f, 1.f);
+                ImVec4 colorHovered = colorSelected; colorHovered.w = 0.5;
 
                 float widthText = 75.f;
                 ImVec2 sizeTexture(200.f, 15.f);
 
-                bool hovered;
+                bool isHovered;
                 {
                     auto posWidget = ImGui::GetCursorScreenPos();
                     auto posMouse = ImGui::GetMousePos();
                     ImRect bounding(posWidget, posWidget + ImVec2(sizeTexture.x + widthText, 15.f));
-                    hovered = bounding.Contains(posMouse);
+                    isHovered = bounding.Contains(posMouse);
                 }
 
                 ImVec4 color;
-                if (kv.first == currentColormap)
+                if (isSelected)
                     color = colorSelected;
-                else if (hovered)
+                else if (isHovered)
                     color = colorHovered;
                 else
                     color = colorNormal;
 
                 auto pos = ImGui::GetCursorPos();
-                ImGui::TextColored(color, "%s", kv.first.c_str());
+                ImGui::TextColored(color, "%s", colormapName.c_str());
                 pos.x += widthText;
                 ImGui::SetCursorPos(pos);
-                kv.second->Draw(sizeTexture);
-                if (ImGui::IsItemHovered())
+                if (isSelected)
+                    kv.second->DrawButton(sizeTexture);
+                else
+                    kv.second->Draw(sizeTexture);
+                if (ImGui::IsItemHovered() && (colormapName != selectedColormapName) && (colormapName != lastUnselectedColormap) )
                 {
-                    r.ColormapName = kv.first;
+                    r.ColormapName = colormapName;
                     r.Action = GuiAction::Hovered;
                 }
-                if (ImGui::IsMouseClicked(0))
-                    r.Action = GuiAction::Clicked;
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+                {
+                    if (isSelected)
+                    {
+                        r.Action = GuiAction::UnApply;
+                        lastUnselectedColormap = colormapName;
+                    }
+                    else
+                    {
+                        r.Action = GuiAction::Apply;
+                        lastUnselectedColormap = "";
+                    }
+                }
             }
             return r;
         }
