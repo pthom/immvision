@@ -1,5 +1,14 @@
 * [ ] Colormaps
-  * 
+  * CI 
+  * bug mouse / unset if re-click / drawbutton if selected
+  * link by key
+  * possible on int mats
+  * possible on sub roi
+  * option / min max
+  * merge adjust if colormap
+  * test mandel
+
+
 
 * [ ] PIP
   * [ ] change mat type if not castable (and cache)

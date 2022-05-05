@@ -5537,12 +5537,19 @@ namespace ImmVision
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 
+#include <iostream>
 
 namespace ImmVision
 {
     namespace Colormap
     {
+
         using ColormapType = tinycolormap::ColormapType;
+
+
+        // Hack, to let g++-11.2 accept to compile magic_enum (see https://github.com/Neargye/magic_enum/issues/184)
+        constexpr std::size_t WORKAROUND_MAGIC_ENUM = magic_enum::enum_count<tinycolormap::ColormapType>();
+
 
         std::vector<std::string> AvailableColormaps()
         {
@@ -5635,7 +5642,7 @@ namespace ImmVision
 
                 ImVec4 colorNormal(0.7f, 0.7f, 0.7f, 1.f);
                 ImVec4 colorSelected(1.f, 1.f, 0.2f, 1.f);
-                ImVec4 colorHovered = colorSelected; colorHovered.w = 0.5;
+                ImVec4 colorHovered = colorSelected; colorHovered.w = 0.65;
 
                 float widthText = 75.f;
                 ImVec2 sizeTexture(200.f, 15.f);
@@ -5664,10 +5671,11 @@ namespace ImmVision
                     kv.second->DrawButton(sizeTexture);
                 else
                     kv.second->Draw(sizeTexture);
-                if (ImGui::IsItemHovered() && (colormapName != selectedColormapName) && (colormapName != lastUnselectedColormap) )
+                if (ImGui::IsItemHovered())
                 {
                     r.ColormapName = colormapName;
-                    r.Action = GuiAction::Hovered;
+                    if ((colormapName != selectedColormapName) && (colormapName != lastUnselectedColormap) )
+                        r.Action = GuiAction::Hovered;
                 }
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
                 {
@@ -5767,6 +5775,7 @@ namespace ImmVision
 
     } // namespace Colormap
 } // namespace ImmVision
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/drawing/image_drawing.cpp                                       //
@@ -6561,7 +6570,6 @@ namespace ImmVision_GlProvider
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl/gl_provider.cpp continued                                    //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <iostream>
 
 namespace ImmVision_GlProvider
 {

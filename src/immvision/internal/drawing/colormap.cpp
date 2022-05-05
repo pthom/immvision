@@ -10,12 +10,19 @@
 
 #include <opencv2/core.hpp>
 #include <array>
+#include <iostream>
 
 namespace ImmVision
 {
     namespace Colormap
     {
+
         using ColormapType = tinycolormap::ColormapType;
+
+
+        // Hack, to let g++-11.2 accept to compile magic_enum (see https://github.com/Neargye/magic_enum/issues/184)
+        constexpr std::size_t WORKAROUND_MAGIC_ENUM = magic_enum::enum_count<tinycolormap::ColormapType>();
+
 
         std::vector<std::string> AvailableColormaps()
         {
