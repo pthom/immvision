@@ -26,7 +26,7 @@ using PreciseCoords = std::array<PreciseFloat, 2>;
 using ColorType = float;
 
 
-PreciseFloat lerp(PreciseFloat a, PreciseFloat b, PreciseFloat x)
+PreciseFloat precise_lerp(PreciseFloat a, PreciseFloat b, PreciseFloat x)
 {
     return a + (b - a) * x;
 }
@@ -55,14 +55,14 @@ cv::Mat mandelbrot(
     auto fn_y_loop = [&](int iy)
     {
         PreciseFloat ky = PreciseFloat(iy) / PreciseFloat(height);
-        PreciseFloat y0 = lerp(y_from, y_to, ky);
+        PreciseFloat y0 = precise_lerp(y_from, y_to, ky);
 
         for (int ix = 0; ix < width; ++ix)
         {
             PreciseFloat kx = PreciseFloat(ix) / PreciseFloat(width);
 
             // start iteration
-            PreciseFloat x0 = lerp(x_from, x_to, kx);
+            PreciseFloat x0 = precise_lerp(x_from, x_to, kx);
 
             PreciseFloat x = PreciseFloat(0.0);
             PreciseFloat y = PreciseFloat(0.0);
@@ -153,8 +153,8 @@ struct MandelbrotParams
 
         PreciseFloat kx = PreciseFloat(pt.x) / PreciseFloat(self.width);
         PreciseFloat ky = PreciseFloat(pt.y) / PreciseFloat(self.height);
-        PreciseFloat real = lerp(x_from, x_to, kx);
-        PreciseFloat imag = lerp(y_from, y_to, ky);
+        PreciseFloat real = precise_lerp(x_from, x_to, kx);
+        PreciseFloat imag = precise_lerp(y_from, y_to, ky);
         return {real, imag};
     }
 };
@@ -250,7 +250,7 @@ public:
         // Change location to interesting location
         ImGui::SetNextItemWidth(200.f);
         bool changed = ImGui::SliderInt(
-            "interesting location", &self.idx_poi, 0, mandelbrot_poi_list.size() - 1);
+            "interesting location", &self.idx_poi, 0, (int)mandelbrot_poi_list.size() - 1);
         if (changed)
         {
             needs_refresh = true;

@@ -1,9 +1,9 @@
-* [ ] Harden 
-  * remove dependency on immvision._gl_provider_sentinel in imgui_runner
+* [ ] Colormaps
+  * 
 
 * [ ] PIP
-    * [ ] Publish ImGuiImm
   * [ ] change mat type if not castable (and cache)
+  * [Later] Publish ImGuiImm
   * [Later] SDL Raise window
   * [Later] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
   * [Later] Check if it is reasonnable to share matrixes memory
@@ -12,11 +12,11 @@
   * [Later] Add implot : https://github.com/epezent/implot
   * [Later] cf _skbuild_template: add conda & wheels
   * [Later] pyimgui
-      * [ ] PR / Propose imgui_runner (power_save, change window size, etc)
-      * [Later] imgui & pyimgui : utiliser branche docking sans powersave / ou bien branche master & official?
+    * [ ] PR / Propose imgui_runner (power_save, change window size, etc)
+    * [Later] imgui & pyimgui : utiliser branche docking sans powersave / ou bien branche master & official?
   * [Later] window sometimes remains opened at exit (notebook, sdl)
   * Read https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
-    https://setuptools.pypa.io/en/latest/index.html
+  https://setuptools.pypa.io/en/latest/index.html
 
 
  * [ ] immvision
