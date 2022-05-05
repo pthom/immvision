@@ -251,5 +251,5 @@ def measure_perf():
 
 
 if __name__ == "__main__":
-    #playground()
-    measure_perf()
+    playground()
+    # measure_perf()

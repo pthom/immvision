@@ -149,7 +149,7 @@ size_t GetPythonImGuiContextPointer()
     {
         throw std::runtime_error(R"(
 - Did you initialize the imgui context with imgui.create_context()?
-- Please use immvision.imgui_runner to make sure that the ImGui context is transferred from Python to C++)");
+- Please use immvision.run() to make sure that the ImGui context is transferred from Python to C++)");
     }
     assert(gPythonFunctions);
     pybind11::object r = gPythonFunctions->GetImGuiContextId();

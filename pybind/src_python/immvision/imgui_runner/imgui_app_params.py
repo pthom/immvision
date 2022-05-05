@@ -1,6 +1,16 @@
 from dataclasses import dataclass
-from typing import Optional, List
-from .gui_types import Color_RGBA_Float, WindowSize, WindowPosition, WindowBounds
+from typing import Optional, Callable, Any
+from .gui_types import Color_RGBA_Float, WindowSize, WindowPosition
+
+
+# CallbackOpenGl: any function that will be invoked when the OpenGL context is ready, or about to be destroyed.
+CallbackOpenGl = Callable[[], None]
+
+
+@dataclass
+class ImguiAppCallbacks:
+    on_open_gl_ready: CallbackOpenGl = None
+    on_open_gl_before_destroy: CallbackOpenGl = None
 
 
 @dataclass
@@ -80,3 +90,8 @@ class ImguiAppParams:
     # at one moment during the execution. It will be brought to top at the next frame
     # (warning, does not always work on MacOS with SDL)
     app_shall_raise_window = False
+
+    #
+    # Callbacks
+    #
+    imgui_app_callbacks: ImguiAppCallbacks = ImguiAppCallbacks()

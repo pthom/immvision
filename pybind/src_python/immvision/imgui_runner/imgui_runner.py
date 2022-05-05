@@ -1,4 +1,3 @@
-from immvision import _gl_provider_sentinel
 from ._imgui_app_params_helper import _ImguiAppParamsHelper, ImguiAppParams
 from .power_save import _power_save_instance
 from .auto_size_app_window import AutoSizeAppWindow
@@ -80,7 +79,8 @@ class _ImGuiRunner:
     def _init_backend_gl(self):
         # has to be done after imgui.create_context()
         self.backend.init_imgui_gl_renderer()
-        _gl_provider_sentinel.create_sentinel()
+        if self.imgui_app_params.imgui_app_callbacks.on_open_gl_ready is not None:
+            self.imgui_app_params.imgui_app_callbacks.on_open_gl_ready()
 
     def _force_window_position_or_size(self):
         # This is done at the second frame, once we know the size of all the widgets
@@ -186,7 +186,9 @@ class _ImGuiRunner:
         if not self.was_window_position_saved:
             _ImguiAppParamsHelper.write_last_run_window_bounds(self.backend.get_window_bounds())
 
-        _gl_provider_sentinel.destroy_sentinel()
+        if self.imgui_app_params.imgui_app_callbacks.on_open_gl_before_destroy is not None:
+            self.imgui_app_params.imgui_app_callbacks.on_open_gl_before_destroy()
+
         self.backend.destroy_imgui_gl_renderer()
         ctx = imgui.get_current_context()
         if ctx is not None:
