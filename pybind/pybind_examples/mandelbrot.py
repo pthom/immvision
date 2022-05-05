@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from immvision.debug_utils import timeit
 import imgui
 import immvision
-import immvision.imgui_runner
 
 PreciseFloat = float #np.float64
 ColorType = np.float32
@@ -220,8 +219,8 @@ class MandelbrotApp:
 
 
     def run(self):
-        # immvision.imgui_runner.power_save_disable()
-        immvision.imgui_runner.run(lambda: self.gui())
+        # immvision.power_save_disable()
+        immvision.run(lambda: self.gui())
 
 
 def playground0():

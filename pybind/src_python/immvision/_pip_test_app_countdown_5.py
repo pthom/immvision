@@ -9,7 +9,6 @@ used only for internal tests
 import imgui
 import immvision
 import immvision._cpp_immvision
-import immvision.imgui_runner as imgui_runner
 import imgui
 import cv2
 import time
@@ -19,7 +18,7 @@ import numpy as np
 
 def main():
     print("********* _pip_test_app_countdown_5: graphical test app that exits after 5 seconds *********")
-    params = imgui_runner.ImguiAppParams()
+    params = immvision.ImguiAppParams()
     THIS_DIR = os.path.dirname(__file__)
 
     image = np.zeros((800, 600, 3), np.uint8)
@@ -44,7 +43,7 @@ def main():
             params.app_shall_exit = True
 
     params.gui_function = my_gui
-    imgui_runner.run(my_gui, params)
+    immvision.run(my_gui, params)
 
 
 main()

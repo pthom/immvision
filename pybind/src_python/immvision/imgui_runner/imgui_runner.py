@@ -4,7 +4,6 @@ from .auto_size_app_window import AutoSizeAppWindow
 from .backend_any import BackendAny
 from .gui_types import GuiFunction, WindowBounds
 
-
 import imgui
 import imgui.internal
 

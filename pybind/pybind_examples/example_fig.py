@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib import patheffects
 
 import imgui
-import immvision.imgui_runner
 import immvision
 
 
@@ -88,7 +87,7 @@ fig_classic = make_figure_classic()
 def gui1():
     immvision.figure_display("mandelbrot_ax", mandelbrot_ax.figure, (300, 0))
     if imgui.button("Exit"):
-        immvision.imgui_runner.exit_app()
+        immvision.exit_app()
 
 
 def gui2():
@@ -99,8 +98,8 @@ def gui2():
         immvision.imgui_runner.exit_app()
 
 
-immvision.imgui_runner.run(gui2)
-immvision.imgui_runner.run(gui1)
-immvision.imgui_runner.run(gui2)
-immvision.imgui_runner.run(gui1)
-# immvision.imgui_runner.run(gui)
+immvision.run(gui2)
+immvision.run(gui1)
+immvision.run(gui2)
+immvision.run(gui1)
+# immvision.run(gui)
