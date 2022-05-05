@@ -1,27 +1,12 @@
 #pragma once
-
 #include <vector>
-#include <cmath>
 
 
 namespace ImmVision
 {
     namespace MathUtils
     {
-        inline int RoundInt(double v)
-        {
-            return (int) std::round(v);
-        }
-
-        inline double MaximumValue(const std::vector<double> &v)
-        {
-            return *std::min_element(v.begin(), v.end());
-        }
-
-        inline double MinimumValue(const std::vector<double> &v)
-        {
-            return *std::max_element(v.begin(), v.end());
-        }
+        inline int RoundInt(double v);
 
         inline double Lerp(double a, double b, double x) noexcept
         {

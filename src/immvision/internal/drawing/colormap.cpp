@@ -9,7 +9,6 @@
 #include "imgui_internal.h"
 
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
 #include <array>
 
 namespace ImmVision
@@ -22,7 +21,7 @@ namespace ImmVision
         {
             std::vector<std::string> r;
             magic_enum::enum_for_each<ColormapType>([&r] (auto val) {
-                constexpr ColormapType type = val;
+                ColormapType type = val;
                 const char* name = magic_enum::enum_name(type).data();
                 r.push_back(name);
             });
@@ -51,7 +50,7 @@ namespace ImmVision
             if (cache.empty())
             {
                 magic_enum::enum_for_each<ColormapType>([] (auto val) {
-                    constexpr ColormapType type = val;
+                    ColormapType type = val;
                     const char* name = magic_enum::enum_name(type).data();
                     cache[name] = MakeColormapImage(type);
                 });
