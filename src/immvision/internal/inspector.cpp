@@ -29,7 +29,7 @@ namespace ImmVision
         const cv::Mat& image,
         const std::string& legend,
         const std::string& zoomKey,
-        const std::string& colorAdjustmentsKey,
+        const std::string& colormapKey,
         const cv::Point2d & zoomCenter,
         double zoomRatio,
         bool isColorOrderBGR
@@ -38,7 +38,7 @@ namespace ImmVision
         ImageParams params;
         params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;
-        params.ColorAdjustmentsKey = colorAdjustmentsKey;
+        params.ColormapKey = colormapKey;
         params.ShowOptionsPanel = true;
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());

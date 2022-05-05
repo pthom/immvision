@@ -19,9 +19,16 @@ namespace ImmVision
     {
         enum class GuiAction { None, Hovered, Apply, UnApply };
 
-        void ShowColormapsGui(
+        void ShowColormapSettingsDataGui(
             const cv::Mat &image, const cv::Rect& roi,
-            ColorAdjustmentsValues* inOutColorAdjustmentsValues);
+            ColormapSettingsData* inoutSettings);
+
+        void UpdateColormapSettingsDataFromRoi(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            bool forceRefresh,
+            bool wasRoiChanged,
+            ColormapSettingsData* inoutSettings);
 
         std::vector<std::string> AvailableColormaps();
 
@@ -37,6 +44,12 @@ namespace ImmVision
             );
 
         bool CanColormap(const cv::Mat &image);
+
+
+        bool IsNone(const ColormapSettingsData& a);
+        bool IsEqual(const ColormapSettingsData& v1, const ColormapSettingsData& v2);
+
+        ColormapSettingsData ComputeInitialColormapSettings(const cv::Mat& m);
 
     } // namespace Colormap
 

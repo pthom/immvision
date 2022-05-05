@@ -4,6 +4,7 @@
 #include "immvision/internal/misc/magic_enum.hpp"
 #include "immvision/internal/misc/math_utils.h"
 #include "immvision/internal/gl/gl_texture.h"
+#include "immvision/imgui_imm.h"
 #include "imgui.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
@@ -20,6 +21,13 @@ namespace ImmVision
         using ColormapType = tinycolormap::ColormapType;
 
 
+        std::string LowerString(const std::string& s)
+        {
+            // Just one implementation among billions of others around the planet
+            std::string r = s;
+            std::transform(r.begin(), r.end(), r.begin(), ::tolower);
+            return r;
+        }
 
 
         std::vector<std::string> AvailableColormaps()
@@ -53,6 +61,7 @@ namespace ImmVision
             return std::move(m);
         }
 
+
         const std::map<std::string, cv::Mat>& ColormapsImages()
         {
             static std::map<std::string, cv::Mat> cache;
@@ -70,6 +79,7 @@ namespace ImmVision
 
         static std::map<std::string, std::unique_ptr<GlTextureCv>> sColormapsTexturesCache;
 
+
         void FillTextureCache()
         {
             if (sColormapsTexturesCache.empty())
@@ -82,6 +92,7 @@ namespace ImmVision
                 }
             }
         }
+
 
         const std::map<std::string, unsigned int>& ColormapsTextures()
         {
@@ -96,15 +107,15 @@ namespace ImmVision
             return cache;
         }
 
+
         void ClearColormapsTexturesCache()
         {
             sColormapsTexturesCache.clear();
         }
 
 
-        void ShowColormapsGui(
-            const cv::Mat &image, const cv::Rect& roi,
-            ColorAdjustmentsValues* params)
+        void GuiChooseColormap(const cv::Mat &image, const cv::Rect& roi,
+                               ColormapSettingsData* params)
         {
             static std::string lastUnselectedColormap = "";
             FillTextureCache();
@@ -163,6 +174,92 @@ namespace ImmVision
                     }
                 }
             }
+        }
+
+
+        size_t ScaleTypeToInt(const std::string& type)
+        {
+            std::vector<std::string> allTypes =  AvailableColormapScaleTypes();
+            for (size_t i = 0; i < allTypes.size(); ++i)
+                if (LowerString(type) == LowerString(allTypes[i]))
+                    return i;
+            throw std::runtime_error("Bad Value for ColormapScaleType: " + type);
+        }
+
+        std::string IntToScaleType(size_t type)
+        {
+            std::vector<std::string> allTypes =  AvailableColormapScaleTypes();
+            if (type > allTypes.size())
+                throw std::runtime_error("Bad Value for ColormapScaleType: " + std::to_string(type));
+            return allTypes[type];
+        };
+
+
+        void ShowColormapSettingsDataGui(
+            const cv::Mat &image, const cv::Rect& roi,
+            ColormapSettingsData* inoutSettings)
+        {
+            {
+                ImGui::Text("Colormap scale type");
+                int colormapScaleType = ScaleTypeToInt(inoutSettings->ColormapScaleType);
+                std::vector<std::string> allTypes =  AvailableColormapScaleTypes();
+                for (size_t i = 0; i < allTypes.size(); ++i)
+                {
+                    ImGui::RadioButton(allTypes[i].c_str(), &colormapScaleType, i);
+                    ImGui::SameLine();
+                }
+                ImGui::NewLine();
+                inoutSettings->ColormapScaleType = IntToScaleType(colormapScaleType);
+            }
+
+            ImGuiImm::SliderAnyFloatLogarithmic("Scale min", &inoutSettings->ColormapScaleMin, -255., 255.);
+            ImGuiImm::SliderAnyFloatLogarithmic("Scale max", &inoutSettings->ColormapScaleMax, -255., 255.);
+
+            GuiChooseColormap(image, roi, inoutSettings);
+        }
+
+
+        void UpdateColormapSettingsDataFromRoi(
+            const cv::Mat &m,
+            const cv::Rect& roi,
+            bool forceRefresh,
+            bool wasRoiChanged,
+            ColormapSettingsData* params)
+        {
+            if (!CanColormap(m))
+                return;
+            if (LowerString(params->ColormapScaleType) == "manual")
+                return;
+            if (LowerString(params->ColormapScaleType) == "0,1")
+            {
+                params->ColormapScaleMin = 0.;
+                params->ColormapScaleMax = 1.;
+                return;
+            }
+            if (LowerString(params->ColormapScaleType) == "-1,1")
+            {
+                params->ColormapScaleMin = -1.;
+                params->ColormapScaleMax = 1.;
+                return;
+            }
+
+            bool needed = false;
+            if (LowerString(params->ColormapScaleType) == "roi")
+                needed = wasRoiChanged;
+            if (forceRefresh)
+                needed = true;
+
+            if (needed)
+            {
+                double min, max;
+                if (LowerString(params->ColormapScaleType) == "roi")
+                    cv::minMaxLoc(m(roi), &min, &max);
+                else
+                    cv::minMaxLoc(m, &min, &max);
+                params->ColormapScaleMin = min;
+                params->ColormapScaleMax = max;
+            }
+
         }
 
 
@@ -225,9 +322,40 @@ namespace ImmVision
             }
         }
 
+
         bool CanColormap(const cv::Mat &image)
         {
             return image.channels() == 1;
+        }
+
+
+        bool IsNone(const ColormapSettingsData& a)
+        {
+            ColormapSettingsData empty;
+            return IsEqual(a, empty);
+        }
+
+
+        bool IsEqual(const ColormapSettingsData& v1, const ColormapSettingsData& v2)
+        {
+            if (v1.Colormap != v2.Colormap)
+                return false;
+            if (fabs(v1.ColormapScaleMax - v2.ColormapScaleMax) > 1E-6)
+                return false;
+            if (fabs(v1.ColormapScaleMin - v2.ColormapScaleMin) > 1E-6)
+                return false;
+            if (v1.ColormapScaleType != v2.ColormapScaleType)
+                return false;
+            if (v1.internal_ColormapHovered != v2.internal_ColormapHovered)
+                return false;
+            return true;
+        }
+
+
+        ColormapSettingsData ComputeInitialColormapSettings(const cv::Mat& m)
+        {
+            ColormapSettingsData r;
+            return r;
         }
 
 

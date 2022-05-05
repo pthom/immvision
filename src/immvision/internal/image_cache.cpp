@@ -1,5 +1,5 @@
 #include "immvision/internal/image_cache.h"
-#include "immvision/internal/cv/color_adjustment_utils.h"
+#include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/imgui_imm.h"
 #include "immvision/internal/drawing/image_drawing.h"
@@ -20,19 +20,19 @@ namespace ImmVision
 
         void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
         {
-            if (ColorAdjustmentsUtils::IsNone(params->ColorAdjustments))
-                params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
+            if (Colormap::IsNone(params->ColormapSettings))
+                params->ColormapSettings = Colormap::ComputeInitialColormapSettings(image);
             if (params->ZoomPanMatrix == cv::Matx33d::eye())
                 params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
         bool ShallRefreshRgbaCache(const ImageParams& v1, const ImageParams& v2)
         {
-            if (v1.ColorAdjustments.Colormap != v2.ColorAdjustments.Colormap)
+            if (v1.ColormapSettings.Colormap != v2.ColormapSettings.Colormap)
                 return true;
-            if (v1.ColorAdjustments.internal_ColormapHovered != v2.ColorAdjustments.internal_ColormapHovered)
+            if (v1.ColormapSettings.internal_ColormapHovered != v2.ColormapSettings.internal_ColormapHovered)
                 return true;
-            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
+            if (! Colormap::IsEqual(v1.ColormapSettings, v2.ColormapSettings))
                 return true;
             if (v1.SelectedChannel != v2.SelectedChannel)
                 return true;
@@ -45,15 +45,15 @@ namespace ImmVision
 
         bool ShallRefreshTexture(const ImageParams& v1, const ImageParams& v2)
         {
-            if (v1.ColorAdjustments.Colormap != v2.ColorAdjustments.Colormap)
+            if (v1.ColormapSettings.Colormap != v2.ColormapSettings.Colormap)
                 return true;
-            if (v1.ColorAdjustments.internal_ColormapHovered != v2.ColorAdjustments.internal_ColormapHovered)
+            if (v1.ColormapSettings.internal_ColormapHovered != v2.ColormapSettings.internal_ColormapHovered)
                 return true;
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
             if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))
                 return true;
-            if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
+            if (! Colormap::IsEqual(v1.ColormapSettings, v2.ColormapSettings))
                 return true;
             if (v1.ShowGrid != v2.ShowGrid)
                 return true;
@@ -77,7 +77,7 @@ namespace ImmVision
         // ImageTextureCache impl below
         //
 
-        void ImageTextureCache::UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh)
+        bool ImageTextureCache::UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
             auto cacheKey = GetID(id_label);
             params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
@@ -85,8 +85,10 @@ namespace ImmVision
             bool needsRefreshTexture = userRefresh;
             bool shallRefreshRgbaCache = false;
 
+            bool isNewEntry = false;
             if (! mCacheParams.Contains(cacheKey))
             {
+                isNewEntry = true;
                 InitializeMissingParams(params, image);
                 needsRefreshTexture = true;
                 shallRefreshRgbaCache = true;
@@ -124,12 +126,14 @@ namespace ImmVision
 
             if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
                 UpdateLinkedZooms(id_label);
-            if (! ColorAdjustmentsUtils::IsEqual(oldParams.ColorAdjustments, params->ColorAdjustments))
+            if (! Colormap::IsEqual(oldParams.ColormapSettings, params->ColormapSettings))
                 UpdateLinkedColorAdjustments(id_label);
 
             cachedParams.PreviousParams = *params;
 
             mCacheImages.ClearOldEntries();
+
+            return isNewEntry;
         }
 
         KeyType ImageTextureCache::GetID(const std::string& id_label)
@@ -170,15 +174,15 @@ namespace ImmVision
         {
             auto currentCacheKey = GetID(id_label);
             auto & currentCache = mCacheParams.Get(currentCacheKey);
-            std::string colorKey = currentCache.Params->ColorAdjustmentsKey;
-            if (colorKey.empty())
+            std::string colormapKey = currentCache.Params->ColormapKey;
+            if (colormapKey.empty())
                 return;
-            ColorAdjustmentsValues newColorAdjustments = currentCache.Params->ColorAdjustments;
+            ColormapSettingsData newColorAdjustments = currentCache.Params->ColormapSettings;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ColorAdjustmentsKey == colorKey))
-                    otherCache.Params->ColorAdjustments = newColorAdjustments;
+                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ColormapKey == colormapKey))
+                    otherCache.Params->ColormapSettings = newColorAdjustments;
             }
         }
 

@@ -1,5 +1,5 @@
 #include "immvision/internal/drawing/image_drawing.h"
-#include "immvision/internal/cv/color_adjustment_utils.h"
+#include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/cv_drawing_utils.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
@@ -168,13 +168,15 @@ namespace ImmVision
             //
             auto fnApplyColormap = [&finalImage, params]()
             {
-                double minValue = 0.;
-                double maxValue = 1.;
-                if (!params.ColorAdjustments.internal_ColormapHovered.empty())
-                    finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments.internal_ColormapHovered, minValue, maxValue);
-                else if(!params.ColorAdjustments.Colormap.empty())
-                    finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments.Colormap, minValue, maxValue);
-
+                assert(finalImage.channels() == 1);
+                if (!params.ColormapSettings.internal_ColormapHovered.empty())
+                    finalImage = Colormap::ApplyColormap(
+                        finalImage, params.ColormapSettings.internal_ColormapHovered,
+                        params.ColormapSettings.ColormapScaleMin, params.ColormapSettings.ColormapScaleMax);
+                else if(!params.ColormapSettings.Colormap.empty())
+                    finalImage = Colormap::ApplyColormap(
+                        finalImage, params.ColormapSettings.Colormap,
+                        params.ColormapSettings.ColormapScaleMin, params.ColormapSettings.ColormapScaleMax);
             };
 
             auto fnAdjustColor = [&finalImage, params]()
@@ -194,8 +196,6 @@ namespace ImmVision
                     finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
                 }
 
-                // Color adjustments
-                finalImage = ColorAdjustmentsUtils::Adjust(params.ColorAdjustments, finalImage);
             };
 
             //
@@ -268,7 +268,7 @@ namespace ImmVision
 
         bool HasColormapParam(const ImageParams &params)
         {
-            return (!params.ColorAdjustments.Colormap.empty() || !params.ColorAdjustments.internal_ColormapHovered.empty());
+            return (!params.ColormapSettings.Colormap.empty() || !params.ColormapSettings.internal_ColormapHovered.empty());
         }
 
     } // namespace ImageDrawing

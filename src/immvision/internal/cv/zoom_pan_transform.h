@@ -26,6 +26,11 @@ namespace ImmVision
             const MatrixType& oldZoomMatrix,
             const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize);
 
+        cv::Rect VisibleRoi(const MatrixType & zoomMatrix,
+                            cv::Size imageDisplaySize,
+                            cv::Size originalImageSize
+                            );
+
     } // namespace ZoomPanTransform
 
     cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize);

@@ -159,8 +159,8 @@ void guiFunction()
             for (int i = 0; i < 2; ++i)
             {
                 imageParamsFilter[i].RefreshImage = changed;
-                imageParamsFilter[i].ImageDisplaySize = gAppState.DisplaySize;
-                imageParamsFilter[i].ColorAdjustmentsKey = "c";
+                imageParamsFilter[i].ImageDisplaySize =  gAppState.DisplaySize;
+                imageParamsFilter[i].ColormapKey = "c";
                 imageParamsFilter[i].ZoomKey = "i";
                 ImmVision::Image(
                     "Gradients" + std::to_string(i),
@@ -172,31 +172,31 @@ void guiFunction()
         }
     }
 
-//    {
-//        static ImmVision::ImageParams originalImageParams {
-//            .RefreshImage = false,
-//            .ImageDisplaySize = gAppState.DisplaySize,
-//            //.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(cv::Point2d(1004., 953.), 40., originalImageParams.ImageDisplaySize),
-//            .ZoomKey = "i",
-//        };
-//
-//        originalImageParams.ImageDisplaySize = gAppState.DisplaySize;
-//        ImmVision::Image(
-//            "Original Image",
-//            gAppState.Image,
-//            &originalImageParams);
-//    }
+    {
+        static ImmVision::ImageParams originalImageParams {
+            .RefreshImage = false,
+            .ImageDisplaySize = gAppState.DisplaySize,
+            //.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(cv::Point2d(1004., 953.), 40., originalImageParams.ImageDisplaySize),
+            .ZoomKey = "i",
+        };
+
+        originalImageParams.ImageDisplaySize = gAppState.DisplaySize;
+        ImmVision::Image(
+            "Original Image",
+            gAppState.Image,
+            &originalImageParams);
+    }
 
 
-//    {
-//        static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
-//        ImmVision::ImageDisplay(
-//            "Transparent image",
-//            imageTransparent, cv::Size(0, 400),
-//            false, // refresh
-//            true // show options button
-//            );
-//    }
+    {
+        static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
+        ImmVision::ImageDisplay(
+            "Transparent image",
+            imageTransparent, cv::Size(0, 400),
+            false, // refresh
+            true // show options button
+            );
+    }
 
 //    ImGui::Begin("Style");
 //    ImGui::ShowStyleEditor(nullptr);

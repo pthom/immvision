@@ -32,7 +32,8 @@ namespace ImmVision
             };
 
 
-            void UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh);
+            // returns true if new entry
+            bool UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh);
             KeyType GetID(const std::string& id_label);
             CachedParams& GetCacheParams(const std::string& id_label);
             CachedImages& GetCacheImages(const std::string& id_label);

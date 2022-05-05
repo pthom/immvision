@@ -11,16 +11,19 @@
 #include "imgui.h"
 #include <opencv2/core.hpp>
 #include <vector>
+#include <string>
 
 namespace ImmVision
 {
+
+
     // !pydef_struct
-    // Color adjustments (esp. useful for a float matrix)
-    struct ColorAdjustmentsValues
+    // Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)
+    struct ColormapSettingsData
     {
         // Colormap, see available Colormaps with AvailableColormaps()
         // Work only with 1 channel matrices, i.e len(shape)==2
-        std::string Colormap = "";
+        std::string Colormap = "Cividis";
 
         // ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
         //     - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
@@ -28,20 +31,13 @@ namespace ImmVision
         double ColormapScaleMin = 0.;
         double ColormapScaleMax = 1.;
 
-        // If true, ColormapScaleMin/Max will be the min/max on the whole image
-        bool ColormapRescaleOnWholeImage = true;
-        // If true, ColormapScaleMin/Max will be the min/max on the currently visible portion of the image (ROI)
-        bool ColormapRescaleOnRoi = false;
-
-        //
-        // Other ways to manipulate float matrices: multiply and add delta
-        //
-
-        // Pre-multiply values by a Factor before displaying
-        double Factor = 1.;
-
-        // Add a delta to the values before displaying
-        double Delta = 0.;
+        // ColormapScaleType can take three values: "0,1", "-1,1", "Image", "ROI", or "Manual"
+        // - if ColormapScaleType=="0,1", the Colormap, values in [0, 1] will cover the whole Colormap
+        // - if ColormapScaleType=="-1,1", the Colormap, values in [-1, 1] will cover the whole Colormap
+        // - if ColormapScaleType=="Image", the Colormap is scaled on the whole image
+        // - if ColormapScaleType=="ROI", the Colormap is scaled on the visible portion of the image
+        // - if ColormapScaleType=="Manual", the Colormap is scaled based on ColormapScaleMin and ColormapScaleMax
+        std::string ColormapScaleType = "0,1";
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
         std::string internal_ColormapHovered = "";
@@ -107,12 +103,12 @@ namespace ImmVision
         std::string ZoomKey = "";
 
         //
-        // Color adjustments
+        // Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)
         //
-        // Color adjustments for float matrixes
-        ColorAdjustmentsValues ColorAdjustments = ColorAdjustmentsValues();
-        // If displaying several images, those with the same ColorAdjustmentsKey will adjust together
-        std::string ColorAdjustmentsKey = "";
+        // ColormapSettings stores all the parameter concerning the Colormap
+        ColormapSettingsData ColormapSettings = ColormapSettingsData();
+        // If displaying several images, those with the same ColormapKey will adjust together
+        std::string ColormapKey = "";
 
         //
         // Zoom and pan with the mouse
@@ -276,8 +272,13 @@ namespace ImmVision
     // Taken from https://github.com/yuki-koyama/tinycolormap, thanks to Yuki Koyama
     std::vector<std::string> AvailableColormaps();
 
-
     // !pydef_function
+    // Return the list of the available color maps scale types
+    // i.e ["0,1", "-1,1", "Image", "ROI", "Manual"]
+    std::vector<std::string> AvailableColormapScaleTypes();
+
+
+// !pydef_function
     // Clears the internal texture cache of immvision (this is done automatically at exit time)
     //
     // Note: this function requires that both imgui and OpenGL were initialized.
@@ -300,7 +301,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/inspector.h included by src/immvision/immvision.h                        //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <string>
 
 namespace ImmVision
 {
@@ -308,7 +308,7 @@ namespace ImmVision
         const cv::Mat& image,
         const std::string& legend,
         const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = "",
+        const std::string& colormapKey = "",
         const cv::Point2d & zoomCenter = cv::Point2d(),
         double zoomRatio = -1.,
         bool isColorOrderBGR = true

@@ -7,7 +7,7 @@
 #include "immvision/imgui_imm.h"
 #include "immvision/internal/misc/portable_file_dialogs.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
-#include "immvision/internal/cv/color_adjustment_utils.h"
+#include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
@@ -125,11 +125,11 @@ namespace ImmVision
         //
         auto fnColormap = [&params, &image]()
         {
-            cv::Rect roi;
-            Colormap::ShowColormapsGui(
+            cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
+            Colormap::ShowColormapSettingsDataGui(
                 image,
                 roi,
-                & params->ColorAdjustments);
+                &params->ColormapSettings);
         };
 
 
@@ -146,28 +146,6 @@ namespace ImmVision
             // Colormap
             if (Colormap::CanColormap(image) && ImageWidgets::CollapsingHeader_OptionalCacheState("Colormap"))
                 fnColormap();
-
-
-            // Adjust float values
-            bool hasAdjustFloatValues = true; // ((image.depth() == CV_32F) || (image.depth() == CV_64F));
-
-            if (hasAdjustFloatValues && ImageWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
-            {
-                ImGui::PushItemWidth(200.);
-                ImGuiImm::SliderAnyFloatLogarithmic(
-                    "k", &params->ColorAdjustments.Factor,
-                    0.001, 32.);
-                ImGui::PushItemWidth(200.);
-                ImGuiImm::SliderAnyFloatLogarithmic(
-                    "Delta", &params->ColorAdjustments.Delta,
-                    -255., 255.);
-
-                if (ImGui::Button("Default"))
-                    params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
-                ImGui::SameLine();
-                 if (ImGui::Button("No Adjustment"))
-                        params->ColorAdjustments = ColorAdjustmentsValues();
-            }
 
             // Watched Pixels
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))
@@ -389,6 +367,18 @@ namespace ImmVision
             }
 
         };
+        auto fnTransmitRoiToColormap = [&params, &image] (bool isNewImage, CachedParams & cacheParams)
+        {
+            bool roiChanged = (! ZoomPanTransform::IsEqual(cacheParams.PreviousParams.ZoomPanMatrix, params->ZoomPanMatrix));
+            bool scaleTypeChanged = (params->ColormapSettings.ColormapScaleType != cacheParams.PreviousParams.ColormapSettings.ColormapScaleType);
+            bool forceRefresh = scaleTypeChanged || isNewImage;
+            Colormap::UpdateColormapSettingsDataFromRoi(
+                image,
+                ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size()),
+                forceRefresh,
+                roiChanged,
+                & params->ColormapSettings);
+        };
 
         //
         // Lambda / Show image
@@ -499,10 +489,11 @@ namespace ImmVision
         ImGui::PushID(label_id.c_str());
         try
         {
-            ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
+            bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
             auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
+            fnTransmitRoiToColormap(isNewImage, cacheParams);
         }
         catch(std::exception& e)
         {
@@ -574,5 +565,18 @@ namespace ImmVision
     {
         return Colormap::AvailableColormaps();
     }
+
+    std::vector<std::string> AvailableColormapScaleTypes()
+    {
+        return
+        {
+            "0,1",
+            "-1,1",
+            "Image",
+            "ROI",
+            "Manual"
+        };
+    }
+
 
 } // namespace ImmVision

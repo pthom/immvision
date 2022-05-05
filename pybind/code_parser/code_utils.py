@@ -94,7 +94,7 @@ def read_text_file(filename: str) -> str:
 
 
 def escape_new_lines(code: str) -> str:
-    return code.replace("\n", "\\n")
+    return code.replace("\n", "\\n").replace('"', '\\"')
 
 
 def write_text_file(filename: str, content: str):

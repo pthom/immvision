@@ -8,7 +8,7 @@ namespace ImmVision
         const cv::Mat& image,
         const std::string& legend,
         const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = "",
+        const std::string& colormapKey = "",
         const cv::Point2d & zoomCenter = cv::Point2d(),
         double zoomRatio = -1.,
         bool isColorOrderBGR = true

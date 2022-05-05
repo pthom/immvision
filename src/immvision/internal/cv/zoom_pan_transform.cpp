@@ -136,6 +136,22 @@ namespace ImmVision
             return mat;
         }
 
+        cv::Rect VisibleRoi(const MatrixType & zoomMatrix, cv::Size imageDisplaySize, cv::Size originalImageSize)
+        {
+            cv::Rect roi;
+            {
+                auto tl = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(0., 0.));
+                tl.x = std::clamp(tl.x, 0., (double) originalImageSize.width - 1.);
+                tl.y = std::clamp(tl.y, 0., (double) originalImageSize.height - 1.);
+                auto br = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(
+                    (double)imageDisplaySize.width - 1., (double)imageDisplaySize.height - 1.));
+                br.x = std::clamp(br.x, 0., (double) originalImageSize.width - 1.);
+                br.y = std::clamp(br.y, 0., (double) originalImageSize.height - 1.);
+                roi = cv::Rect(tl, br);
+            }
+            return roi;
+        }
+
     } // namespace ZoomPanTransform
 
     cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
