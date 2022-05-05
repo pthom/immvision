@@ -33,6 +33,9 @@ namespace ImmVision
     // Contains information about the mouse inside an image
     struct MouseInformation
     {
+        // Is the mouse hovering the image
+        bool IsMouseHovering = false;
+
         // Mouse position in the original image/matrix
         // This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
         cv::Point2d MousePosition = cv::Point2d(-1., -1.);
@@ -134,6 +137,8 @@ namespace ImmVision
         //
         // List of Watched Pixel coordinates
         std::vector<cv::Point> WatchedPixels = std::vector<cv::Point>();
+        // Shall we add a watched pixel on double click
+        bool AddWatchedPixelOnDoubleClick = true;
         // Shall the watched pixels be drawn on the image
         bool HighlightWatchedPixels = true;
 
@@ -1867,14 +1872,37 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/imgui/imgui_imm.h included by src/immvision/internal/drawing/internal_icons.cpp//
+//                       src/immvision/imgui_imm.h included by src/immvision/internal/drawing/internal_icons.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 // Some extensions to ImGui, specific to ImmVision
 namespace ImGuiImm
 {
-    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags);
+    // A slider that works for float, double, and long double
+    // Internally, it calls ImGui::SliderFloat (so that the accuracy may be a little reduced)
+    // Be sure to cast all your params when calling, especially v_min and v_max
+    template<typename AnyFloat>
+    bool SliderAnyFloat(
+        const char*label,
+        AnyFloat* v,
+        AnyFloat v_min = AnyFloat(0.),
+        AnyFloat v_max = AnyFloat(1.),
+        float width = 200.f,
+        bool logarithmic = false,
+        int nb_decimals = 6,
+        bool scientific_format = true);
+
+    template<typename AnyFloat>
+    bool SliderAnyFloatLogarithmic(
+        const char*label,
+        AnyFloat* v,
+        AnyFloat v_min = AnyFloat(0.),
+        AnyFloat v_max = AnyFloat(1.),
+        float width = 200.f,
+        int nb_decimals = 6,
+        bool scientific_format = true);
+
 
     ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);
     cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize);
@@ -4592,6 +4620,7 @@ namespace ImmVision
             if (idxToRemove >= 0)
                 params->WatchedPixels.erase(params->WatchedPixels.begin() + (std::ptrdiff_t)idxToRemove);
 
+            ImGui::Checkbox("Add Watched Pixel on double click", &params->AddWatchedPixelOnDoubleClick);
             ImGui::Checkbox("Highlight Watched Pixels", &params->HighlightWatchedPixels);
         };
 
@@ -4611,13 +4640,13 @@ namespace ImmVision
             if (hasAdjustFloatValues && ImageWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
-                ImGuiImm::SliderDouble(
+                ImGuiImm::SliderAnyFloat(
                     "k", &params->ColorAdjustments.Factor,
-                    0., 32., "%.3f", ImGuiSliderFlags_Logarithmic);
+                    0., 32., 200.f, true);
                 ImGui::PushItemWidth(200.);
-                ImGuiImm::SliderDouble(
+                ImGuiImm::SliderAnyFloat(
                     "Delta", &params->ColorAdjustments.Delta,
-                    -255., 255., "%.3f", ImGuiSliderFlags_Logarithmic);
+                    -255., 255., 200.f, true);
 
                 if (ImGui::Button("Default"))
                     params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
@@ -4859,6 +4888,7 @@ namespace ImmVision
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())
             {
+                mouseInfo.IsMouseHovering = true;
                 mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
                 mouseInfo.MousePosition_Displayed = mouseLocation;
             }
@@ -4894,7 +4924,9 @@ namespace ImmVision
             // Show image
             auto mouseInfo = fnShowImage(cacheImages);
             // Add Watched Pixel on double click
-            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered())
+            if (   params->AddWatchedPixelOnDoubleClick
+                && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)
+                && ImGui::IsItemHovered())
                 fnWatchedPixels_Add(mouseInfo.MousePosition);
 
             // Handle Mouse
@@ -4982,13 +5014,16 @@ namespace ImmVision
         if (s_Params.find(&mat) == s_Params.end())
         {
             auto params = FactorImageParamsDisplayOnly();
-            params.ShowOptionsButton = showOptionsButton;
-            params.ImageDisplaySize = imageDisplaySize;
-            params.RefreshImage = refreshImage;
-            params.IsColorOrderBGR = isBgrOrBgra;
             s_Params[&mat] = params;
         }
+
         ImageParams& cached_params = s_Params.at(&mat);
+        {
+            cached_params.ShowOptionsButton = showOptionsButton;
+            cached_params.ImageDisplaySize = imageDisplaySize;
+            cached_params.RefreshImage = refreshImage;
+            cached_params.IsColorOrderBGR = isBgrOrBgra;
+        }
 
         Image(label_id, mat, &cached_params);
         return cached_params.MouseInfo.MousePosition;
@@ -5007,6 +5042,7 @@ namespace ImmVision
         imageParams.ShowGrid = false;
         imageParams.ShowAlphaChannelCheckerboard = false;
         imageParams.ShowZoomButtons = false;
+        imageParams.AddWatchedPixelOnDoubleClick = false;
         return imageParams;
     }
 
@@ -5331,14 +5367,68 @@ namespace ImmVision
 
 namespace ImGuiImm
 {
-    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags)
+    template<typename AnyFloat>
+    bool SliderAnyFloat(
+        const char*label,
+        AnyFloat* v,
+        AnyFloat v_min,
+        AnyFloat v_max,
+        float width,
+        bool logarithmic,
+        int nb_decimals,
+        bool scientific_format)
     {
         float vf = (float)*v;
-        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, format, flags);
+        std::string formatString;
+        {
+            formatString = std::string("%");
+            if (scientific_format)
+                formatString += std::to_string(nb_decimals) + "g";
+            else
+                formatString += "." + std::to_string(nb_decimals) + "f";
+        }
+        ImGui::SetNextItemWidth(width);
+        ImGuiSliderFlags flags = 0;
+        if (logarithmic)
+            flags |= ImGuiSliderFlags_Logarithmic;
+        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, formatString.c_str(), flags);
         if (changed)
-            *v = (double)vf;
+            *v = (AnyFloat)vf;
         return changed;
     }
+
+#define EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(AnyFloat)                       \
+    template bool SliderAnyFloat<AnyFloat>(                                     \
+    const char*label, AnyFloat* v, AnyFloat v_min, AnyFloat v_max, float width, \
+    bool logarithmic, int nb_decimals, bool scientific_format);
+
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(float);
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(double);
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(long double);
+
+
+    template<typename AnyFloat>
+    bool SliderAnyFloatLogarithmic(
+        const char*label,
+        AnyFloat* v,
+        AnyFloat v_min,
+        AnyFloat v_max,
+        float width,
+        int nb_decimals,
+        bool scientific_format)
+    {
+        return SliderAnyFloat(label, v, v_min, v_max, width, true, nb_decimals, scientific_format);
+    }
+
+#define EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(AnyFloat)                   \
+    template bool SliderAnyFloatLogarithmic<AnyFloat>(                                  \
+    const char*label, AnyFloat* v, AnyFloat v_min, AnyFloat v_max, float width,         \
+    int nb_decimals, bool scientific_format);
+
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(float);
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(double);
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(long double);
+
 
     ImVec2 ComputeDisplayImageSize(
         ImVec2 askedImageSize,
@@ -6087,6 +6177,7 @@ namespace ImmVision
                 v.Params.ShowOptionsInTooltip = currentParams.ShowOptionsInTooltip;
                 v.Params.PanWithMouse = currentParams.PanWithMouse;
                 v.Params.ZoomWithMouseWheel = currentParams.ZoomWithMouseWheel;
+                v.Params.AddWatchedPixelOnDoubleClick = currentParams.AddWatchedPixelOnDoubleClick;
             }
         }
     };
@@ -6256,11 +6347,13 @@ namespace ImmVision
 
 #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
+        inner = inner + "is_mouse_hovering: " + ToString(v.IsMouseHovering) + "\n";
         inner = inner + "mouse_position: " + ToString(v.MousePosition) + "\n";
         inner = inner + "mouse_position_displayed: " + ToString(v.MousePosition_Displayed) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
+        inner = inner + "IsMouseHovering: " + ToString(v.IsMouseHovering) + "\n";
         inner = inner + "MousePosition: " + ToString(v.MousePosition) + "\n";
         inner = inner + "MousePosition_Displayed: " + ToString(v.MousePosition_Displayed) + "\n";
 
@@ -6304,6 +6397,7 @@ namespace ImmVision
         inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "show_options_button: " + ToString(v.ShowOptionsButton) + "\n";
         inner = inner + "watched_pixels: " + ToString(v.WatchedPixels) + "\n";
+        inner = inner + "add_watched_pixel_on_double_click: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
         inner = inner + "highlight_watched_pixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "mouse_info: " + ToString(v.MouseInfo) + "\n";
 
@@ -6329,6 +6423,7 @@ namespace ImmVision
         inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "ShowOptionsButton: " + ToString(v.ShowOptionsButton) + "\n";
         inner = inner + "WatchedPixels: " + ToString(v.WatchedPixels) + "\n";
+        inner = inner + "AddWatchedPixelOnDoubleClick: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";
 

@@ -47,11 +47,13 @@ namespace ImmVision
 
 #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
+        inner = inner + "is_mouse_hovering: " + ToString(v.IsMouseHovering) + "\n";
         inner = inner + "mouse_position: " + ToString(v.MousePosition) + "\n";
         inner = inner + "mouse_position_displayed: " + ToString(v.MousePosition_Displayed) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
+        inner = inner + "IsMouseHovering: " + ToString(v.IsMouseHovering) + "\n";
         inner = inner + "MousePosition: " + ToString(v.MousePosition) + "\n";
         inner = inner + "MousePosition_Displayed: " + ToString(v.MousePosition_Displayed) + "\n";
 
@@ -95,6 +97,7 @@ namespace ImmVision
         inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "show_options_button: " + ToString(v.ShowOptionsButton) + "\n";
         inner = inner + "watched_pixels: " + ToString(v.WatchedPixels) + "\n";
+        inner = inner + "add_watched_pixel_on_double_click: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
         inner = inner + "highlight_watched_pixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "mouse_info: " + ToString(v.MouseInfo) + "\n";
 
@@ -120,6 +123,7 @@ namespace ImmVision
         inner = inner + "ShowOptionsInTooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
         inner = inner + "ShowOptionsButton: " + ToString(v.ShowOptionsButton) + "\n";
         inner = inner + "WatchedPixels: " + ToString(v.WatchedPixels) + "\n";
+        inner = inner + "AddWatchedPixelOnDoubleClick: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";
 

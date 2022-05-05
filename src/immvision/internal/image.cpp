@@ -4,7 +4,7 @@
 
 #include "immvision/image.h"
 #include "immvision/internal/drawing/internal_icons.h"
-#include "immvision/internal/imgui/imgui_imm.h"
+#include "immvision/imgui_imm.h"
 #include "immvision/internal/misc/portable_file_dialogs.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
@@ -115,6 +115,7 @@ namespace ImmVision
             if (idxToRemove >= 0)
                 params->WatchedPixels.erase(params->WatchedPixels.begin() + (std::ptrdiff_t)idxToRemove);
 
+            ImGui::Checkbox("Add Watched Pixel on double click", &params->AddWatchedPixelOnDoubleClick);
             ImGui::Checkbox("Highlight Watched Pixels", &params->HighlightWatchedPixels);
         };
 
@@ -134,13 +135,13 @@ namespace ImmVision
             if (hasAdjustFloatValues && ImageWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
-                ImGuiImm::SliderDouble(
+                ImGuiImm::SliderAnyFloatLogarithmic(
                     "k", &params->ColorAdjustments.Factor,
-                    0., 32., "%.3f", ImGuiSliderFlags_Logarithmic);
+                    1., 32.);
                 ImGui::PushItemWidth(200.);
-                ImGuiImm::SliderDouble(
+                ImGuiImm::SliderAnyFloatLogarithmic(
                     "Delta", &params->ColorAdjustments.Delta,
-                    -255., 255., "%.3f", ImGuiSliderFlags_Logarithmic);
+                    -255., 255.);
 
                 if (ImGui::Button("Default"))
                     params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
@@ -382,6 +383,7 @@ namespace ImmVision
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())
             {
+                mouseInfo.IsMouseHovering = true;
                 mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
                 mouseInfo.MousePosition_Displayed = mouseLocation;
             }
@@ -417,7 +419,9 @@ namespace ImmVision
             // Show image
             auto mouseInfo = fnShowImage(cacheImages);
             // Add Watched Pixel on double click
-            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered())
+            if (   params->AddWatchedPixelOnDoubleClick
+                && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)
+                && ImGui::IsItemHovered())
                 fnWatchedPixels_Add(mouseInfo.MousePosition);
 
             // Handle Mouse
@@ -505,13 +509,16 @@ namespace ImmVision
         if (s_Params.find(&mat) == s_Params.end())
         {
             auto params = FactorImageParamsDisplayOnly();
-            params.ShowOptionsButton = showOptionsButton;
-            params.ImageDisplaySize = imageDisplaySize;
-            params.RefreshImage = refreshImage;
-            params.IsColorOrderBGR = isBgrOrBgra;
             s_Params[&mat] = params;
         }
+
         ImageParams& cached_params = s_Params.at(&mat);
+        {
+            cached_params.ShowOptionsButton = showOptionsButton;
+            cached_params.ImageDisplaySize = imageDisplaySize;
+            cached_params.RefreshImage = refreshImage;
+            cached_params.IsColorOrderBGR = isBgrOrBgra;
+        }
 
         Image(label_id, mat, &cached_params);
         return cached_params.MouseInfo.MousePosition;
@@ -530,6 +537,7 @@ namespace ImmVision
         imageParams.ShowGrid = false;
         imageParams.ShowAlphaChannelCheckerboard = false;
         imageParams.ShowZoomButtons = false;
+        imageParams.AddWatchedPixelOnDoubleClick = false;
         return imageParams;
     }
 

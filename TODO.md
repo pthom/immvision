@@ -1,9 +1,12 @@
 * [ ] Harden 
+  * when going from image_display to edit mode, set default options 
   * window sometimes remains opened at exit (notebook, sdl)
   * copy debug_utils from immvision to imgui_runner
+  * remove dependency on immvision._gl_provider_sentinel in imgui_runner
 
 * [ ] PIP
   * [ ] change mat type if not castable (and cache)
+  * [ ] Publish ImGuiImm
   * [Later] SDL Raise window
   * [Later] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
   * [Later] Check if it is reasonnable to share matrixes memory

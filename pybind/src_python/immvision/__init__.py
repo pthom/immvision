@@ -34,6 +34,8 @@ class ColorAdjustmentsValues(_cpp_immvision.ColorAdjustmentsValues):
 class MouseInformation(_cpp_immvision.MouseInformation):
     """ Contains information about the mouse inside an image
 
+    * is_mouse_hovering: bool = False
+            Is the mouse hovering the image
     * mouse_position: Point2d = (-1., -1.)
             Mouse position in the original image/matrix
             This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
@@ -48,6 +50,8 @@ class MouseInformation(_cpp_immvision.MouseInformation):
     
     def __init__(
         self,
+        # Is the mouse hovering the image
+        is_mouse_hovering: bool = False,
         # Mouse position in the original image/matrix
         # This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
         mouse_position: Point2d = (-1., -1.),
@@ -58,6 +62,7 @@ class MouseInformation(_cpp_immvision.MouseInformation):
 
     ):
         _cpp_immvision.MouseInformation.__init__(self)
+        self.is_mouse_hovering = is_mouse_hovering
         self.mouse_position = mouse_position
         self.mouse_position_displayed = mouse_position_displayed
 
@@ -128,6 +133,8 @@ class ImageParams(_cpp_immvision.ImageParams):
  Watched Pixels
     * watched_pixels: list[Point] = list[Point]()
             List of Watched Pixel coordinates
+    * add_watched_pixel_on_double_click: bool = True
+            Shall we add a watched pixel on float click
     * highlight_watched_pixels: bool = True
             Shall the watched pixels be drawn on the image
     * mouse_info: MouseInformation = MouseInformation()
@@ -180,6 +187,8 @@ class ImageParams(_cpp_immvision.ImageParams):
         show_options_button: bool = True,
         # List of Watched Pixel coordinates
         watched_pixels: list[Point] = list[Point](),
+        # Shall we add a watched pixel on double click
+        add_watched_pixel_on_double_click: bool = True,
         # Shall the watched pixels be drawn on the image
         highlight_watched_pixels: bool = True,
         # Mouse position information. These values are filled after displaying an image
@@ -207,6 +216,7 @@ class ImageParams(_cpp_immvision.ImageParams):
         self.show_options_in_tooltip = show_options_in_tooltip
         self.show_options_button = show_options_button
         self.watched_pixels = watched_pixels
+        self.add_watched_pixel_on_double_click = add_watched_pixel_on_double_click
         self.highlight_watched_pixels = highlight_watched_pixels
         self.mouse_info = mouse_info
 

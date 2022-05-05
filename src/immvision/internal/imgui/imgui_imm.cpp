@@ -1,4 +1,4 @@
-#include "immvision/internal/imgui/imgui_imm.h"
+#include "immvision/imgui_imm.h"
 #include "imgui.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
@@ -10,14 +10,68 @@
 
 namespace ImGuiImm
 {
-    bool SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags)
+    template<typename AnyFloat>
+    bool SliderAnyFloat(
+        const char*label,
+        AnyFloat* v,
+        AnyFloat v_min,
+        AnyFloat v_max,
+        float width,
+        bool logarithmic,
+        int nb_decimals,
+        bool scientific_format)
     {
         float vf = (float)*v;
-        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, format, flags);
+        std::string formatString;
+        {
+            formatString = std::string("%");
+            if (scientific_format)
+                formatString += std::to_string(nb_decimals) + "g";
+            else
+                formatString += "." + std::to_string(nb_decimals) + "f";
+        }
+        ImGui::SetNextItemWidth(width);
+        ImGuiSliderFlags flags = 0;
+        if (logarithmic)
+            flags |= ImGuiSliderFlags_Logarithmic;
+        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, formatString.c_str(), flags);
         if (changed)
-            *v = (double)vf;
+            *v = (AnyFloat)vf;
         return changed;
     }
+
+#define EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(AnyFloat)                       \
+    template bool SliderAnyFloat<AnyFloat>(                                     \
+    const char*label, AnyFloat* v, AnyFloat v_min, AnyFloat v_max, float width, \
+    bool logarithmic, int nb_decimals, bool scientific_format);
+
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(float);
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(double);
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(long double);
+
+
+    template<typename AnyFloat>
+    bool SliderAnyFloatLogarithmic(
+        const char*label,
+        AnyFloat* v,
+        AnyFloat v_min,
+        AnyFloat v_max,
+        float width,
+        int nb_decimals,
+        bool scientific_format)
+    {
+        return SliderAnyFloat(label, v, v_min, v_max, width, true, nb_decimals, scientific_format);
+    }
+
+#define EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(AnyFloat)                   \
+    template bool SliderAnyFloatLogarithmic<AnyFloat>(                                  \
+    const char*label, AnyFloat* v, AnyFloat v_min, AnyFloat v_max, float width,         \
+    int nb_decimals, bool scientific_format);
+
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(float);
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(double);
+    EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(long double);
+
 
     ImVec2 ComputeDisplayImageSize(
         ImVec2 askedImageSize,

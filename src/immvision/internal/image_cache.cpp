@@ -1,7 +1,7 @@
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
-#include "immvision/internal/imgui/imgui_imm.h"
+#include "immvision/imgui_imm.h"
 #include "immvision/internal/drawing/image_drawing.h"
 
 

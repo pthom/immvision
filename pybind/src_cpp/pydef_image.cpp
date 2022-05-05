@@ -26,6 +26,7 @@ void pydef_image(pybind11::module& m)
 
     auto pyClassMouseInformation = py::class_<MouseInformation>(m, "MouseInformation") 
         .def(py::init<>()) 
+        .def_readwrite("is_mouse_hovering", &MouseInformation::IsMouseHovering, "Is the mouse hovering the image")
         .def_readwrite("mouse_position", &MouseInformation::MousePosition, "Mouse position in the original image/matrix\nThis position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image")
         .def_readwrite("mouse_position_displayed", &MouseInformation::MousePosition_Displayed, "Mouse position in the displayed portion of the image (the original image can be zoomed,\nand only show a subset if it may be shown).\nThis position is given with integer coordinates, and will be (-1, -1) if the mouse is not hovering the image")
         .def("__repr__", [](const MouseInformation& v) { return ToString(v); }); 
@@ -52,6 +53,7 @@ void pydef_image(pybind11::module& m)
         .def_readwrite("show_options_in_tooltip", &ImageParams::ShowOptionsInTooltip, "If set to true, then the option panel will be displayed in a transient tooltip window")
         .def_readwrite("show_options_button", &ImageParams::ShowOptionsButton, "If set to false, then the Options button will not be displayed")
         .def_readwrite("watched_pixels", &ImageParams::WatchedPixels, "List of Watched Pixel coordinates")
+        .def_readwrite("add_watched_pixel_on_double_click", &ImageParams::AddWatchedPixelOnDoubleClick, "Shall we add a watched pixel on double click")
         .def_readwrite("highlight_watched_pixels", &ImageParams::HighlightWatchedPixels, "Shall the watched pixels be drawn on the image")
         .def_readwrite("mouse_info", &ImageParams::MouseInfo, "Mouse position information. These values are filled after displaying an image")
         .def("__repr__", [](const ImageParams& v) { return ToString(v); }); 

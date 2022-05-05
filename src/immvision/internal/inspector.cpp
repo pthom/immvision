@@ -109,6 +109,7 @@ namespace ImmVision
                 v.Params.ShowOptionsInTooltip = currentParams.ShowOptionsInTooltip;
                 v.Params.PanWithMouse = currentParams.PanWithMouse;
                 v.Params.ZoomWithMouseWheel = currentParams.ZoomWithMouseWheel;
+                v.Params.AddWatchedPixelOnDoubleClick = currentParams.AddWatchedPixelOnDoubleClick;
             }
         }
     };

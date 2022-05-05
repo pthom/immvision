@@ -21,6 +21,9 @@ namespace ImmVision
     // Contains information about the mouse inside an image
     struct MouseInformation
     {
+        // Is the mouse hovering the image
+        bool IsMouseHovering = false;
+
         // Mouse position in the original image/matrix
         // This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
         cv::Point2d MousePosition = cv::Point2d(-1., -1.);
@@ -122,6 +125,8 @@ namespace ImmVision
         //
         // List of Watched Pixel coordinates
         std::vector<cv::Point> WatchedPixels = std::vector<cv::Point>();
+        // Shall we add a watched pixel on double click
+        bool AddWatchedPixelOnDoubleClick = true;
         // Shall the watched pixels be drawn on the image
         bool HighlightWatchedPixels = true;
 

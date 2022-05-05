@@ -16,6 +16,8 @@ class ColorAdjustmentsValues:
 class MouseInformation:
     " Contains information about the mouse inside an image"
     
+    # Is the mouse hovering the image
+    is_mouse_hovering: bool = False
     # Mouse position in the original image/matrix
     # This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
     mouse_position: Point2d = (-1., -1.)
@@ -114,6 +116,8 @@ class ImageParams:
     #
     # List of Watched Pixel coordinates
     watched_pixels: list[Point] = list[Point]()
+    # Shall we add a watched pixel on double click
+    add_watched_pixel_on_double_click: bool = True
     # Shall the watched pixels be drawn on the image
     highlight_watched_pixels: bool = True
     # Mouse position information. These values are filled after displaying an image

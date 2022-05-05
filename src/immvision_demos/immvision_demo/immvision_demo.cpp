@@ -1,24 +1,11 @@
 #include "hello_imgui/hello_imgui.h"
 #include "immvision/immvision.h"
-#include "immvision/internal/imgui/imgui_imm.h"
+#include "immvision/imgui_imm.h"
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <array>
-
-namespace ImGuiExt
-{
-    bool SliderDoubleLogarithmic(const char* label, double* v, double v_min, double v_max)
-    {
-        float vf = (float)*v;
-        bool changed = ImGui::SliderFloat(label, &vf, (float)v_min, (float)v_max, "%.3f", ImGuiSliderFlags_Logarithmic);
-        if (changed)
-            *v = (double)vf;
-        return changed;
-    }
-}
-
 
 struct SobelParamsValues
 {
@@ -63,7 +50,7 @@ bool GuiSobelParams(SobelParamsValues& params)
     ImGui::Text("Blur size");
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(200.f);
-    changed |= ImGuiExt::SliderDoubleLogarithmic("##Blur Size", &params.GaussianBlurSize, 0.5, 50.);
+    changed |= ImGuiImm::SliderAnyFloat("##Blur Size", &params.GaussianBlurSize, 0.5, 50.);
     ImGui::TableNextRow(); ImGui::TableNextColumn();
 
     {
