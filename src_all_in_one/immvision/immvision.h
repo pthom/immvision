@@ -18,10 +18,17 @@ namespace ImmVision
     // Color adjustments (esp. useful for a float matrix)
     struct ColorAdjustmentsValues
     {
+        // Colormap, see available Colormaps with AvailableColormaps()
+        std::string Colormap = "";
+
         // Pre-multiply values by a Factor before displaying
         double Factor = 1.;
+
         // Add a delta to the values before displaying
         double Delta = 0.;
+
+        // Internal value: stores the name of the Colormap that is hovered by the mouse
+        std::string _ColormapHovered = "";
     };
 
 
@@ -249,6 +256,12 @@ namespace ImmVision
 
 
     // !pydef_function
+    // Return the list of the available color maps
+    // Taken from https://github.com/yuki-koyama/tinycolormap, thanks to Yuki Koyama
+    std::vector<std::string> AvailableColormaps();
+
+
+    // !pydef_function
     // Clears the internal texture cache of immvision (this is done automatically at exit time)
     //
     // Note: this function requires that both imgui and OpenGL were initialized.
@@ -259,6 +272,8 @@ namespace ImmVision
     // !pydef_function
     // Return immvision version info
     std::string VersionInfo();
+
+
 
 } // namespace ImmVision
 

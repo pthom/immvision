@@ -1,6 +1,5 @@
 * [ ] Colormaps
-  cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/
-  https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
+  * 
 
 * [ ] PIP
   * [ ] change mat type if not castable (and cache)
@@ -21,7 +20,8 @@
 
 
  * [ ] immvision
-     * [ ] Pb transcription couleurs sur mandelbrot (
+     * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
+     *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
      * [Later] ToString -> ToJson / FromJson
      * [Later] Compat Eigen ?
      * [ ] doc

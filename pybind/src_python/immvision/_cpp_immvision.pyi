@@ -7,10 +7,14 @@ from .cv_types import *
 class ColorAdjustmentsValues:
     " Color adjustments (esp. useful for a float matrix)"
     
+    # Colormap, see available Colormaps with AvailableColormaps()
+    colormap: str = ""
     # Pre-multiply values by a Factor before displaying
     factor: float = 1.
     # Add a delta to the values before displaying
     delta: float = 0.
+    # Internal value: stores the name of the Colormap that is hovered by the mouse
+    _colormap_hovered: str = ""
 
 
 class MouseInformation:

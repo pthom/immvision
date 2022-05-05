@@ -20,24 +20,35 @@ __version__ = _cpp_immvision.__version__
 class ColorAdjustmentsValues(_cpp_immvision.ColorAdjustmentsValues):
     """ Color adjustments (esp. useful for a float matrix)
 
+    * colormap: str = ""
+            Colormap, see available Colormaps with AvailableColormaps()
     * factor: float = 1.
             Pre-multiply values by a Factor before displaying
     * delta: float = 0.
             Add a delta to the values before displaying
+    * _colormap_hovered: str = ""
+            Internal value: stores the name of the Colormap that is hovered by the mouse
 
     """
-
+    
     def __init__(
-            self,
-            # Pre-multiply values by a Factor before displaying
-            factor: float = 1.,
-            # Add a delta to the values before displaying
-            delta: float = 0.,
+        self,
+        # Colormap, see available Colormaps with AvailableColormaps()
+        colormap: str = "",
+        # Pre-multiply values by a Factor before displaying
+        factor: float = 1.,
+        # Add a delta to the values before displaying
+        delta: float = 0.,
+        # Internal value: stores the name of the Colormap that is hovered by the mouse
+        _colormap_hovered: str = "",
 
     ):
         _cpp_immvision.ColorAdjustmentsValues.__init__(self)
+        self.colormap = colormap
         self.factor = factor
         self.delta = delta
+        self._colormap_hovered = _colormap_hovered
+
 
 
 class MouseInformation(_cpp_immvision.MouseInformation):
@@ -56,24 +67,25 @@ class MouseInformation(_cpp_immvision.MouseInformation):
  Note: you can query ImGui::IsMouseDown(mouse_button) (c++) or imgui.is_mouse_down(mouse_button) (Python)
 
     """
-
+    
     def __init__(
-            self,
-            # Is the mouse hovering the image
-            is_mouse_hovering: bool = False,
-            # Mouse position in the original image/matrix
-            # This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
-            mouse_position: Point2d = (-1., -1.),
-            # Mouse position in the displayed portion of the image (the original image can be zoomed,
-            # and only show a subset if it may be shown).
-            # This position is given with integer coordinates, and will be (-1, -1) if the mouse is not hovering the image
-            mouse_position_displayed: Point = (-1, -1),
+        self,
+        # Is the mouse hovering the image
+        is_mouse_hovering: bool = False,
+        # Mouse position in the original image/matrix
+        # This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
+        mouse_position: Point2d = (-1., -1.),
+        # Mouse position in the displayed portion of the image (the original image can be zoomed,
+        # and only show a subset if it may be shown).
+        # This position is given with integer coordinates, and will be (-1, -1) if the mouse is not hovering the image
+        mouse_position_displayed: Point = (-1, -1),
 
     ):
         _cpp_immvision.MouseInformation.__init__(self)
         self.is_mouse_hovering = is_mouse_hovering
         self.mouse_position = mouse_position
         self.mouse_position_displayed = mouse_position_displayed
+
 
 
 class ImageParams(_cpp_immvision.ImageParams):
@@ -149,58 +161,58 @@ class ImageParams(_cpp_immvision.ImageParams):
             Mouse position information. These values are filled after displaying an image
 
     """
-
+    
     def __init__(
-            self,
-            # Refresh Image: images textures are cached. Set to true if your image matrix/buffer has changed
-            # (for example, for live video images)
-            refresh_image: bool = False,
-            # Size of the displayed image (can be different from the matrix size)
-            # If you specify only the width or height (e.g (300, 0), then the other dimension
-            # will be calculated automatically, respecting the original image w/h ratio.
-            image_display_size: Size = (0, 0),
-            # ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
-            zoom_pan_matrix: Matx33d = np.eye(3),
-            # If displaying several images, those with the same ZoomKey will zoom and pan together
-            zoom_key: str = "",
-            # Color adjustments for float matrixes
-            color_adjustments: ColorAdjustmentsValues = ColorAdjustmentsValues(),
-            # If displaying several images, those with the same ColorAdjustmentsKey will adjust together
-            color_adjustments_key: str = "",
-            #
-            pan_with_mouse: bool = True,
-            #
-            zoom_with_mouse_wheel: bool = True,
-            # Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
-            is_color_order_bgr: bool = True,
-            # if SelectedChannel >= 0 then only this channel is displayed
-            selected_channel: int = -1,
-            # show a checkerboard behind transparent portions of 4 channels RGBA images
-            show_alpha_channel_checkerboard: bool = True,
-            # Grid displayed when the zoom is high
-            show_grid: bool = True,
-            # Pixel values show when the zoom is high
-            draw_values_on_zoomed_pixels: bool = True,
-            # Show matrix type and size
-            show_image_info: bool = True,
-            # Show pixel values
-            show_pixel_info: bool = True,
-            # Show buttons that enable to zoom in/out (the mouse wheel also zoom)
-            show_zoom_buttons: bool = True,
-            # Open the options panel
-            show_options_panel: bool = False,
-            # If set to true, then the option panel will be displayed in a transient tooltip window
-            show_options_in_tooltip: bool = False,
-            # If set to false, then the Options button will not be displayed
-            show_options_button: bool = True,
-            # List of Watched Pixel coordinates
-            watched_pixels: list[Point] = list[Point](),
-            # Shall we add a watched pixel on double click
-            add_watched_pixel_on_double_click: bool = True,
-            # Shall the watched pixels be drawn on the image
-            highlight_watched_pixels: bool = True,
-            # Mouse position information. These values are filled after displaying an image
-            mouse_info: MouseInformation = MouseInformation(),
+        self,
+        # Refresh Image: images textures are cached. Set to true if your image matrix/buffer has changed
+        # (for example, for live video images)
+        refresh_image: bool = False,
+        # Size of the displayed image (can be different from the matrix size)
+        # If you specify only the width or height (e.g (300, 0), then the other dimension
+        # will be calculated automatically, respecting the original image w/h ratio.
+        image_display_size: Size = (0, 0),
+        # ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
+        zoom_pan_matrix: Matx33d = np.eye(3),
+        # If displaying several images, those with the same ZoomKey will zoom and pan together
+        zoom_key: str = "",
+        # Color adjustments for float matrixes
+        color_adjustments: ColorAdjustmentsValues = ColorAdjustmentsValues(),
+        # If displaying several images, those with the same ColorAdjustmentsKey will adjust together
+        color_adjustments_key: str = "",
+        # 
+        pan_with_mouse: bool = True,
+        # 
+        zoom_with_mouse_wheel: bool = True,
+        # Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
+        is_color_order_bgr: bool = True,
+        # if SelectedChannel >= 0 then only this channel is displayed
+        selected_channel: int = -1,
+        # show a checkerboard behind transparent portions of 4 channels RGBA images
+        show_alpha_channel_checkerboard: bool = True,
+        # Grid displayed when the zoom is high
+        show_grid: bool = True,
+        # Pixel values show when the zoom is high
+        draw_values_on_zoomed_pixels: bool = True,
+        # Show matrix type and size
+        show_image_info: bool = True,
+        # Show pixel values
+        show_pixel_info: bool = True,
+        # Show buttons that enable to zoom in/out (the mouse wheel also zoom)
+        show_zoom_buttons: bool = True,
+        # Open the options panel
+        show_options_panel: bool = False,
+        # If set to true, then the option panel will be displayed in a transient tooltip window
+        show_options_in_tooltip: bool = False,
+        # If set to false, then the Options button will not be displayed
+        show_options_button: bool = True,
+        # List of Watched Pixel coordinates
+        watched_pixels: list[Point] = list[Point](),
+        # Shall we add a watched pixel on double click
+        add_watched_pixel_on_double_click: bool = True,
+        # Shall the watched pixels be drawn on the image
+        highlight_watched_pixels: bool = True,
+        # Mouse position information. These values are filled after displaying an image
+        mouse_info: MouseInformation = MouseInformation(),
 
     ):
         _cpp_immvision.ImageParams.__init__(self)
@@ -229,6 +241,7 @@ class ImageParams(_cpp_immvision.ImageParams):
         self.mouse_info = mouse_info
 
 
+
 # </autogen:init_struct> // Autogenerated code end
 
 
@@ -242,9 +255,9 @@ def factor_image_params_display_only():
 
 
 def make_zoom_pan_matrix(
-        zoom_center: Point2d,
-        zoom_ratio: float,
-        displayed_image_size: Size):
+    zoom_center:  Point2d,
+    zoom_ratio: float,
+    displayed_image_size:  Size):
     """ Create a zoom/pan matrix centered around a given point of interest
     """
     r = _cpp_immvision.make_zoom_pan_matrix(zoom_center, zoom_ratio, displayed_image_size)
@@ -252,9 +265,9 @@ def make_zoom_pan_matrix(
 
 
 def image(
-        label_id: str,
-        mat: np.ndarray,
-        params: ImageParams):
+    label_id:  str,
+    mat:  np.ndarray,
+    params: ImageParams):
     """ Display an image, with full user control: zoom, pan, watch pixels, etc.
 
      :param label_id
@@ -297,12 +310,12 @@ def image(
 
 
 def image_display(
-        label_id: str,
-        mat: np.ndarray,
-        image_display_size: Size = (0, 0),
-        refresh_image: bool = False,
-        show_options_button: bool = False,
-        is_bgr_or_bgra: bool = True):
+    label_id:  str,
+    mat:  np.ndarray,
+    image_display_size:  Size  = (0, 0),
+    refresh_image: bool  = False,
+    show_options_button: bool  = False,
+    is_bgr_or_bgra: bool  = True):
     """ Only, display the image, with no decoration, and no user interaction (by default)
 
      Parameters:
@@ -350,8 +363,15 @@ def image_display(
 
     _cpp_immvision.transfer_imgui_context_python_to_cpp()
 
-    r = _cpp_immvision.image_display(label_id, mat, image_display_size, refresh_image, show_options_button,
-                                     is_bgr_or_bgra)
+    r = _cpp_immvision.image_display(label_id, mat, image_display_size, refresh_image, show_options_button, is_bgr_or_bgra)
+    return r
+
+
+def available_colormaps():
+    """ Return the list of the available color maps
+     Taken from https://github.com/yuki-koyama/tinycolormap, thanks to Yuki Koyama
+    """
+    r = _cpp_immvision.available_colormaps()
     return r
 
 
@@ -373,6 +393,7 @@ def version_info():
     """
     r = _cpp_immvision.version_info()
     return r
+
 
 
 # </autogen:init_function> // Autogenerated code end

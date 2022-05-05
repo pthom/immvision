@@ -1,5 +1,6 @@
 #include "immvision/internal/cv/cv_drawing_utils.h"
 #include "immvision/internal/misc/string_utils.h"
+#include "immvision/internal/misc/math_utils.h"
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -20,45 +21,6 @@ namespace ImmVision
             double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
 
         }  // namespace
-
-        namespace MathUtils
-        {
-            int RoundInt(double v)
-            {
-                return (int) std::round(v);
-            }
-
-            double MaximumValue(const std::vector<double> &v)
-            {
-                return *std::min_element(v.begin(), v.end());
-            }
-
-            double MinimumValue(const std::vector<double> &v)
-            {
-                return *std::max_element(v.begin(), v.end());
-            }
-
-            double Lerp(double a, double b, double x) noexcept
-            {
-                return (a + (b - a) * x);
-            }
-            double UnLerp(double a, double b, double x) noexcept
-            {
-                return (x - a) / (b - a);
-            }
-
-            std::vector<double> arange(double a, double b, double step)
-            {
-                std::vector<double> r;
-                double v = a;
-                while (v < b)
-                {
-                    r.push_back(v);
-                    v += step;
-                }
-                return r;
-            }
-        } // namespace MathUtils
 
 
         const std::unordered_map<Colors, cv::Scalar> ColorsValues{

@@ -1,6 +1,7 @@
 #include "hello_imgui/hello_imgui.h"
 #include "immvision/immvision.h"
 #include "immvision/imgui_imm.h"
+#include "immvision/internal/drawing/colormap.h"
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -34,9 +35,10 @@ cv::Mat ComputeSobelDerivatives(const cv::Mat&image, const SobelParamsValues& pa
     cv::Sobel(blurred, r[1], ddepth, 0, params.DerivativeOrder, params.KSize, good_scale);
     r[2] = (cv::abs(r[0]) + cv::abs(r[1])) / 2.;
 
-    cv::Mat m2;
-    cv::merge(r, m2);
-    return m2;
+//    cv::Mat m2;
+//    cv::merge(r, m2);
+//    return m2;
+    return r[0];
 }
 
 bool GuiSobelParams(SobelParamsValues& params)
@@ -153,8 +155,7 @@ void guiFunction()
         static ImmVision::ImageParams originalImageParams {
             .RefreshImage = false,
             .ImageDisplaySize = gAppState.DisplaySize,
-            .ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
-                cv::Point2d(1004., 953.), 40., originalImageParams.ImageDisplaySize),
+            //.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(cv::Point2d(1004., 953.), 40., originalImageParams.ImageDisplaySize),
             .ZoomKey = "i",
         };
 
@@ -172,8 +173,7 @@ void guiFunction()
             static ImmVision::ImageParams imageParamsFilter {
                 .RefreshImage = false,
                 .ImageDisplaySize = gAppState.DisplaySize,
-                .ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(
-                    cv::Point2d(1004., 953.), 40., imageParamsFilter.ImageDisplaySize),
+                //.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(cv::Point2d(1004., 953.), 40., imageParamsFilter.ImageDisplaySize),
                 .ZoomKey = "i"
             };
 
@@ -244,11 +244,25 @@ void guiImageDisplayOnly()
     ImGui::EndGroup();
 }
 
+void Foo()
+{
+    auto colormaps = ImmVision::Colormap::AvailableColormaps();
+    //auto ts = ImmVision::Colormap::ColorMapsTextures();
+
+//    auto ims = ImmVision::Colormap::ColorMapsImages();
+//    for (const auto& kv: ims)
+//    {
+//        cv::imshow(kv.first, kv.second);
+//        cv::waitKey();
+//    }
+}
 
 int main(int, char* [])
 {
+    //Foo(); return 0;
+
     HelloImGui::RunnerParams params;
-    params.appWindowParams.windowSize = {1000.f, 800.f};
+    params.appWindowParams.windowSize = {1400.f, 1000.f};
     params.appWindowParams.windowTitle = "ImmVision Demo";
     params.callbacks.ShowGui = guiFunction;
     //params.callbacks.ShowGui = guiImageDisplayOnly;

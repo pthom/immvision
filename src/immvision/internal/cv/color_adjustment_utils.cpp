@@ -15,6 +15,8 @@ namespace ImmVision
                 return false;
             if (fabs(v2.Delta - v1.Delta) > 1E-6)
                 return false;
+            if (v1.Colormap != v2.Colormap)
+                return false;
             return true;
         }
 

@@ -3,6 +3,8 @@
 #include "immvision/internal/gl/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
 #include "immvision/image.h"
+#include "immvision/internal/drawing/colormap.h"
+#include "immvision/internal/drawing/internal_icons.h"
 #include <iostream>
 
 namespace ImmVision_GlProvider
@@ -32,6 +34,8 @@ namespace ImmVision_GlProvider
         // InitGlProvider must be called before the OpenGl Loader is reset
         _AssertOpenGlLoaderWorking();
         ImmVision::ClearTextureCache();
+        ImmVision::Colormap::ClearColormapsTexturesCache();
+        ImmVision::Icons::ClearIconsTextureCache();
     }
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)

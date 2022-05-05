@@ -28,6 +28,10 @@ namespace ImmVision
 
         bool ShallRefreshRgbaCache(const ImageParams& v1, const ImageParams& v2)
         {
+            if (v1.ColorAdjustments.Colormap != v2.ColorAdjustments.Colormap)
+                return true;
+            if (v1.ColorAdjustments._ColormapHovered != v2.ColorAdjustments._ColormapHovered)
+                return true;
             if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
                 return true;
             if (v1.SelectedChannel != v2.SelectedChannel)
@@ -41,6 +45,10 @@ namespace ImmVision
 
         bool ShallRefreshTexture(const ImageParams& v1, const ImageParams& v2)
         {
+            if (v1.ColorAdjustments.Colormap != v2.ColorAdjustments.Colormap)
+                return true;
+            if (v1.ColorAdjustments._ColormapHovered != v2.ColorAdjustments._ColormapHovered)
+                return true;
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
             if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))

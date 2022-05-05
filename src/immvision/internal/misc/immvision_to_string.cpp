@@ -19,13 +19,17 @@ namespace ImmVision
 
 #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
+        inner = inner + "colormap: " + ToString(v.Colormap) + "\n";
         inner = inner + "factor: " + ToString(v.Factor) + "\n";
         inner = inner + "delta: " + ToString(v.Delta) + "\n";
+        inner = inner + "_colormap_hovered: " + ToString(v._ColormapHovered) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
+        inner = inner + "Colormap: " + ToString(v.Colormap) + "\n";
         inner = inner + "Factor: " + ToString(v.Factor) + "\n";
         inner = inner + "Delta: " + ToString(v.Delta) + "\n";
+        inner = inner + "_ColormapHovered: " + ToString(v._ColormapHovered) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 

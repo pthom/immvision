@@ -24,6 +24,8 @@ namespace ImmVision
             GlTextureCv* outTexture
         );
 
+        bool HasColormapParam(const ImageParams& params);
+
     } // namespace ImageDrawing
 
 } // namespace ImmVision

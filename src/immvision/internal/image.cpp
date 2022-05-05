@@ -8,6 +8,7 @@
 #include "immvision/internal/misc/portable_file_dialogs.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
+#include "immvision/internal/drawing/colormap.h"
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/misc/panic.h"
@@ -120,14 +121,34 @@ namespace ImmVision
         };
 
         //
+        // Lambdas / Colormap
+        //
+        auto fnColormap = [&params]()
+        {
+            auto guiAction = Colormap::ShowColormapsGui(params->ColorAdjustments.Colormap);
+            if (guiAction.Action == Colormap::GuiAction::Clicked)
+                params->ColorAdjustments.Colormap = guiAction.ColormapName;
+            if (guiAction.Action == Colormap::GuiAction::Hovered)
+                params->ColorAdjustments._ColormapHovered = guiAction.ColormapName;
+            else
+                params->ColorAdjustments._ColormapHovered = "";
+        };
+
+
+        //
         // Lambdas / Options & Adjustments
         //
-        auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded](
+        auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnColormap](
                 CachedParams & cacheParams)
         {
             float optionsWidth = 330.f;
             // Group with fixed width, so that Collapsing headers stop at optionsWidth
             ImGuiImm::BeginGroupFixedWidth(optionsWidth);
+
+            // Colormap
+            if (Colormap::CanColormap(image) && ImageWidgets::CollapsingHeader_OptionalCacheState("Colormap"))
+                fnColormap();
+
 
             // Adjust float values
             bool hasAdjustFloatValues = true; // ((image.depth() == CV_32F) || (image.depth() == CV_64F));
@@ -549,6 +570,11 @@ namespace ImmVision
         char msg[2000];
         snprintf(msg, 2000, "immvision version %s (%s)", IMMVISION_VERSION, __TIMESTAMP__);
         return msg;
+    }
+
+    std::vector<std::string> AvailableColormaps()
+    {
+        return Colormap::AvailableColormaps();
     }
 
 } // namespace ImmVision

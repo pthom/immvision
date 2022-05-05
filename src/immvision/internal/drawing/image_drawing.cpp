@@ -3,8 +3,10 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/cv_drawing_utils.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
+#include "immvision/internal/drawing/colormap.h"
 
 #include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 
 
 namespace ImmVision
@@ -164,6 +166,17 @@ namespace ImmVision
             //
             // Adjustements needed before conversion to rgba
             //
+            auto fnApplyColormap = [&finalImage, params]()
+            {
+                double minValue = 0.;
+                double maxValue = 1.;
+                if (!params.ColorAdjustments._ColormapHovered.empty())
+                    finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments._ColormapHovered, minValue, maxValue);
+                else if(!params.ColorAdjustments.Colormap.empty())
+                    finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments.Colormap, minValue, maxValue);
+
+            };
+
             auto fnAdjustColor = [&finalImage, params]()
             {
                 // Selected channels
@@ -190,8 +203,13 @@ namespace ImmVision
             //
             if (shall_refresh_rgba)
             {
-                fnAdjustColor();
-                finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
+                if (HasColormapParam(params) && Colormap::CanColormap(image))
+                    fnApplyColormap();
+                else
+                {
+                    fnAdjustColor();
+                    finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
+                }
                 in_out_rgba_image_cache = finalImage;
                 assert(finalImage.type() == CV_8UC4);
             }
@@ -246,6 +264,11 @@ namespace ImmVision
             // Blit
             //
             outTexture->BlitMat(finalImage, false);
+        }
+
+        bool HasColormapParam(const ImageParams &params)
+        {
+            return (!params.ColorAdjustments.Colormap.empty() || !params.ColorAdjustments._ColormapHovered.empty());
         }
 
     } // namespace ImageDrawing
