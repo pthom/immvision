@@ -8,7 +8,7 @@
 #include "immvision/internal/misc/portable_file_dialogs.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/color_adjustment_utils.h"
-#include "immvision/internal/drawing/colormap.h"
+#include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/misc/panic.h"
@@ -123,17 +123,13 @@ namespace ImmVision
         //
         // Lambdas / Colormap
         //
-        auto fnColormap = [&params]()
+        auto fnColormap = [&params, &image]()
         {
-            auto guiAction = Colormap::ShowColormapsGui(params->ColorAdjustments.Colormap);
-            if (guiAction.Action == Colormap::GuiAction::Apply)
-                params->ColorAdjustments.Colormap = guiAction.ColormapName;
-            else if (guiAction.Action == Colormap::GuiAction::UnApply)
-                    params->ColorAdjustments.Colormap  = "";
-            else if (guiAction.Action == Colormap::GuiAction::Hovered)
-                params->ColorAdjustments._ColormapHovered = guiAction.ColormapName;
-            else
-                params->ColorAdjustments._ColormapHovered = "";
+            cv::Rect roi;
+            Colormap::ShowColormapsGui(
+                image,
+                roi,
+                & params->ColorAdjustments);
         };
 
 

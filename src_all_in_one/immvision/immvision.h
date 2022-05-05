@@ -19,7 +19,23 @@ namespace ImmVision
     struct ColorAdjustmentsValues
     {
         // Colormap, see available Colormaps with AvailableColormaps()
+        // Work only with 1 channel matrices, i.e len(shape)==2
         std::string Colormap = "";
+
+        // ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
+        //     - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
+        //     - Values outside this interval will be clamped before coloring
+        double ColormapScaleMin = 0.;
+        double ColormapScaleMax = 1.;
+
+        // If true, ColormapScaleMin/Max will be the min/max on the whole image
+        bool ColormapRescaleOnWholeImage = true;
+        // If true, ColormapScaleMin/Max will be the min/max on the currently visible portion of the image (ROI)
+        bool ColormapRescaleOnRoi = false;
+
+        //
+        // Other ways to manipulate float matrices: multiply and add delta
+        //
 
         // Pre-multiply values by a Factor before displaying
         double Factor = 1.;
@@ -28,7 +44,7 @@ namespace ImmVision
         double Delta = 0.;
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
-        std::string _ColormapHovered = "";
+        std::string internal_ColormapHovered = "";
     };
 
 

@@ -23,7 +23,23 @@ namespace ImmVision
     struct ColorAdjustmentsValues
     {
         // Colormap, see available Colormaps with AvailableColormaps()
+        // Work only with 1 channel matrices, i.e len(shape)==2
         std::string Colormap = "";
+
+        // ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
+        //     - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
+        //     - Values outside this interval will be clamped before coloring
+        double ColormapScaleMin = 0.;
+        double ColormapScaleMax = 1.;
+
+        // If true, ColormapScaleMin/Max will be the min/max on the whole image
+        bool ColormapRescaleOnWholeImage = true;
+        // If true, ColormapScaleMin/Max will be the min/max on the currently visible portion of the image (ROI)
+        bool ColormapRescaleOnRoi = false;
+
+        //
+        // Other ways to manipulate float matrices: multiply and add delta
+        //
 
         // Pre-multiply values by a Factor before displaying
         double Factor = 1.;
@@ -32,7 +48,7 @@ namespace ImmVision
         double Delta = 0.;
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
-        std::string _ColormapHovered = "";
+        std::string internal_ColormapHovered = "";
     };
 
 
@@ -317,6 +333,8 @@ namespace ImmVision
                 return false;
             if (v1.Colormap != v2.Colormap)
                 return false;
+            if (v1.internal_ColormapHovered != v2.internal_ColormapHovered)
+                return false;
             return true;
         }
 
@@ -357,1181 +375,15 @@ namespace ImmVision
 } // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/cv_drawing_utils.cpp                                         //
+//                       src/immvision/internal/cv/colormap.cpp                                                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/cv_drawing_utils.h included by src/immvision/internal/cv/cv_drawing_utils.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <opencv2/core/core.hpp>
-
-namespace ImmVision
-{
-
-    namespace CvDrawingUtils
-    {
-        enum class Colors
-        {
-            Black,
-            Red,
-            Green,
-            Blue,
-            White,
-            Yellow,
-            Cyan,
-            Violet,
-            Orange
-        };
-
-        cv::Scalar ColorsToScalar(Colors value);
-
-        inline cv::Scalar Black()
-        { return {0, 0, 0, 255}; }
-
-        inline cv::Scalar Red()
-        { return {0, 0, 255, 255}; }
-
-        inline cv::Scalar Green()
-        { return {0, 255, 0, 255}; }
-
-        inline cv::Scalar Blue()
-        { return {255, 0, 0, 255}; }
-
-        inline cv::Scalar White()
-        { return {255, 255, 255, 255}; }
-
-        inline cv::Scalar Yellow()
-        { return {0, 255, 255, 255}; }
-
-        inline cv::Scalar Cyan()
-        { return {255, 255, 0, 255}; }
-
-        inline cv::Scalar Violet()
-        { return {200, 50, 200, 255}; }
-
-        inline cv::Scalar Orange()
-        { return {255, 128, 0, 255}; }
-
-
-        void line(cv::Mat &image,
-                  const cv::Point2d &a,
-                  const cv::Point2d &b,
-                  cv::Scalar color,
-                  int thickness = 1);
-
-        void ellipse(cv::Mat &image,
-                     const cv::Point2d &center,
-                     const cv::Size2d &size,
-                     const cv::Scalar &color,
-                     double angle = 0.,
-                     double start_angle = 0.,
-                     double end_angle = 360.,
-                     int thickness = 1);
-
-        void circle(cv::Mat &image,
-                    const cv::Point2d &center,
-                    double radius,
-                    cv::Scalar color,
-                    int thickness = 1);
-
-        void rectangle(cv::Mat &image,
-                       const cv::Point2d &pt1,
-                       const cv::Point2d &pt2,
-                       const cv::Scalar &color,
-                       bool fill = false,
-                       int thickness = 1);
-
-
-        void rectangle_size(cv::Mat &img,
-                            const cv::Point2d &pt,
-                            const cv::Size2d &size,
-                            const cv::Scalar &color,
-                            bool fill = false,
-                            int thickness = 1);
-
-        void text(cv::Mat &img,
-                  const cv::Point2d &position,
-                  const std::string &msg,
-                  const cv::Scalar &color,
-                  bool center_around_point = false,
-                  bool add_cartouche = false,
-                  double fontScale = 0.4,
-                  int thickness = 1);
-
-        void cross_hole(cv::Mat &img,
-                        const cv::Point2d &position,
-                        const cv::Scalar &color,
-                        double size = 2.,
-                        double size_hole = 2.,
-                        int thickness = 1);
-
-        void draw_named_feature(cv::Mat &img,
-                                const cv::Point2d &position,
-                                const std::string &name,
-                                const cv::Scalar &color,
-                                bool add_cartouche = false,
-                                double size = 3.,
-                                double size_hole = 2.,
-                                int thickness = 1);
-
-        void draw_transparent_pixel(
-            cv::Mat &img_rgba,
-            const cv::Point2d &position,
-            const cv::Scalar &color,
-            double alpha
-        );
-
-        void draw_grid(
-            cv::Mat& img_rgba,
-            cv::Scalar lineColor,
-            double alpha,
-            double x_spacing, double y_spacing,
-            double x_start, double y_start,
-            double x_end, double y_end
-        );
-
-        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2);
-        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2);
-
-        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize = 30);
-
-        using Image_RGB = cv::Mat;
-        using Image_RGBA = cv::Mat;
-
-        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba,
-                                              const Image_RGBA &overlay_rgba,
-                                              double alpha);
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra);
-
-    }  // namespace CvDrawingUtils
-}  // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
+//                       src/immvision/internal/cv/colormap.h included by src/immvision/internal/cv/colormap.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/misc/string_utils.h included by src/immvision/internal/cv/cv_drawing_utils.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <string>
-
-namespace ImmVision
-{
-    namespace StringUtils
-    {
-        std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator);
-        std::vector<std::string> SplitString(const std::string& s, const char separator);
-        std::string IndentLine(const std::string& s, int indentSize);
-        std::string IndentLines(const std::string& s, int indentSize);
-
-
-        std::string ToString(const std::string& s);
-        std::string ToString(const double& v);
-        std::string ToString(const float& v);
-        std::string ToString(const int& v);
-        std::string ToString(bool v);
-
-        template<typename _Tp>
-        std::string ToString(const cv::Point_<_Tp>& v)
-        {
-            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
-        }
-        template<typename _Tp>
-        std::string ToString(const cv::Size_<_Tp>& v)
-        {
-            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
-        }
-
-        template<typename _Tp>
-        std::string ToString(const std::vector<_Tp>& v)
-        {
-            std::vector<std::string> strs;
-            for (const auto& x : v)
-                strs.push_back(ToString(x));
-            std::string r = "[" + JoinStrings(strs, ", ") + "]";
-            return r;
-        }
-
-        template<typename _Tp, int _rows,int _cols>
-        std::string ToString(const cv::Matx<_Tp, _rows, _cols>& m)
-        {
-            std::vector<std::string> lines;
-            for (int i = 0; i < _rows; ++i)
-            {
-                std::vector<_Tp> lineValues;
-                for (int j = 0; j < _cols; ++j)
-                    lineValues.push_back(m(i, j));
-
-                std::string lineString = ToString(lineValues);
-                if (i != 0)
-                    lineString = std::string("   ") + lineString;
-                lines.push_back(lineString);
-            }
-            std::string r = "\n  [";
-            r += JoinStrings(lines, ",\n");
-            r += "]";
-            return r;
-        }
-
-    } // namespace StringUtils
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/misc/math_utils.h included by src/immvision/internal/cv/cv_drawing_utils.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    namespace MathUtils
-    {
-        int RoundInt(double v);
-        double MaximumValue(const std::vector<double> &v);
-        double MinimumValue(const std::vector<double> &v);
-
-        inline double Lerp(double a, double b, double x) noexcept
-        {
-            return (a + (b - a) * x);
-        }
-        inline double UnLerp(double a, double b, double x) noexcept
-        {
-            return (x - a) / (b - a);
-        }
-
-        inline std::vector<double> arange(double a, double b, double step)
-        {
-            std::vector<double> r;
-            double v = a;
-            while (v < b)
-            {
-                r.push_back(v);
-                v += step;
-            }
-            return r;
-        }
-    } // namespace MathUtils
-
-
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <opencv2/imgproc/imgproc.hpp>
-#include <unordered_map>
-
-#ifndef CV_16F // for old versions of OpenCV
-#define CV_16F 7
-#endif
-
-
-namespace ImmVision
-{
-    namespace CvDrawingUtils
-    {
-        namespace
-        {
-            int drawing_shift = 3;
-            double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
-
-        }  // namespace
-
-
-        const std::unordered_map<Colors, cv::Scalar> ColorsValues{
-            {Colors::Black,  {0.,   0.,   0.,   255.}},
-            {Colors::Red,    {0.,   0.,   255., 255.}},
-            {Colors::Green,  {0.,   255., 0.,   255.}},
-            {Colors::Blue,   {255., 0.,   0.,   255.}},
-            {Colors::White,  {255., 255., 255., 255.}},
-            {Colors::Yellow, {0.,   255., 255., 255.}},
-            {Colors::Cyan,   {0.,   255., 255., 255.}},
-            {Colors::Violet, {200., 50.,  200., 255.}},
-            {Colors::Orange, {0.,   128., 255., 255.}}};
-
-        cv::Scalar ColorsToScalar(Colors value)
-        { return ColorsValues.at(value); }
-
-        cv::Point _ToCvPoint_Shift(const cv::Point2d &pt)
-        {
-            cv::Point pt_tuple;
-            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x) * drawing_shift_pow);
-            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y) * drawing_shift_pow);
-            return pt_tuple;
-        }
-
-        cv::Point _ToCvPoint_NoShift(const cv::Point2d &pt)
-        {
-            cv::Point pt_tuple;
-            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x));
-            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y));
-            return pt_tuple;
-        }
-
-        cv::Size _ToCvSize_WithShift(const cv::Size2d s)
-        {
-            return {MathUtils::RoundInt(static_cast<double>(s.width) * drawing_shift_pow),
-                    MathUtils::RoundInt(static_cast<double>(s.height) * drawing_shift_pow)};
-        }
-
-        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba, const Image_RGBA &overlay_rgba, double alpha)
-        {
-            /*
-            cf minute physics brilliant clip "Computer color is broken" :
-            https://www.youtube.com/watch?v=LKnqECcg6Gw the RGB values are square rooted by the sensor (in
-            order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
-            results that are nicer than photoshop itself !
-            */
-            assert( (background_rgb_or_rgba.type() == CV_8UC3) || (background_rgb_or_rgba.type() == CV_8UC4));
-            assert(overlay_rgba.type() == CV_8UC4);
-
-            cv::Mat background_rgb;
-            {
-                if (background_rgb_or_rgba.channels() == 4)
-                    cv::cvtColor(background_rgb_or_rgba, background_rgb, cv::COLOR_BGRA2BGR);
-                else if (background_rgb_or_rgba.channels() == 3)
-                    background_rgb = background_rgb_or_rgba;
-                else
-                    throw("Only CV_8UC3 or CV_8UC4 background are supported!");
-            }
-
-
-            std::vector<cv::Mat> overlay_rgb_channels;
-            cv::split(overlay_rgba, overlay_rgb_channels);
-
-            cv::Mat overlay_alpha_3;
-            {
-                cv::Mat overlay_alpha_int = overlay_rgb_channels[3];
-                cv::Mat overlay_alpha_float;
-                overlay_alpha_int.convertTo(overlay_alpha_float, CV_64F);
-                overlay_alpha_float = overlay_alpha_float * (alpha / 255.);
-
-                std::vector<cv::Mat> v{overlay_alpha_float, overlay_alpha_float, overlay_alpha_float};
-                cv::merge(v, overlay_alpha_3);
-            }
-
-            cv::Mat overlay_rgb_squared;
-            {
-                cv::Mat overlay_rgb_int;
-                std::vector<cv::Mat> v{overlay_rgb_channels[0], overlay_rgb_channels[1], overlay_rgb_channels[2]};
-                cv::merge(v, overlay_rgb_int);
-
-                cv::Mat overlay_rgb_float;
-                overlay_rgb_int.convertTo(overlay_rgb_float, CV_64F);
-                overlay_rgb_squared = overlay_rgb_float.mul(overlay_rgb_float);
-            }
-
-            cv::Mat background_rgb_squared;
-            {
-                cv::Mat background_rgb_float;
-                background_rgb.convertTo(background_rgb_float, CV_64F);
-                background_rgb_squared = background_rgb_float.mul(background_rgb_float);
-            }
-
-            cv::Mat out_rgb_squared;
-            {
-                out_rgb_squared = overlay_rgb_squared.mul(overlay_alpha_3) +
-                                  background_rgb_squared.mul(cv::Scalar(1., 1., 1.) - overlay_alpha_3);
-            }
-
-            cv::Mat out_rgb_float;
-            {
-                cv::sqrt(out_rgb_squared, out_rgb_float);
-            }
-
-            cv::Mat out_rgb;
-            {
-                out_rgb_float.convertTo(out_rgb, CV_8U);
-            }
-
-            if (background_rgb_or_rgba.type() == CV_8UC3)
-                return out_rgb;
-            else // background_rgb_or_rgba.type() == CV_8UC4
-            {
-                cv::Mat out_rgba;
-                cv::cvtColor(out_rgb, out_rgba, cv::COLOR_BGR2BGRA);
-                return out_rgba;
-            }
-        }
-
-
-        cv::Mat ToFloatMat(const cv::Mat &mat_uchar)
-        {
-            std::vector<cv::Mat> channels_uchar;
-            cv::split(mat_uchar, channels_uchar);
-            std::vector<cv::Mat> channels_float;
-            for (const auto &channel_uchar: channels_uchar)
-            {
-                cv::Mat channel_float;
-                channel_uchar.convertTo(channel_float, CV_32FC1);
-                channels_float.push_back(channel_float);
-            }
-            cv::Mat mat_float;
-            cv::merge(channels_float, mat_float);
-            return mat_float;
-        }
-
-        std::pair<cv::Mat, cv::Mat> split_alpha_channel(const cv::Mat img_with_alpha)
-        {
-            std::vector<cv::Mat> channels;
-            cv::split(img_with_alpha, channels);
-            cv::Mat rgb, alpha;
-            alpha = channels[3];
-            channels.pop_back();
-            cv::merge(channels, rgb);
-            return {rgb, alpha};
-        }
-
-        void line(cv::Mat &image,
-                  const cv::Point2d &a,
-                  const cv::Point2d &b,
-                  cv::Scalar color,
-                  int thickness /*= 1*/)
-        {
-            cv::line(image,
-                     _ToCvPoint_Shift(a),
-                     _ToCvPoint_Shift(b),
-                     color,
-                     thickness,
-                     cv::LINE_AA,
-                     drawing_shift);
-        }
-
-        void ellipse(cv::Mat &image,
-                     const cv::Point2d &center,
-                     const cv::Size2d &size,
-                     const cv::Scalar &color,
-                     double angle /*= 0.*/,
-                     double start_angle /*=0.*/,
-                     double end_angle /*=360.*/,
-                     int thickness /*= 1*/)
-        {
-            cv::ellipse(image,
-                        _ToCvPoint_Shift(center),
-                        _ToCvSize_WithShift(size),
-                        angle,
-                        start_angle,
-                        end_angle,
-                        color,
-                        thickness,
-                        cv::LINE_AA,
-                        drawing_shift);
-        }
-
-        void circle(cv::Mat &image,
-                    const cv::Point2d &center,
-                    double radius,
-                    cv::Scalar color,
-                    int thickness /*= 1*/)
-        {
-            ellipse(image, center, {radius, radius}, color, 0., 0., 360., thickness);
-        }
-
-        void rectangle(cv::Mat &image,
-                       const cv::Point2d &pt1,
-                       const cv::Point2d &pt2,
-                       const cv::Scalar &color,
-                       bool fill /*= false*/,
-                       int thickness /*= 1*/)
-        {
-            if (fill)
-                thickness = -1;
-            cv::rectangle(image,
-                          _ToCvPoint_Shift(pt1),
-                          _ToCvPoint_Shift(pt2),
-                          color,
-                          thickness,
-                          cv::LINE_AA,
-                          drawing_shift);
-        }
-
-        cv::Scalar _ContrastColor(const cv::Scalar &color)
-        {
-            return {255. - color[0], 255. - color[1], 255. - color[2], color[3]};
-        }
-
-        void rectangle_size(cv::Mat &img,
-                            const cv::Point2d &pt,
-                            const cv::Size2d &size,
-                            const cv::Scalar &color,
-                            bool fill /*= false*/,
-                            int thickness /*= 1*/)
-        {
-            cv::Point2d pt2(pt.x + size.width, pt.y + size.height);
-            rectangle(img, pt, pt2, color, fill, thickness);
-        }
-
-        double _text_line_height(double fontScale, int thickness)
-        {
-            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
-            int baseLine_dummy;
-            cv::Size size = cv::getTextSize("ABC", fontFace, fontScale, thickness, &baseLine_dummy);
-            return (double)size.height;
-        }
-
-        int text_oneline(cv::Mat &img,
-                         const cv::Point2d &position,
-                         const std::string &text,
-                         const cv::Scalar &color,
-                         bool center_around_point /*= false*/,
-                         bool add_cartouche /*= false*/,
-                         double fontScale /*= 0.4*/,
-                         int thickness /*= 1*/)
-        {
-            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
-            int baseLine_dummy;
-            cv::Size size = cv::getTextSize(text, fontFace, fontScale, thickness, &baseLine_dummy);
-            cv::Point position2 = _ToCvPoint_NoShift(position);
-            cv::Point position3;
-            if (center_around_point)
-                position3 = {position2.x - size.width / 2, position2.y + size.height / 2};
-            else
-                position3 = position2;
-            if (add_cartouche)
-            {
-                cv::Point position4 = {position3.x, position3.y - size.height};
-                rectangle_size(img, position4, size, _ContrastColor(color), true);
-            }
-            cv::putText(img, text, position3, fontFace, fontScale, color, thickness, cv::LINE_AA);
-            return size.height;
-        }
-
-        void text(cv::Mat &img,
-                  const cv::Point2d &position,
-                  const std::string &msg,
-                  const cv::Scalar &color,
-                  bool center_around_point /*= false*/,
-                  bool add_cartouche /*= false*/,
-                  double fontScale /*= 0.4*/,
-                  int thickness /*= 1*/)
-        {
-            auto lines = StringUtils::SplitString(msg, '\n');
-
-            double line_height = _text_line_height(fontScale, thickness) + 3.;
-            cv::Point2d linePosition = position;
-            linePosition.y -= line_height * (double)(lines.size() - 1.) / 2.;
-            for (const auto &line: lines)
-            {
-                text_oneline(
-                    img, linePosition, line, color, center_around_point, add_cartouche, fontScale, thickness);
-                linePosition.y += line_height;
-            }
-        }
-
-        void cross_hole(cv::Mat &img,
-                        const cv::Point2d &position,
-                        const cv::Scalar &color,
-                        double size /*= 2.*/,
-                        double size_hole /*= 2.*/,
-                        int thickness /*= 1*/)
-        {
-            for (double xSign: std::vector<double>{-1., 1.})
-            {
-                for (double ySign: std::vector<double>{-1., 1.})
-                {
-                    cv::Point2d a{position.x + xSign * size_hole, position.y + ySign * size_hole};
-                    cv::Point2d b{position.x + xSign * (size_hole + size),
-                                  position.y + ySign * (size_hole + size)};
-                    line(img, a, b, color, thickness);
-                }
-            }
-        }
-
-        void draw_ellipse(cv::Mat &img,
-                          const cv::Point2d &center,
-                          const cv::Size2d &size,
-                          const cv::Scalar &color,
-                          int thickness /*= 1*/,
-                          int lineType /*= cv::LINE_8*/,
-                          int shift /*= 0*/)
-        {
-            cv::ellipse(img, center, size, 0., 0., 360., color, thickness, lineType, shift);
-        }
-
-        void draw_named_feature(cv::Mat &img,
-                                const cv::Point2d &position,
-                                const std::string &name,
-                                const cv::Scalar &color,
-                                bool add_cartouche /*= false*/,
-                                double size /*= 3.*/,
-                                double size_hole /*= 2.*/,
-                                int thickness /*= 1*/)
-        {
-            if (add_cartouche)
-                for (auto x : std::vector<double>{-1., 1.})
-                    for (auto y : std::vector<double>{-1., 1.})
-                        cross_hole(img, position + cv::Point2d(x, y), _ContrastColor(color), size, size_hole, thickness);
-
-            cross_hole(img, position, color, size, size_hole, thickness);
-            double delta_y = size_hole + size + 6.;
-            cv::Point2d text_position = {position.x, position.y - delta_y};
-            text(img, text_position, name, color, true, add_cartouche);
-        }
-
-        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2)
-        {
-            cv::Mat img(cv::Size(img1.cols, img1.rows + img2.rows), img1.type());
-            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
-            img2.copyTo(img(cv::Rect(0, img1.rows, img2.cols, img2.rows)));
-            return img;
-        }
-
-        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2)
-        {
-            cv::Mat img(cv::Size(img1.cols + img2.cols, img1.rows), img1.type());
-            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
-            img2.copyTo(img(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
-            return img;
-        }
-
-        auto is_depth_unsigned_integer = [](int depth) {
-            return ((depth == CV_8U) || (depth == CV_16U));
-        };
-        auto is_depth_signed_integer = [](int depth) {
-            return ((depth == CV_8S) || (depth == CV_16S) || (depth == CV_32S));
-        };
-        auto is_depth_integer = [](int depth) {
-            return is_depth_signed_integer(depth) || is_depth_unsigned_integer(depth);
-        };
-        auto is_depth_integer_not_uchar(int depth) {
-            return is_depth_integer(depth) && (depth != CV_8U);
-        }
-        auto is_depth_float = [](int depth) {
-            return ((depth == CV_16F) || (depth == CV_32F) || (depth == CV_64F));
-        };
-
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
-        {
-
-            cv::Mat mat = inputMat;
-
-            if (!inputMat.isContinuous())
-                mat = inputMat.clone();
-            if (is_depth_integer_not_uchar(mat.depth()))
-            {
-                cv::Mat m64;
-                inputMat.convertTo(m64, CV_64F);
-                mat = m64;
-            }
-
-
-            cv::Mat mat_rgba;
-            int nbChannels = mat.channels();
-            if (nbChannels == 1)
-            {
-                int depth = mat.depth(); (void)depth;
-                if (mat.depth() == CV_8U)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
-                else if (is_depth_float(depth))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC1);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_GRAY2BGRA);
-                }
-            }
-            else if (nbChannels == 2)
-            {
-                // Add a third channel, with values = 0
-                cv::Mat mat3Channels_lastZero;
-                {
-                    std::vector<cv::Mat> channels;
-                    cv::split(inputMat, channels);
-                    cv::Mat channel3(channels.front().size(), channels.front().type());
-                    channel3 = cv::Scalar(0., 0., 0., 0.);
-                    channels.push_back(channel3);
-                    cv::merge(channels, mat3Channels_lastZero);
-                }
-                if ( mat.depth() == CV_8U)
-                    cv::cvtColor(mat3Channels_lastZero, mat_rgba, cv::COLOR_BGR2BGRA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat3Channels_lastZero * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC3);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
-                }
-            }
-            else if (nbChannels == 3)
-            {
-                if (mat.depth() == CV_8U && isBgrOrBgra)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrBgra)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_RGB2RGBA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC3);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_RGB2RGBA);
-                }
-                else
-                    throw std::runtime_error("unsupported image format");
-            }
-            else if (nbChannels == 4)
-            {
-                if (mat.depth() == CV_8U && isBgrOrBgra)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGRA2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrBgra)
-                    mat_rgba = mat;
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC4);
-                    grey_uchar.copyTo(mat_rgba);
-                }
-                else
-                    throw std::runtime_error("unsupported image format");
-            }
-            return mat_rgba;
-        }
-
-        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize)
-        {
-            cv::Mat r(size, CV_8UC3);
-            for (int x = 0; x < size.width; x++)
-            {
-                for (int y = 0; y < size.height; y++)
-                {
-                    uchar colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
-                    r.at<cv::Vec3b>(y, x) = cv::Vec3b(colorValue, colorValue, colorValue);
-                }
-            }
-            return r;
-        }
-
-
-        void draw_transparent_pixel(
-            cv::Mat &img_rgba,
-            const cv::Point2d &position,
-            const cv::Scalar &color,
-            double alpha
-        )
-        {
-            assert(img_rgba.type() == CV_8UC4);
-
-            auto fnLerpScalar = [](cv::Scalar c1, cv::Scalar c2, double k)
-            {
-                auto fnLerp = [](double x1, double x2, double k2) {
-                    return x1 + k2 * (x2 - x1);
-                };
-                cv::Scalar r(
-                    fnLerp(c1[0], c2[0], k),
-                    fnLerp(c1[1], c2[1], k),
-                    fnLerp(c1[2], c2[2], k),
-                    fnLerp(c1[3], c2[3], k)
-                );
-                return r;
-            };
-
-            double xFloor = (int)position.x;
-            double kx0 = 1. - (position.x - xFloor);
-            double kx1 = 1. - kx0;
-            double yFloor = (int)position.y;
-            double ky0 = 1. - (position.y - yFloor);
-            double ky1 = 1. - ky0;
-
-            std::vector<std::pair<cv::Point2d, double>> positionAndKs {
-                { cv::Point2d(0., 0.), kx0 * ky0 },
-                { cv::Point2d(1., 0.), kx1 * ky0 },
-                { cv::Point2d(0., 1.), kx0 * ky1 },
-                { cv::Point2d(1., 1.), kx1 * ky1 }
-            };
-
-            cv::Rect roi(cv::Point(0, 0), img_rgba.size());
-            for (const auto& kv: positionAndKs)
-            {
-                cv::Point pos;
-                {
-                    cv::Point2d delta = kv.first;
-                    pos = cv::Point((int)(position.x + delta.x), (int)(position.y + delta.y));
-                }
-                double k = kv.second;
-
-                if (!roi.contains(pos))
-                    continue;
-
-                cv::Scalar oldColor = img_rgba.at<cv::Vec4b>(pos.y, pos.x);
-                cv::Scalar dstColor = fnLerpScalar(oldColor, color, alpha * k);
-                img_rgba.at<cv::Vec4b>(pos.y, pos.x) = dstColor;
-            }
-        }
-
-
-        void draw_grid(
-            cv::Mat& img_rgba,
-            cv::Scalar lineColor,
-            double alpha,
-            double x_spacing, double y_spacing,
-            double x_start, double y_start,
-            double x_end, double y_end
-            )
-        {
-            assert(img_rgba.type() == CV_8UC4);
-
-            for (double y = y_start; y < y_end; y+= y_spacing)
-                for (double x = 0.; x < x_end; x+= 1.)
-                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
-            for (double x = x_start; x < x_end; x+= x_spacing)
-                for (double y = 0.; y < y_end; y+= 1.)
-                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
-        }
-
-    }  // namespace CvDrawingUtils
-}  // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/matrix_info_utils.cpp                                        //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/matrix_info_utils.h included by src/immvision/internal/cv/matrix_info_utils.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace MatrixInfoUtils
-    {
-        std::string _MatTypeName(const cv::Mat& m);
-        std::string _MatInfo(const cv::Mat &m);
-        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y);
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true);
-
-    } // namespace MatrixInfoUtils
-
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/matrix_info_utils.cpp continued                              //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <map>
-
-#ifndef CV_16F // for old versions of OpenCV
-#define CV_16F 7
-#endif
-
-namespace ImmVision
-{
-    namespace MatrixInfoUtils
-    {
-        std::string _MatTypeName(const cv::Mat& m)
-        {
-            std::map<int, std::string> depthNames
-                {
-                    { CV_8U, "CV_8U" },
-                    { CV_8S, "CV_8S" },
-                    { CV_16U, "CV_16U" },
-                    { CV_16S, "CV_16S" },
-                    { CV_32S, "CV_32S"},
-                    { CV_32F, "CV_32F"},
-                    { CV_64F, "CV_64F"},
-                    { CV_16F, "CV_16F"}
-                };
-            return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
-        }
-
-        std::string _MatInfo(const cv::Mat &m)
-        {
-            return _MatTypeName(m) + " " + std::to_string(m.cols) + "x" + std::to_string(m.rows);
-        }
-
-        std::string JoinStrings(const std::vector<std::string>&v, char separator)
-        {
-            std::string r;
-            for (size_t i = 0; i < v.size(); ++ i)
-            {
-                r += v[i];
-                if (i < v.size() - 1)
-                    r += separator;
-            }
-            return r;
-        }
-
-        template<typename _Tp>
-        std::vector<double> GrabValuesFromBuffer(const uchar * buffer, int nb)
-        {
-            std::vector<double> r;
-            auto buffer_typed =  reinterpret_cast<const _Tp *>(buffer);
-            for (int i = 0; i < nb; ++i)
-            {
-                r.push_back(static_cast<double>(*buffer_typed));
-                ++buffer_typed;
-            }
-            return r;
-        }
-
-        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y)
-        {
-            int depth = m.depth();
-            int nb_channels = m.channels();
-            const uchar * ptr = m.ptr(y, x);
-            if (depth == CV_8U)
-                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
-            else if (depth == CV_8S)
-                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
-            else if (depth == CV_16U)
-                return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
-            else if (depth == CV_16S)
-                return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
-#if CV_MAJOR_VERSION >= 4
-                else if (depth == CV_16F)
-                return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
-#endif
-            else if (depth == CV_32S)
-                return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
-            else if (depth == CV_32F)
-                return GrabValuesFromBuffer<float>(ptr, nb_channels);
-            else if (depth == CV_64F)
-                return GrabValuesFromBuffer<double>(ptr, nb_channels);
-            else
-                throw std::runtime_error("MatValuesAt: unhandled depth");
-        }
-
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator, bool add_paren)
-        {
-            if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
-                return "";
-            std::vector<double> values = MatValuesAt(m, x, y);
-
-            auto formatValue = [](double v, int depth) -> std::string
-            {
-                bool isFloat = false;
-                if ((depth == CV_32F) || (depth == CV_64F))
-                    isFloat = true;
-#if CV_MAJOR_VERSION >= 4
-                if (depth == CV_16F)
-                    isFloat = true;
-#endif
-                if (isFloat)
-                {
-                    char buffer_color[300];
-                    snprintf(buffer_color, 300, "%.5G", (double) v);
-                    return std::string(buffer_color);
-                }
-                else
-                {
-                    char buffer_color[300];
-                    snprintf(buffer_color, 300, "%lld", (long long) v);
-                    return std::string(buffer_color);
-                }
-            };
-
-            std::vector<std::string> strs;
-            int depth = m.depth();
-            for (double v: values)
-                strs.push_back(formatValue(v, depth));
-
-            std::string r = JoinStrings(strs, separator);
-            if (add_paren)
-                r = std::string("(") + r + ")";
-            return r;
-        }
-
-    } // namespace MatrixInfoUtils
-
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/zoom_pan_transform.cpp                                       //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/zoom_pan_transform.h included by src/immvision/internal/cv/zoom_pan_transform.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImmVision
-{
-    namespace ZoomPanTransform
-    {
-        using MatrixType = cv::Matx33d;
-
-        MatrixType Identity();
-
-        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio);
-        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom);
-        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize);
-        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize);
-        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
-
-        bool IsEqual(const MatrixType & v1, const MatrixType & v2);
-
-        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p);
-
-        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m);
-
-        MatrixType UpdateZoomMatrix_DisplaySizeChanged(
-            const MatrixType& oldZoomMatrix,
-            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize);
-
-    } // namespace ZoomPanTransform
-
-    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize);
-
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/zoom_pan_transform.cpp continued                             //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace ImmVision
-{
-    namespace ZoomPanTransform
-    {
-        using MatrixType = cv::Matx33d;
-
-        MatrixType Identity()
-        {
-            return cv::Matx33d::eye();
-        }
-
-        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio)
-        {
-            auto mat = cv::Matx33d::eye();
-            mat(0, 0) = zoomRatio;
-            mat(1, 1) = zoomRatio;
-            mat(0, 2) = zoomCenter.x * (1. - zoomRatio);
-            mat(1, 2) = zoomCenter.y * (1. - zoomRatio);
-            return mat;
-        }
-
-        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom)
-        {
-            auto mat = cv::Matx33d::eye();
-            mat(0, 2) = (double)dragDelta.x / currentZoom;
-            mat(1, 2) = (double)dragDelta.y / currentZoom;
-            return mat;
-        }
-
-        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize)
-        {
-            MatrixType r = Identity();
-            r(0, 2) = (viewportSize.width / 2 - imageSize.width / 2);
-            r(1, 2) = (viewportSize.height / 2 - imageSize.height / 2);
-            return r;
-        }
-
-        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m)
-        {
-            cv::Matx23d r;
-            for (int y = 0; y < 2; y++)
-                for (int x = 0; x < 3; x++)
-                    r(y, x) = m(y, x);
-            return r;
-        }
-
-        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize)
-        {
-            MatrixType r = Identity();
-
-            double zoom;
-            {
-                double k_image = (double)imageSize.width / (double)imageSize.height;
-                double k_viewport = (double)viewportSize.width / (double)viewportSize.height;
-                if (k_image > k_viewport)
-                    zoom = (double)viewportSize.width / (double)imageSize.width;
-                else
-                    zoom = (double)viewportSize.height / (double)imageSize.height;
-            }
-
-            r(0, 0) = zoom;
-            r(1, 1) = zoom;
-
-            return r;
-        }
-
-        bool IsEqual(const MatrixType & v1, const MatrixType & v2)
-        {
-            for (int j = 0; j < 3; j++)
-                for (int i = 0; i < 3; i++)
-                    if (fabs(v2(j, i) - v1(j, i)) > 1E-6)
-                        return false;
-            return true;
-        }
-
-        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p)
-        {
-            cv::Matx31d pMat(p.x, p.y, 1.);
-            cv::Matx31d rMat = zoomMatrix * pMat;
-            cv::Point2d r(rMat(0, 0), rMat(1, 0));
-            return r;
-        }
-
-        MatrixType UpdateZoomMatrix_DisplaySizeChanged(
-            const MatrixType& oldZoomMatrix,
-            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize)
-        {
-            if (oldDisplaySize.area() == 0 || newDisplaySize.area() == 0)
-                return oldZoomMatrix;
-
-            MatrixType zoomMatrix;
-
-            auto fnImageCenter = [](const cv::Size s) {
-                return cv::Point2d((double)s.width / 2., (double)s.height / 2.);
-            };
-
-            double newZoomFactor;
-            {
-                double oldZoomFactor = oldZoomMatrix(0, 0);
-                double kx = (double)newDisplaySize.width / (double)oldDisplaySize.width;
-                double ky = (double)newDisplaySize.height / (double)oldDisplaySize.height;
-                double k = (kx + ky) / 2.;
-                newZoomFactor = oldZoomFactor * k;
-            }
-
-            zoomMatrix = MatrixType::eye();
-            zoomMatrix(0, 0) = zoomMatrix(1, 1) = newZoomFactor;
-
-            cv::Point2d translation;
-            {
-                cv::Point2d oldDisplayCenter_Zoomed = fnImageCenter(oldDisplaySize);
-                cv::Point2d oldDisplayCenter_Image = ZoomPanTransform::Apply(oldZoomMatrix.inv(), oldDisplayCenter_Zoomed);
-
-                cv::Point2d newDisplayCenter_Zoomed_Wanted = fnImageCenter(newDisplaySize);
-                cv::Point2d newDisplayCenter_Zoomed_Now = ZoomPanTransform::Apply(zoomMatrix, oldDisplayCenter_Image);
-                translation = newDisplayCenter_Zoomed_Wanted - newDisplayCenter_Zoomed_Now;
-            }
-
-            zoomMatrix(0, 2) = translation.x;
-            zoomMatrix(1, 2) = translation.y;
-
-            return zoomMatrix;
-        }
-
-        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
-        {
-            auto mat = cv::Matx33d::eye();
-            mat(0, 0) = zoomRatio;
-            mat(1, 1) = zoomRatio;
-            double dx = (double)displayedImageSize.width / 2. - zoomRatio * zoomCenter.x;
-            double dy = (double)displayedImageSize.height / 2. - zoomRatio * zoomCenter.y;
-            mat(0, 2) = dx;
-            mat(1, 2) = dy;
-            return mat;
-        }
-
-    } // namespace ZoomPanTransform
-
-    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
-    {
-        return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
-    }
-
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/colormap.cpp                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/colormap.h included by src/immvision/internal/drawing/colormap.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#include <string>
 
 // Uses https://github.com/jgreitemann/colormap
 // Many thanks to Yuki Koyama
@@ -1546,13 +398,9 @@ namespace ImmVision
     {
         enum class GuiAction { None, Hovered, Apply, UnApply };
 
-        struct ColormapGuiResult
-        {
-            std::string ColormapName = "";
-            GuiAction Action = GuiAction::None;
-        };
-
-        ColormapGuiResult ShowColormapsGui(const std::string& selectedColormapName);
+        void ShowColormapsGui(
+            const cv::Mat &image, const cv::Rect& roi,
+            ColorAdjustmentsValues* inOutColorAdjustmentsValues);
 
         std::vector<std::string> AvailableColormaps();
 
@@ -1574,11 +422,11 @@ namespace ImmVision
 } // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/colormap.cpp continued                                  //
+//                       src/immvision/internal/cv/colormap.cpp continued                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/misc/tinycolormap.hpp included by src/immvision/internal/drawing/colormap.cpp//
+//                       src/immvision/internal/misc/tinycolormap.hpp included by src/immvision/internal/cv/colormap.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
  MIT License
@@ -4048,11 +2896,11 @@ namespace tinycolormap
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/colormap.cpp continued                                  //
+//                       src/immvision/internal/cv/colormap.cpp continued                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/misc/magic_enum.hpp included by src/immvision/internal/drawing/colormap.cpp//
+//                       src/immvision/internal/misc/magic_enum.hpp included by src/immvision/internal/cv/colormap.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  __  __             _        ______                          _____
 // |  \/  |           (_)      |  ____|                        / ____|_     _
@@ -5485,11 +4333,52 @@ namespace magic_enum {
 #endif // NEARGYE_MAGIC_ENUM_HPP
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/colormap.cpp continued                                  //
+//                       src/immvision/internal/cv/colormap.cpp continued                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/gl_texture.h included by src/immvision/internal/drawing/colormap.cpp//
+//                       src/immvision/internal/misc/math_utils.h included by src/immvision/internal/cv/colormap.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+namespace ImmVision
+{
+    namespace MathUtils
+    {
+        int RoundInt(double v);
+        double MaximumValue(const std::vector<double> &v);
+        double MinimumValue(const std::vector<double> &v);
+
+        inline double Lerp(double a, double b, double x) noexcept
+        {
+            return (a + (b - a) * x);
+        }
+        inline double UnLerp(double a, double b, double x) noexcept
+        {
+            return (x - a) / (b - a);
+        }
+
+        inline std::vector<double> arange(double a, double b, double step)
+        {
+            std::vector<double> r;
+            double v = a;
+            while (v < b)
+            {
+                r.push_back(v);
+                v += step;
+            }
+            return r;
+        }
+    } // namespace MathUtils
+
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/colormap.cpp continued                                       //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/gl/gl_texture.h included by src/immvision/internal/cv/colormap.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <memory>
 
@@ -5532,7 +4421,7 @@ namespace ImmVision
 } // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/colormap.cpp continued                                  //
+//                       src/immvision/internal/cv/colormap.cpp continued                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
@@ -5629,18 +4518,18 @@ namespace ImmVision
         }
 
 
-        ColormapGuiResult ShowColormapsGui(const std::string& selectedColormapName)
+        void ShowColormapsGui(
+            const cv::Mat &image, const cv::Rect& roi,
+            ColorAdjustmentsValues* params)
         {
             static std::string lastUnselectedColormap = "";
-
-
-            ColormapGuiResult r;
             FillTextureCache();
 
+            params->internal_ColormapHovered = "";
             for (const auto& kv: sColormapsTexturesCache)
             {
                 std::string colormapName = kv.first;
-                bool isSelected = (colormapName == selectedColormapName);
+                bool isSelected = (colormapName == params->Colormap);
 
                 ImVec4 colorNormal(0.7f, 0.7f, 0.7f, 1.f);
                 ImVec4 colorSelected(1.f, 1.f, 0.2f, 1.f);
@@ -5674,27 +4563,22 @@ namespace ImmVision
                     kv.second->DrawButton(sizeTexture);
                 else
                     kv.second->Draw(sizeTexture);
-                if (ImGui::IsItemHovered())
-                {
-                    r.ColormapName = colormapName;
-                    if ((colormapName != selectedColormapName) && (colormapName != lastUnselectedColormap) )
-                        r.Action = GuiAction::Hovered;
-                }
+                if (ImGui::IsItemHovered() && (colormapName != lastUnselectedColormap))
+                    params->internal_ColormapHovered = colormapName;
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
                 {
                     if (isSelected)
                     {
-                        r.Action = GuiAction::UnApply;
+                        params->Colormap = "";
                         lastUnselectedColormap = colormapName;
                     }
                     else
                     {
-                        r.Action = GuiAction::Apply;
+                        params->Colormap = colormapName;
                         lastUnselectedColormap = "";
                     }
                 }
             }
-            return r;
         }
 
 
@@ -5759,25 +4643,1137 @@ namespace ImmVision
 
         bool CanColormap(const cv::Mat &image)
         {
-            bool canColormap = true;
-            if (image.channels() != 1)
-                canColormap = false;
-            bool isDepthOk = false;
-            if ((image.depth() == CV_32F) || (image.depth() == CV_64F))
-                isDepthOk = true;
-#ifdef CV_16F
-            if (image.depth() == CV_16F)
-                isDepthOk = true;
-#endif
-            if (!isDepthOk)
-                canColormap = false;
-
-            return canColormap;
+            return image.channels() == 1;
         }
 
 
     } // namespace Colormap
 } // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/cv_drawing_utils.cpp                                         //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/cv_drawing_utils.h included by src/immvision/internal/cv/cv_drawing_utils.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <opencv2/core/core.hpp>
+
+namespace ImmVision
+{
+
+    namespace CvDrawingUtils
+    {
+        enum class Colors
+        {
+            Black,
+            Red,
+            Green,
+            Blue,
+            White,
+            Yellow,
+            Cyan,
+            Violet,
+            Orange
+        };
+
+        cv::Scalar ColorsToScalar(Colors value);
+
+        inline cv::Scalar Black()
+        { return {0, 0, 0, 255}; }
+
+        inline cv::Scalar Red()
+        { return {0, 0, 255, 255}; }
+
+        inline cv::Scalar Green()
+        { return {0, 255, 0, 255}; }
+
+        inline cv::Scalar Blue()
+        { return {255, 0, 0, 255}; }
+
+        inline cv::Scalar White()
+        { return {255, 255, 255, 255}; }
+
+        inline cv::Scalar Yellow()
+        { return {0, 255, 255, 255}; }
+
+        inline cv::Scalar Cyan()
+        { return {255, 255, 0, 255}; }
+
+        inline cv::Scalar Violet()
+        { return {200, 50, 200, 255}; }
+
+        inline cv::Scalar Orange()
+        { return {255, 128, 0, 255}; }
+
+
+        void line(cv::Mat &image,
+                  const cv::Point2d &a,
+                  const cv::Point2d &b,
+                  cv::Scalar color,
+                  int thickness = 1);
+
+        void ellipse(cv::Mat &image,
+                     const cv::Point2d &center,
+                     const cv::Size2d &size,
+                     const cv::Scalar &color,
+                     double angle = 0.,
+                     double start_angle = 0.,
+                     double end_angle = 360.,
+                     int thickness = 1);
+
+        void circle(cv::Mat &image,
+                    const cv::Point2d &center,
+                    double radius,
+                    cv::Scalar color,
+                    int thickness = 1);
+
+        void rectangle(cv::Mat &image,
+                       const cv::Point2d &pt1,
+                       const cv::Point2d &pt2,
+                       const cv::Scalar &color,
+                       bool fill = false,
+                       int thickness = 1);
+
+
+        void rectangle_size(cv::Mat &img,
+                            const cv::Point2d &pt,
+                            const cv::Size2d &size,
+                            const cv::Scalar &color,
+                            bool fill = false,
+                            int thickness = 1);
+
+        void text(cv::Mat &img,
+                  const cv::Point2d &position,
+                  const std::string &msg,
+                  const cv::Scalar &color,
+                  bool center_around_point = false,
+                  bool add_cartouche = false,
+                  double fontScale = 0.4,
+                  int thickness = 1);
+
+        void cross_hole(cv::Mat &img,
+                        const cv::Point2d &position,
+                        const cv::Scalar &color,
+                        double size = 2.,
+                        double size_hole = 2.,
+                        int thickness = 1);
+
+        void draw_named_feature(cv::Mat &img,
+                                const cv::Point2d &position,
+                                const std::string &name,
+                                const cv::Scalar &color,
+                                bool add_cartouche = false,
+                                double size = 3.,
+                                double size_hole = 2.,
+                                int thickness = 1);
+
+        void draw_transparent_pixel(
+            cv::Mat &img_rgba,
+            const cv::Point2d &position,
+            const cv::Scalar &color,
+            double alpha
+        );
+
+        void draw_grid(
+            cv::Mat& img_rgba,
+            cv::Scalar lineColor,
+            double alpha,
+            double x_spacing, double y_spacing,
+            double x_start, double y_start,
+            double x_end, double y_end
+        );
+
+        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2);
+        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2);
+
+        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize = 30);
+
+        using Image_RGB = cv::Mat;
+        using Image_RGBA = cv::Mat;
+
+        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba,
+                                              const Image_RGBA &overlay_rgba,
+                                              double alpha);
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra);
+
+    }  // namespace CvDrawingUtils
+}  // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/string_utils.h included by src/immvision/internal/cv/cv_drawing_utils.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace StringUtils
+    {
+        std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator);
+        std::vector<std::string> SplitString(const std::string& s, const char separator);
+        std::string IndentLine(const std::string& s, int indentSize);
+        std::string IndentLines(const std::string& s, int indentSize);
+
+
+        std::string ToString(const std::string& s);
+        std::string ToString(const double& v);
+        std::string ToString(const float& v);
+        std::string ToString(const int& v);
+        std::string ToString(bool v);
+
+        template<typename _Tp>
+        std::string ToString(const cv::Point_<_Tp>& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        template<typename _Tp>
+        std::string ToString(const cv::Size_<_Tp>& v)
+        {
+            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
+        }
+
+        template<typename _Tp>
+        std::string ToString(const std::vector<_Tp>& v)
+        {
+            std::vector<std::string> strs;
+            for (const auto& x : v)
+                strs.push_back(ToString(x));
+            std::string r = "[" + JoinStrings(strs, ", ") + "]";
+            return r;
+        }
+
+        template<typename _Tp, int _rows,int _cols>
+        std::string ToString(const cv::Matx<_Tp, _rows, _cols>& m)
+        {
+            std::vector<std::string> lines;
+            for (int i = 0; i < _rows; ++i)
+            {
+                std::vector<_Tp> lineValues;
+                for (int j = 0; j < _cols; ++j)
+                    lineValues.push_back(m(i, j));
+
+                std::string lineString = ToString(lineValues);
+                if (i != 0)
+                    lineString = std::string("   ") + lineString;
+                lines.push_back(lineString);
+            }
+            std::string r = "\n  [";
+            r += JoinStrings(lines, ",\n");
+            r += "]";
+            return r;
+        }
+
+    } // namespace StringUtils
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <opencv2/imgproc/imgproc.hpp>
+#include <unordered_map>
+
+#ifndef CV_16F // for old versions of OpenCV
+#define CV_16F 7
+#endif
+
+
+namespace ImmVision
+{
+    namespace CvDrawingUtils
+    {
+        namespace
+        {
+            int drawing_shift = 3;
+            double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
+
+        }  // namespace
+
+
+        const std::unordered_map<Colors, cv::Scalar> ColorsValues{
+            {Colors::Black,  {0.,   0.,   0.,   255.}},
+            {Colors::Red,    {0.,   0.,   255., 255.}},
+            {Colors::Green,  {0.,   255., 0.,   255.}},
+            {Colors::Blue,   {255., 0.,   0.,   255.}},
+            {Colors::White,  {255., 255., 255., 255.}},
+            {Colors::Yellow, {0.,   255., 255., 255.}},
+            {Colors::Cyan,   {0.,   255., 255., 255.}},
+            {Colors::Violet, {200., 50.,  200., 255.}},
+            {Colors::Orange, {0.,   128., 255., 255.}}};
+
+        cv::Scalar ColorsToScalar(Colors value)
+        { return ColorsValues.at(value); }
+
+        cv::Point _ToCvPoint_Shift(const cv::Point2d &pt)
+        {
+            cv::Point pt_tuple;
+            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x) * drawing_shift_pow);
+            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y) * drawing_shift_pow);
+            return pt_tuple;
+        }
+
+        cv::Point _ToCvPoint_NoShift(const cv::Point2d &pt)
+        {
+            cv::Point pt_tuple;
+            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x));
+            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y));
+            return pt_tuple;
+        }
+
+        cv::Size _ToCvSize_WithShift(const cv::Size2d s)
+        {
+            return {MathUtils::RoundInt(static_cast<double>(s.width) * drawing_shift_pow),
+                    MathUtils::RoundInt(static_cast<double>(s.height) * drawing_shift_pow)};
+        }
+
+        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba, const Image_RGBA &overlay_rgba, double alpha)
+        {
+            /*
+            cf minute physics brilliant clip "Computer color is broken" :
+            https://www.youtube.com/watch?v=LKnqECcg6Gw the RGB values are square rooted by the sensor (in
+            order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
+            results that are nicer than photoshop itself !
+            */
+            assert( (background_rgb_or_rgba.type() == CV_8UC3) || (background_rgb_or_rgba.type() == CV_8UC4));
+            assert(overlay_rgba.type() == CV_8UC4);
+
+            cv::Mat background_rgb;
+            {
+                if (background_rgb_or_rgba.channels() == 4)
+                    cv::cvtColor(background_rgb_or_rgba, background_rgb, cv::COLOR_BGRA2BGR);
+                else if (background_rgb_or_rgba.channels() == 3)
+                    background_rgb = background_rgb_or_rgba;
+                else
+                    throw("Only CV_8UC3 or CV_8UC4 background are supported!");
+            }
+
+
+            std::vector<cv::Mat> overlay_rgb_channels;
+            cv::split(overlay_rgba, overlay_rgb_channels);
+
+            cv::Mat overlay_alpha_3;
+            {
+                cv::Mat overlay_alpha_int = overlay_rgb_channels[3];
+                cv::Mat overlay_alpha_float;
+                overlay_alpha_int.convertTo(overlay_alpha_float, CV_64F);
+                overlay_alpha_float = overlay_alpha_float * (alpha / 255.);
+
+                std::vector<cv::Mat> v{overlay_alpha_float, overlay_alpha_float, overlay_alpha_float};
+                cv::merge(v, overlay_alpha_3);
+            }
+
+            cv::Mat overlay_rgb_squared;
+            {
+                cv::Mat overlay_rgb_int;
+                std::vector<cv::Mat> v{overlay_rgb_channels[0], overlay_rgb_channels[1], overlay_rgb_channels[2]};
+                cv::merge(v, overlay_rgb_int);
+
+                cv::Mat overlay_rgb_float;
+                overlay_rgb_int.convertTo(overlay_rgb_float, CV_64F);
+                overlay_rgb_squared = overlay_rgb_float.mul(overlay_rgb_float);
+            }
+
+            cv::Mat background_rgb_squared;
+            {
+                cv::Mat background_rgb_float;
+                background_rgb.convertTo(background_rgb_float, CV_64F);
+                background_rgb_squared = background_rgb_float.mul(background_rgb_float);
+            }
+
+            cv::Mat out_rgb_squared;
+            {
+                out_rgb_squared = overlay_rgb_squared.mul(overlay_alpha_3) +
+                                  background_rgb_squared.mul(cv::Scalar(1., 1., 1.) - overlay_alpha_3);
+            }
+
+            cv::Mat out_rgb_float;
+            {
+                cv::sqrt(out_rgb_squared, out_rgb_float);
+            }
+
+            cv::Mat out_rgb;
+            {
+                out_rgb_float.convertTo(out_rgb, CV_8U);
+            }
+
+            if (background_rgb_or_rgba.type() == CV_8UC3)
+                return out_rgb;
+            else // background_rgb_or_rgba.type() == CV_8UC4
+            {
+                cv::Mat out_rgba;
+                cv::cvtColor(out_rgb, out_rgba, cv::COLOR_BGR2BGRA);
+                return out_rgba;
+            }
+        }
+
+
+        cv::Mat ToFloatMat(const cv::Mat &mat_uchar)
+        {
+            std::vector<cv::Mat> channels_uchar;
+            cv::split(mat_uchar, channels_uchar);
+            std::vector<cv::Mat> channels_float;
+            for (const auto &channel_uchar: channels_uchar)
+            {
+                cv::Mat channel_float;
+                channel_uchar.convertTo(channel_float, CV_32FC1);
+                channels_float.push_back(channel_float);
+            }
+            cv::Mat mat_float;
+            cv::merge(channels_float, mat_float);
+            return mat_float;
+        }
+
+        std::pair<cv::Mat, cv::Mat> split_alpha_channel(const cv::Mat img_with_alpha)
+        {
+            std::vector<cv::Mat> channels;
+            cv::split(img_with_alpha, channels);
+            cv::Mat rgb, alpha;
+            alpha = channels[3];
+            channels.pop_back();
+            cv::merge(channels, rgb);
+            return {rgb, alpha};
+        }
+
+        void line(cv::Mat &image,
+                  const cv::Point2d &a,
+                  const cv::Point2d &b,
+                  cv::Scalar color,
+                  int thickness /*= 1*/)
+        {
+            cv::line(image,
+                     _ToCvPoint_Shift(a),
+                     _ToCvPoint_Shift(b),
+                     color,
+                     thickness,
+                     cv::LINE_AA,
+                     drawing_shift);
+        }
+
+        void ellipse(cv::Mat &image,
+                     const cv::Point2d &center,
+                     const cv::Size2d &size,
+                     const cv::Scalar &color,
+                     double angle /*= 0.*/,
+                     double start_angle /*=0.*/,
+                     double end_angle /*=360.*/,
+                     int thickness /*= 1*/)
+        {
+            cv::ellipse(image,
+                        _ToCvPoint_Shift(center),
+                        _ToCvSize_WithShift(size),
+                        angle,
+                        start_angle,
+                        end_angle,
+                        color,
+                        thickness,
+                        cv::LINE_AA,
+                        drawing_shift);
+        }
+
+        void circle(cv::Mat &image,
+                    const cv::Point2d &center,
+                    double radius,
+                    cv::Scalar color,
+                    int thickness /*= 1*/)
+        {
+            ellipse(image, center, {radius, radius}, color, 0., 0., 360., thickness);
+        }
+
+        void rectangle(cv::Mat &image,
+                       const cv::Point2d &pt1,
+                       const cv::Point2d &pt2,
+                       const cv::Scalar &color,
+                       bool fill /*= false*/,
+                       int thickness /*= 1*/)
+        {
+            if (fill)
+                thickness = -1;
+            cv::rectangle(image,
+                          _ToCvPoint_Shift(pt1),
+                          _ToCvPoint_Shift(pt2),
+                          color,
+                          thickness,
+                          cv::LINE_AA,
+                          drawing_shift);
+        }
+
+        cv::Scalar _ContrastColor(const cv::Scalar &color)
+        {
+            return {255. - color[0], 255. - color[1], 255. - color[2], color[3]};
+        }
+
+        void rectangle_size(cv::Mat &img,
+                            const cv::Point2d &pt,
+                            const cv::Size2d &size,
+                            const cv::Scalar &color,
+                            bool fill /*= false*/,
+                            int thickness /*= 1*/)
+        {
+            cv::Point2d pt2(pt.x + size.width, pt.y + size.height);
+            rectangle(img, pt, pt2, color, fill, thickness);
+        }
+
+        double _text_line_height(double fontScale, int thickness)
+        {
+            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
+            int baseLine_dummy;
+            cv::Size size = cv::getTextSize("ABC", fontFace, fontScale, thickness, &baseLine_dummy);
+            return (double)size.height;
+        }
+
+        int text_oneline(cv::Mat &img,
+                         const cv::Point2d &position,
+                         const std::string &text,
+                         const cv::Scalar &color,
+                         bool center_around_point /*= false*/,
+                         bool add_cartouche /*= false*/,
+                         double fontScale /*= 0.4*/,
+                         int thickness /*= 1*/)
+        {
+            auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
+            int baseLine_dummy;
+            cv::Size size = cv::getTextSize(text, fontFace, fontScale, thickness, &baseLine_dummy);
+            cv::Point position2 = _ToCvPoint_NoShift(position);
+            cv::Point position3;
+            if (center_around_point)
+                position3 = {position2.x - size.width / 2, position2.y + size.height / 2};
+            else
+                position3 = position2;
+            if (add_cartouche)
+            {
+                cv::Point position4 = {position3.x, position3.y - size.height};
+                rectangle_size(img, position4, size, _ContrastColor(color), true);
+            }
+            cv::putText(img, text, position3, fontFace, fontScale, color, thickness, cv::LINE_AA);
+            return size.height;
+        }
+
+        void text(cv::Mat &img,
+                  const cv::Point2d &position,
+                  const std::string &msg,
+                  const cv::Scalar &color,
+                  bool center_around_point /*= false*/,
+                  bool add_cartouche /*= false*/,
+                  double fontScale /*= 0.4*/,
+                  int thickness /*= 1*/)
+        {
+            auto lines = StringUtils::SplitString(msg, '\n');
+
+            double line_height = _text_line_height(fontScale, thickness) + 3.;
+            cv::Point2d linePosition = position;
+            linePosition.y -= line_height * (double)(lines.size() - 1.) / 2.;
+            for (const auto &line: lines)
+            {
+                text_oneline(
+                    img, linePosition, line, color, center_around_point, add_cartouche, fontScale, thickness);
+                linePosition.y += line_height;
+            }
+        }
+
+        void cross_hole(cv::Mat &img,
+                        const cv::Point2d &position,
+                        const cv::Scalar &color,
+                        double size /*= 2.*/,
+                        double size_hole /*= 2.*/,
+                        int thickness /*= 1*/)
+        {
+            for (double xSign: std::vector<double>{-1., 1.})
+            {
+                for (double ySign: std::vector<double>{-1., 1.})
+                {
+                    cv::Point2d a{position.x + xSign * size_hole, position.y + ySign * size_hole};
+                    cv::Point2d b{position.x + xSign * (size_hole + size),
+                                  position.y + ySign * (size_hole + size)};
+                    line(img, a, b, color, thickness);
+                }
+            }
+        }
+
+        void draw_ellipse(cv::Mat &img,
+                          const cv::Point2d &center,
+                          const cv::Size2d &size,
+                          const cv::Scalar &color,
+                          int thickness /*= 1*/,
+                          int lineType /*= cv::LINE_8*/,
+                          int shift /*= 0*/)
+        {
+            cv::ellipse(img, center, size, 0., 0., 360., color, thickness, lineType, shift);
+        }
+
+        void draw_named_feature(cv::Mat &img,
+                                const cv::Point2d &position,
+                                const std::string &name,
+                                const cv::Scalar &color,
+                                bool add_cartouche /*= false*/,
+                                double size /*= 3.*/,
+                                double size_hole /*= 2.*/,
+                                int thickness /*= 1*/)
+        {
+            if (add_cartouche)
+                for (auto x : std::vector<double>{-1., 1.})
+                    for (auto y : std::vector<double>{-1., 1.})
+                        cross_hole(img, position + cv::Point2d(x, y), _ContrastColor(color), size, size_hole, thickness);
+
+            cross_hole(img, position, color, size, size_hole, thickness);
+            double delta_y = size_hole + size + 6.;
+            cv::Point2d text_position = {position.x, position.y - delta_y};
+            text(img, text_position, name, color, true, add_cartouche);
+        }
+
+        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2)
+        {
+            cv::Mat img(cv::Size(img1.cols, img1.rows + img2.rows), img1.type());
+            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
+            img2.copyTo(img(cv::Rect(0, img1.rows, img2.cols, img2.rows)));
+            return img;
+        }
+
+        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2)
+        {
+            cv::Mat img(cv::Size(img1.cols + img2.cols, img1.rows), img1.type());
+            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
+            img2.copyTo(img(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
+            return img;
+        }
+
+        auto is_depth_unsigned_integer = [](int depth) {
+            return ((depth == CV_8U) || (depth == CV_16U));
+        };
+        auto is_depth_signed_integer = [](int depth) {
+            return ((depth == CV_8S) || (depth == CV_16S) || (depth == CV_32S));
+        };
+        auto is_depth_integer = [](int depth) {
+            return is_depth_signed_integer(depth) || is_depth_unsigned_integer(depth);
+        };
+        auto is_depth_integer_not_uchar(int depth) {
+            return is_depth_integer(depth) && (depth != CV_8U);
+        }
+        auto is_depth_float = [](int depth) {
+            return ((depth == CV_16F) || (depth == CV_32F) || (depth == CV_64F));
+        };
+
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
+        {
+
+            cv::Mat mat = inputMat;
+
+            if (!inputMat.isContinuous())
+                mat = inputMat.clone();
+            if (is_depth_integer_not_uchar(mat.depth()))
+            {
+                cv::Mat m64;
+                inputMat.convertTo(m64, CV_64F);
+                mat = m64;
+            }
+
+
+            cv::Mat mat_rgba;
+            int nbChannels = mat.channels();
+            if (nbChannels == 1)
+            {
+                int depth = mat.depth(); (void)depth;
+                if (mat.depth() == CV_8U)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
+                else if (is_depth_float(depth))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC1);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_GRAY2BGRA);
+                }
+            }
+            else if (nbChannels == 2)
+            {
+                // Add a third channel, with values = 0
+                cv::Mat mat3Channels_lastZero;
+                {
+                    std::vector<cv::Mat> channels;
+                    cv::split(inputMat, channels);
+                    cv::Mat channel3(channels.front().size(), channels.front().type());
+                    channel3 = cv::Scalar(0., 0., 0., 0.);
+                    channels.push_back(channel3);
+                    cv::merge(channels, mat3Channels_lastZero);
+                }
+                if ( mat.depth() == CV_8U)
+                    cv::cvtColor(mat3Channels_lastZero, mat_rgba, cv::COLOR_BGR2BGRA);
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat3Channels_lastZero * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC3);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
+                }
+            }
+            else if (nbChannels == 3)
+            {
+                if (mat.depth() == CV_8U && isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2RGBA);
+                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_RGB2RGBA);
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC3);
+                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_RGB2RGBA);
+                }
+                else
+                    throw std::runtime_error("unsupported image format");
+            }
+            else if (nbChannels == 4)
+            {
+                if (mat.depth() == CV_8U && isBgrOrBgra)
+                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGRA2RGBA);
+                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                    mat_rgba = mat;
+                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
+                {
+                    cv::Mat grey_uchar;
+                    cv::Mat float_times_255 = mat * 255.;
+                    float_times_255.convertTo(grey_uchar, CV_8UC4);
+                    grey_uchar.copyTo(mat_rgba);
+                }
+                else
+                    throw std::runtime_error("unsupported image format");
+            }
+            return mat_rgba;
+        }
+
+        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize)
+        {
+            cv::Mat r(size, CV_8UC3);
+            for (int x = 0; x < size.width; x++)
+            {
+                for (int y = 0; y < size.height; y++)
+                {
+                    uchar colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
+                    r.at<cv::Vec3b>(y, x) = cv::Vec3b(colorValue, colorValue, colorValue);
+                }
+            }
+            return r;
+        }
+
+
+        void draw_transparent_pixel(
+            cv::Mat &img_rgba,
+            const cv::Point2d &position,
+            const cv::Scalar &color,
+            double alpha
+        )
+        {
+            assert(img_rgba.type() == CV_8UC4);
+
+            auto fnLerpScalar = [](cv::Scalar c1, cv::Scalar c2, double k)
+            {
+                auto fnLerp = [](double x1, double x2, double k2) {
+                    return x1 + k2 * (x2 - x1);
+                };
+                cv::Scalar r(
+                    fnLerp(c1[0], c2[0], k),
+                    fnLerp(c1[1], c2[1], k),
+                    fnLerp(c1[2], c2[2], k),
+                    fnLerp(c1[3], c2[3], k)
+                );
+                return r;
+            };
+
+            double xFloor = (int)position.x;
+            double kx0 = 1. - (position.x - xFloor);
+            double kx1 = 1. - kx0;
+            double yFloor = (int)position.y;
+            double ky0 = 1. - (position.y - yFloor);
+            double ky1 = 1. - ky0;
+
+            std::vector<std::pair<cv::Point2d, double>> positionAndKs {
+                { cv::Point2d(0., 0.), kx0 * ky0 },
+                { cv::Point2d(1., 0.), kx1 * ky0 },
+                { cv::Point2d(0., 1.), kx0 * ky1 },
+                { cv::Point2d(1., 1.), kx1 * ky1 }
+            };
+
+            cv::Rect roi(cv::Point(0, 0), img_rgba.size());
+            for (const auto& kv: positionAndKs)
+            {
+                cv::Point pos;
+                {
+                    cv::Point2d delta = kv.first;
+                    pos = cv::Point((int)(position.x + delta.x), (int)(position.y + delta.y));
+                }
+                double k = kv.second;
+
+                if (!roi.contains(pos))
+                    continue;
+
+                cv::Scalar oldColor = img_rgba.at<cv::Vec4b>(pos.y, pos.x);
+                cv::Scalar dstColor = fnLerpScalar(oldColor, color, alpha * k);
+                img_rgba.at<cv::Vec4b>(pos.y, pos.x) = dstColor;
+            }
+        }
+
+
+        void draw_grid(
+            cv::Mat& img_rgba,
+            cv::Scalar lineColor,
+            double alpha,
+            double x_spacing, double y_spacing,
+            double x_start, double y_start,
+            double x_end, double y_end
+            )
+        {
+            assert(img_rgba.type() == CV_8UC4);
+
+            for (double y = y_start; y < y_end; y+= y_spacing)
+                for (double x = 0.; x < x_end; x+= 1.)
+                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
+            for (double x = x_start; x < x_end; x+= x_spacing)
+                for (double y = 0.; y < y_end; y+= 1.)
+                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
+        }
+
+    }  // namespace CvDrawingUtils
+}  // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/matrix_info_utils.cpp                                        //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/matrix_info_utils.h included by src/immvision/internal/cv/matrix_info_utils.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace MatrixInfoUtils
+    {
+        std::string _MatTypeName(const cv::Mat& m);
+        std::string _MatInfo(const cv::Mat &m);
+        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y);
+        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true);
+
+    } // namespace MatrixInfoUtils
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/matrix_info_utils.cpp continued                              //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifndef CV_16F // for old versions of OpenCV
+#define CV_16F 7
+#endif
+
+namespace ImmVision
+{
+    namespace MatrixInfoUtils
+    {
+        std::string _MatTypeName(const cv::Mat& m)
+        {
+            std::map<int, std::string> depthNames
+                {
+                    { CV_8U, "CV_8U" },
+                    { CV_8S, "CV_8S" },
+                    { CV_16U, "CV_16U" },
+                    { CV_16S, "CV_16S" },
+                    { CV_32S, "CV_32S"},
+                    { CV_32F, "CV_32F"},
+                    { CV_64F, "CV_64F"},
+                    { CV_16F, "CV_16F"}
+                };
+            return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
+        }
+
+        std::string _MatInfo(const cv::Mat &m)
+        {
+            return _MatTypeName(m) + " " + std::to_string(m.cols) + "x" + std::to_string(m.rows);
+        }
+
+        std::string JoinStrings(const std::vector<std::string>&v, char separator)
+        {
+            std::string r;
+            for (size_t i = 0; i < v.size(); ++ i)
+            {
+                r += v[i];
+                if (i < v.size() - 1)
+                    r += separator;
+            }
+            return r;
+        }
+
+        template<typename _Tp>
+        std::vector<double> GrabValuesFromBuffer(const uchar * buffer, int nb)
+        {
+            std::vector<double> r;
+            auto buffer_typed =  reinterpret_cast<const _Tp *>(buffer);
+            for (int i = 0; i < nb; ++i)
+            {
+                r.push_back(static_cast<double>(*buffer_typed));
+                ++buffer_typed;
+            }
+            return r;
+        }
+
+        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y)
+        {
+            int depth = m.depth();
+            int nb_channels = m.channels();
+            const uchar * ptr = m.ptr(y, x);
+            if (depth == CV_8U)
+                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
+            else if (depth == CV_8S)
+                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
+            else if (depth == CV_16U)
+                return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
+            else if (depth == CV_16S)
+                return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
+#if CV_MAJOR_VERSION >= 4
+                else if (depth == CV_16F)
+                return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
+#endif
+            else if (depth == CV_32S)
+                return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
+            else if (depth == CV_32F)
+                return GrabValuesFromBuffer<float>(ptr, nb_channels);
+            else if (depth == CV_64F)
+                return GrabValuesFromBuffer<double>(ptr, nb_channels);
+            else
+                throw std::runtime_error("MatValuesAt: unhandled depth");
+        }
+
+        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator, bool add_paren)
+        {
+            if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
+                return "";
+            std::vector<double> values = MatValuesAt(m, x, y);
+
+            auto formatValue = [](double v, int depth) -> std::string
+            {
+                bool isFloat = false;
+                if ((depth == CV_32F) || (depth == CV_64F))
+                    isFloat = true;
+#if CV_MAJOR_VERSION >= 4
+                if (depth == CV_16F)
+                    isFloat = true;
+#endif
+                if (isFloat)
+                {
+                    char buffer_color[300];
+                    snprintf(buffer_color, 300, "%.5G", (double) v);
+                    return std::string(buffer_color);
+                }
+                else
+                {
+                    char buffer_color[300];
+                    snprintf(buffer_color, 300, "%lld", (long long) v);
+                    return std::string(buffer_color);
+                }
+            };
+
+            std::vector<std::string> strs;
+            int depth = m.depth();
+            for (double v: values)
+                strs.push_back(formatValue(v, depth));
+
+            std::string r = JoinStrings(strs, separator);
+            if (add_paren)
+                r = std::string("(") + r + ")";
+            return r;
+        }
+
+    } // namespace MatrixInfoUtils
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/zoom_pan_transform.cpp                                       //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/zoom_pan_transform.h included by src/immvision/internal/cv/zoom_pan_transform.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+namespace ImmVision
+{
+    namespace ZoomPanTransform
+    {
+        using MatrixType = cv::Matx33d;
+
+        MatrixType Identity();
+
+        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio);
+        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom);
+        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize);
+        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize);
+        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
+
+        bool IsEqual(const MatrixType & v1, const MatrixType & v2);
+
+        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p);
+
+        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m);
+
+        MatrixType UpdateZoomMatrix_DisplaySizeChanged(
+            const MatrixType& oldZoomMatrix,
+            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize);
+
+    } // namespace ZoomPanTransform
+
+    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize);
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/zoom_pan_transform.cpp continued                             //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace ImmVision
+{
+    namespace ZoomPanTransform
+    {
+        using MatrixType = cv::Matx33d;
+
+        MatrixType Identity()
+        {
+            return cv::Matx33d::eye();
+        }
+
+        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio)
+        {
+            auto mat = cv::Matx33d::eye();
+            mat(0, 0) = zoomRatio;
+            mat(1, 1) = zoomRatio;
+            mat(0, 2) = zoomCenter.x * (1. - zoomRatio);
+            mat(1, 2) = zoomCenter.y * (1. - zoomRatio);
+            return mat;
+        }
+
+        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom)
+        {
+            auto mat = cv::Matx33d::eye();
+            mat(0, 2) = (double)dragDelta.x / currentZoom;
+            mat(1, 2) = (double)dragDelta.y / currentZoom;
+            return mat;
+        }
+
+        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize)
+        {
+            MatrixType r = Identity();
+            r(0, 2) = (viewportSize.width / 2 - imageSize.width / 2);
+            r(1, 2) = (viewportSize.height / 2 - imageSize.height / 2);
+            return r;
+        }
+
+        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m)
+        {
+            cv::Matx23d r;
+            for (int y = 0; y < 2; y++)
+                for (int x = 0; x < 3; x++)
+                    r(y, x) = m(y, x);
+            return r;
+        }
+
+        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize)
+        {
+            MatrixType r = Identity();
+
+            double zoom;
+            {
+                double k_image = (double)imageSize.width / (double)imageSize.height;
+                double k_viewport = (double)viewportSize.width / (double)viewportSize.height;
+                if (k_image > k_viewport)
+                    zoom = (double)viewportSize.width / (double)imageSize.width;
+                else
+                    zoom = (double)viewportSize.height / (double)imageSize.height;
+            }
+
+            r(0, 0) = zoom;
+            r(1, 1) = zoom;
+
+            return r;
+        }
+
+        bool IsEqual(const MatrixType & v1, const MatrixType & v2)
+        {
+            for (int j = 0; j < 3; j++)
+                for (int i = 0; i < 3; i++)
+                    if (fabs(v2(j, i) - v1(j, i)) > 1E-6)
+                        return false;
+            return true;
+        }
+
+        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p)
+        {
+            cv::Matx31d pMat(p.x, p.y, 1.);
+            cv::Matx31d rMat = zoomMatrix * pMat;
+            cv::Point2d r(rMat(0, 0), rMat(1, 0));
+            return r;
+        }
+
+        MatrixType UpdateZoomMatrix_DisplaySizeChanged(
+            const MatrixType& oldZoomMatrix,
+            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize)
+        {
+            if (oldDisplaySize.area() == 0 || newDisplaySize.area() == 0)
+                return oldZoomMatrix;
+
+            MatrixType zoomMatrix;
+
+            auto fnImageCenter = [](const cv::Size s) {
+                return cv::Point2d((double)s.width / 2., (double)s.height / 2.);
+            };
+
+            double newZoomFactor;
+            {
+                double oldZoomFactor = oldZoomMatrix(0, 0);
+                double kx = (double)newDisplaySize.width / (double)oldDisplaySize.width;
+                double ky = (double)newDisplaySize.height / (double)oldDisplaySize.height;
+                double k = (kx + ky) / 2.;
+                newZoomFactor = oldZoomFactor * k;
+            }
+
+            zoomMatrix = MatrixType::eye();
+            zoomMatrix(0, 0) = zoomMatrix(1, 1) = newZoomFactor;
+
+            cv::Point2d translation;
+            {
+                cv::Point2d oldDisplayCenter_Zoomed = fnImageCenter(oldDisplaySize);
+                cv::Point2d oldDisplayCenter_Image = ZoomPanTransform::Apply(oldZoomMatrix.inv(), oldDisplayCenter_Zoomed);
+
+                cv::Point2d newDisplayCenter_Zoomed_Wanted = fnImageCenter(newDisplaySize);
+                cv::Point2d newDisplayCenter_Zoomed_Now = ZoomPanTransform::Apply(zoomMatrix, oldDisplayCenter_Image);
+                translation = newDisplayCenter_Zoomed_Wanted - newDisplayCenter_Zoomed_Now;
+            }
+
+            zoomMatrix(0, 2) = translation.x;
+            zoomMatrix(1, 2) = translation.y;
+
+            return zoomMatrix;
+        }
+
+        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
+        {
+            auto mat = cv::Matx33d::eye();
+            mat(0, 0) = zoomRatio;
+            mat(1, 1) = zoomRatio;
+            double dx = (double)displayedImageSize.width / 2. - zoomRatio * zoomCenter.x;
+            double dy = (double)displayedImageSize.height / 2. - zoomRatio * zoomCenter.y;
+            mat(0, 2) = dx;
+            mat(1, 2) = dy;
+            return mat;
+        }
+
+    } // namespace ZoomPanTransform
+
+    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
+    {
+        return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
+    }
+
+}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -5983,8 +5979,8 @@ namespace ImmVision
             {
                 double minValue = 0.;
                 double maxValue = 1.;
-                if (!params.ColorAdjustments._ColormapHovered.empty())
-                    finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments._ColormapHovered, minValue, maxValue);
+                if (!params.ColorAdjustments.internal_ColormapHovered.empty())
+                    finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments.internal_ColormapHovered, minValue, maxValue);
                 else if(!params.ColorAdjustments.Colormap.empty())
                     finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments.Colormap, minValue, maxValue);
 
@@ -6081,7 +6077,7 @@ namespace ImmVision
 
         bool HasColormapParam(const ImageParams &params)
         {
-            return (!params.ColorAdjustments.Colormap.empty() || !params.ColorAdjustments._ColormapHovered.empty());
+            return (!params.ColorAdjustments.Colormap.empty() || !params.ColorAdjustments.internal_ColormapHovered.empty());
         }
 
     } // namespace ImageDrawing
@@ -8880,17 +8876,13 @@ namespace ImmVision
         //
         // Lambdas / Colormap
         //
-        auto fnColormap = [&params]()
+        auto fnColormap = [&params, &image]()
         {
-            auto guiAction = Colormap::ShowColormapsGui(params->ColorAdjustments.Colormap);
-            if (guiAction.Action == Colormap::GuiAction::Apply)
-                params->ColorAdjustments.Colormap = guiAction.ColormapName;
-            else if (guiAction.Action == Colormap::GuiAction::UnApply)
-                    params->ColorAdjustments.Colormap  = "";
-            else if (guiAction.Action == Colormap::GuiAction::Hovered)
-                params->ColorAdjustments._ColormapHovered = guiAction.ColormapName;
-            else
-                params->ColorAdjustments._ColormapHovered = "";
+            cv::Rect roi;
+            Colormap::ShowColormapsGui(
+                image,
+                roi,
+                & params->ColorAdjustments);
         };
 
 
@@ -9369,7 +9361,7 @@ namespace ImmVision
         {
             if (v1.ColorAdjustments.Colormap != v2.ColorAdjustments.Colormap)
                 return true;
-            if (v1.ColorAdjustments._ColormapHovered != v2.ColorAdjustments._ColormapHovered)
+            if (v1.ColorAdjustments.internal_ColormapHovered != v2.ColorAdjustments.internal_ColormapHovered)
                 return true;
             if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
                 return true;
@@ -9386,7 +9378,7 @@ namespace ImmVision
         {
             if (v1.ColorAdjustments.Colormap != v2.ColorAdjustments.Colormap)
                 return true;
-            if (v1.ColorAdjustments._ColormapHovered != v2.ColorAdjustments._ColormapHovered)
+            if (v1.ColorAdjustments.internal_ColormapHovered != v2.ColorAdjustments.internal_ColormapHovered)
                 return true;
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
@@ -10601,16 +10593,24 @@ namespace ImmVision
 #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "colormap: " + ToString(v.Colormap) + "\n";
+        inner = inner + "colormap_scale_min: " + ToString(v.ColormapScaleMin) + "\n";
+        inner = inner + "colormap_scale_max: " + ToString(v.ColormapScaleMax) + "\n";
+        inner = inner + "colormap_rescale_on_whole_image: " + ToString(v.ColormapRescaleOnWholeImage) + "\n";
+        inner = inner + "colormap_rescale_on_roi: " + ToString(v.ColormapRescaleOnRoi) + "\n";
         inner = inner + "factor: " + ToString(v.Factor) + "\n";
         inner = inner + "delta: " + ToString(v.Delta) + "\n";
-        inner = inner + "_colormap_hovered: " + ToString(v._ColormapHovered) + "\n";
+        inner = inner + "internal_colormap_hovered: " + ToString(v.internal_ColormapHovered) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "Colormap: " + ToString(v.Colormap) + "\n";
+        inner = inner + "ColormapScaleMin: " + ToString(v.ColormapScaleMin) + "\n";
+        inner = inner + "ColormapScaleMax: " + ToString(v.ColormapScaleMax) + "\n";
+        inner = inner + "ColormapRescaleOnWholeImage: " + ToString(v.ColormapRescaleOnWholeImage) + "\n";
+        inner = inner + "ColormapRescaleOnRoi: " + ToString(v.ColormapRescaleOnRoi) + "\n";
         inner = inner + "Factor: " + ToString(v.Factor) + "\n";
         inner = inner + "Delta: " + ToString(v.Delta) + "\n";
-        inner = inner + "_ColormapHovered: " + ToString(v._ColormapHovered) + "\n";
+        inner = inner + "internal_ColormapHovered: " + ToString(v.internal_ColormapHovered) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 

@@ -22,11 +22,23 @@ class ColorAdjustmentsValues(_cpp_immvision.ColorAdjustmentsValues):
 
     * colormap: str = ""
             Colormap, see available Colormaps with AvailableColormaps()
+            Work only with 1 channel matrices, i.e len(shape)==2
+    * colormap_scale_min: float = 0.
+            ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
+            - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
+            - Values outside this interval will be clamped before coloring
+    * colormap_scale_max: float = 1.
+    * colormap_rescale_on_whole_image: bool = True
+            If True, ColormapScaleMin/Max will be the min/max on the whole image
+    * colormap_rescale_on_roi: bool = False
+            If True, ColormapScaleMin/Max will be the min/max on the currently visible portion of the image (ROI)
+
+ Other ways to manipulate float matrices: multiply and add delta
     * factor: float = 1.
             Pre-multiply values by a Factor before displaying
     * delta: float = 0.
             Add a delta to the values before displaying
-    * _colormap_hovered: str = ""
+    * internal_colormap_hovered: str = ""
             Internal value: stores the name of the Colormap that is hovered by the mouse
 
     """
@@ -34,20 +46,35 @@ class ColorAdjustmentsValues(_cpp_immvision.ColorAdjustmentsValues):
     def __init__(
         self,
         # Colormap, see available Colormaps with AvailableColormaps()
+        # Work only with 1 channel matrices, i.e len(shape)==2
         colormap: str = "",
+        # ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
+        # - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
+        # - Values outside this interval will be clamped before coloring
+        colormap_scale_min: float = 0.,
+        # 
+        colormap_scale_max: float = 1.,
+        # If true, ColormapScaleMin/Max will be the min/max on the whole image
+        colormap_rescale_on_whole_image: bool = True,
+        # If true, ColormapScaleMin/Max will be the min/max on the currently visible portion of the image (ROI)
+        colormap_rescale_on_roi: bool = False,
         # Pre-multiply values by a Factor before displaying
         factor: float = 1.,
         # Add a delta to the values before displaying
         delta: float = 0.,
         # Internal value: stores the name of the Colormap that is hovered by the mouse
-        _colormap_hovered: str = "",
+        internal_colormap_hovered: str = "",
 
     ):
         _cpp_immvision.ColorAdjustmentsValues.__init__(self)
         self.colormap = colormap
+        self.colormap_scale_min = colormap_scale_min
+        self.colormap_scale_max = colormap_scale_max
+        self.colormap_rescale_on_whole_image = colormap_rescale_on_whole_image
+        self.colormap_rescale_on_roi = colormap_rescale_on_roi
         self.factor = factor
         self.delta = delta
-        self._colormap_hovered = _colormap_hovered
+        self.internal_colormap_hovered = internal_colormap_hovered
 
 
 

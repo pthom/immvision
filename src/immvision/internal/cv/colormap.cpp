@@ -1,4 +1,4 @@
-#include "immvision/internal/drawing/colormap.h"
+#include "immvision/internal/cv/colormap.h"
 
 #include "immvision/internal/misc/tinycolormap.hpp"
 #include "immvision/internal/misc/magic_enum.hpp"
@@ -102,18 +102,18 @@ namespace ImmVision
         }
 
 
-        ColormapGuiResult ShowColormapsGui(const std::string& selectedColormapName)
+        void ShowColormapsGui(
+            const cv::Mat &image, const cv::Rect& roi,
+            ColorAdjustmentsValues* params)
         {
             static std::string lastUnselectedColormap = "";
-
-
-            ColormapGuiResult r;
             FillTextureCache();
 
+            params->internal_ColormapHovered = "";
             for (const auto& kv: sColormapsTexturesCache)
             {
                 std::string colormapName = kv.first;
-                bool isSelected = (colormapName == selectedColormapName);
+                bool isSelected = (colormapName == params->Colormap);
 
                 ImVec4 colorNormal(0.7f, 0.7f, 0.7f, 1.f);
                 ImVec4 colorSelected(1.f, 1.f, 0.2f, 1.f);
@@ -147,27 +147,22 @@ namespace ImmVision
                     kv.second->DrawButton(sizeTexture);
                 else
                     kv.second->Draw(sizeTexture);
-                if (ImGui::IsItemHovered())
-                {
-                    r.ColormapName = colormapName;
-                    if ((colormapName != selectedColormapName) && (colormapName != lastUnselectedColormap) )
-                        r.Action = GuiAction::Hovered;
-                }
+                if (ImGui::IsItemHovered() && (colormapName != lastUnselectedColormap))
+                    params->internal_ColormapHovered = colormapName;
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
                 {
                     if (isSelected)
                     {
-                        r.Action = GuiAction::UnApply;
+                        params->Colormap = "";
                         lastUnselectedColormap = colormapName;
                     }
                     else
                     {
-                        r.Action = GuiAction::Apply;
+                        params->Colormap = colormapName;
                         lastUnselectedColormap = "";
                     }
                 }
             }
-            return r;
         }
 
 
@@ -232,20 +227,7 @@ namespace ImmVision
 
         bool CanColormap(const cv::Mat &image)
         {
-            bool canColormap = true;
-            if (image.channels() != 1)
-                canColormap = false;
-            bool isDepthOk = false;
-            if ((image.depth() == CV_32F) || (image.depth() == CV_64F))
-                isDepthOk = true;
-#ifdef CV_16F
-            if (image.depth() == CV_16F)
-                isDepthOk = true;
-#endif
-            if (!isDepthOk)
-                canColormap = false;
-
-            return canColormap;
+            return image.channels() == 1;
         }
 
 

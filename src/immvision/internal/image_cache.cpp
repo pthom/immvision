@@ -30,7 +30,7 @@ namespace ImmVision
         {
             if (v1.ColorAdjustments.Colormap != v2.ColorAdjustments.Colormap)
                 return true;
-            if (v1.ColorAdjustments._ColormapHovered != v2.ColorAdjustments._ColormapHovered)
+            if (v1.ColorAdjustments.internal_ColormapHovered != v2.ColorAdjustments.internal_ColormapHovered)
                 return true;
             if (! ColorAdjustmentsUtils::IsEqual(v1.ColorAdjustments, v2.ColorAdjustments))
                 return true;
@@ -47,7 +47,7 @@ namespace ImmVision
         {
             if (v1.ColorAdjustments.Colormap != v2.ColorAdjustments.Colormap)
                 return true;
-            if (v1.ColorAdjustments._ColormapHovered != v2.ColorAdjustments._ColormapHovered)
+            if (v1.ColorAdjustments.internal_ColormapHovered != v2.ColorAdjustments.internal_ColormapHovered)
                 return true;
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;

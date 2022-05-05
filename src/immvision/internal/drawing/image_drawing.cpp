@@ -3,7 +3,7 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/cv_drawing_utils.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
-#include "immvision/internal/drawing/colormap.h"
+#include "immvision/internal/cv/colormap.h"
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -170,8 +170,8 @@ namespace ImmVision
             {
                 double minValue = 0.;
                 double maxValue = 1.;
-                if (!params.ColorAdjustments._ColormapHovered.empty())
-                    finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments._ColormapHovered, minValue, maxValue);
+                if (!params.ColorAdjustments.internal_ColormapHovered.empty())
+                    finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments.internal_ColormapHovered, minValue, maxValue);
                 else if(!params.ColorAdjustments.Colormap.empty())
                     finalImage = Colormap::ApplyColormap(finalImage, params.ColorAdjustments.Colormap, minValue, maxValue);
 
@@ -268,7 +268,7 @@ namespace ImmVision
 
         bool HasColormapParam(const ImageParams &params)
         {
-            return (!params.ColorAdjustments.Colormap.empty() || !params.ColorAdjustments._ColormapHovered.empty());
+            return (!params.ColorAdjustments.Colormap.empty() || !params.ColorAdjustments.internal_ColormapHovered.empty());
         }
 
     } // namespace ImageDrawing

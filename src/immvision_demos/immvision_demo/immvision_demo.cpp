@@ -1,7 +1,7 @@
 #include "hello_imgui/hello_imgui.h"
 #include "immvision/immvision.h"
 #include "immvision/imgui_imm.h"
-#include "immvision/internal/drawing/colormap.h"
+#include "immvision/internal/cv/colormap.h"
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -15,7 +15,7 @@ struct SobelParamsValues
     int  	KSize = 5; // size of the extended Sobel kernel; it must be 1, 3, 5, or 7 (or -1 for Scharr)
 };
 
-cv::Mat ComputeSobelDerivatives(const cv::Mat&image, const SobelParamsValues& params)
+std::array<cv::Mat,2> ComputeSobelDerivatives(const cv::Mat&image, const SobelParamsValues& params)
 {
     cv::Mat gray;
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
@@ -38,7 +38,7 @@ cv::Mat ComputeSobelDerivatives(const cv::Mat&image, const SobelParamsValues& pa
 //    cv::Mat m2;
 //    cv::merge(r, m2);
 //    return m2;
-    return r[0];
+    return {r[0], r[1]};
 }
 
 bool GuiSobelParams(SobelParamsValues& params)
@@ -117,7 +117,7 @@ struct AppState
 
     cv::Mat Image;
     bool ShowImageFiltered = true;
-    cv::Mat ImageFiltered;
+    std::array<cv::Mat,2> ImageFiltered;
     cv::Size DisplaySize = cv::Size(0, 400);
     SobelParamsValues SobelParams;
 };
@@ -151,51 +151,52 @@ void guiFunction()
         gAppState.UpdateImages();
     }
 
-    {
-        static ImmVision::ImageParams originalImageParams {
-            .RefreshImage = false,
-            .ImageDisplaySize = gAppState.DisplaySize,
-            //.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(cv::Point2d(1004., 953.), 40., originalImageParams.ImageDisplaySize),
-            .ZoomKey = "i",
-        };
-
-        originalImageParams.ImageDisplaySize = gAppState.DisplaySize;
-        ImmVision::Image(
-            "Original Image",
-            gAppState.Image,
-            &originalImageParams);
-    }
-
     if (gAppState.ShowImageFiltered)
     {
-        ImGui::SameLine();
         {
-            static ImmVision::ImageParams imageParamsFilter {
-                .RefreshImage = false,
-                .ImageDisplaySize = gAppState.DisplaySize,
-                //.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(cv::Point2d(1004., 953.), 40., imageParamsFilter.ImageDisplaySize),
-                .ZoomKey = "i"
-            };
+            static std::array<ImmVision::ImageParams, 2> imageParamsFilter;
 
-            imageParamsFilter.RefreshImage = changed;
-            imageParamsFilter.ImageDisplaySize = gAppState.DisplaySize;
-            ImmVision::Image(
-                "X & Y Gradients (see channels 0 & 1)",
-                gAppState.ImageFiltered,
-                &imageParamsFilter);
+            for (int i = 0; i < 2; ++i)
+            {
+                imageParamsFilter[i].RefreshImage = changed;
+                imageParamsFilter[i].ImageDisplaySize = gAppState.DisplaySize;
+                imageParamsFilter[i].ColorAdjustmentsKey = "c";
+                imageParamsFilter[i].ZoomKey = "i";
+                ImmVision::Image(
+                    "Gradients" + std::to_string(i),
+                    gAppState.ImageFiltered[i],
+                    &imageParamsFilter[i]);
+                ImGui::SameLine();
+            }
+            ImGui::NewLine();
         }
     }
 
+//    {
+//        static ImmVision::ImageParams originalImageParams {
+//            .RefreshImage = false,
+//            .ImageDisplaySize = gAppState.DisplaySize,
+//            //.ZoomPanMatrix = ImmVision::MakeZoomPanMatrix(cv::Point2d(1004., 953.), 40., originalImageParams.ImageDisplaySize),
+//            .ZoomKey = "i",
+//        };
+//
+//        originalImageParams.ImageDisplaySize = gAppState.DisplaySize;
+//        ImmVision::Image(
+//            "Original Image",
+//            gAppState.Image,
+//            &originalImageParams);
+//    }
 
-    {
-        static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
-        ImmVision::ImageDisplay(
-            "Transparent image",
-            imageTransparent, cv::Size(0, 400),
-            false, // refresh
-            true // show options button
-            );
-    }
+
+//    {
+//        static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
+//        ImmVision::ImageDisplay(
+//            "Transparent image",
+//            imageTransparent, cv::Size(0, 400),
+//            false, // refresh
+//            true // show options button
+//            );
+//    }
 
 //    ImGui::Begin("Style");
 //    ImGui::ShowStyleEditor(nullptr);

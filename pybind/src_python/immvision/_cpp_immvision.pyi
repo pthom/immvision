@@ -8,13 +8,28 @@ class ColorAdjustmentsValues:
     " Color adjustments (esp. useful for a float matrix)"
     
     # Colormap, see available Colormaps with AvailableColormaps()
+    # Work only with 1 channel matrices, i.e len(shape)==2
     colormap: str = ""
+    # ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
+    # - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
+    # - Values outside this interval will be clamped before coloring
+    colormap_scale_min: float = 0.
+    # 
+    colormap_scale_max: float = 1.
+    # If true, ColormapScaleMin/Max will be the min/max on the whole image
+    colormap_rescale_on_whole_image: bool = True
+    # If true, ColormapScaleMin/Max will be the min/max on the currently visible portion of the image (ROI)
+    colormap_rescale_on_roi: bool = False
+
+    #
+    #  Other ways to manipulate float matrices: multiply and add delta
+    #
     # Pre-multiply values by a Factor before displaying
     factor: float = 1.
     # Add a delta to the values before displaying
     delta: float = 0.
     # Internal value: stores the name of the Colormap that is hovered by the mouse
-    _colormap_hovered: str = ""
+    internal_colormap_hovered: str = ""
 
 
 class MouseInformation:

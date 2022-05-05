@@ -3,7 +3,7 @@
 #include "immvision/internal/gl/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
 #include "immvision/image.h"
-#include "immvision/internal/drawing/colormap.h"
+#include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/drawing/internal_icons.h"
 #include <iostream>
 

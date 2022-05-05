@@ -17,6 +17,8 @@ namespace ImmVision
                 return false;
             if (v1.Colormap != v2.Colormap)
                 return false;
+            if (v1.internal_ColormapHovered != v2.internal_ColormapHovered)
+                return false;
             return true;
         }
 

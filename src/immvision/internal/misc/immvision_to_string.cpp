@@ -20,16 +20,24 @@ namespace ImmVision
 #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "colormap: " + ToString(v.Colormap) + "\n";
+        inner = inner + "colormap_scale_min: " + ToString(v.ColormapScaleMin) + "\n";
+        inner = inner + "colormap_scale_max: " + ToString(v.ColormapScaleMax) + "\n";
+        inner = inner + "colormap_rescale_on_whole_image: " + ToString(v.ColormapRescaleOnWholeImage) + "\n";
+        inner = inner + "colormap_rescale_on_roi: " + ToString(v.ColormapRescaleOnRoi) + "\n";
         inner = inner + "factor: " + ToString(v.Factor) + "\n";
         inner = inner + "delta: " + ToString(v.Delta) + "\n";
-        inner = inner + "_colormap_hovered: " + ToString(v._ColormapHovered) + "\n";
+        inner = inner + "internal_colormap_hovered: " + ToString(v.internal_ColormapHovered) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "Colormap: " + ToString(v.Colormap) + "\n";
+        inner = inner + "ColormapScaleMin: " + ToString(v.ColormapScaleMin) + "\n";
+        inner = inner + "ColormapScaleMax: " + ToString(v.ColormapScaleMax) + "\n";
+        inner = inner + "ColormapRescaleOnWholeImage: " + ToString(v.ColormapRescaleOnWholeImage) + "\n";
+        inner = inner + "ColormapRescaleOnRoi: " + ToString(v.ColormapRescaleOnRoi) + "\n";
         inner = inner + "Factor: " + ToString(v.Factor) + "\n";
         inner = inner + "Delta: " + ToString(v.Delta) + "\n";
-        inner = inner + "_ColormapHovered: " + ToString(v._ColormapHovered) + "\n";
+        inner = inner + "internal_ColormapHovered: " + ToString(v.internal_ColormapHovered) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 

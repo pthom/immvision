@@ -20,10 +20,14 @@ void pydef_image(pybind11::module& m)
 
     auto pyClassColorAdjustmentsValues = py::class_<ColorAdjustmentsValues>(m, "ColorAdjustmentsValues") 
         .def(py::init<>()) 
-        .def_readwrite("colormap", &ColorAdjustmentsValues::Colormap, "Colormap, see available Colormaps with AvailableColormaps()")
+        .def_readwrite("colormap", &ColorAdjustmentsValues::Colormap, "Colormap, see available Colormaps with AvailableColormaps()\nWork only with 1 channel matrices, i.e len(shape)==2")
+        .def_readwrite("colormap_scale_min", &ColorAdjustmentsValues::ColormapScaleMin, "ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:\n- Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.\n- Values outside this interval will be clamped before coloring")
+        .def_readwrite("colormap_scale_max", &ColorAdjustmentsValues::ColormapScaleMax, "")
+        .def_readwrite("colormap_rescale_on_whole_image", &ColorAdjustmentsValues::ColormapRescaleOnWholeImage, "If true, ColormapScaleMin/Max will be the min/max on the whole image")
+        .def_readwrite("colormap_rescale_on_roi", &ColorAdjustmentsValues::ColormapRescaleOnRoi, "If true, ColormapScaleMin/Max will be the min/max on the currently visible portion of the image (ROI)")
         .def_readwrite("factor", &ColorAdjustmentsValues::Factor, "Pre-multiply values by a Factor before displaying")
         .def_readwrite("delta", &ColorAdjustmentsValues::Delta, "Add a delta to the values before displaying")
-        .def_readwrite("_colormap_hovered", &ColorAdjustmentsValues::_ColormapHovered, "Internal value: stores the name of the Colormap that is hovered by the mouse")
+        .def_readwrite("internal_colormap_hovered", &ColorAdjustmentsValues::internal_ColormapHovered, "Internal value: stores the name of the Colormap that is hovered by the mouse")
         .def("__repr__", [](const ColorAdjustmentsValues& v) { return ToString(v); }); 
 
     auto pyClassMouseInformation = py::class_<MouseInformation>(m, "MouseInformation") 
