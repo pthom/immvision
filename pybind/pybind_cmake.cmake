@@ -94,7 +94,6 @@ file(GLOB_RECURSE sources_immvision_pybind ${THIS_DIR}/src_cpp/*.cpp ${THIS_DIR}
 file(GLOB_RECURSE sources_immvision ${PROJECT_SOURCE_DIR}/src/immvision/*.h ${PROJECT_SOURCE_DIR}/src/immvision/*.cpp)
 pybind11_add_module(_cpp_immvision MODULE ${sources_immvision_pybind} ${sources_immvision})
 target_include_directories(_cpp_immvision PRIVATE ${PROJECT_SOURCE_DIR}/src)
-target_include_directories(_cpp_immvision PRIVATE ${THIS_DIR}/../external/tinycolormap/include)
 target_compile_definitions(_cpp_immvision PUBLIC IMMVISION_BUILD_PYTHON_BINDINGS)
 # add cv_np
 add_subdirectory(${THIS_DIR}/cvnp)

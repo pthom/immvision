@@ -10,6 +10,3 @@
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/pthom/imgui.git
-[submodule "external/tinycolormap"]
-	path = external/tinycolormap
-	url = https://github.com/yuki-koyama/tinycolormap.git
