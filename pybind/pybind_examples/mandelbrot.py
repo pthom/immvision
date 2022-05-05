@@ -1,9 +1,10 @@
 """
 Calculate Mandelbrot with numba
 """
+from typing import Tuple
 import numpy as np
 from PIL import Image
-from numba import njit
+from numba import njit, jit
 import numba
 from dataclasses import dataclass
 from immvision.debug_utils import timeit
@@ -11,13 +12,18 @@ import imgui
 import immvision
 import immvision.imgui_runner
 
-PreciseFloat = np.float128
+PreciseFloat = float #np.float64
 ColorType = np.float32
 
 
-@njit
+@jit
 def lerp(a, b, x):
     return a + (b - a) * x
+
+
+@njit
+def unlerp(a, b, p):
+    return (p - a) / (b -a)
 
 
 @njit(cache=True, nogil=True, parallel=True)
@@ -79,21 +85,43 @@ class MandelbrotParams:
     width: int = 800
     height: int = 600
     # x in [-2, 1] and y in [-1, 1]
-    x: PreciseFloat = -0.5
-    y: PreciseFloat = 0.
+    x_center: PreciseFloat = -0.5
+    y_center: PreciseFloat = 0.
     zoom: PreciseFloat = 1
     max_iterations: int = 100
 
     def mandelbrot_image(self):
-        return mandelbrot_numba(self.width, self.height, self.x, self.y, self.zoom, self.max_iterations)
+        return mandelbrot_numba(self.width, self.height, self.x_center, self.y_center, self.zoom, self.max_iterations)
+
+    def set_center(self, x: PreciseFloat, y: PreciseFloat):
+        self.x_center = PreciseFloat(x)
+        self.y_center = PreciseFloat(y)
+
+    def get_center(self):
+        return self.x_center, self.y_center
+
+    def pixel_to_complex_coords(self, pt: immvision.Pixel):
+        x_width: PreciseFloat = PreciseFloat(1.5)
+        y_height: PreciseFloat = PreciseFloat(1.5) * PreciseFloat(self.height) / PreciseFloat(self.width)
+        x_from = self.x_center - x_width / PreciseFloat(self.zoom)
+        x_to = self.x_center + x_width / PreciseFloat(self.zoom)
+        y_from = self.y_center - y_height / PreciseFloat(self.zoom)
+        y_to = self.y_center + y_height / PreciseFloat(self.zoom)
+
+        kx = PreciseFloat(pt[0]) / PreciseFloat(self.width)
+        ky = PreciseFloat(pt[1]) / PreciseFloat(self.height)
+        real = lerp(x_from, x_to, kx)
+        imag = lerp(y_from, y_to, ky)
+        return real, imag
 
 
 @dataclass
 class MandelbrotApp:
     mandelbrot_params: MandelbrotParams = MandelbrotParams()
-    image_params: immvision.ImageParams = immvision.ImageParams()
     idx_poi: int = 0
     image: np.ndarray = None
+    last_mouse_coords: Tuple[PreciseFloat, PreciseFloat] = None
+
     # cf https://mandelbrot.dev/
     mandelbrot_poi_list = [
         -0.5,
@@ -116,8 +144,8 @@ class MandelbrotApp:
         self.update_image()
 
     def move_to_poi(self):
-        self.mandelbrot_params.x = self.mandelbrot_poi_list[self.idx_poi].real
-        self.mandelbrot_params.y = self.mandelbrot_poi_list[self.idx_poi].imag
+        self.mandelbrot_params.x_center = self.mandelbrot_poi_list[self.idx_poi].real
+        self.mandelbrot_params.y_center = self.mandelbrot_poi_list[self.idx_poi].imag
 
     def update_image(self):
         self.image = self.mandelbrot_params.mandelbrot_image()
@@ -127,8 +155,15 @@ class MandelbrotApp:
 
         needs_refresh = False
 
+
         # Show FPS
         imgui.text(f"FPS: {imgui.get_io().framerate:.1f}")
+
+        # On double click, change the zooming center
+        if imgui.is_mouse_double_clicked(0) and self.last_mouse_coords is not None:
+            self.mandelbrot_params.set_center(self.last_mouse_coords[0], self.last_mouse_coords[1])
+            needs_refresh = True
+
 
         # Change location to interesting location
         changed, self.idx_poi = imgui.slider_int(
@@ -140,8 +175,12 @@ class MandelbrotApp:
 
         # Edit zoom
         logarithmic_flag=(1<<4) | (1<<5)
-        changed, params.zoom = imgui.slider_float("zoom", params.zoom, 0.5, 1E12, flags=logarithmic_flag)
+        changed, new_zoom = imgui.slider_float("zoom", params.zoom, 0.5, 1E12, format="%.4G", flags=logarithmic_flag)
+        params.zoom = PreciseFloat(new_zoom)
         if changed: needs_refresh = True
+
+        center = self.mandelbrot_params.get_center()
+        imgui.text(f"center: {center[0]} + {center[1]} * i")
 
         # Edit max_iterations
         changed, params.max_iterations = imgui.slider_int("iterations", params.max_iterations, 1, 1000)
@@ -157,19 +196,31 @@ class MandelbrotApp:
         if changed: needs_refresh = True
 
         # Edit position
-        changed, params.x = imgui.slider_float("x", params.x, -2., 1., "%.6f")
+        changed, params.x_center = imgui.slider_float("x", params.x_center, -2., 1., "%.6f")
         if changed: needs_refresh = True
-        changed, params.y = imgui.slider_float("y", params.y, -1., 1., "%.6f")
+        changed, params.y_center = imgui.slider_float("y", params.y_center, -1., 1., "%.6f")
         if changed: needs_refresh = True
 
         # recalculate image if needed
-        self.image_params.refresh_image = needs_refresh
+        # self.image_params.refresh_image = needs_refresh
         if needs_refresh:
             self.update_image()
-        immvision.image("mandelbrot", self.image, self.image_params)
+            print("needs_refresh")
+
+        mouse_position = immvision.image_display(
+            "mandelbrot", self.image, refresh_image=needs_refresh, show_options_button=True)
+
+        if mouse_position[0] >= 0.:
+            complex_coords = self.mandelbrot_params.pixel_to_complex_coords(mouse_position)
+            imgui.text(f"Complex position: {complex_coords[0]} + {complex_coords[1]} * i")
+            self.last_mouse_coords = complex_coords
+        else:
+            self.last_mouse_coords = None
+
+
 
     def run(self):
-        immvision.imgui_runner.power_save_disable()
+        # immvision.imgui_runner.power_save_disable()
         immvision.imgui_runner.run(lambda: self.gui())
 
 
@@ -200,5 +251,5 @@ def measure_perf():
 
 
 if __name__ == "__main__":
-    playground()
-    # measure_perf()
+    #playground()
+    measure_perf()

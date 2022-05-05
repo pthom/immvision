@@ -1,9 +1,6 @@
-import logging
 from dataclasses import dataclass
 from typing import Optional, List
-import os
 from .gui_types import Color_RGBA_Float, WindowSize, WindowPosition, WindowBounds
-from . import _DEBUG_IMGUI_RUNNER
 
 
 @dataclass
