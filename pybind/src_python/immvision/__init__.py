@@ -294,9 +294,9 @@ def image_display(
     mat:  np.ndarray,
     image_display_size:  Size  = (0, 0),
     refresh_image: bool  = False,
-    show_options_button: bool  = True,
+    show_options_button: bool  = False,
     is_bgr_or_bgra: bool  = True):
-    """ Only, display the image, with no decoration, and no user interaction
+    """ Only, display the image, with no decoration, and no user interaction (by default)
 
      Parameters:
      :param label
@@ -322,7 +322,8 @@ def image_display(
          (for example, for live video images)
 
      :param showOptionsButton:
-         If True, show an option button that opens the option panel
+         If True, show an option button that opens the option panel.
+         In that case, it also becomes possible to zoom  pan, add watched pixel by float-clicking, etc.
 
      :param isBgrOrBgra:
          set to True if the color order of the image is BGR or BGRA (as in OpenCV, by default)

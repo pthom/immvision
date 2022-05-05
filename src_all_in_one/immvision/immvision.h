@@ -195,7 +195,7 @@ namespace ImmVision
 
 
     // !pydef_function
-    // Only, display the image, with no decoration, and no user interaction
+    // Only, display the image, with no decoration, and no user interaction (by default)
     //
     // Parameters:
     // :param label
@@ -221,7 +221,8 @@ namespace ImmVision
     //     (for example, for live video images)
     //
     // :param showOptionsButton:
-    //     If true, show an option button that opens the option panel
+    //     If true, show an option button that opens the option panel.
+    //     In that case, it also becomes possible to zoom & pan, add watched pixel by double-clicking, etc.
     //
     // :param isBgrOrBgra:
     //     set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
@@ -242,7 +243,7 @@ namespace ImmVision
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
-        bool showOptionsButton = true,
+        bool showOptionsButton = false,
         bool isBgrOrBgra = true
         );
 
