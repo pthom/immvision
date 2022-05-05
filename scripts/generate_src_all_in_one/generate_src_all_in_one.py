@@ -58,7 +58,7 @@ def is_local_include_line(code_line):
     Tests whether or not a C++ code line is a include statement that concerns a fplus header,
     (i.e this will *exclude* lines like "#include <vector>")
     """
-    possible_include_paths = [ 'immvision/', 'immdebug/', 'immvision_gl_loader/']
+    possible_include_paths = [ 'immvision/', 'immdebug/', 'immvision_gl_loader/', 'tinycolormap.hpp']
     result = False
     for possible_include_path in possible_include_paths:
         if code_line.startswith(f'#include <{possible_include_path}'):
@@ -87,6 +87,8 @@ def extract_local_include_file(code_line):
     # possible_include_paths = [ 'immvision/', 'immdebug/']
     # for possible_include_path in possible_include_paths:
     #     result = result.replace(possible_include_path, "")
+    if result == "tinycolormap.hpp":
+        result = REPO_DIR + "/external/tinycolormap/include/tinycolormap.hpp"
     return result
 
 
@@ -183,6 +185,7 @@ def amalgamate_cpp_files_content(folder, cpp_files: typing.List[str]):
             already_included_external_files)
         content = content + "\n"
     return content
+
 
 def find_all_files_of_extension(folder, extension):
     found_files = []

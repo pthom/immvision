@@ -4,6 +4,7 @@ find_package(OpenCV REQUIRED)
 set(target_name immvision)
 add_library(${target_name} ${sources})
 target_include_directories(${target_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(${target_name} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../external/tinycolormap/include)
 target_link_libraries(${target_name} PUBLIC
     imgui
     immvision_gl_loader
