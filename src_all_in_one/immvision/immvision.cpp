@@ -5547,12 +5547,14 @@ namespace ImmVision
         using ColormapType = tinycolormap::ColormapType;
 
 
-        // Hack, to let g++-11.2 accept to compile magic_enum (see https://github.com/Neargye/magic_enum/issues/184)
-        constexpr std::size_t WORKAROUND_MAGIC_ENUM = magic_enum::enum_count<tinycolormap::ColormapType>();
 
 
         std::vector<std::string> AvailableColormaps()
         {
+            // Hack, to let g++-11.2 accept to compile magic_enum (see https://github.com/Neargye/magic_enum/issues/184)
+            constexpr std::size_t WORKAROUND_MAGIC_ENUM = magic_enum::enum_count<tinycolormap::ColormapType>();
+            (void)WORKAROUND_MAGIC_ENUM;
+
             std::vector<std::string> r;
             magic_enum::enum_for_each<ColormapType>([&r] (auto val) {
                 ColormapType type = val;
@@ -5642,7 +5644,8 @@ namespace ImmVision
 
                 ImVec4 colorNormal(0.7f, 0.7f, 0.7f, 1.f);
                 ImVec4 colorSelected(1.f, 1.f, 0.2f, 1.f);
-                ImVec4 colorHovered = colorSelected; colorHovered.w = 0.65;
+                ImVec4 colorHovered = colorSelected;
+                colorHovered.w = 0.65f;
 
                 float widthText = 75.f;
                 ImVec2 sizeTexture(200.f, 15.f);

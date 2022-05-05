@@ -69,7 +69,7 @@ cv::Mat mandelbrot(
 
             // perform Mandelbrot set iterations
             bool escaped = false;
-            ColorType color;
+            ColorType color = ColorType();
             for (int iteration = 0; iteration < max_iterations; ++iteration)
             {
                 PreciseFloat x_new = x * x - y * y + x0;
