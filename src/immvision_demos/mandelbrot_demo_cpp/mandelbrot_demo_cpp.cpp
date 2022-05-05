@@ -13,8 +13,8 @@
 #include <vector>
 #include <optional>
 
-//#define PRECISE_FLOAT_DOUBLE
-#define PRECISE_FLOAT_LONG_DOUBLE
+#define PRECISE_FLOAT_DOUBLE
+//#define PRECISE_FLOAT_LONG_DOUBLE
 
 #if defined(PRECISE_FLOAT_DOUBLE)
 using PreciseFloat = double;
