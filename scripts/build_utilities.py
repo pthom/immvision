@@ -188,13 +188,17 @@ def decorate_loudly_echo_function_name(fn):
     return wrapper_func
 
 
-def _do_clone_repo(git_repo, folder, branch_or_tag):
+def _do_clone_repo(git_repo, folder, branch="", tag=""):
     if not os.path.isdir(f"{EXTERNAL_DIR}/{folder}"):
         my_chdir(EXTERNAL_DIR)
         run(f"git clone {git_repo} {folder}")
     my_chdir(f"{EXTERNAL_DIR}/{folder}")
-    run(f"git checkout {branch_or_tag}")
-    run(f"git pull")
+    if len(branch) > 0:
+        run(f"git checkout {branch}")
+        run(f"git pull")
+    elif len(tag) > 0:
+        run(f"git checkout {tag}")
+
 
 
 ######################################################################
@@ -397,7 +401,7 @@ def vcpkg_install_thirdparties():
 
     if not os.path.isdir(f"{VCPKG_DIR}"):
         my_chdir(EXTERNAL_DIR)
-        _do_clone_repo("https://github.com/Microsoft/vcpkg.git", VCPKG_BASENAME, "master")
+        _do_clone_repo("https://github.com/Microsoft/vcpkg.git", VCPKG_BASENAME, branch="master")
         my_chdir(f"{VCPKG_DIR}")
         if os.name == 'nt':
             run(".\\bootstrap-vcpkg.bat")
@@ -541,9 +545,8 @@ def opencv_build_emscripten():
     _complain_and_exit_if_emscripten_absent()
 
     # Git clone
-    if not os.path.isdir(f"{EXTERNAL_DIR}/opencv"):
-        my_chdir(EXTERNAL_DIR)
-        run("git clone https://github.com/opencv/opencv.git")
+    my_chdir(EXTERNAL_DIR)
+    _do_clone_repo("https://github.com/opencv/opencv.git", "opencv", tag="4.5.5")
 
     # build
     if not os.path.isdir(f"{EXTERNAL_DIR}/opencv_build_emscripten"):
@@ -633,7 +636,7 @@ def pybind_clone_pyimgui():
     # We use a fork of pyimgui: https://github.com/pthom/pyimgui.git@pthom/docking_2022_04_05
     # proposed as a PR here: https://github.com/pyimgui/pyimgui/pull/274
     my_chdir(EXTERNAL_DIR)
-    _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", "pthom/docking_powsersave")
+    _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", branch="pthom/docking_powsersave")
     my_chdir("pyimgui")
     run("git submodule update --init")
     run(f"{VENV_RUN_SOURCE} && pip install .")
