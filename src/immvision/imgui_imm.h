@@ -17,8 +17,7 @@ namespace ImGuiImm
         AnyFloat v_max = AnyFloat(1.),
         float width = 200.f,
         bool logarithmic = false,
-        int nb_decimals = 6,
-        bool scientific_format = true);
+        int nb_decimals = 6);
 
     template<typename AnyFloat>
     bool SliderAnyFloatLogarithmic(
@@ -27,8 +26,7 @@ namespace ImGuiImm
         AnyFloat v_min = AnyFloat(0.),
         AnyFloat v_max = AnyFloat(1.),
         float width = 200.f,
-        int nb_decimals = 6,
-        bool scientific_format = true);
+        int nb_decimals = 6);
 
 
     ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);

@@ -137,7 +137,7 @@ namespace ImmVision
                 ImGui::PushItemWidth(200.);
                 ImGuiImm::SliderAnyFloatLogarithmic(
                     "k", &params->ColorAdjustments.Factor,
-                    1., 32.);
+                    0.001, 32.);
                 ImGui::PushItemWidth(200.);
                 ImGuiImm::SliderAnyFloatLogarithmic(
                     "Delta", &params->ColorAdjustments.Delta,

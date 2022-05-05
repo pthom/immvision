@@ -1890,8 +1890,7 @@ namespace ImGuiImm
         AnyFloat v_max = AnyFloat(1.),
         float width = 200.f,
         bool logarithmic = false,
-        int nb_decimals = 6,
-        bool scientific_format = true);
+        int nb_decimals = 6);
 
     template<typename AnyFloat>
     bool SliderAnyFloatLogarithmic(
@@ -1900,8 +1899,7 @@ namespace ImGuiImm
         AnyFloat v_min = AnyFloat(0.),
         AnyFloat v_max = AnyFloat(1.),
         float width = 200.f,
-        int nb_decimals = 6,
-        bool scientific_format = true);
+        int nb_decimals = 6);
 
 
     ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);
@@ -4640,13 +4638,13 @@ namespace ImmVision
             if (hasAdjustFloatValues && ImageWidgets::CollapsingHeader_OptionalCacheState("Adjust"))
             {
                 ImGui::PushItemWidth(200.);
-                ImGuiImm::SliderAnyFloat(
+                ImGuiImm::SliderAnyFloatLogarithmic(
                     "k", &params->ColorAdjustments.Factor,
-                    0., 32., 200.f, true);
+                    0.001, 32.);
                 ImGui::PushItemWidth(200.);
-                ImGuiImm::SliderAnyFloat(
+                ImGuiImm::SliderAnyFloatLogarithmic(
                     "Delta", &params->ColorAdjustments.Delta,
-                    -255., 255., 200.f, true);
+                    -255., 255.);
 
                 if (ImGui::Button("Default"))
                     params->ColorAdjustments = ColorAdjustmentsUtils::ComputeInitialImageAdjustments(image);
@@ -5375,18 +5373,10 @@ namespace ImGuiImm
         AnyFloat v_max,
         float width,
         bool logarithmic,
-        int nb_decimals,
-        bool scientific_format)
+        int nb_decimals)
     {
         float vf = (float)*v;
-        std::string formatString;
-        {
-            formatString = std::string("%");
-            if (scientific_format)
-                formatString += std::to_string(nb_decimals) + "g";
-            else
-                formatString += "." + std::to_string(nb_decimals) + "f";
-        }
+        std::string formatString = std::string("%.") + std::to_string(nb_decimals) + "f";
         ImGui::SetNextItemWidth(width);
         ImGuiSliderFlags flags = 0;
         if (logarithmic)
@@ -5400,7 +5390,7 @@ namespace ImGuiImm
 #define EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(AnyFloat)                       \
     template bool SliderAnyFloat<AnyFloat>(                                     \
     const char*label, AnyFloat* v, AnyFloat v_min, AnyFloat v_max, float width, \
-    bool logarithmic, int nb_decimals, bool scientific_format);
+    bool logarithmic, int nb_decimals);
 
     EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(float);
     EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT(double);
@@ -5414,16 +5404,15 @@ namespace ImGuiImm
         AnyFloat v_min,
         AnyFloat v_max,
         float width,
-        int nb_decimals,
-        bool scientific_format)
+        int nb_decimals)
     {
-        return SliderAnyFloat(label, v, v_min, v_max, width, true, nb_decimals, scientific_format);
+        return SliderAnyFloat(label, v, v_min, v_max, width, true, nb_decimals);
     }
 
 #define EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(AnyFloat)                   \
     template bool SliderAnyFloatLogarithmic<AnyFloat>(                                  \
     const char*label, AnyFloat* v, AnyFloat v_min, AnyFloat v_max, float width,         \
-    int nb_decimals, bool scientific_format);
+    int nb_decimals);
 
     EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(float);
     EXPLICIT_INSTANTIATION_SLIDER_ANY_FLOAT_LOGARITHMIC(double);
