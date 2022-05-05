@@ -108,7 +108,7 @@ namespace ImmVision
 
                 ImVec4 colorNormal(0.7f, 0.7f, 0.7f, 1.f);
                 ImVec4 colorSelected(1.f, 1.f, 0.2f, 1.f);
-                ImVec4 colorHovered = colorSelected; colorHovered.w = 0.5;
+                ImVec4 colorHovered = colorSelected; colorHovered.w = 0.65;
 
                 float widthText = 75.f;
                 ImVec2 sizeTexture(200.f, 15.f);
@@ -137,10 +137,11 @@ namespace ImmVision
                     kv.second->DrawButton(sizeTexture);
                 else
                     kv.second->Draw(sizeTexture);
-                if (ImGui::IsItemHovered() && (colormapName != selectedColormapName) && (colormapName != lastUnselectedColormap) )
+                if (ImGui::IsItemHovered())
                 {
                     r.ColormapName = colormapName;
-                    r.Action = GuiAction::Hovered;
+                    if ((colormapName != selectedColormapName) && (colormapName != lastUnselectedColormap) )
+                        r.Action = GuiAction::Hovered;
                 }
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
                 {
