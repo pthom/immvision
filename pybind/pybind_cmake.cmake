@@ -195,6 +195,12 @@ add_custom_command(
         $<TARGET_FILE:_cpp_immvision>
         ${THIS_DIR}/src_python/immvision/$<TARGET_FILE_NAME:_cpp_immvision>
 )
+# copy debug_utils.py from ./src_python/immvision to ./src_python/immvision/imgui_runner/
+FILE(COPY_FILE
+    ${THIS_DIR}/src_python/immvision/debug_utils.py
+    ${THIS_DIR}/src_python/immvision/imgui_runner/debug_utils.py
+    ONLY_IF_DIFFERENT)
+
 
 # Note: no install for imgui_pybind since it is a static library
 #install(TARGETS imgui_pybind DESTINATION .)

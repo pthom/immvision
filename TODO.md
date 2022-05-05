@@ -1,12 +1,9 @@
 * [ ] Harden 
-  * when going from image_display to edit mode, set default options 
-  * window sometimes remains opened at exit (notebook, sdl)
-  * copy debug_utils from immvision to imgui_runner
   * remove dependency on immvision._gl_provider_sentinel in imgui_runner
 
 * [ ] PIP
+    * [ ] Publish ImGuiImm
   * [ ] change mat type if not castable (and cache)
-  * [ ] Publish ImGuiImm
   * [Later] SDL Raise window
   * [Later] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
   * [Later] Check if it is reasonnable to share matrixes memory
@@ -17,16 +14,16 @@
   * [Later] pyimgui
       * [ ] PR / Propose imgui_runner (power_save, change window size, etc)
       * [Later] imgui & pyimgui : utiliser branche docking sans powersave / ou bien branche master & official?
+  * [Later] window sometimes remains opened at exit (notebook, sdl)
   * Read https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
     https://setuptools.pypa.io/en/latest/index.html
 
 
  * [ ] immvision
-     * [ ] Only one signature for Image 
-       * C++ using struct designated init as named params
      * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
      *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
-     * [ ] Compat Eigen ?
+     * [Later] ToString -> ToJson / FromJson
+     * [Later] Compat Eigen ?
      * [ ] doc
      * [Later] logs with spdlog
   

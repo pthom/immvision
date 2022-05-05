@@ -7,6 +7,12 @@ from dataclasses import dataclass
 from typing import List
 
 
+# Warning! There are two copies of this file:
+# pybind/src_python/immvision/debug_utils.py and pybind/src_python/immvision/imgui_runner/debug_utils.py
+# Only edit pybind/src_python/immvision/debug_utils.py !!!
+# The other one will mercilessly be overwritten during cmake configure.
+
+
 def log(level, message):
     "Automatically log the current function details."
     import inspect, logging
