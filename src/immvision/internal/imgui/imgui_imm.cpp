@@ -319,6 +319,18 @@ namespace ImGuiImm
         ImGui::GetCurrentWindow()->WorkRect = oldWorkRect;
     }
 
+    // Draw a fixed width Separator
+    // useful when ImGui::Separator() overflows to the right
+    void SeparatorFixedWidth(float width)
+    {
+        ImVec2 a = ImGui::GetCursorScreenPos();
+        a.y += 4.f;
+        ImVec2 b = a;
+        b.x += width;
+        auto col = ImGui::GetStyle().Colors[ImGuiCol_Separator];
+        ImGui::GetWindowDrawList()->AddLine(a, b, ImGui::GetColorU32(col), 1.f);
+        ImGui::NewLine();
+    }
 
     void Theme_Debug()
     {

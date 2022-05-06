@@ -44,6 +44,10 @@ namespace ImGuiImm
     void EndGroupPanel_FlagBorder();
     ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name);
 
+    // Draw a fixed width Separator
+    // useful when ImGui::Separator() overflows to the right
+    void SeparatorFixedWidth(float width);
+
     void BeginGroupFixedWidth(float width);
     void EndGroupFixedWidth();
 }
