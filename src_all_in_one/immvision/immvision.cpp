@@ -423,7 +423,9 @@ namespace ImmVision
         // GUI
         //
         void GuiShowColormapSettingsData(
-            const cv::Mat &image, const cv::Rect& roi,
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            float availableGuiWidth,
             ColormapSettingsData* inout_settings);
 
     } // namespace Colormap
@@ -4483,6 +4485,10 @@ namespace ImGuiImm
     void EndGroupPanel_FlagBorder();
     ImVec2 GroupPanel_FlagBorder_LastKnownSize(const char* name);
 
+    // Draw a fixed width Separator
+    // useful when ImGui::Separator() overflows to the right
+    void SeparatorFixedWidth(float width);
+
     void BeginGroupFixedWidth(float width);
     void EndGroupFixedWidth();
 }
@@ -4782,15 +4788,118 @@ namespace ImmVision
         }
 
 
+        struct ImageStats
+        {
+            double mean, stdev;
+            double min, max;
+        };
+
+        ImageStats FillImageStats(const cv::Mat& m)
+        {
+            assert(m.channels() == 1);
+            ImageStats r;
+            cv::minMaxLoc(m, &r.min, &r.max);
+            cv::Scalar mean, deviation;
+            cv::meanStdDev(m, mean, deviation);
+            r.mean = mean[0];
+            r.stdev = deviation[0];
+            return r;
+        }
+
+
+        void GuiImageStats(const cv::Mat& m, bool isRoi, ColormapSettingsData* inout_settings)
+        {
+            ImageStats s = FillImageStats(m);
+            if (isRoi)
+                ImGui::Text("ROI Stats");
+            else
+                ImGui::Text("Full Image Stats");
+
+
+            ImGui::Text("mean=%4lf stdev=%4lf", s.mean, s.stdev);
+            ImGui::Text("min=%.4lf max=%.4lf", s.min, s.max);
+            ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 1.f), "Current ColormapScale: Min=%.4lf Max=%.4lf",
+                               inout_settings->ColormapScaleMin, inout_settings->ColormapScaleMax);
+
+            static float nb_sigmas = 1.f;
+
+            ImGui::NewLine();
+            ImGui::Text("Change by number of sigmas");
+            ImGui::SetNextItemWidth(150.f);
+            ImGui::SliderFloat("##Number of sigmas", &nb_sigmas, 0.f, 7.f);
+
+            double wouldBeMin = s.mean - (double) nb_sigmas * s.stdev;
+            double wouldBeMax = s.mean + (double) nb_sigmas * s.stdev;
+
+            static bool applyImmediatelyFull = false;
+            static bool applyImmediatelyRoi = false;
+            ImGui::SameLine();
+            if (isRoi)
+                ImGui::Checkbox("Apply immediately", &applyImmediatelyRoi);
+            else
+                ImGui::Checkbox("Apply immediately", &applyImmediatelyFull);
+
+            bool applyImmediately = (isRoi && applyImmediatelyRoi) || (!isRoi && applyImmediatelyFull);
+            if (applyImmediately)
+            {
+                if (isRoi)
+                {
+                    ImVec4 col(1., 0.6, 0.6, 1.);
+                    ImGui::TextColored(col, "Warning, if \"Apply immediately\" is checked");
+                    ImGui::TextColored(col, "in the \"ROI stats\" tab,");
+                    ImGui::TextColored(col, "the scale will vary immediately");
+                    ImGui::TextColored(col, "whenever you zoom in/out or pan");
+                }
+                inout_settings->ColormapScaleMin = s.mean - wouldBeMin;
+                inout_settings->ColormapScaleMax = s.mean - wouldBeMax;
+            }
+            else
+            {
+                ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 0.5f), "Candidate ColormapScale: Min=%.4lf Max=%.4lf",
+                                   wouldBeMin, wouldBeMax);
+
+                if (ImGui::Button("Apply##Stats"))
+                {
+                    inout_settings->ColormapScaleMin = s.mean - wouldBeMin;
+                    inout_settings->ColormapScaleMax = s.mean - wouldBeMax;
+                }
+            }
+
+        }
+
+
         void GuiShowColormapSettingsData(
             const cv::Mat &image,
             const cv::Rect& roi,
+            float availableGuiWidth,
             ColormapSettingsData* inout_settings
             )
         {
-            (void)image;(void)roi;
-            ImGuiImm::SliderAnyFloatLogarithmic("Scale min", &inout_settings->ColormapScaleMin, -255., 255.);
-            ImGuiImm::SliderAnyFloatLogarithmic("Scale max", &inout_settings->ColormapScaleMax, -255., 255.);
+            ImGui::Text("Colormap Scale");
+            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+            if (ImGui::BeginTabBar("##TabBar", tab_bar_flags))
+            {
+                if (ImGui::BeginTabItem("From Image Stats"))
+                {
+                    GuiImageStats(image, false, inout_settings);
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("From ROI Stats"))
+                {
+                    GuiImageStats(image(roi), true, inout_settings);
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Min - Max"))
+                {
+                    ImGuiImm::SliderAnyFloatLogarithmic("Scale min", &inout_settings->ColormapScaleMin, -255., 255.);
+                    ImGuiImm::SliderAnyFloatLogarithmic("Scale max", &inout_settings->ColormapScaleMax, -255., 255.);
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
+
+            ImGuiImm::SeparatorFixedWidth(availableGuiWidth);
+
             GuiChooseColormap(inout_settings);
         }
 
@@ -8997,12 +9106,13 @@ namespace ImmVision
         //
         // Lambdas / Colormap
         //
-        auto fnColormap = [&params, &image]()
+        auto fnColormap = [&params, &image](float availableGuiWidth)
         {
             cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
             Colormap::GuiShowColormapSettingsData(
                 image,
                 roi,
+                availableGuiWidth,
                 &params->ColormapSettings);
         };
 
@@ -9019,7 +9129,7 @@ namespace ImmVision
 
             // Colormap
             if (Colormap::CanColormap(image) && ImageWidgets::CollapsingHeader_OptionalCacheState("Colormap"))
-                fnColormap();
+                fnColormap(optionsWidth);
 
             // Watched Pixels
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))
@@ -10086,6 +10196,17 @@ namespace ImGuiImm
         ImGui::GetCurrentWindow()->WorkRect = oldWorkRect;
     }
 
+    // Draw a fixed width Separator
+    // useful when ImGui::Separator() overflows to the right
+    void SeparatorFixedWidth(float width)
+    {
+        ImVec2 a = ImGui::GetCursorScreenPos();
+        ImVec2 b = a;
+        b.x += width;
+        auto col = ImGui::GetStyle().Colors[ImGuiCol_Separator];
+        ImGui::GetWindowDrawList()->AddLine(a, b, ImGui::GetColorU32(col), 1.f);
+        ImGui::NewLine();
+    }
 
     void Theme_Debug()
     {
@@ -11126,11 +11247,11 @@ namespace ImmVision
         std::string LowerString(const std::string& s)
         {
             // <rant>
-            // Welcome to a (C++) world where everyone is welcomed/asked/forced to reinvent a wheel
-            // that is "left as en exercise".
+            // Welcome to a (C++) world where everyone is welcomed, asked, forced or awkwardly proud
+            // to reinvent a wheel that was "left as an exercise".
             //
             // This is probably the implementation number 1,000,001 in the world.
-            // Let' hope it is not broken
+            // Let' hope it is not broken, and does not explode in a buffer overflow exploit 10 years from now.
             // </rant>
             auto sane_tolower_char = [](char c) -> char
             {

@@ -122,12 +122,13 @@ namespace ImmVision
         //
         // Lambdas / Colormap
         //
-        auto fnColormap = [&params, &image]()
+        auto fnColormap = [&params, &image](float availableGuiWidth)
         {
             cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
             Colormap::GuiShowColormapSettingsData(
                 image,
                 roi,
+                availableGuiWidth,
                 &params->ColormapSettings);
         };
 
@@ -144,7 +145,7 @@ namespace ImmVision
 
             // Colormap
             if (Colormap::CanColormap(image) && ImageWidgets::CollapsingHeader_OptionalCacheState("Colormap"))
-                fnColormap();
+                fnColormap(optionsWidth);
 
             // Watched Pixels
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))

@@ -47,7 +47,9 @@ namespace ImmVision
         // GUI
         //
         void GuiShowColormapSettingsData(
-            const cv::Mat &image, const cv::Rect& roi,
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            float availableGuiWidth,
             ColormapSettingsData* inout_settings);
 
     } // namespace Colormap
