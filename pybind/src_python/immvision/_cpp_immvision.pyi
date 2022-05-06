@@ -16,13 +16,6 @@ class ColormapSettingsData:
     colormap_scale_min: float = 0.
     # 
     colormap_scale_max: float = 1.
-    # ColormapScaleType can take three values: "0,1", "-1,1", "Image", "ROI", or "Manual"
-    # - if ColormapScaleType=="0,1", the Colormap, values in [0, 1] will cover the whole Colormap
-    # - if ColormapScaleType=="-1,1", the Colormap, values in [-1, 1] will cover the whole Colormap
-    # - if ColormapScaleType=="Image", the Colormap is scaled on the whole image
-    # - if ColormapScaleType=="ROI", the Colormap is scaled on the visible portion of the image
-    # - if ColormapScaleType=="Manual", the Colormap is scaled based on ColormapScaleMin and ColormapScaleMax
-    colormap_scale_type: str = "0,1"
     # Internal value: stores the name of the Colormap that is hovered by the mouse
     internal_colormap_hovered: str = ""
 
@@ -102,6 +95,8 @@ class ImageParams:
     #
     # if SelectedChannel >= 0 then only this channel is displayed
     selected_channel: int = -1
+    # Show a "school paper" background grid
+    show_school_paper_background: bool = True
     # show a checkerboard behind transparent portions of 4 channels RGBA images
     show_alpha_channel_checkerboard: bool = True
     # Grid displayed when the zoom is high

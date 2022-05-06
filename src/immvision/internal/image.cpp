@@ -125,7 +125,7 @@ namespace ImmVision
         auto fnColormap = [&params, &image]()
         {
             cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
-            Colormap::ShowColormapSettingsDataGui(
+            Colormap::GuiShowColormapSettingsData(
                 image,
                 roi,
                 &params->ColormapSettings);
@@ -367,19 +367,6 @@ namespace ImmVision
             }
 
         };
-        auto fnTransmitRoiToColormap = [&params, &image] (bool isNewImage, CachedParams & cacheParams)
-        {
-            bool roiChanged = (! ZoomPanTransform::IsEqual(cacheParams.PreviousParams.ZoomPanMatrix, params->ZoomPanMatrix));
-            bool scaleTypeChanged = (params->ColormapSettings.ColormapScaleType != cacheParams.PreviousParams.ColormapSettings.ColormapScaleType);
-            bool forceRefresh = scaleTypeChanged || isNewImage;
-            Colormap::UpdateColormapSettingsDataFromRoi(
-                image,
-                ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size()),
-                forceRefresh,
-                roiChanged,
-                & params->ColormapSettings);
-        };
-
         //
         // Lambda / Show image
         //
@@ -489,11 +476,10 @@ namespace ImmVision
         ImGui::PushID(label_id.c_str());
         try
         {
-            bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
+            ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
             auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
-            fnTransmitRoiToColormap(isNewImage, cacheParams);
         }
         catch(std::exception& e)
         {
@@ -522,7 +508,7 @@ namespace ImmVision
             s_Params[&mat] = params;
         }
 
-        ImageParams& cached_params = s_Params.at(&mat);
+        ImageParams& params = s_Params.at(&mat);
         {
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
@@ -565,18 +551,6 @@ namespace ImmVision
     std::vector<std::string> AvailableColormaps()
     {
         return Colormap::AvailableColormaps();
-    }
-
-    std::vector<std::string> AvailableColormapScaleTypes()
-    {
-        return
-        {
-            "0,1",
-            "-1,1",
-            "Image",
-            "ROI",
-            "Manual"
-        };
     }
 
 

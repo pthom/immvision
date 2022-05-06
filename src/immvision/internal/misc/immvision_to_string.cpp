@@ -22,7 +22,6 @@ namespace ImmVision
         inner = inner + "colormap: " + ToString(v.Colormap) + "\n";
         inner = inner + "colormap_scale_min: " + ToString(v.ColormapScaleMin) + "\n";
         inner = inner + "colormap_scale_max: " + ToString(v.ColormapScaleMax) + "\n";
-        inner = inner + "colormap_scale_type: " + ToString(v.ColormapScaleType) + "\n";
         inner = inner + "internal_colormap_hovered: " + ToString(v.internal_ColormapHovered) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
@@ -30,7 +29,6 @@ namespace ImmVision
         inner = inner + "Colormap: " + ToString(v.Colormap) + "\n";
         inner = inner + "ColormapScaleMin: " + ToString(v.ColormapScaleMin) + "\n";
         inner = inner + "ColormapScaleMax: " + ToString(v.ColormapScaleMax) + "\n";
-        inner = inner + "ColormapScaleType: " + ToString(v.ColormapScaleType) + "\n";
         inner = inner + "internal_ColormapHovered: " + ToString(v.internal_ColormapHovered) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS

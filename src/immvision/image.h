@@ -8,7 +8,6 @@
 namespace ImmVision
 {
 
-
     // !pydef_struct
     // Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)
     struct ColormapSettingsData
@@ -22,14 +21,6 @@ namespace ImmVision
         //     - Values outside this interval will be clamped before coloring
         double ColormapScaleMin = 0.;
         double ColormapScaleMax = 1.;
-
-        // ColormapScaleType can take three values: "0,1", "-1,1", "Image", "ROI", or "Manual"
-        // - if ColormapScaleType=="0,1", the Colormap, values in [0, 1] will cover the whole Colormap
-        // - if ColormapScaleType=="-1,1", the Colormap, values in [-1, 1] will cover the whole Colormap
-        // - if ColormapScaleType=="Image", the Colormap is scaled on the whole image
-        // - if ColormapScaleType=="ROI", the Colormap is scaled on the visible portion of the image
-        // - if ColormapScaleType=="Manual", the Colormap is scaled based on ColormapScaleMin and ColormapScaleMax
-        std::string ColormapScaleType = "0,1";
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
         std::string internal_ColormapHovered = "";
@@ -265,11 +256,6 @@ namespace ImmVision
     // Return the list of the available color maps
     // Taken from https://github.com/yuki-koyama/tinycolormap, thanks to Yuki Koyama
     std::vector<std::string> AvailableColormaps();
-
-    // !pydef_function
-    // Return the list of the available color maps scale types
-    // i.e ["0,1", "-1,1", "Image", "ROI", "Manual"]
-    std::vector<std::string> AvailableColormapScaleTypes();
 
 
 // !pydef_function

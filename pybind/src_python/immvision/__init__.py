@@ -28,13 +28,6 @@ class ColormapSettingsData(_cpp_immvision.ColormapSettingsData):
             - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
             - Values outside this interval will be clamped before coloring
     * colormap_scale_max: float = 1.
-    * colormap_scale_type: str = "0,1"
-            ColormapScaleType can take three values: "0,1", "-1,1", "Image", "ROI", or "Manual"
-            - if ColormapScaleType=="0,1", the Colormap, values in [0, 1] will cover the whole Colormap
-            - if ColormapScaleType=="-1,1", the Colormap, values in [-1, 1] will cover the whole Colormap
-            - if ColormapScaleType=="Image", the Colormap is scaled on the whole image
-            - if ColormapScaleType=="ROI", the Colormap is scaled on the visible portion of the image
-            - if ColormapScaleType=="Manual", the Colormap is scaled based on ColormapScaleMin and ColormapScaleMax
     * internal_colormap_hovered: str = ""
             Internal value: stores the name of the Colormap that is hovered by the mouse
 
@@ -51,13 +44,6 @@ class ColormapSettingsData(_cpp_immvision.ColormapSettingsData):
         colormap_scale_min: float = 0.,
         # 
         colormap_scale_max: float = 1.,
-        # ColormapScaleType can take three values: "0,1", "-1,1", "Image", "ROI", or "Manual"
-        # - if ColormapScaleType=="0,1", the Colormap, values in [0, 1] will cover the whole Colormap
-        # - if ColormapScaleType=="-1,1", the Colormap, values in [-1, 1] will cover the whole Colormap
-        # - if ColormapScaleType=="Image", the Colormap is scaled on the whole image
-        # - if ColormapScaleType=="ROI", the Colormap is scaled on the visible portion of the image
-        # - if ColormapScaleType=="Manual", the Colormap is scaled based on ColormapScaleMin and ColormapScaleMax
-        colormap_scale_type: str = "0,1",
         # Internal value: stores the name of the Colormap that is hovered by the mouse
         internal_colormap_hovered: str = "",
 
@@ -66,7 +52,6 @@ class ColormapSettingsData(_cpp_immvision.ColormapSettingsData):
         self.colormap = colormap
         self.colormap_scale_min = colormap_scale_min
         self.colormap_scale_max = colormap_scale_max
-        self.colormap_scale_type = colormap_scale_type
         self.internal_colormap_hovered = internal_colormap_hovered
 
 
@@ -149,6 +134,8 @@ class ImageParams(_cpp_immvision.ImageParams):
  Image display options
     * selected_channel: int = -1
             if SelectedChannel >= 0 then only this channel is displayed
+    * show_school_paper_background: bool = True
+            Show a "school paper" background grid
     * show_alpha_channel_checkerboard: bool = True
             show a checkerboard behind transparent portions of 4 channels RGBA images
     * show_grid: bool = True
@@ -207,6 +194,8 @@ class ImageParams(_cpp_immvision.ImageParams):
         is_color_order_bgr: bool = True,
         # if SelectedChannel >= 0 then only this channel is displayed
         selected_channel: int = -1,
+        # Show a "school paper" background grid
+        show_school_paper_background: bool = True,
         # show a checkerboard behind transparent portions of 4 channels RGBA images
         show_alpha_channel_checkerboard: bool = True,
         # Grid displayed when the zoom is high
@@ -246,6 +235,7 @@ class ImageParams(_cpp_immvision.ImageParams):
         self.zoom_with_mouse_wheel = zoom_with_mouse_wheel
         self.is_color_order_bgr = is_color_order_bgr
         self.selected_channel = selected_channel
+        self.show_school_paper_background = show_school_paper_background
         self.show_alpha_channel_checkerboard = show_alpha_channel_checkerboard
         self.show_grid = show_grid
         self.draw_values_on_zoomed_pixels = draw_values_on_zoomed_pixels
@@ -392,14 +382,6 @@ def available_colormaps():
      Taken from https://github.com/yuki-koyama/tinycolormap, thanks to Yuki Koyama
     """
     r = _cpp_immvision.available_colormaps()
-    return r
-
-
-def available_colormap_scale_types():
-    """ Return the list of the available color maps scale types
-     i.e ["0,1", "-1,1", "Image", "ROI", "Manual"]
-    """
-    r = _cpp_immvision.available_colormap_scale_types()
     return r
 
 
