@@ -32,7 +32,7 @@ PreciseFloat precise_lerp(PreciseFloat a, PreciseFloat b, PreciseFloat x)
 }
 
 
-cv::Mat mandelbrot(
+cv::Mat_<ColorType> mandelbrot(
     int width,
     int height,
     PreciseFloat x_center,
@@ -109,7 +109,7 @@ cv::Mat mandelbrot(
         fn_y_loop(iy);
 #endif
 
-    return std::move(result);
+    return result;
 }
 
 

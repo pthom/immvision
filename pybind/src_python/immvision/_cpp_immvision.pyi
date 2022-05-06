@@ -9,7 +9,7 @@ class ColormapSettingsData:
     
     # Colormap, see available Colormaps with AvailableColormaps()
     # Work only with 1 channel matrices, i.e len(shape)==2
-    colormap: str = "Cividis"
+    colormap: str = "None"
     # ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
     # - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
     # - Values outside this interval will be clamped before coloring

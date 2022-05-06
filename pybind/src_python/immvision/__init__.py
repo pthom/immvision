@@ -20,7 +20,7 @@ __version__ = _cpp_immvision.__version__
 class ColormapSettingsData(_cpp_immvision.ColormapSettingsData):
     """ Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)
 
-    * colormap: str = "Cividis"
+    * colormap: str = "None"
             Colormap, see available Colormaps with AvailableColormaps()
             Work only with 1 channel matrices, i.e len(shape)==2
     * colormap_scale_min: float = 0.
@@ -37,7 +37,7 @@ class ColormapSettingsData(_cpp_immvision.ColormapSettingsData):
         self,
         # Colormap, see available Colormaps with AvailableColormaps()
         # Work only with 1 channel matrices, i.e len(shape)==2
-        colormap: str = "Cividis",
+        colormap: str = "None",
         # ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
         # - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
         # - Values outside this interval will be clamped before coloring

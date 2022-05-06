@@ -162,6 +162,7 @@ void guiFunction()
                 imageParamsFilter[i].ImageDisplaySize =  gAppState.DisplaySize;
                 imageParamsFilter[i].ColormapKey = "c";
                 imageParamsFilter[i].ZoomKey = "i";
+                imageParamsFilter[i].ShowOptionsPanel = true;
                 ImmVision::Image(
                     "Gradients" + std::to_string(i),
                     gAppState.ImageFiltered[i],
@@ -187,6 +188,7 @@ void guiFunction()
             &originalImageParams);
     }
 
+    ImGui::SameLine();
 
     {
         static cv::Mat imageTransparent = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);

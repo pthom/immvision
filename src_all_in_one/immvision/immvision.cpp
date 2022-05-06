@@ -17,6 +17,7 @@
 #include <vector>
 #include <string>
 
+
 namespace ImmVision
 {
 
@@ -26,7 +27,7 @@ namespace ImmVision
     {
         // Colormap, see available Colormaps with AvailableColormaps()
         // Work only with 1 channel matrices, i.e len(shape)==2
-        std::string Colormap = "Cividis";
+        std::string Colormap = "None";
 
         // ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
         //     - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
@@ -290,6 +291,96 @@ namespace ImmVision
 //                       src/immvision/internal/cv/colormap.h continued                                         //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/insertion_order_map.h included by src/immvision/internal/cv/colormap.h//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <unordered_map>
+#include <utility>
+#include <algorithm>
+
+
+namespace ImmVision
+{
+    template<typename Key, typename Value>
+    class insertion_order_map
+    {
+    public:
+
+        bool contains(const Key& k) const { return _map.find(k) != _map.end(); }
+
+        bool empty() const { return _keys.empty(); }
+
+        void clear() { _keys.clear(); _map.clear(); }
+
+        void insert(const Key& k, const Value& v)
+        {
+            assert(!contains(k));
+            _keys.push_back(k);
+            _map[k] = v;
+        }
+
+        void insert(const Key& k, Value&& v)
+        {
+            assert(!contains(k));
+            _keys.push_back(k);
+            _map[k] = std::move(v);
+        }
+
+
+        Value& get(const Key& k)
+        {
+            assert(contains(k));
+            return _map.at(k);
+        }
+
+        const Value& get(const Key& k) const
+        {
+            assert(contains(k));
+            return _map.at(k);
+        }
+
+        void erase(const Key& k)
+        {
+            assert(contains(k));
+            _map.erase(_map.find(k));
+            _keys.erase(std::remove(_keys.begin(), _keys.end(), 5), _keys.end());
+        }
+
+        const std::vector<Key>& insertion_order_keys() const
+        {
+            return _keys;
+        }
+
+        const std::vector<std::pair<const Key&, const Value&>> items() const
+        {
+            std::vector<std::pair<const Key&, const Value&>> r;
+            for (const auto& k : insertion_order_keys())
+                r.push_back({k, get(k)});
+            return r;
+        }
+
+        std::vector<std::pair<const Key&, Value&>> items()
+        {
+            std::vector<std::pair<const Key&, Value&>> r;
+            for (const auto& k : insertion_order_keys())
+                r.push_back({k, get(k)});
+            return r;
+        }
+
+    private:
+        std::unordered_map<Key, Value> _map;
+        std::vector<Key> _keys;
+    };
+
+
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/colormap.h continued                                         //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <map>
 
 // Uses https://github.com/jgreitemann/colormap
@@ -316,8 +407,9 @@ namespace ImmVision
         // Colormaps images and textures
         //
         std::vector<std::string> AvailableColormaps();
-        const std::map<std::string, cv::Mat>& ColormapsImages();
-        const std::map<std::string, unsigned int>& ColormapsTextures();
+
+        const insertion_order_map<std::string, cv::Mat>& ColormapsImages();
+        const insertion_order_map<std::string, unsigned int>& ColormapsTextures();
         void ClearColormapsTexturesCache();
 
         //
@@ -397,7 +489,6 @@ namespace ImmVision
 
 #include <cmath>
 #include <cstdint>
-#include <algorithm>
 
 #if defined(TINYCOLORMAP_WITH_EIGEN)
 #include <Eigen/Core>
@@ -424,7 +515,7 @@ namespace tinycolormap
 
     enum class ColormapType
     {
-        Parula, Heat, Jet, Turbo, Hot, Gray, Magma, Inferno, Plasma, Viridis, Cividis, Github, Cubehelix
+        None, Gray, Parula, Heat, Jet, Turbo, Hot, Magma, Inferno, Plasma, Viridis, Cividis, Github, Cubehelix
     };
 
     struct Color
@@ -473,6 +564,7 @@ namespace tinycolormap
 
     inline Color GetColor(double x, ColormapType type = ColormapType::Viridis);
     inline Color GetQuantizedColor(double x, unsigned int num_levels, ColormapType type = ColormapType::Viridis);
+    inline Color constexpr GetNoneColor(double x) noexcept;
     inline Color GetParulaColor(double x);
     inline Color GetHeatColor(double x);
     inline Color GetJetColor(double x);
@@ -547,6 +639,8 @@ namespace tinycolormap
     {
         switch (type)
         {
+            case ColormapType::None:
+                return GetNoneColor(x);
             case ColormapType::Parula:
                 return GetParulaColor(x);
             case ColormapType::Heat:
@@ -583,6 +677,11 @@ namespace tinycolormap
     inline Color GetQuantizedColor(double x, unsigned int num_levels, ColormapType type)
     {
         return GetColor(internal::QuantizeArgument(x, num_levels), type);
+    }
+
+    inline Color constexpr GetNoneColor(double x) noexcept
+    {
+        return Color{ internal::Clamp01(x) };
     }
 
     inline Color GetParulaColor(double x)
@@ -2863,7 +2962,6 @@ namespace tinycolormap
 #include <iosfwd>
 #include <limits>
 #include <type_traits>
-#include <utility>
 #include <variant>
 
 #if defined(MAGIC_ENUM_CONFIG_FILE)
@@ -3717,9 +3815,6 @@ namespace magic_enum {
             }
         }
 
-        template <typename E, typename Lambda, typename D = std::decay_t<E>>
-        using for_each_t = decltype(for_each<D>(std::declval<Lambda>(), std::make_index_sequence<count_v<D>>{}));
-
     } // namespace magic_enum::detail
 
 // Checks is magic_enum supported compiler.
@@ -4094,8 +4189,9 @@ namespace magic_enum {
     }
 
     template <typename E, typename Lambda>
-    constexpr auto enum_for_each(Lambda&& lambda) -> detail::enable_if_t<E, detail::for_each_t<E, Lambda>> {
+    constexpr auto enum_for_each(Lambda&& lambda) {
         using D = std::decay_t<E>;
+        static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
 
         return detail::for_each<D>(std::forward<Lambda>(lambda), std::make_index_sequence<detail::count_v<D>>{});
     }
@@ -4342,75 +4438,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/misc/string_utils.h included by src/immvision/internal/cv/colormap.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-    namespace StringUtils
-    {
-        std::string LowerString(const std::string& s);
-        std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator);
-        std::vector<std::string> SplitString(const std::string& s, const char separator);
-        std::string IndentLine(const std::string& s, int indentSize);
-        std::string IndentLines(const std::string& s, int indentSize);
-
-
-        std::string ToString(const std::string& s);
-        std::string ToString(const double& v);
-        std::string ToString(const float& v);
-        std::string ToString(const int& v);
-        std::string ToString(bool v);
-
-        template<typename _Tp>
-        std::string ToString(const cv::Point_<_Tp>& v)
-        {
-            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
-        }
-        template<typename _Tp>
-        std::string ToString(const cv::Size_<_Tp>& v)
-        {
-            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
-        }
-
-        template<typename _Tp>
-        std::string ToString(const std::vector<_Tp>& v)
-        {
-            std::vector<std::string> strs;
-            for (const auto& x : v)
-                strs.push_back(ToString(x));
-            std::string r = "[" + JoinStrings(strs, ", ") + "]";
-            return r;
-        }
-
-        template<typename _Tp, int _rows,int _cols>
-        std::string ToString(const cv::Matx<_Tp, _rows, _cols>& m)
-        {
-            std::vector<std::string> lines;
-            for (int i = 0; i < _rows; ++i)
-            {
-                std::vector<_Tp> lineValues;
-                for (int j = 0; j < _cols; ++j)
-                    lineValues.push_back(m(i, j));
-
-                std::string lineString = ToString(lineValues);
-                if (i != 0)
-                    lineString = std::string("   ") + lineString;
-                lines.push_back(lineString);
-            }
-            std::string r = "\n  [";
-            r += JoinStrings(lines, ",\n");
-            r += "]";
-            return r;
-        }
-
-    } // namespace StringUtils
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/colormap.cpp continued                                       //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/imgui_imm.h included by src/immvision/internal/cv/colormap.cpp           //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -4505,6 +4532,7 @@ namespace ImmVision
 
         ColormapSettingsData ComputeInitialColormapSettings(const cv::Mat& m)
         {
+            (void)m;
             ColormapSettingsData r;
             return r;
         }
@@ -4521,10 +4549,6 @@ namespace ImmVision
 
         std::vector<std::string> AvailableColormaps()
         {
-            // Hack, to let g++-11.2 accept to compile magic_enum (see https://github.com/Neargye/magic_enum/issues/184)
-            constexpr std::size_t WORKAROUND_MAGIC_ENUM = magic_enum::enum_count<tinycolormap::ColormapType>();
-            (void)WORKAROUND_MAGIC_ENUM;
-
             std::vector<std::string> r;
             magic_enum::enum_for_each<ColormapType>([&r] (auto val) {
                 ColormapType type = val;
@@ -4551,22 +4575,22 @@ namespace ImmVision
         }
 
 
-        const std::map<std::string, cv::Mat>& ColormapsImages()
+        const insertion_order_map<std::string, cv::Mat>& ColormapsImages()
         {
-            static std::map<std::string, cv::Mat> cache;
+            static insertion_order_map<std::string, cv::Mat> cache;
             if (cache.empty())
             {
                 magic_enum::enum_for_each<ColormapType>([] (auto val) {
                     ColormapType type = val;
                     const char* name = magic_enum::enum_name(type).data();
-                    cache[name] = MakeColormapImage(type);
+                    cache.insert(name, MakeColormapImage(type));
                 });
             }
             return cache;
         }
 
 
-        static std::map<std::string, std::unique_ptr<GlTextureCv>> sColormapsTexturesCache;
+        static insertion_order_map<std::string, std::unique_ptr<GlTextureCv>> sColormapsTexturesCache;
 
 
         void FillTextureCache()
@@ -4574,24 +4598,25 @@ namespace ImmVision
             if (sColormapsTexturesCache.empty())
             {
                 auto images = ColormapsImages();
-                for (const auto& kv: images)
+                for (const auto& k: images.insertion_order_keys())
                 {
-                    auto texture = std::make_unique<GlTextureCv>(kv.second, true);
-                    sColormapsTexturesCache[kv.first] = std::move(texture);
+                    cv::Mat& m = images.get(k);
+                    auto texture = std::make_unique<GlTextureCv>(m, true);
+                    sColormapsTexturesCache.insert(k, std::move(texture));
                 }
             }
         }
 
 
-        const std::map<std::string, unsigned int>& ColormapsTextures()
+        const insertion_order_map<std::string, unsigned int>& ColormapsTextures()
         {
             FillTextureCache();
 
-            static std::map<std::string, unsigned int> cache;
+            static insertion_order_map<std::string, unsigned int> cache;
             if (cache.empty())
             {
-                for (const auto& kv: sColormapsTexturesCache)
-                    cache[kv.first] = sColormapsTexturesCache.at(kv.first)->mImTextureId;
+                for (const auto& k: sColormapsTexturesCache.insertion_order_keys())
+                    cache.insert(k, sColormapsTexturesCache.get(k)->mImTextureId);
             }
             return cache;
         }
@@ -4612,8 +4637,16 @@ namespace ImmVision
         template<typename _Tp>
         cv::Mat_<cv::Vec4b> _ApplyColormap(const cv::Mat &m, const ColormapSettingsData& settings)
         {
-            auto _colormapType = magic_enum::enum_cast<ColormapType>(settings.Colormap);
-            assert(_colormapType.has_value());
+            assert(CanColormap(m));
+
+            std::string colormapName = settings.internal_ColormapHovered.empty() ? settings.Colormap : settings.internal_ColormapHovered;
+
+            auto _colormapType = magic_enum::enum_cast<ColormapType>(colormapName);
+            if (!_colormapType.has_value())
+            {
+                fprintf(stderr, "_ApplyColormap: bad colormap name: %s\n", settings.Colormap.c_str());
+                assert(false);
+            }
             auto colormapType = _colormapType.value();
 
             std::array<cv::Vec4b, 256> colorLut;
@@ -4652,8 +4685,6 @@ namespace ImmVision
 
         cv::Mat_<cv::Vec4b> ApplyColormap(const cv::Mat &m, const ColormapSettingsData& settings)
         {
-            assert(CanColormap(m));
-
             if (m.depth() == CV_8U)
                 return _ApplyColormap<uchar>(m, settings);
             else if (m.depth() == CV_8S)
@@ -4686,14 +4717,14 @@ namespace ImmVision
         //
         void GuiChooseColormap(ColormapSettingsData* inout_params)
         {
-            static std::string lastUnselectedColormap = "";
+            static std::optional<std::string> lastUnselectedColormap;
             FillTextureCache();
 
             inout_params->internal_ColormapHovered = "";
-            for (const auto& kv: sColormapsTexturesCache)
+            for (const auto& kv: sColormapsTexturesCache.items())
             {
                 std::string colormapName = kv.first;
-                bool isSelected = (colormapName == inout_params->Colormap);
+                bool wasSelected = (colormapName == inout_params->Colormap);
 
                 ImVec4 colorNormal(0.7f, 0.7f, 0.7f, 1.f);
                 ImVec4 colorSelected(1.f, 1.f, 0.2f, 1.f);
@@ -4712,7 +4743,7 @@ namespace ImmVision
                 }
 
                 ImVec4 color;
-                if (isSelected)
+                if (wasSelected)
                     color = colorSelected;
                 else if (isHovered)
                     color = colorHovered;
@@ -4723,23 +4754,28 @@ namespace ImmVision
                 ImGui::TextColored(color, "%s", colormapName.c_str());
                 pos.x += widthText;
                 ImGui::SetCursorPos(pos);
-                if (isSelected)
+                if (wasSelected)
                     kv.second->DrawButton(sizeTexture);
                 else
                 kv.second->Draw(sizeTexture);
-                if (ImGui::IsItemHovered() && (colormapName != lastUnselectedColormap))
-                    inout_params->internal_ColormapHovered = colormapName;
+                if (ImGui::IsItemHovered())
+                {
+                    if (!lastUnselectedColormap.has_value())
+                        inout_params->internal_ColormapHovered = colormapName;
+                    if (lastUnselectedColormap.has_value() && (*lastUnselectedColormap != colormapName))
+                        inout_params->internal_ColormapHovered = colormapName;
+                }
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
                 {
-                    if (isSelected)
+                    if (wasSelected)
                     {
-                        inout_params->Colormap = "";
+                        inout_params->Colormap = "None";
                         lastUnselectedColormap = colormapName;
                     }
                     else
                     {
                         inout_params->Colormap = colormapName;
-                        lastUnselectedColormap = "";
+                        lastUnselectedColormap = std::nullopt;
                     }
                 }
             }
@@ -4752,6 +4788,7 @@ namespace ImmVision
             ColormapSettingsData* inout_settings
             )
         {
+            (void)image;(void)roi;
             ImGuiImm::SliderAnyFloatLogarithmic("Scale min", &inout_settings->ColormapScaleMin, -255., 255.);
             ImGuiImm::SliderAnyFloatLogarithmic("Scale max", &inout_settings->ColormapScaleMax, -255., 255.);
             GuiChooseColormap(inout_settings);
@@ -4916,8 +4953,76 @@ namespace ImmVision
 //                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/string_utils.h included by src/immvision/internal/cv/cv_drawing_utils.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace ImmVision
+{
+    namespace StringUtils
+    {
+        std::string LowerString(const std::string& s);
+        std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator);
+        std::vector<std::string> SplitString(const std::string& s, const char separator);
+        std::string IndentLine(const std::string& s, int indentSize);
+        std::string IndentLines(const std::string& s, int indentSize);
+
+
+        std::string ToString(const std::string& s);
+        std::string ToString(const double& v);
+        std::string ToString(const float& v);
+        std::string ToString(const int& v);
+        std::string ToString(bool v);
+
+        template<typename _Tp>
+        std::string ToString(const cv::Point_<_Tp>& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        template<typename _Tp>
+        std::string ToString(const cv::Size_<_Tp>& v)
+        {
+            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
+        }
+
+        template<typename _Tp>
+        std::string ToString(const std::vector<_Tp>& v)
+        {
+            std::vector<std::string> strs;
+            for (const auto& x : v)
+                strs.push_back(ToString(x));
+            std::string r = "[" + JoinStrings(strs, ", ") + "]";
+            return r;
+        }
+
+        template<typename _Tp, int _rows,int _cols>
+        std::string ToString(const cv::Matx<_Tp, _rows, _cols>& m)
+        {
+            std::vector<std::string> lines;
+            for (int i = 0; i < _rows; ++i)
+            {
+                std::vector<_Tp> lineValues;
+                for (int j = 0; j < _cols; ++j)
+                    lineValues.push_back(m(i, j));
+
+                std::string lineString = ToString(lineValues);
+                if (i != 0)
+                    lineString = std::string("   ") + lineString;
+                lines.push_back(lineString);
+            }
+            std::string r = "\n  [";
+            r += JoinStrings(lines, ",\n");
+            r += "]";
+            return r;
+        }
+
+    } // namespace StringUtils
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <opencv2/imgproc/imgproc.hpp>
-#include <unordered_map>
 
 #ifndef CV_16F // for old versions of OpenCV
 #define CV_16F 7
@@ -5726,6 +5831,9 @@ namespace ImmVision
 
         MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize)
         {
+            assert(imageSize.area() > 0);
+            assert(viewportSize.area() >0);
+
             MatrixType r = Identity();
 
             double zoom;
@@ -6797,7 +6905,7 @@ namespace ImmVision
 
             void RemoveKey(const Key& k)
             {
-                //mDict.erase(k);
+                mDict.erase(k);
             }
 
             void Clear()
@@ -8932,8 +9040,7 @@ namespace ImmVision
                 }
                 ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
                 if (image.type() == CV_8UC4)
-                    if (ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard))
-                        printf("Ah\n");
+                    ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
                 if (image.channels() > 1)
                 {
                     ImGui::Text("Channels: ");
@@ -9426,8 +9533,6 @@ namespace ImmVision
             // Update cache entries
             auto cacheKey = GetID(id_label);
             bool isNewEntry = AddEntryIfMissing(cacheKey);
-            if (isNewEntry)
-                InitializeMissingParams(params, image);
 
             // Get caches
             CachedParams& cachedParams = mCacheParams.Get(cacheKey);
@@ -9437,6 +9542,11 @@ namespace ImmVision
 
             // Update current params if needed
             {
+                params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
+
+                if (isNewEntry)
+                    InitializeMissingParams(params, image);
+
                 bool tryAdaptZoomToNewDisplaySize =
                     (oldParams.ImageDisplaySize != params->ImageDisplaySize)
                     &&  !(oldParams.ImageDisplaySize.area() == 0);
@@ -9445,10 +9555,8 @@ namespace ImmVision
                     params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
                         oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
                 }
-
-                params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
             }
-            
+
             bool shallRefreshTexture = false;
             bool shallRefreshRgbaCache = false;
             {
@@ -10735,6 +10843,11 @@ namespace ImmVision
     
     // </autogen:tostring> // Autogenerated code end
 }
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/insertion_order_map.cpp                                    //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

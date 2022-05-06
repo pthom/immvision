@@ -13,6 +13,7 @@
 #include <vector>
 #include <string>
 
+
 namespace ImmVision
 {
 
@@ -22,7 +23,7 @@ namespace ImmVision
     {
         // Colormap, see available Colormaps with AvailableColormaps()
         // Work only with 1 channel matrices, i.e len(shape)==2
-        std::string Colormap = "Cividis";
+        std::string Colormap = "None";
 
         // ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
         //     - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.

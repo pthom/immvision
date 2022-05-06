@@ -77,7 +77,7 @@ namespace tinycolormap
 
     enum class ColormapType
     {
-        Parula, Heat, Jet, Turbo, Hot, Gray, Magma, Inferno, Plasma, Viridis, Cividis, Github, Cubehelix
+        None, Gray, Parula, Heat, Jet, Turbo, Hot, Magma, Inferno, Plasma, Viridis, Cividis, Github, Cubehelix
     };
 
     struct Color
@@ -126,6 +126,7 @@ namespace tinycolormap
 
     inline Color GetColor(double x, ColormapType type = ColormapType::Viridis);
     inline Color GetQuantizedColor(double x, unsigned int num_levels, ColormapType type = ColormapType::Viridis);
+    inline Color constexpr GetNoneColor(double x) noexcept;
     inline Color GetParulaColor(double x);
     inline Color GetHeatColor(double x);
     inline Color GetJetColor(double x);
@@ -200,6 +201,8 @@ namespace tinycolormap
     {
         switch (type)
         {
+            case ColormapType::None:
+                return GetNoneColor(x);
             case ColormapType::Parula:
                 return GetParulaColor(x);
             case ColormapType::Heat:
@@ -236,6 +239,11 @@ namespace tinycolormap
     inline Color GetQuantizedColor(double x, unsigned int num_levels, ColormapType type)
     {
         return GetColor(internal::QuantizeArgument(x, num_levels), type);
+    }
+
+    inline Color constexpr GetNoneColor(double x) noexcept
+    {
+        return Color{ internal::Clamp01(x) };
     }
 
     inline Color GetParulaColor(double x)
