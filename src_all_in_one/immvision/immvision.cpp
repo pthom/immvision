@@ -11126,11 +11126,19 @@ namespace ImmVision
         std::string LowerString(const std::string& s)
         {
             // <rant>
-            // Welcome to a (C++) world where everyone is welcomed/asked/forced to reinvent the wheel.
-            // This is probably the 1,000,001th implementation in the world. Let' hope it is not broken
+            // Welcome to a (C++) world where everyone is welcomed/asked/forced to reinvent a wheel
+            // that is "left as en exercise".
+            //
+            // This is probably the implementation number 1,000,001 in the world.
+            // Let' hope it is not broken
             // </rant>
+            auto sane_tolower_char = [](char c) -> char
+            {
+                // See, the exercise was easy!
+                return static_cast<char>(::tolower(static_cast<int>(c)));
+            };
             std::string r = s;
-            std::transform(r.begin(), r.end(), r.begin(), ::tolower);
+            std::transform(r.begin(), r.end(), r.begin(), sane_tolower_char);
             return r;
         }
 
