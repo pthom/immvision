@@ -436,7 +436,7 @@ namespace ImmVision
             {
                 if (isRoi)
                 {
-                    ImVec4 col(1., 0.6, 0.6, 1.);
+                    ImVec4 col(1.f, 0.6f, 0.6f, 1.f);
                     ImGui::TextColored(col, "Warning, if \"Apply immediately\" is checked");
                     ImGui::TextColored(col, "in the \"ROI stats\" tab,");
                     ImGui::TextColored(col, "the scale will vary immediately");
