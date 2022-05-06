@@ -22,6 +22,25 @@ namespace ImmVision
 {
 
     // !pydef_struct
+    // Scale the Colormap according to the Image  stats
+    struct ColormapScaleFromStatsData
+    {
+        // Are we using the stats on the full image?
+        // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
+        bool ActiveOnFullImage = true;
+        // Are we using the stats on the ROI?
+        // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
+        // Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
+        bool   ActiveOnROI = false;
+        // Shall the image update interactively when moving the sigma sliders
+        bool   ApplyInteractively = false;
+        // If active, how many sigmas around the mean should the Colormap be applied
+        double NbSigmas = 1.5;
+
+    };
+
+
+    // !pydef_struct
     // Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)
     struct ColormapSettingsData
     {
@@ -32,8 +51,16 @@ namespace ImmVision
         // ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
         //     - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
         //     - Values outside this interval will be clamped before coloring
+        // by default, the initial values are ignored, and they will be updated automatically
+        // via the options in ColormapScaleFromStats
         double ColormapScaleMin = 0.;
         double ColormapScaleMax = 1.;
+
+        // If ColormapScaleFromStats.ActiveOnFullImage or ColormapScaleFromStats.ActiveOnROI,
+        // then ColormapScaleMin/Max are ignored, and the scaling is done according to the image stats.
+        // ColormapScaleFromStats.ActiveOnFullImage is true by default
+        ColormapScaleFromStatsData ColormapScaleFromStats = ColormapScaleFromStatsData();
+
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
         std::string internal_ColormapHovered = "";
@@ -415,9 +442,20 @@ namespace ImmVision
         //
         // Apply Colormap
         //
-
         cv::Mat_<cv::Vec4b> ApplyColormap(const cv::Mat& m, const ColormapSettingsData& settings);
 
+
+        //
+        // Interactive update during pan and zoom, full init on new Image
+        //
+        void UpdateRoiStatsInteractively(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            ColormapSettingsData* inout_settings);
+        void InitStatsOnNewImage(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            ColormapSettingsData* inout_settings);
 
         //
         // GUI
@@ -4717,6 +4755,86 @@ namespace ImmVision
         }
 
 
+        //
+        // Interactive update during pan and zoom
+        //
+        struct ImageStats
+        {
+            double mean, stdev;
+            double min, max;
+        };
+
+        ImageStats FillImageStats(const cv::Mat& m)
+        {
+            assert(m.channels() == 1);
+            ImageStats r;
+            cv::minMaxLoc(m, &r.min, &r.max);
+            cv::Scalar mean, deviation;
+            cv::meanStdDev(m, mean, deviation);
+            r.mean = mean[0];
+            r.stdev = deviation[0];
+            return r;
+        }
+
+
+        void ApplyColormapStats(const cv::Mat& m_maybeSubmat, ColormapSettingsData* inout_settings)
+        {
+            ImageStats s = FillImageStats(m_maybeSubmat);
+
+            static float nb_sigmas = 1.f;
+            double min = s.mean - (double) nb_sigmas * s.stdev;
+            double max = s.mean + (double) nb_sigmas * s.stdev;
+            inout_settings->ColormapScaleMin = min;
+            inout_settings->ColormapScaleMax = max;
+        }
+
+
+        void AssertColormapScaleFromStats_ActiveMostOne(ColormapSettingsData* const settings)
+        {
+            if (settings->ColormapScaleFromStats.ActiveOnFullImage && settings->ColormapScaleFromStats.ActiveOnROI)
+            {
+                std::string msg = "ActiveOnFullImage and ActiveOnFullImage cannot be true together!";
+                fprintf(stderr, "%s", msg.c_str());
+                throw std::runtime_error(msg.c_str());
+            }
+        }
+
+        void UpdateRoiStatsInteractively(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            ColormapSettingsData* inout_settings)
+        {
+            if (image.channels() != 1)
+                return;
+
+            assert(!roi.empty());
+            AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
+
+            if (! inout_settings->ColormapScaleFromStats.ActiveOnROI)
+                return;
+
+            ApplyColormapStats(image(roi), inout_settings);
+        }
+
+
+        void InitStatsOnNewImage(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            ColormapSettingsData* inout_settings)
+        {
+            if (image.channels() != 1)
+                return;
+
+            assert(!roi.empty());
+            AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
+
+            if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
+                ApplyColormapStats(image(roi), inout_settings);
+            else if (inout_settings->ColormapScaleFromStats.ActiveOnFullImage)
+                ApplyColormapStats(image, inout_settings);
+        }
+
+
 
         //
         // GUI
@@ -4788,59 +4906,60 @@ namespace ImmVision
         }
 
 
-        struct ImageStats
+        void GuiImageStats(const cv::Mat& m_maybeSubmat, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings)
         {
-            double mean, stdev;
-            double min, max;
-        };
-
-        ImageStats FillImageStats(const cv::Mat& m)
-        {
-            assert(m.channels() == 1);
-            ImageStats r;
-            cv::minMaxLoc(m, &r.min, &r.max);
-            cv::Scalar mean, deviation;
-            cv::meanStdDev(m, mean, deviation);
-            r.mean = mean[0];
-            r.stdev = deviation[0];
-            return r;
-        }
-
-
-        void GuiImageStats(const cv::Mat& m, bool isRoi, ColormapSettingsData* inout_settings)
-        {
-            ImageStats s = FillImageStats(m);
+            ImageStats s = FillImageStats(m_maybeSubmat);
+            bool isRoi = roi.has_value();
             if (isRoi)
+            {
+                ImGui::PushID("ROI");
                 ImGui::Text("ROI Stats");
+                ImGui::Text("ROI: Pos(%i, %i), Size(%i, %i)", roi->x, roi->y, roi->width, roi->height);
+            }
             else
+            {
+                ImGui::PushID("Full");
                 ImGui::Text("Full Image Stats");
+            }
 
+            bool *activeFlag;
+            bool *otherActiveFlag;
+            if (isRoi)
+            {
+                activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
+                otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
+            }
+            else
+            {
+                activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
+                otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
+            }
+
+            ImGui::Checkbox("Active", activeFlag);
+            if (*otherActiveFlag)
+                *otherActiveFlag = false;
+
+            if (!(*activeFlag))
+            {
+                ImGui::PopID();
+                return;
+            }
 
             ImGui::Text("mean=%4lf stdev=%4lf", s.mean, s.stdev);
             ImGui::Text("min=%.4lf max=%.4lf", s.min, s.max);
             ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 1.f), "Current ColormapScale: Min=%.4lf Max=%.4lf",
                                inout_settings->ColormapScaleMin, inout_settings->ColormapScaleMax);
 
-            static float nb_sigmas = 1.f;
-
             ImGui::NewLine();
             ImGui::Text("Change by number of sigmas");
-            ImGui::SetNextItemWidth(150.f);
-            ImGui::SliderFloat("##Number of sigmas", &nb_sigmas, 0.f, 7.f);
+            ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 7., 150.f);
 
-            double wouldBeMin = s.mean - (double) nb_sigmas * s.stdev;
-            double wouldBeMax = s.mean + (double) nb_sigmas * s.stdev;
+            double wouldBeMin = s.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * s.stdev;
+            double wouldBeMax = s.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * s.stdev;
 
-            static bool applyImmediatelyFull = false;
-            static bool applyImmediatelyRoi = false;
-            ImGui::SameLine();
-            if (isRoi)
-                ImGui::Checkbox("Apply immediately", &applyImmediatelyRoi);
-            else
-                ImGui::Checkbox("Apply immediately", &applyImmediatelyFull);
+            ImGui::Checkbox("Apply interactively", &inout_settings->ColormapScaleFromStats.ApplyInteractively);
 
-            bool applyImmediately = (isRoi && applyImmediatelyRoi) || (!isRoi && applyImmediatelyFull);
-            if (applyImmediately)
+            if (inout_settings->ColormapScaleFromStats.ApplyInteractively)
             {
                 if (isRoi)
                 {
@@ -4850,8 +4969,8 @@ namespace ImmVision
                     ImGui::TextColored(col, "the scale will vary immediately");
                     ImGui::TextColored(col, "whenever you zoom in/out or pan");
                 }
-                inout_settings->ColormapScaleMin = s.mean - wouldBeMin;
-                inout_settings->ColormapScaleMax = s.mean - wouldBeMax;
+                inout_settings->ColormapScaleMin = wouldBeMin;
+                inout_settings->ColormapScaleMax = wouldBeMax;
             }
             else
             {
@@ -4860,11 +4979,11 @@ namespace ImmVision
 
                 if (ImGui::Button("Apply##Stats"))
                 {
-                    inout_settings->ColormapScaleMin = s.mean - wouldBeMin;
-                    inout_settings->ColormapScaleMax = s.mean - wouldBeMax;
+                    inout_settings->ColormapScaleMin = wouldBeMin;
+                    inout_settings->ColormapScaleMax = wouldBeMax;
                 }
             }
-
+            ImGui::PopID();
         }
 
 
@@ -4881,12 +5000,12 @@ namespace ImmVision
             {
                 if (ImGui::BeginTabItem("From Image Stats"))
                 {
-                    GuiImageStats(image, false, inout_settings);
+                    GuiImageStats(image, std::nullopt, inout_settings);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("From ROI Stats"))
                 {
-                    GuiImageStats(image(roi), true, inout_settings);
+                    GuiImageStats(image(roi), roi, inout_settings);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Min - Max"))
@@ -5888,10 +6007,10 @@ namespace ImmVision
 
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/zoom_pan_transform.cpp continued                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 namespace ImmVision
 {
     namespace ZoomPanTransform
@@ -6035,14 +6154,20 @@ namespace ImmVision
         {
             cv::Rect roi;
             {
-                auto tl = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(0., 0.));
-                tl.x = std::clamp(tl.x, 0., (double) originalImageSize.width - 1.);
-                tl.y = std::clamp(tl.y, 0., (double) originalImageSize.height - 1.);
-                auto br = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(
-                    (double)imageDisplaySize.width - 1., (double)imageDisplaySize.height - 1.));
-                br.x = std::clamp(br.x, 0., (double) originalImageSize.width - 1.);
-                br.y = std::clamp(br.y, 0., (double) originalImageSize.height - 1.);
-                roi = cv::Rect(tl, br);
+                cv::Point2d tl = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(0., 0.));
+                cv::Point tli(MathUtils::RoundInt(tl.x), MathUtils::RoundInt(tl.y));
+                tli.x = std::clamp(tli.x, 0, originalImageSize.width - 1);
+                tli.y = std::clamp(tli.y, 0, originalImageSize.height - 1);
+
+                cv::Point2d br = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(
+                    (double)imageDisplaySize.width, (double)imageDisplaySize.height));
+                cv::Point bri(MathUtils::RoundInt(br.x), MathUtils::RoundInt(br.y));
+                bri.x = std::clamp(bri.x, 0, originalImageSize.width);
+                bri.y = std::clamp(bri.y, 0, originalImageSize.height);
+
+                //                bri.x += 1;
+//                bri.y += 1;
+                roi = cv::Rect(tli, bri);
             }
             return roi;
         }
@@ -9461,10 +9586,16 @@ namespace ImmVision
         ImGui::PushID(label_id.c_str());
         try
         {
-            ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
+            bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
             auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
+
+            // Handle Colormap
+            cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
+            if (isNewImage || params->RefreshImage)
+                Colormap::InitStatsOnNewImage(image, roi, &params->ColormapSettings);
+            Colormap::UpdateRoiStatsInteractively(image, roi, &params->ColormapSettings);
         }
         catch(std::exception& e)
         {
@@ -10201,6 +10332,7 @@ namespace ImGuiImm
     void SeparatorFixedWidth(float width)
     {
         ImVec2 a = ImGui::GetCursorScreenPos();
+        a.y += 4.f;
         ImVec2 b = a;
         b.x += width;
         auto col = ImGui::GetStyle().Colors[ImGuiCol_Separator];
@@ -10813,6 +10945,7 @@ namespace ImmVision
 {
     // <autogen:tostring_decl> // Autogenerated code below! Do not edit!
 
+    std::string ToString(const ColormapScaleFromStatsData& params);
     std::string ToString(const ColormapSettingsData& params);
     std::string ToString(const MouseInformation& params);
     std::string ToString(const ImageParams& params);
@@ -10828,6 +10961,38 @@ namespace ImmVision
     // <autogen:tostring> // Autogenerated code below! Do not edit!
 
 
+    std::string ToString(const ColormapScaleFromStatsData& v)
+    {
+
+        using namespace ImmVision::StringUtils;
+        
+        std::string r;
+        r += "ColormapScaleFromStatsData\n";
+        r += "{\n";
+    
+        std::string inner;
+
+#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
+
+        inner = inner + "active_on_full_image: " + ToString(v.ActiveOnFullImage) + "\n";
+        inner = inner + "active_on_roi: " + ToString(v.ActiveOnROI) + "\n";
+        inner = inner + "apply_interactively: " + ToString(v.ApplyInteractively) + "\n";
+        inner = inner + "nb_sigmas: " + ToString(v.NbSigmas) + "\n";
+
+#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
+
+        inner = inner + "ActiveOnFullImage: " + ToString(v.ActiveOnFullImage) + "\n";
+        inner = inner + "ActiveOnROI: " + ToString(v.ActiveOnROI) + "\n";
+        inner = inner + "ApplyInteractively: " + ToString(v.ApplyInteractively) + "\n";
+        inner = inner + "NbSigmas: " + ToString(v.NbSigmas) + "\n";
+
+#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
+
+        r = r + IndentLines(inner, 4);
+        r += "}";
+        return r;
+    }
+    
     std::string ToString(const ColormapSettingsData& v)
     {
 
@@ -10844,6 +11009,7 @@ namespace ImmVision
         inner = inner + "colormap: " + ToString(v.Colormap) + "\n";
         inner = inner + "colormap_scale_min: " + ToString(v.ColormapScaleMin) + "\n";
         inner = inner + "colormap_scale_max: " + ToString(v.ColormapScaleMax) + "\n";
+        inner = inner + "colormap_scale_from_stats: " + ToString(v.ColormapScaleFromStats) + "\n";
         inner = inner + "internal_colormap_hovered: " + ToString(v.internal_ColormapHovered) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
@@ -10851,6 +11017,7 @@ namespace ImmVision
         inner = inner + "Colormap: " + ToString(v.Colormap) + "\n";
         inner = inner + "ColormapScaleMin: " + ToString(v.ColormapScaleMin) + "\n";
         inner = inner + "ColormapScaleMax: " + ToString(v.ColormapScaleMax) + "\n";
+        inner = inner + "ColormapScaleFromStats: " + ToString(v.ColormapScaleFromStats) + "\n";
         inner = inner + "internal_ColormapHovered: " + ToString(v.internal_ColormapHovered) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS

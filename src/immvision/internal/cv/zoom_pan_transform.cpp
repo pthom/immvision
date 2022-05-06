@@ -1,4 +1,5 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
+#include "immvision/internal/misc/math_utils.h"
 
 namespace ImmVision
 {
@@ -143,14 +144,20 @@ namespace ImmVision
         {
             cv::Rect roi;
             {
-                auto tl = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(0., 0.));
-                tl.x = std::clamp(tl.x, 0., (double) originalImageSize.width - 1.);
-                tl.y = std::clamp(tl.y, 0., (double) originalImageSize.height - 1.);
-                auto br = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(
-                    (double)imageDisplaySize.width - 1., (double)imageDisplaySize.height - 1.));
-                br.x = std::clamp(br.x, 0., (double) originalImageSize.width - 1.);
-                br.y = std::clamp(br.y, 0., (double) originalImageSize.height - 1.);
-                roi = cv::Rect(tl, br);
+                cv::Point2d tl = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(0., 0.));
+                cv::Point tli(MathUtils::RoundInt(tl.x), MathUtils::RoundInt(tl.y));
+                tli.x = std::clamp(tli.x, 0, originalImageSize.width - 1);
+                tli.y = std::clamp(tli.y, 0, originalImageSize.height - 1);
+
+                cv::Point2d br = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(
+                    (double)imageDisplaySize.width, (double)imageDisplaySize.height));
+                cv::Point bri(MathUtils::RoundInt(br.x), MathUtils::RoundInt(br.y));
+                bri.x = std::clamp(bri.x, 0, originalImageSize.width);
+                bri.y = std::clamp(bri.y, 0, originalImageSize.height);
+
+                //                bri.x += 1;
+//                bri.y += 1;
+                roi = cv::Rect(tli, bri);
             }
             return roi;
         }

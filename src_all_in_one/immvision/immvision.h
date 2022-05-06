@@ -18,6 +18,25 @@ namespace ImmVision
 {
 
     // !pydef_struct
+    // Scale the Colormap according to the Image  stats
+    struct ColormapScaleFromStatsData
+    {
+        // Are we using the stats on the full image?
+        // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
+        bool ActiveOnFullImage = true;
+        // Are we using the stats on the ROI?
+        // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
+        // Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
+        bool   ActiveOnROI = false;
+        // Shall the image update interactively when moving the sigma sliders
+        bool   ApplyInteractively = false;
+        // If active, how many sigmas around the mean should the Colormap be applied
+        double NbSigmas = 1.5;
+
+    };
+
+
+    // !pydef_struct
     // Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)
     struct ColormapSettingsData
     {
@@ -28,8 +47,16 @@ namespace ImmVision
         // ColormapScaleMin and ColormapScaleMax indicate how the Colormap is applied:
         //     - Values in [ColormapScaleMin, ColomapScaleMax] will use the full colormap.
         //     - Values outside this interval will be clamped before coloring
+        // by default, the initial values are ignored, and they will be updated automatically
+        // via the options in ColormapScaleFromStats
         double ColormapScaleMin = 0.;
         double ColormapScaleMax = 1.;
+
+        // If ColormapScaleFromStats.ActiveOnFullImage or ColormapScaleFromStats.ActiveOnROI,
+        // then ColormapScaleMin/Max are ignored, and the scaling is done according to the image stats.
+        // ColormapScaleFromStats.ActiveOnFullImage is true by default
+        ColormapScaleFromStatsData ColormapScaleFromStats = ColormapScaleFromStatsData();
+
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
         std::string internal_ColormapHovered = "";

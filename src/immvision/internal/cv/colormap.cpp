@@ -228,6 +228,86 @@ namespace ImmVision
         }
 
 
+        //
+        // Interactive update during pan and zoom
+        //
+        struct ImageStats
+        {
+            double mean, stdev;
+            double min, max;
+        };
+
+        ImageStats FillImageStats(const cv::Mat& m)
+        {
+            assert(m.channels() == 1);
+            ImageStats r;
+            cv::minMaxLoc(m, &r.min, &r.max);
+            cv::Scalar mean, deviation;
+            cv::meanStdDev(m, mean, deviation);
+            r.mean = mean[0];
+            r.stdev = deviation[0];
+            return r;
+        }
+
+
+        void ApplyColormapStats(const cv::Mat& m_maybeSubmat, ColormapSettingsData* inout_settings)
+        {
+            ImageStats s = FillImageStats(m_maybeSubmat);
+
+            static float nb_sigmas = 1.f;
+            double min = s.mean - (double) nb_sigmas * s.stdev;
+            double max = s.mean + (double) nb_sigmas * s.stdev;
+            inout_settings->ColormapScaleMin = min;
+            inout_settings->ColormapScaleMax = max;
+        }
+
+
+        void AssertColormapScaleFromStats_ActiveMostOne(ColormapSettingsData* const settings)
+        {
+            if (settings->ColormapScaleFromStats.ActiveOnFullImage && settings->ColormapScaleFromStats.ActiveOnROI)
+            {
+                std::string msg = "ActiveOnFullImage and ActiveOnFullImage cannot be true together!";
+                fprintf(stderr, "%s", msg.c_str());
+                throw std::runtime_error(msg.c_str());
+            }
+        }
+
+        void UpdateRoiStatsInteractively(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            ColormapSettingsData* inout_settings)
+        {
+            if (image.channels() != 1)
+                return;
+
+            assert(!roi.empty());
+            AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
+
+            if (! inout_settings->ColormapScaleFromStats.ActiveOnROI)
+                return;
+
+            ApplyColormapStats(image(roi), inout_settings);
+        }
+
+
+        void InitStatsOnNewImage(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            ColormapSettingsData* inout_settings)
+        {
+            if (image.channels() != 1)
+                return;
+
+            assert(!roi.empty());
+            AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
+
+            if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
+                ApplyColormapStats(image(roi), inout_settings);
+            else if (inout_settings->ColormapScaleFromStats.ActiveOnFullImage)
+                ApplyColormapStats(image, inout_settings);
+        }
+
+
 
         //
         // GUI
@@ -299,59 +379,60 @@ namespace ImmVision
         }
 
 
-        struct ImageStats
+        void GuiImageStats(const cv::Mat& m_maybeSubmat, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings)
         {
-            double mean, stdev;
-            double min, max;
-        };
-
-        ImageStats FillImageStats(const cv::Mat& m)
-        {
-            assert(m.channels() == 1);
-            ImageStats r;
-            cv::minMaxLoc(m, &r.min, &r.max);
-            cv::Scalar mean, deviation;
-            cv::meanStdDev(m, mean, deviation);
-            r.mean = mean[0];
-            r.stdev = deviation[0];
-            return r;
-        }
-
-
-        void GuiImageStats(const cv::Mat& m, bool isRoi, ColormapSettingsData* inout_settings)
-        {
-            ImageStats s = FillImageStats(m);
+            ImageStats s = FillImageStats(m_maybeSubmat);
+            bool isRoi = roi.has_value();
             if (isRoi)
+            {
+                ImGui::PushID("ROI");
                 ImGui::Text("ROI Stats");
+                ImGui::Text("ROI: Pos(%i, %i), Size(%i, %i)", roi->x, roi->y, roi->width, roi->height);
+            }
             else
+            {
+                ImGui::PushID("Full");
                 ImGui::Text("Full Image Stats");
+            }
 
+            bool *activeFlag;
+            bool *otherActiveFlag;
+            if (isRoi)
+            {
+                activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
+                otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
+            }
+            else
+            {
+                activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
+                otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
+            }
+
+            ImGui::Checkbox("Active", activeFlag);
+            if (*otherActiveFlag)
+                *otherActiveFlag = false;
+
+            if (!(*activeFlag))
+            {
+                ImGui::PopID();
+                return;
+            }
 
             ImGui::Text("mean=%4lf stdev=%4lf", s.mean, s.stdev);
             ImGui::Text("min=%.4lf max=%.4lf", s.min, s.max);
             ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 1.f), "Current ColormapScale: Min=%.4lf Max=%.4lf",
                                inout_settings->ColormapScaleMin, inout_settings->ColormapScaleMax);
 
-            static float nb_sigmas = 1.f;
-
             ImGui::NewLine();
             ImGui::Text("Change by number of sigmas");
-            ImGui::SetNextItemWidth(150.f);
-            ImGui::SliderFloat("##Number of sigmas", &nb_sigmas, 0.f, 7.f);
+            ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 7., 150.f);
 
-            double wouldBeMin = s.mean - (double) nb_sigmas * s.stdev;
-            double wouldBeMax = s.mean + (double) nb_sigmas * s.stdev;
+            double wouldBeMin = s.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * s.stdev;
+            double wouldBeMax = s.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * s.stdev;
 
-            static bool applyImmediatelyFull = false;
-            static bool applyImmediatelyRoi = false;
-            ImGui::SameLine();
-            if (isRoi)
-                ImGui::Checkbox("Apply immediately", &applyImmediatelyRoi);
-            else
-                ImGui::Checkbox("Apply immediately", &applyImmediatelyFull);
+            ImGui::Checkbox("Apply interactively", &inout_settings->ColormapScaleFromStats.ApplyInteractively);
 
-            bool applyImmediately = (isRoi && applyImmediatelyRoi) || (!isRoi && applyImmediatelyFull);
-            if (applyImmediately)
+            if (inout_settings->ColormapScaleFromStats.ApplyInteractively)
             {
                 if (isRoi)
                 {
@@ -361,8 +442,8 @@ namespace ImmVision
                     ImGui::TextColored(col, "the scale will vary immediately");
                     ImGui::TextColored(col, "whenever you zoom in/out or pan");
                 }
-                inout_settings->ColormapScaleMin = s.mean - wouldBeMin;
-                inout_settings->ColormapScaleMax = s.mean - wouldBeMax;
+                inout_settings->ColormapScaleMin = wouldBeMin;
+                inout_settings->ColormapScaleMax = wouldBeMax;
             }
             else
             {
@@ -371,11 +452,11 @@ namespace ImmVision
 
                 if (ImGui::Button("Apply##Stats"))
                 {
-                    inout_settings->ColormapScaleMin = s.mean - wouldBeMin;
-                    inout_settings->ColormapScaleMax = s.mean - wouldBeMax;
+                    inout_settings->ColormapScaleMin = wouldBeMin;
+                    inout_settings->ColormapScaleMax = wouldBeMax;
                 }
             }
-
+            ImGui::PopID();
         }
 
 
@@ -392,12 +473,12 @@ namespace ImmVision
             {
                 if (ImGui::BeginTabItem("From Image Stats"))
                 {
-                    GuiImageStats(image, false, inout_settings);
+                    GuiImageStats(image, std::nullopt, inout_settings);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("From ROI Stats"))
                 {
-                    GuiImageStats(image(roi), true, inout_settings);
+                    GuiImageStats(image(roi), roi, inout_settings);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Min - Max"))

@@ -39,9 +39,20 @@ namespace ImmVision
         //
         // Apply Colormap
         //
-
         cv::Mat_<cv::Vec4b> ApplyColormap(const cv::Mat& m, const ColormapSettingsData& settings);
 
+
+        //
+        // Interactive update during pan and zoom, full init on new Image
+        //
+        void UpdateRoiStatsInteractively(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            ColormapSettingsData* inout_settings);
+        void InitStatsOnNewImage(
+            const cv::Mat &image,
+            const cv::Rect& roi,
+            ColormapSettingsData* inout_settings);
 
         //
         // GUI

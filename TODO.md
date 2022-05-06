@@ -6,6 +6,8 @@
   * test mandel
 
 
+* Show emscripten demo on github
+* 
 
 * [ ] PIP
   * [ ] change mat type if not castable (and cache)
@@ -26,6 +28,7 @@
 
 
  * [ ] immvision
+     * Add IMM_ASSERT (default = exception in release build)
      * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
      *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
      * [Later] ToString -> ToJson / FromJson

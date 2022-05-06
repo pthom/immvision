@@ -477,10 +477,16 @@ namespace ImmVision
         ImGui::PushID(label_id.c_str());
         try
         {
-            ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
+            bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
             auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
+
+            // Handle Colormap
+            cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
+            if (isNewImage || params->RefreshImage)
+                Colormap::InitStatsOnNewImage(image, roi, &params->ColormapSettings);
+            Colormap::UpdateRoiStatsInteractively(image, roi, &params->ColormapSettings);
         }
         catch(std::exception& e)
         {
