@@ -38,6 +38,8 @@ namespace ImmVision
                 return true;
             if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
                 return true;
+            if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
+                return true;
             if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
                 return true;
             return false;
@@ -59,7 +61,7 @@ namespace ImmVision
                 return true;
             if (v1.SelectedChannel != v2.SelectedChannel)
                 return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
+            if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
                 return true;
             if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
                 return true;
@@ -76,61 +78,82 @@ namespace ImmVision
         //
         // ImageTextureCache impl below
         //
+        bool ImageTextureCache::AddEntryIfMissing(KeyType key)
+        {
+            bool isNewEntry = false;
+            if (! mCacheParams.Contains(key))
+            {
+                isNewEntry = true;
+                mCacheParams.AddKey(key);
+            }
+            if (! mCacheImages.Contains(key))
+            {
+                mCacheImages.AddKey(key);
+                isNewEntry = true;
+                mCacheImages.Get(key).GlTexture = std::make_unique<GlTextureCv>();
+            }
+            return isNewEntry;
+        }
+
 
         bool ImageTextureCache::UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
+            // Update cache entries
             auto cacheKey = GetID(id_label);
-            params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
+            bool isNewEntry = AddEntryIfMissing(cacheKey);
 
-            bool needsRefreshTexture = userRefresh;
-            bool shallRefreshRgbaCache = false;
-
-            bool isNewEntry = false;
-            if (! mCacheParams.Contains(cacheKey))
-            {
-                isNewEntry = true;
-                InitializeMissingParams(params, image);
-                needsRefreshTexture = true;
-                shallRefreshRgbaCache = true;
-                mCacheParams.AddKey(cacheKey);
-            }
-            if (! mCacheImages.Contains(cacheKey))
-            {
-                mCacheImages.AddKey(cacheKey);
-                needsRefreshTexture = true;
-                shallRefreshRgbaCache = true;
-                mCacheImages.Get(cacheKey).GlTexture = std::make_unique<GlTextureCv>();
-            }
-
-            auto& cachedParams = mCacheParams.Get(cacheKey);
-            auto& cachedImages = mCacheImages.Get(cacheKey);
-            cachedParams.Params = params;
-
+            // Get caches
+            CachedParams& cachedParams = mCacheParams.Get(cacheKey);
+            CachedImages& cachedImage = mCacheImages.Get(cacheKey);
+            cachedParams.ParamsPtr = params;
             ImageParams oldParams = cachedParams.PreviousParams;
-            *cachedParams.Params = *params;
 
-            if (cachedImages.GlTexture->mImageSize.x == 0.f)
-                needsRefreshTexture = true;
-            if (ShallRefreshTexture(oldParams, *params))
-                needsRefreshTexture = true;
-            if (!(oldParams.ImageDisplaySize.area() == 0) && (oldParams.ImageDisplaySize != params->ImageDisplaySize))
-                params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
-                    oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
-            if (needsRefreshTexture)
+            // Update current params if needed
             {
-                if (ShallRefreshRgbaCache(oldParams, *params) || userRefresh)
+                params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
+
+                if (isNewEntry)
+                    InitializeMissingParams(params, image);
+
+                bool tryAdaptZoomToNewDisplaySize =
+                    (oldParams.ImageDisplaySize != params->ImageDisplaySize)
+                    &&  !(oldParams.ImageDisplaySize.area() == 0);
+                if (tryAdaptZoomToNewDisplaySize)
+                {
+                    params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
+                        oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
+                }
+            }
+
+            bool shallRefreshTexture = false;
+            bool shallRefreshRgbaCache = false;
+            {
+                bool fullRefresh =
+                    (      userRefresh
+                        || isNewEntry
+                        || (cachedImage.GlTexture->mImageSize.x == 0.f)
+                        || ShallRefreshRgbaCache(oldParams, *params));
+                if (fullRefresh)
+                {
+                    shallRefreshTexture = true;
                     shallRefreshRgbaCache = true;
+                }
+                if (ShallRefreshTexture(oldParams, *params))
+                    shallRefreshTexture = true;
+            }
+
+            if (shallRefreshTexture)
+            {
                 ImageDrawing::BlitImageTexture(
-                    *params, image, cachedImages.ImageRgbaCache, shallRefreshRgbaCache, cachedImages.GlTexture.get());
+                    *params, image, cachedImage.ImageRgbaCache, shallRefreshRgbaCache, cachedImage.GlTexture.get());
             }
 
             if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
                 UpdateLinkedZooms(id_label);
             if (! Colormap::IsEqual(oldParams.ColormapSettings, params->ColormapSettings))
-                UpdateLinkedColorAdjustments(id_label);
+                UpdateLinkedColormapSettings(id_label);
 
             cachedParams.PreviousParams = *params;
-
             mCacheImages.ClearOldEntries();
 
             return isNewEntry;
@@ -159,30 +182,30 @@ namespace ImmVision
         {
             auto currentCacheKey = GetID(id_label);
             auto & currentCache = mCacheParams.Get(currentCacheKey);
-            std::string zoomKey = currentCache.Params->ZoomKey;
+            std::string zoomKey = currentCache.ParamsPtr->ZoomKey;
             if (zoomKey.empty())
                 return;
-            ZoomPanTransform::MatrixType newZoom = currentCache.Params->ZoomPanMatrix;
+            ZoomPanTransform::MatrixType newZoom = currentCache.ParamsPtr->ZoomPanMatrix;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ZoomKey == zoomKey))
-                    otherCache.Params->ZoomPanMatrix = newZoom;
+                if ((otherCacheKey != currentCacheKey) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
+                    otherCache.ParamsPtr->ZoomPanMatrix = newZoom;
             }
         }
-        void ImageTextureCache::UpdateLinkedColorAdjustments(const std::string& id_label)
+        void ImageTextureCache::UpdateLinkedColormapSettings(const std::string& id_label)
         {
             auto currentCacheKey = GetID(id_label);
             auto & currentCache = mCacheParams.Get(currentCacheKey);
-            std::string colormapKey = currentCache.Params->ColormapKey;
+            std::string colormapKey = currentCache.ParamsPtr->ColormapKey;
             if (colormapKey.empty())
                 return;
-            ColormapSettingsData newColorAdjustments = currentCache.Params->ColormapSettings;
+            ColormapSettingsData newColorAdjustments = currentCache.ParamsPtr->ColormapSettings;
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.Params->ColormapKey == colormapKey))
-                    otherCache.Params->ColormapSettings = newColorAdjustments;
+                if ((otherCacheKey != currentCacheKey) && (otherCache.ParamsPtr->ColormapKey == colormapKey))
+                    otherCache.ParamsPtr->ColormapSettings = newColorAdjustments;
             }
         }
 

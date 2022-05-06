@@ -166,20 +166,7 @@ namespace ImmVision
             //
             // Adjustements needed before conversion to rgba
             //
-            auto fnApplyColormap = [&finalImage, params]()
-            {
-                assert(finalImage.channels() == 1);
-                if (!params.ColormapSettings.internal_ColormapHovered.empty())
-                    finalImage = Colormap::ApplyColormap(
-                        finalImage, params.ColormapSettings.internal_ColormapHovered,
-                        params.ColormapSettings.ColormapScaleMin, params.ColormapSettings.ColormapScaleMax);
-                else if(!params.ColormapSettings.Colormap.empty())
-                    finalImage = Colormap::ApplyColormap(
-                        finalImage, params.ColormapSettings.Colormap,
-                        params.ColormapSettings.ColormapScaleMin, params.ColormapSettings.ColormapScaleMax);
-            };
-
-            auto fnAdjustColor = [&finalImage, params]()
+            auto fnSelectChannel = [&finalImage, params]()
             {
                 // Selected channels
                 if (finalImage.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels()))
@@ -189,11 +176,24 @@ namespace ImmVision
                     finalImage = channels[(size_t)params.SelectedChannel];
                 }
 
-                // Alpha checkerboard
-                if (finalImage.type() == CV_8UC4 && params.ShowAlphaChannelCheckerboard)
+            };
+            auto fnAlphaCheckerboard = [&finalImage, params]()
+            {
+                if ((finalImage.type() == CV_8UC4) && params.ShowAlphaChannelCheckerboard)
                 {
                     cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
                     finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
+                }
+            };
+            auto fnMakeBackground = [&params]() -> cv::Mat
+            {
+                if (params.ShowSchoolPaperBackground)
+                    return MakeSchoolPaperBackground(params.ImageDisplaySize);
+                else
+                {
+                    cv::Mat m(params.ImageDisplaySize, CV_8UC4);
+                    m = cv::Scalar(0, 0, 0, 255);
+                    return m;
                 }
 
             };
@@ -204,10 +204,11 @@ namespace ImmVision
             if (shall_refresh_rgba)
             {
                 if (HasColormapParam(params) && Colormap::CanColormap(image))
-                    fnApplyColormap();
+                    finalImage = Colormap::ApplyColormap(finalImage, params.ColormapSettings); // returns a rgba image
                 else
                 {
-                    fnAdjustColor();
+                    fnSelectChannel();
+                    fnAlphaCheckerboard();
                     finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
                 }
                 in_out_rgba_image_cache = finalImage;
@@ -224,15 +225,15 @@ namespace ImmVision
             // Zoom
             //
             {
-                cv::Mat imageZoomed = MakeSchoolPaperBackground(params.ImageDisplaySize);
-                cv::warpAffine(finalImage, imageZoomed,
+                cv::Mat backgroundWithImage = fnMakeBackground();
+                cv::warpAffine(finalImage, backgroundWithImage,
                                ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
                                params.ImageDisplaySize,
                                cv::INTER_NEAREST,
                                cv::BorderTypes::BORDER_TRANSPARENT,
                                cv::Scalar(127, 127, 127, 127)
                 );
-                finalImage = imageZoomed;
+                finalImage = backgroundWithImage;
             }
 
             //

@@ -8,7 +8,6 @@
 #include "immvision/internal/misc/portable_file_dialogs.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/colormap.h"
-#include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/misc/panic.h"
@@ -164,6 +163,7 @@ namespace ImmVision
                     ImGui::RadioButton("BGR", &v, 0);
                     params->IsColorOrderBGR = (v == 0);
                 }
+                ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
                 if (image.type() == CV_8UC4)
                     ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
                 if (image.channels() > 1)
@@ -524,14 +524,14 @@ namespace ImmVision
 
         ImageParams& cached_params = s_Params.at(&mat);
         {
-            cached_params.ShowOptionsButton = showOptionsButton;
-            cached_params.ImageDisplaySize = imageDisplaySize;
-            cached_params.RefreshImage = refreshImage;
-            cached_params.IsColorOrderBGR = isBgrOrBgra;
+            params.ShowOptionsButton = showOptionsButton;
+            params.ImageDisplaySize = imageDisplaySize;
+            params.RefreshImage = refreshImage;
+            params.IsColorOrderBGR = isBgrOrBgra;
         }
 
-        Image(label_id, mat, &cached_params);
-        return cached_params.MouseInfo.MousePosition;
+        Image(label_id, mat, &params);
+        return params.MouseInfo.MousePosition;
     }
 
 
@@ -547,6 +547,7 @@ namespace ImmVision
             imageParams.ShowImageInfo = false;
             imageParams.ShowGrid = false;
             imageParams.ShowAlphaChannelCheckerboard = false;
+            imageParams.ShowSchoolPaperBackground = false;
             imageParams.ShowZoomButtons = false;
             imageParams.AddWatchedPixelOnDoubleClick = false;
         }

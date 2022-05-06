@@ -1,9 +1,23 @@
 #include "immvision/internal/misc/string_utils.h"
 
+
+
+
 namespace ImmVision
 {
     namespace StringUtils
     {
+        std::string LowerString(const std::string& s)
+        {
+            // <rant>
+            // Welcome to a (C++) world where everyone is welcomed/asked/forced to reinvent the wheel.
+            // This is probably the 1,000,001th implementation in the world. Let' hope it is not broken
+            // </rant>
+            std::string r = s;
+            std::transform(r.begin(), r.end(), r.begin(), ::tolower);
+            return r;
+        }
+
         std::vector<std::string> SplitString(const std::string &s, char delimiter)
         {
             std::vector<std::string> tokens;

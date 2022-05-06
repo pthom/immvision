@@ -15,7 +15,7 @@ namespace ImmVision
         class Cache
         {
         public:
-            bool Contains(const Key& k)
+            bool Contains(const Key& k) const
             {
                 return mDict.find(k) != mDict.end();
             }

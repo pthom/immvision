@@ -48,6 +48,9 @@ namespace ImmVision
 
         MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize)
         {
+            assert(imageSize.area() > 0);
+            assert(viewportSize.area() >0);
+
             MatrixType r = Identity();
 
             double zoom;

@@ -17,7 +17,7 @@ namespace ImmVision
             struct CachedParams
             {
                 // This caches are small and will persist during the application lifetime
-                ImageParams* Params = nullptr;
+                ImageParams* ParamsPtr = nullptr;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
@@ -42,7 +42,9 @@ namespace ImmVision
         private:
             // Methods
             void UpdateLinkedZooms(const std::string& id_label);
-            void UpdateLinkedColorAdjustments(const std::string& id_label);
+            void UpdateLinkedColormapSettings(const std::string& id_label);
+            bool AddEntryIfMissing(KeyType key);
+
 
             internal::Cache<KeyType, CachedParams> mCacheParams;
             double mCachedImagesTimeToLive = 5.;

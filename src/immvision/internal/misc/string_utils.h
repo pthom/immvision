@@ -6,6 +6,7 @@ namespace ImmVision
 {
     namespace StringUtils
     {
+        std::string LowerString(const std::string& s);
         std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator);
         std::vector<std::string> SplitString(const std::string& s, const char separator);
         std::string IndentLine(const std::string& s, int indentSize);

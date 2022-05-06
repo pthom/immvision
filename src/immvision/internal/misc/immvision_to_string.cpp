@@ -93,6 +93,7 @@ namespace ImmVision
         inner = inner + "zoom_with_mouse_wheel: " + ToString(v.ZoomWithMouseWheel) + "\n";
         inner = inner + "is_color_order_bgr: " + ToString(v.IsColorOrderBGR) + "\n";
         inner = inner + "selected_channel: " + ToString(v.SelectedChannel) + "\n";
+        inner = inner + "show_school_paper_background: " + ToString(v.ShowSchoolPaperBackground) + "\n";
         inner = inner + "show_alpha_channel_checkerboard: " + ToString(v.ShowAlphaChannelCheckerboard) + "\n";
         inner = inner + "show_grid: " + ToString(v.ShowGrid) + "\n";
         inner = inner + "draw_values_on_zoomed_pixels: " + ToString(v.DrawValuesOnZoomedPixels) + "\n";
@@ -119,6 +120,7 @@ namespace ImmVision
         inner = inner + "ZoomWithMouseWheel: " + ToString(v.ZoomWithMouseWheel) + "\n";
         inner = inner + "IsColorOrderBGR: " + ToString(v.IsColorOrderBGR) + "\n";
         inner = inner + "SelectedChannel: " + ToString(v.SelectedChannel) + "\n";
+        inner = inner + "ShowSchoolPaperBackground: " + ToString(v.ShowSchoolPaperBackground) + "\n";
         inner = inner + "ShowAlphaChannelCheckerboard: " + ToString(v.ShowAlphaChannelCheckerboard) + "\n";
         inner = inner + "ShowGrid: " + ToString(v.ShowGrid) + "\n";
         inner = inner + "DrawValuesOnZoomedPixels: " + ToString(v.DrawValuesOnZoomedPixels) + "\n";

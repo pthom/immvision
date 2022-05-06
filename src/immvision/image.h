@@ -116,6 +116,8 @@ namespace ImmVision
         //
         // if SelectedChannel >= 0 then only this channel is displayed
         int  SelectedChannel = -1;
+        // Show a "school paper" background grid
+        bool ShowSchoolPaperBackground = true;
         // show a checkerboard behind transparent portions of 4 channels RGBA images
         bool ShowAlphaChannelCheckerboard = true;
         // Grid displayed when the zoom is high
