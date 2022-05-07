@@ -264,12 +264,6 @@ namespace ImmVision
 
             double min = imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
             double max = imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-            if (isRoi)
-                printf("ApplyColormapStats, isRoi=%s min=%lf max=%lf roi=(%i,%i) size(%i,%i) \n",
-                       isRoi?"true":"false", min, max, roi->x, roi->y, roi->width, roi->height);
-            else
-                printf("ApplyColormapStats, isRoi=%s min=%lf max=%lf \n",
-                       isRoi?"true":"false", min, max);
             inout_settings->ColormapScaleMin = min;
             inout_settings->ColormapScaleMax = max;
         }
@@ -390,7 +384,29 @@ namespace ImmVision
         }
 
 
-        void GuiImageStats(const cv::Mat& m, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings)
+        void DrawColorTabsSubtitles(const std::string &title, float availableGuiWidth)
+        {
+            ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+            ImVec4 backColor = ImGui::GetStyleColorVec4(ImGuiCol_TabActive);
+            backColor.w = 0.3;
+
+            // background rect
+            {
+                ImVec2 tl = ImGui::GetCursorScreenPos();
+                ImVec2 br = tl;
+                br.x += availableGuiWidth - 10.f;
+                br.y += ImGui::GetFontSize() + 2.f;
+                ImU32 col = ImGui::GetColorU32(backColor);
+                float rounding = 4.f;
+                ImGui::GetWindowDrawList()->AddRectFilled(tl, br, col, rounding);
+            }
+            std::string fullTitle = std::string("          Colormap Scale ") + title;
+
+            ImGui::TextColored(textColor, "%s", fullTitle.c_str());
+        }
+
+
+        void GuiImageStats(const cv::Mat& m, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings, float availableGuiWidth)
         {
             ImageStats imageStats;
             bool isRoi = roi.has_value();
@@ -398,31 +414,34 @@ namespace ImmVision
             {
                 imageStats = FillImageStats(m(roi.value()));
                 ImGui::PushID("ROI");
-                ImGui::Text("ROI Stats");
+                DrawColorTabsSubtitles("From ROI Stats", availableGuiWidth);
                 ImGui::Text("ROI: Pos(%i, %i), Size(%i, %i)", roi->x, roi->y, roi->width, roi->height);
             }
             else
             {
                 imageStats = FillImageStats(m);
                 ImGui::PushID("Full");
-                ImGui::Text("Full Image Stats");
+                DrawColorTabsSubtitles("From Image Stats", availableGuiWidth);
             }
 
             bool *activeFlag;
             bool *otherActiveFlag;
+            std::string activeLabel;
             if (isRoi)
             {
+                activeLabel = "Active##Roi";
                 activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
                 otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
             }
             else
             {
+                activeLabel = "Active##Full";
                 activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
                 otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
             }
 
-            ImGui::Checkbox("Active", activeFlag);
-            if (*otherActiveFlag)
+            ImGui::Checkbox(activeLabel.c_str(), activeFlag);
+            if (*activeFlag)
                 *otherActiveFlag = false;
 
             if (!(*activeFlag))
@@ -437,42 +456,22 @@ namespace ImmVision
                                inout_settings->ColormapScaleMin, inout_settings->ColormapScaleMax);
 
             ImGui::NewLine();
-            ImGui::Text("Change by number of sigmas");
-            bool sliderChanged = ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 7., 150.f);
+            ImGui::Text("Number of sigmas");
+            bool sliderChanged = ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 8., 150.f);
 
-            double wouldBeMin = imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-            double wouldBeMax = imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-
-            ImGui::Checkbox("Apply interactively", &inout_settings->ColormapScaleFromStats.ApplyInteractively);
-
-            if (inout_settings->ColormapScaleFromStats.ApplyInteractively)
+            if (isRoi)
             {
-                if (isRoi)
-                {
-                    ImVec4 col(1.f, 0.6f, 0.6f, 1.f);
-                    ImGui::TextColored(col, "Warning, if \"Apply immediately\" is checked");
-                    ImGui::TextColored(col, "in the \"ROI stats\" tab,");
-                    ImGui::TextColored(col, "the scale will vary immediately");
-                    ImGui::TextColored(col, "whenever you zoom in/out or pan");
-                }
-                if (sliderChanged)
-                {
-                    printf("ApplyScale Interactive, isRoi=%s min=%lf max=%lf\n", isRoi?"true":"false", wouldBeMin, wouldBeMax);
-                    inout_settings->ColormapScaleMin = wouldBeMin;
-                    inout_settings->ColormapScaleMax = wouldBeMax;
-                }
+                ImVec4 col(1.f, 0.6f, 0.6f, 1.f);
+                ImGui::TextColored(col, "Warning, if using \"number of sigmas\" on a ROI");
+                ImGui::TextColored(col, "the colormap scale will vary immediately");
+                ImGui::TextColored(col, "whenever you zoom in/out or pan");
             }
-            else
+            if (sliderChanged)
             {
-                ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 0.5f), "Candidate ColormapScale: Min=%.4lf Max=%.4lf",
-                                   wouldBeMin, wouldBeMax);
-
-                if (ImGui::Button("Apply##Stats"))
-                {
-                    printf("ApplyScale Manual, isRoi=%s min=%lf max=%lf\n", isRoi?"true":"false", wouldBeMin, wouldBeMax);
-                    inout_settings->ColormapScaleMin = wouldBeMin;
-                    inout_settings->ColormapScaleMax = wouldBeMax;
-                }
+                double wouldBeMin = imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
+                double wouldBeMax = imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
+                inout_settings->ColormapScaleMin = wouldBeMin;
+                inout_settings->ColormapScaleMax = wouldBeMax;
             }
             ImGui::PopID();
         }
@@ -485,22 +484,23 @@ namespace ImmVision
             ColormapSettingsData* inout_settings
             )
         {
-            ImGui::Text("Colormap Scale");
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
             if (ImGui::BeginTabBar("##TabBar", tab_bar_flags))
             {
                 if (ImGui::BeginTabItem("From Image Stats"))
                 {
-                    GuiImageStats(image, std::nullopt, inout_settings);
+                    GuiImageStats(image, std::nullopt, inout_settings, availableGuiWidth);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("From ROI Stats"))
                 {
-                    GuiImageStats(image, roi, inout_settings);
+                    GuiImageStats(image, roi, inout_settings, availableGuiWidth);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Min - Max"))
                 {
+                    DrawColorTabsSubtitles("Min - Max manual values", availableGuiWidth);
+
                     ImGuiImm::SliderAnyFloatLogarithmic("Scale min", &inout_settings->ColormapScaleMin, -255., 255.);
                     ImGuiImm::SliderAnyFloatLogarithmic("Scale max", &inout_settings->ColormapScaleMax, -255., 255.);
                     ImGui::EndTabItem();

@@ -14,8 +14,6 @@ class ColormapScaleFromStatsData:
     # If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
     # Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
     active_on_roi: bool = False
-    # Shall the image update interactively when moving the sigma sliders
-    apply_interactively: bool = False
     # If active, how many sigmas around the mean should the Colormap be applied
     nb_sigmas: float = 1.5
 

@@ -27,8 +27,6 @@ class ColormapScaleFromStatsData(_cpp_immvision.ColormapScaleFromStatsData):
             Are we using the stats on the ROI?
             If ActiveOnFullImage and ActiveOnROI are both False, then ColormapSettingsData.ColormapScaleMin/Max will be used
             Note: ActiveOnROI and ActiveOnFullImage cannot be True at the same time!
-    * apply_interactively: bool = False
-            Shall the image update interactively when moving the sigma sliders
     * nb_sigmas: float = 1.5
             If active, how many sigmas around the mean should the Colormap be applied
 
@@ -43,8 +41,6 @@ class ColormapScaleFromStatsData(_cpp_immvision.ColormapScaleFromStatsData):
         # If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
         # Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
         active_on_roi: bool = False,
-        # Shall the image update interactively when moving the sigma sliders
-        apply_interactively: bool = False,
         # If active, how many sigmas around the mean should the Colormap be applied
         nb_sigmas: float = 1.5,
 
@@ -52,7 +48,6 @@ class ColormapScaleFromStatsData(_cpp_immvision.ColormapScaleFromStatsData):
         _cpp_immvision.ColormapScaleFromStatsData.__init__(self)
         self.active_on_full_image = active_on_full_image
         self.active_on_roi = active_on_roi
-        self.apply_interactively = apply_interactively
         self.nb_sigmas = nb_sigmas
 
 

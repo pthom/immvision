@@ -22,7 +22,6 @@ void pydef_image(pybind11::module& m)
         .def(py::init<>()) 
         .def_readwrite("active_on_full_image", &ColormapScaleFromStatsData::ActiveOnFullImage, "Are we using the stats on the full image?\nIf ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used")
         .def_readwrite("active_on_roi", &ColormapScaleFromStatsData::ActiveOnROI, "Are we using the stats on the ROI?\nIf ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used\nNote: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!")
-        .def_readwrite("apply_interactively", &ColormapScaleFromStatsData::ApplyInteractively, "Shall the image update interactively when moving the sigma sliders")
         .def_readwrite("nb_sigmas", &ColormapScaleFromStatsData::NbSigmas, "If active, how many sigmas around the mean should the Colormap be applied")
         .def("__repr__", [](const ColormapScaleFromStatsData& v) { return ToString(v); }); 
 

@@ -32,8 +32,6 @@ namespace ImmVision
         // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
         // Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
         bool   ActiveOnROI = false;
-        // Shall the image update interactively when moving the sigma sliders
-        bool   ApplyInteractively = false;
         // If active, how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
 
@@ -4789,9 +4787,8 @@ namespace ImmVision
             else
                 imageStats = FillImageStats(m);
 
-            static float nb_sigmas = 1.f;
-            double min = imageStats.mean - (double) nb_sigmas * imageStats.stdev;
-            double max = imageStats.mean + (double) nb_sigmas * imageStats.stdev;
+            double min = imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
+            double max = imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
             if (isRoi)
                 printf("ApplyColormapStats, isRoi=%s min=%lf max=%lf roi=(%i,%i) size(%i,%i) \n",
                        isRoi?"true":"false", min, max, roi->x, roi->y, roi->width, roi->height);
@@ -4965,42 +4962,24 @@ namespace ImmVision
                                inout_settings->ColormapScaleMin, inout_settings->ColormapScaleMax);
 
             ImGui::NewLine();
-            ImGui::Text("Change by number of sigmas");
+            ImGui::Text("Number of sigmas");
             bool sliderChanged = ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 7., 150.f);
 
-            double wouldBeMin = imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-            double wouldBeMax = imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-
-            ImGui::Checkbox("Apply interactively", &inout_settings->ColormapScaleFromStats.ApplyInteractively);
-
-            if (inout_settings->ColormapScaleFromStats.ApplyInteractively)
+            if (isRoi)
             {
-                if (isRoi)
-                {
-                    ImVec4 col(1.f, 0.6f, 0.6f, 1.f);
-                    ImGui::TextColored(col, "Warning, if \"Apply immediately\" is checked");
-                    ImGui::TextColored(col, "in the \"ROI stats\" tab,");
-                    ImGui::TextColored(col, "the scale will vary immediately");
-                    ImGui::TextColored(col, "whenever you zoom in/out or pan");
-                }
-                if (sliderChanged)
-                {
-                    printf("ApplyScale Interactive, isRoi=%s min=%lf max=%lf\n", isRoi?"true":"false", wouldBeMin, wouldBeMax);
-                    inout_settings->ColormapScaleMin = wouldBeMin;
-                    inout_settings->ColormapScaleMax = wouldBeMax;
-                }
+                ImVec4 col(1.f, 0.6f, 0.6f, 1.f);
+                ImGui::TextColored(col, "Warning, if \"Apply immediately\" is checked");
+                ImGui::TextColored(col, "in the \"ROI stats\" tab,");
+                ImGui::TextColored(col, "the scale will vary immediately");
+                ImGui::TextColored(col, "whenever you zoom in/out or pan");
             }
-            else
+            if (sliderChanged)
             {
-                ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 0.5f), "Candidate ColormapScale: Min=%.4lf Max=%.4lf",
-                                   wouldBeMin, wouldBeMax);
-
-                if (ImGui::Button("Apply##Stats"))
-                {
-                    printf("ApplyScale Manual, isRoi=%s min=%lf max=%lf\n", isRoi?"true":"false", wouldBeMin, wouldBeMax);
-                    inout_settings->ColormapScaleMin = wouldBeMin;
-                    inout_settings->ColormapScaleMax = wouldBeMax;
-                }
+                double wouldBeMin = imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
+                double wouldBeMax = imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
+                printf("ApplyScale Interactive, isRoi=%s min=%lf max=%lf\n", isRoi?"true":"false", wouldBeMin, wouldBeMax);
+                inout_settings->ColormapScaleMin = wouldBeMin;
+                inout_settings->ColormapScaleMax = wouldBeMax;
             }
             ImGui::PopID();
         }
@@ -10995,14 +10974,12 @@ namespace ImmVision
 
         inner = inner + "active_on_full_image: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "active_on_roi: " + ToString(v.ActiveOnROI) + "\n";
-        inner = inner + "apply_interactively: " + ToString(v.ApplyInteractively) + "\n";
         inner = inner + "nb_sigmas: " + ToString(v.NbSigmas) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "ActiveOnFullImage: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "ActiveOnROI: " + ToString(v.ActiveOnROI) + "\n";
-        inner = inner + "ApplyInteractively: " + ToString(v.ApplyInteractively) + "\n";
         inner = inner + "NbSigmas: " + ToString(v.NbSigmas) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS

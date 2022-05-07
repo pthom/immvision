@@ -28,8 +28,6 @@ namespace ImmVision
         // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
         // Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
         bool   ActiveOnROI = false;
-        // Shall the image update interactively when moving the sigma sliders
-        bool   ApplyInteractively = false;
         // If active, how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
 
