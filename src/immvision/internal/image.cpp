@@ -486,7 +486,8 @@ namespace ImmVision
             cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
             if (isNewImage || params->RefreshImage)
                 Colormap::InitStatsOnNewImage(image, roi, &params->ColormapSettings);
-            Colormap::UpdateRoiStatsInteractively(image, roi, &params->ColormapSettings);
+            if (! ZoomPanTransform::IsEqual(cacheParams.PreviousParams.ZoomPanMatrix, params->ZoomPanMatrix))
+                Colormap::UpdateRoiStatsInteractively(image, roi, &params->ColormapSettings);
         }
         catch(std::exception& e)
         {
