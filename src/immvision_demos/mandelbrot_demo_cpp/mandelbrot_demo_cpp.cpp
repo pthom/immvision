@@ -23,7 +23,8 @@ using PreciseFloat = long double;
 #endif
 
 using PreciseCoords = std::array<PreciseFloat, 2>;
-using ColorType = float;
+//using ColorType = float;
+using ColorType = int;
 
 
 PreciseFloat precise_lerp(PreciseFloat a, PreciseFloat b, PreciseFloat x)
@@ -83,7 +84,8 @@ cv::Mat_<ColorType> mandelbrot(
                 {
                     escaped = true;
                     // color using pretty linear gradient
-                    color = ColorType(1.0) - ColorType(0.01) * (ColorType(iteration) - log(log(ColorType(norm2))));
+                    //color = ColorType(1.0) - ColorType(0.01) * (ColorType(iteration) - log(log(ColorType(norm2))));
+                    color = iteration;
                     break;
                 }
             }
@@ -276,7 +278,7 @@ public:
         ImGui::SameLine();
         ImGui::SetNextItemWidth(250.f);
         // Edit max_iterations
-        needs_refresh |= ImGui::SliderInt("iterations", &params.max_iterations, 1, 1000);
+        needs_refresh |= ImGui::SliderInt("iterations", &params.max_iterations, 1, 5000);
 
         // Edit image size
         ImGui::SetNextItemWidth(200.f);
