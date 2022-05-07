@@ -388,7 +388,7 @@ namespace ImmVision
         {
             ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
             ImVec4 backColor = ImGui::GetStyleColorVec4(ImGuiCol_TabActive);
-            backColor.w = 0.3;
+            backColor.w = 0.3f;
 
             // background rect
             {
