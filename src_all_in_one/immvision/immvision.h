@@ -28,9 +28,12 @@ namespace ImmVision
         // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
         // Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
         bool   ActiveOnROI = false;
-        // If active, how many sigmas around the mean should the Colormap be applied
+        // If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
-
+        // If [Min | Max]AsLowerBound is true, then ColormapScale[Min | Max] will be calculated from
+        // the matrix min max values instead of a sigma based value
+        bool MinAsLowerBound = false;
+        bool MaxAsLowerBound = false;
     };
 
 

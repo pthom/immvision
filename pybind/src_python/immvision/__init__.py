@@ -28,7 +28,11 @@ class ColormapScaleFromStatsData(_cpp_immvision.ColormapScaleFromStatsData):
             If ActiveOnFullImage and ActiveOnROI are both False, then ColormapSettingsData.ColormapScaleMin/Max will be used
             Note: ActiveOnROI and ActiveOnFullImage cannot be True at the same time!
     * nb_sigmas: float = 1.5
-            If active, how many sigmas around the mean should the Colormap be applied
+            If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
+    * use_stats_min: bool = False
+            If UseStatsMin is True, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
+    * use_stats_max: bool = False
+            If UseStatsMin is True, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value
 
     """
     
@@ -41,14 +45,20 @@ class ColormapScaleFromStatsData(_cpp_immvision.ColormapScaleFromStatsData):
         # If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
         # Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
         active_on_roi: bool = False,
-        # If active, how many sigmas around the mean should the Colormap be applied
+        # If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         nb_sigmas: float = 1.5,
+        # If UseStatsMin is true, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
+        use_stats_min: bool = False,
+        # If UseStatsMin is true, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value
+        use_stats_max: bool = False,
 
     ):
         _cpp_immvision.ColormapScaleFromStatsData.__init__(self)
         self.active_on_full_image = active_on_full_image
         self.active_on_roi = active_on_roi
         self.nb_sigmas = nb_sigmas
+        self.use_stats_min = use_stats_min
+        self.use_stats_max = use_stats_max
 
 
 

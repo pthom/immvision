@@ -23,6 +23,7 @@ namespace ImmVision
         //
         bool IsNone(const ColormapSettingsData& a);
         bool IsEqual(const ColormapSettingsData& v1, const ColormapSettingsData& v2);
+        bool IsEqual(const ColormapScaleFromStatsData& v1, const ColormapScaleFromStatsData& v2);
         bool CanColormap(const cv::Mat &image);
         ColormapSettingsData ComputeInitialColormapSettings(const cv::Mat& m);
 

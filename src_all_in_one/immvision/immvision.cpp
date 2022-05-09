@@ -32,9 +32,12 @@ namespace ImmVision
         // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
         // Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
         bool   ActiveOnROI = false;
-        // If active, how many sigmas around the mean should the Colormap be applied
+        // If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
-
+        // If [Min | Max]AsLowerBound is true, then ColormapScale[Min | Max] will be calculated from
+        // the matrix min max values instead of a sigma based value
+        bool MinAsLowerBound = false;
+        bool MaxAsLowerBound = false;
     };
 
 
@@ -424,6 +427,7 @@ namespace ImmVision
         //
         bool IsNone(const ColormapSettingsData& a);
         bool IsEqual(const ColormapSettingsData& v1, const ColormapSettingsData& v2);
+        bool IsEqual(const ColormapScaleFromStatsData& v1, const ColormapScaleFromStatsData& v2);
         bool CanColormap(const cv::Mat &image);
         ColormapSettingsData ComputeInitialColormapSettings(const cv::Mat& m);
 
@@ -4562,6 +4566,24 @@ namespace ImmVision
                 return false;
             if (v1.internal_ColormapHovered != v2.internal_ColormapHovered)
                 return false;
+            if (!IsEqual(v1.ColormapScaleFromStats, v2.ColormapScaleFromStats))
+                return false;
+            return true;
+        }
+
+
+        bool IsEqual(const ColormapScaleFromStatsData& v1, const ColormapScaleFromStatsData& v2)
+        {
+            if (v1.ActiveOnFullImage != v2.ActiveOnFullImage)
+                return false;
+            if (v1.ActiveOnROI != v2.ActiveOnROI)
+                return false;
+            if (fabs(v1.NbSigmas - v2.NbSigmas) > 1E-6)
+                return false;
+            if (v1.MinAsLowerBound != v2.MinAsLowerBound)
+                return false;
+            if (v1.MaxAsLowerBound != v2.MaxAsLowerBound)
+                return false;
             return true;
         }
 
@@ -4777,7 +4799,7 @@ namespace ImmVision
 
 
 
-        void ApplyColormapStats(const cv::Mat& m, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings)
+        void ApplyColormapStatsToMinMax(const cv::Mat& m, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings)
         {
             bool isRoi = roi.has_value();
 
@@ -4787,10 +4809,17 @@ namespace ImmVision
             else
                 imageStats = FillImageStats(m);
 
-            double min = imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-            double max = imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-            inout_settings->ColormapScaleMin = min;
-            inout_settings->ColormapScaleMax = max;
+            if (inout_settings->ColormapScaleFromStats.MinAsLowerBound)
+                inout_settings->ColormapScaleMin = imageStats.min;
+            else
+                inout_settings->ColormapScaleMin =
+                    imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
+
+            if (inout_settings->ColormapScaleFromStats.MaxAsLowerBound)
+                inout_settings->ColormapScaleMax = imageStats.max;
+            else
+                inout_settings->ColormapScaleMax =
+                    imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
         }
 
 
@@ -4816,7 +4845,7 @@ namespace ImmVision
             AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
 
             if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
-                ApplyColormapStats(image, roi, inout_settings);
+                ApplyColormapStatsToMinMax(image, roi, inout_settings);
         }
 
 
@@ -4832,9 +4861,9 @@ namespace ImmVision
             AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
 
             if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
-                ApplyColormapStats(image, roi, inout_settings);
+                ApplyColormapStatsToMinMax(image, roi, inout_settings);
             else if (inout_settings->ColormapScaleFromStats.ActiveOnFullImage)
-                ApplyColormapStats(image, std::nullopt, inout_settings);
+                ApplyColormapStatsToMinMax(image, std::nullopt, inout_settings);
         }
 
 
@@ -4913,7 +4942,7 @@ namespace ImmVision
         {
             ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
             ImVec4 backColor = ImGui::GetStyleColorVec4(ImGuiCol_TabActive);
-            backColor.w = 0.3;
+            backColor.w = 0.3f;
 
             // background rect
             {
@@ -4982,7 +5011,11 @@ namespace ImmVision
 
             ImGui::NewLine();
             ImGui::Text("Number of sigmas");
-            bool sliderChanged = ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 8., 150.f);
+            bool changed = false;
+            changed |= ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 8., 150.f);
+            changed |= ImGui::Checkbox("Min as lower bound", &inout_settings->ColormapScaleFromStats.MinAsLowerBound);
+            ImGui::SameLine();
+            changed |= ImGui::Checkbox("Max as lower bound", &inout_settings->ColormapScaleFromStats.MaxAsLowerBound);
 
             if (isRoi)
             {
@@ -4991,13 +5024,8 @@ namespace ImmVision
                 ImGui::TextColored(col, "the colormap scale will vary immediately");
                 ImGui::TextColored(col, "whenever you zoom in/out or pan");
             }
-            if (sliderChanged)
-            {
-                double wouldBeMin = imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-                double wouldBeMax = imageStats.mean + (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
-                inout_settings->ColormapScaleMin = wouldBeMin;
-                inout_settings->ColormapScaleMax = wouldBeMax;
-            }
+            if (changed)
+                ApplyColormapStatsToMinMax(m, roi, inout_settings);
             ImGui::PopID();
         }
 
@@ -10994,12 +11022,16 @@ namespace ImmVision
         inner = inner + "active_on_full_image: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "active_on_roi: " + ToString(v.ActiveOnROI) + "\n";
         inner = inner + "nb_sigmas: " + ToString(v.NbSigmas) + "\n";
+        inner = inner + "min_as_lower_bound: " + ToString(v.MinAsLowerBound) + "\n";
+        inner = inner + "max_as_lower_bound: " + ToString(v.MaxAsLowerBound) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "ActiveOnFullImage: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "ActiveOnROI: " + ToString(v.ActiveOnROI) + "\n";
         inner = inner + "NbSigmas: " + ToString(v.NbSigmas) + "\n";
+        inner = inner + "MinAsLowerBound: " + ToString(v.MinAsLowerBound) + "\n";
+        inner = inner + "MaxAsLowerBound: " + ToString(v.MaxAsLowerBound) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 

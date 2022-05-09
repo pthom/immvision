@@ -22,12 +22,16 @@ namespace ImmVision
         inner = inner + "active_on_full_image: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "active_on_roi: " + ToString(v.ActiveOnROI) + "\n";
         inner = inner + "nb_sigmas: " + ToString(v.NbSigmas) + "\n";
+        inner = inner + "use_stats_min: " + ToString(v.UseStatsMin) + "\n";
+        inner = inner + "use_stats_max: " + ToString(v.UseStatsMax) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "ActiveOnFullImage: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "ActiveOnROI: " + ToString(v.ActiveOnROI) + "\n";
         inner = inner + "NbSigmas: " + ToString(v.NbSigmas) + "\n";
+        inner = inner + "UseStatsMin: " + ToString(v.UseStatsMin) + "\n";
+        inner = inner + "UseStatsMax: " + ToString(v.UseStatsMax) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 

@@ -22,7 +22,9 @@ void pydef_image(pybind11::module& m)
         .def(py::init<>()) 
         .def_readwrite("active_on_full_image", &ColormapScaleFromStatsData::ActiveOnFullImage, "Are we using the stats on the full image?\nIf ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used")
         .def_readwrite("active_on_roi", &ColormapScaleFromStatsData::ActiveOnROI, "Are we using the stats on the ROI?\nIf ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used\nNote: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!")
-        .def_readwrite("nb_sigmas", &ColormapScaleFromStatsData::NbSigmas, "If active, how many sigmas around the mean should the Colormap be applied")
+        .def_readwrite("nb_sigmas", &ColormapScaleFromStatsData::NbSigmas, "If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied")
+        .def_readwrite("use_stats_min", &ColormapScaleFromStatsData::UseStatsMin, "If UseStatsMin is true, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value")
+        .def_readwrite("use_stats_max", &ColormapScaleFromStatsData::UseStatsMax, "If UseStatsMin is true, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value")
         .def("__repr__", [](const ColormapScaleFromStatsData& v) { return ToString(v); }); 
 
     auto pyClassColormapSettingsData = py::class_<ColormapSettingsData>(m, "ColormapSettingsData") 
