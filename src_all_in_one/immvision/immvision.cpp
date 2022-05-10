@@ -34,10 +34,10 @@ namespace ImmVision
         bool   ActiveOnROI = false;
         // If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
-        // If [Min | Max]AsLowerBound is true, then ColormapScale[Min | Max] will be calculated from
-        // the matrix min max values instead of a sigma based value
-        bool MinAsLowerBound = false;
-        bool MaxAsLowerBound = false;
+        // If UseStatsMin is true, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
+        bool UseStatsMin = false;
+        // If UseStatsMin is true, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value
+        bool UseStatsMax = false;
     };
 
 
@@ -4580,9 +4580,9 @@ namespace ImmVision
                 return false;
             if (fabs(v1.NbSigmas - v2.NbSigmas) > 1E-6)
                 return false;
-            if (v1.MinAsLowerBound != v2.MinAsLowerBound)
+            if (v1.UseStatsMin != v2.UseStatsMin)
                 return false;
-            if (v1.MaxAsLowerBound != v2.MaxAsLowerBound)
+            if (v1.UseStatsMax != v2.UseStatsMax)
                 return false;
             return true;
         }
@@ -4809,13 +4809,13 @@ namespace ImmVision
             else
                 imageStats = FillImageStats(m);
 
-            if (inout_settings->ColormapScaleFromStats.MinAsLowerBound)
+            if (inout_settings->ColormapScaleFromStats.UseStatsMin)
                 inout_settings->ColormapScaleMin = imageStats.min;
             else
                 inout_settings->ColormapScaleMin =
                     imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
 
-            if (inout_settings->ColormapScaleFromStats.MaxAsLowerBound)
+            if (inout_settings->ColormapScaleFromStats.UseStatsMax)
                 inout_settings->ColormapScaleMax = imageStats.max;
             else
                 inout_settings->ColormapScaleMax =
@@ -5004,18 +5004,23 @@ namespace ImmVision
                 return;
             }
 
+            ImGui::Text("Image Stats");
             ImGui::Text("mean=%4lf stdev=%4lf", imageStats.mean, imageStats.stdev);
             ImGui::Text("min=%.4lf max=%.4lf", imageStats.min, imageStats.max);
             ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 1.f), "Current ColormapScale: Min=%.4lf Max=%.4lf",
                                inout_settings->ColormapScaleMin, inout_settings->ColormapScaleMax);
 
+            bool changed = false;
+
             ImGui::NewLine();
             ImGui::Text("Number of sigmas");
-            bool changed = false;
             changed |= ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 8., 150.f);
-            changed |= ImGui::Checkbox("Min as lower bound", &inout_settings->ColormapScaleFromStats.MinAsLowerBound);
+
+            ImGui::NewLine();
+            ImGui::TextWrapped("If UseStats[Min|Max] is true, then ColormapScale[Min|Max] will be calculated from the matrix [min|max] value instead of a sigma based value");
+            changed |= ImGui::Checkbox("Use stats min", &inout_settings->ColormapScaleFromStats.UseStatsMin);
             ImGui::SameLine();
-            changed |= ImGui::Checkbox("Max as lower bound", &inout_settings->ColormapScaleFromStats.MaxAsLowerBound);
+            changed |= ImGui::Checkbox("Use stats max", &inout_settings->ColormapScaleFromStats.UseStatsMax);
 
             if (isRoi)
             {
@@ -11022,16 +11027,16 @@ namespace ImmVision
         inner = inner + "active_on_full_image: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "active_on_roi: " + ToString(v.ActiveOnROI) + "\n";
         inner = inner + "nb_sigmas: " + ToString(v.NbSigmas) + "\n";
-        inner = inner + "min_as_lower_bound: " + ToString(v.MinAsLowerBound) + "\n";
-        inner = inner + "max_as_lower_bound: " + ToString(v.MaxAsLowerBound) + "\n";
+        inner = inner + "use_stats_min: " + ToString(v.UseStatsMin) + "\n";
+        inner = inner + "use_stats_max: " + ToString(v.UseStatsMax) + "\n";
 
 #else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "ActiveOnFullImage: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "ActiveOnROI: " + ToString(v.ActiveOnROI) + "\n";
         inner = inner + "NbSigmas: " + ToString(v.NbSigmas) + "\n";
-        inner = inner + "MinAsLowerBound: " + ToString(v.MinAsLowerBound) + "\n";
-        inner = inner + "MaxAsLowerBound: " + ToString(v.MaxAsLowerBound) + "\n";
+        inner = inner + "UseStatsMin: " + ToString(v.UseStatsMin) + "\n";
+        inner = inner + "UseStatsMax: " + ToString(v.UseStatsMax) + "\n";
 
 #endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 

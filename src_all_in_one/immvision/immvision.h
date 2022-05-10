@@ -30,10 +30,10 @@ namespace ImmVision
         bool   ActiveOnROI = false;
         // If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
-        // If [Min | Max]AsLowerBound is true, then ColormapScale[Min | Max] will be calculated from
-        // the matrix min max values instead of a sigma based value
-        bool MinAsLowerBound = false;
-        bool MaxAsLowerBound = false;
+        // If UseStatsMin is true, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
+        bool UseStatsMin = false;
+        // If UseStatsMin is true, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value
+        bool UseStatsMax = false;
     };
 
 
