@@ -3,6 +3,7 @@ cmake-build*/
 .idea/
 *.7z
 venv/
+venv*./
 venv_docker/
 install/
 .vscode/
