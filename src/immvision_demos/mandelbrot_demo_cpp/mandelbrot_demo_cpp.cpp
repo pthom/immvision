@@ -23,8 +23,8 @@ using PreciseFloat = long double;
 #endif
 
 using PreciseCoords = std::array<PreciseFloat, 2>;
-//using ColorType = float;
-using ColorType = int;
+using ColorType = float;
+//using ColorType = int;
 
 
 PreciseFloat precise_lerp(PreciseFloat a, PreciseFloat b, PreciseFloat x)
@@ -39,7 +39,8 @@ cv::Mat_<ColorType> mandelbrot(
     PreciseFloat x_center,
     PreciseFloat y_center,
     PreciseFloat zoom,
-    int max_iterations
+    int max_iterations,
+    bool use_escape_norm
     )
 {
     cv::Mat_<ColorType> result(cv::Size(width, height));
@@ -85,7 +86,11 @@ cv::Mat_<ColorType> mandelbrot(
                     escaped = true;
                     // color using pretty linear gradient
                     //color = ColorType(1.0) - ColorType(0.01) * (ColorType(iteration) - log(log(ColorType(norm2))));
-                    color = iteration;
+                    if (use_escape_norm)
+                        //color = ColorType(1.0) - ColorType(0.01) * (ColorType(iteration) - log(log(ColorType(norm2))));
+                        color = (ColorType(iteration) - log(log(ColorType(norm2))));
+                    else
+                        color = (ColorType)iteration;
                     break;
                 }
             }
@@ -118,19 +123,20 @@ cv::Mat_<ColorType> mandelbrot(
 struct MandelbrotParams
 {
     MandelbrotParams & self;
-    int width = 1000;
-    int height = 750;
+    int width = 960;
+    int height = 960;
     // x in [-2, 1] and y in [-1, 1]
     PreciseFloat x_center = PreciseFloat(-0.5);
     PreciseFloat y_center = PreciseFloat(0.);
     PreciseFloat zoom = PreciseFloat(1.);
-    int max_iterations = 100;
+    int max_iterations = 512;
+    bool use_escape_norm = false;
 
     MandelbrotParams() : self(*this) {}
 
     cv::Mat mandelbrot_image()
     {
-        return mandelbrot(self.width, self.height, self.x_center, self.y_center, self.zoom, self.max_iterations);
+        return mandelbrot(self.width, self.height, self.x_center, self.y_center, self.zoom, self.max_iterations, use_escape_norm);
     }
 
     void set_center(PreciseFloat x, PreciseFloat y)
@@ -248,10 +254,14 @@ public:
             needs_refresh = true;
         }
 
+        bool changed = false;
+
+        // Values = nb_iterations, or take into account escape norm
+        changed |= ImGui::Checkbox("Use escape norm", &self.mandelbrot_params.use_escape_norm);
 
         // Change location to interesting location
         ImGui::SetNextItemWidth(200.f);
-        bool changed = ImGui::SliderInt(
+        changed |= ImGui::SliderInt(
             "interesting location", &self.idx_poi, 0, (int)mandelbrot_poi_list.size() - 1);
         if (changed)
         {
@@ -292,9 +302,10 @@ public:
         needs_refresh |= ImGuiImm::SliderAnyFloat("y", &params.y_center, PreciseFloat(-1.), PreciseFloat(1.));
 
         // recalculate image if needed
-        if (needs_refresh)
+        //if (needs_refresh)
             self.update_image();
         self.image_params.RefreshImage = needs_refresh;
+        self.image_params.ImageDisplaySize = {0, 600};
 
         ImmVision::Image("mandelbrot", self.image, &self.image_params);
         cv::Point2d mouse_position = self.image_params.MouseInfo.MousePosition;

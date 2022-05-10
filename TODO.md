@@ -1,9 +1,4 @@
 * [ ] Colormaps
-  * possible on int mats
-  * possible on sub roi
-  * option / min max
-  * merge adjust if colormap
-  * test mandel
 
 
 * Show emscripten demo on github
@@ -11,13 +6,12 @@
 
 * [ ] PIP
   * [ ] change mat type if not castable (and cache)
-  * [Later] Publish ImGuiImm
+  * [ ] Publish ImGuiImm (+ ### https://github.com/altschuler/imgui-knobs)
   * [Later] SDL Raise window
   * [Later] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
   * [Later] Check if it is reasonnable to share matrixes memory
   * [Later] ToString => To/FromJson (use nlohmman)
   * [Later] Add mix color precise + demos & video
-  * [Later] Add implot : https://github.com/epezent/implot
   * [Later] cf _skbuild_template: add conda & wheels
   * [Later] pyimgui
     * [ ] PR / Propose imgui_runner (power_save, change window size, etc)
@@ -29,8 +23,7 @@
 
  * [ ] immvision
      * Add IMM_ASSERT (default = exception in release build)
-     * [ ] Pb transcription couleurs sur mandelbrot (cf https://www.learnpythonwithrune.org/numpy-compute-mandelbrot-set-by-vectorization/) 
-     *     colormaps https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#palettable
+     * [ ] Add coord image + custom coords
      * [Later] ToString -> ToJson / FromJson
      * [Later] Compat Eigen ?
      * [ ] doc
@@ -55,6 +48,7 @@
             * [ ] functions and methods inline or macro #IMMDEBUG_IMPL (test avec plusieurs fichiers qui l'incluent)
     * [ ] Github release (search actions artifacts to release : https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
     * [broken] Stats traffic longer than 14 days: https://github.com/jgehrcke/github-repo-stats
+    * publish rant LowerString
 
 
 * [ ] Viewer
