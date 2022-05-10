@@ -41,8 +41,8 @@ PYBIND11_MODULE(_cpp_immvision, m)
     auto module2 = m.def_submodule("module2");
     module2.def("add", [](int a, int b) { return a + b;});
 
-    auto module3 = pybind11::module("module3");
-    module3.def("sub", [](int a, int b) { return a - b;});
-    pybind11::create_extension_module("aa", "", module3);
+//    auto module3 = pybind11::module("module3");
+//    module3.def("sub", [](int a, int b) { return a - b;});
+//    pybind11::create_extension_module("aa", "", module3);
 }
 
