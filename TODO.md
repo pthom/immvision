@@ -1,5 +1,13 @@
-* [ ] Colormaps
+* mahi : imgui release docking !!!
+    X doc structs
+    X leaked_ptr
+    struct region comment 
 
+Mandelbrot: Read optim & background https://theses.liacs.nl/pdf/2018-2019-JonckheereLSde.pdf / code: https://github.com/lucmans/fraccert
+
+
+* [ ] Colormaps
+    Voir implot::ShowColormapSelector 
 
 * Show emscripten demo on github
 * 
@@ -28,6 +36,7 @@
      * [Later] Compat Eigen ?
      * [ ] doc
      * [Later] logs with spdlog
+     * move fplus to internal/misc
   
  * [ ] Inspector:
    * [ ] Find nice name (close to ImmDebug ? flag global sur ImDebug qui appelle inspector ?)
