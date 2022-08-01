@@ -162,9 +162,6 @@ struct MandelbrotParams
     bool automatic_iterations_increase = true;
     bool smooth_colors = false;
 
-    int width = 700;
-    int height = 700;
-
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(
         MandelbrotParams,
         coords,
@@ -174,22 +171,8 @@ struct MandelbrotParams
         zoom,
         max_iterations,
         automatic_iterations_increase,
-        smooth_colors,
-        width,
-        height
+        smooth_colors
         );
-
-    bool gui_image_size()
-    {
-        auto& self = *this;
-        bool needs_refresh = false;
-        ImGui::Text("Image Size");
-        ImGui::SetNextItemWidth(200.f);
-        needs_refresh |=ImGui::SliderInt("Width", &self.width, 400, 2000);
-        ImGui::SetNextItemWidth(200.f);
-        needs_refresh |=ImGui::SliderInt("Height", &self.height, 400, 2000);
-        return needs_refresh;
-    }
 
     void gui_location(std::optional<PreciseCoords> mouse_coords)
     {
@@ -272,11 +255,6 @@ struct MandelbrotParams
             if (ImGui::BeginTabItem("Location"))
             {
                 gui_location(mouse_coords);
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Size"))
-            {
-                needs_refresh |= self.gui_image_size();
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
@@ -376,18 +354,18 @@ struct MandelbrotParams
         return real_nb_iterations;
     }
 
-    cv::Mat mandelbrot_image()
+    cv::Mat mandelbrot_image(int width, int height)
     {
         auto& self = *this;
         return mandelbrot(
-            self.width, self.height,
+            width, height,
             self.coords[0], self.coords[1],
             self.zoom,
             self.nb_iterations(),
             self.smooth_colors);
     }
 
-    PreciseCoords pixel_to_complex_coords(cv::Point2d pt)
+    PreciseCoords pixel_to_complex_coords(cv::Point2d pt, int width, int height)
     {
         auto& self = *this;
 
@@ -395,14 +373,14 @@ struct MandelbrotParams
         PreciseFloat y_center = self.coords[1];
 
         PreciseFloat x_width = PreciseFloat(1.5);
-        PreciseFloat y_height = PreciseFloat(1.5) * PreciseFloat(self.height) / PreciseFloat(self.width);
+        PreciseFloat y_height = PreciseFloat(1.5) * PreciseFloat(height) / PreciseFloat(width);
         PreciseFloat x_from = x_center - x_width / PreciseFloat(self.zoom);
         PreciseFloat x_to = x_center + x_width / PreciseFloat(self.zoom);
         PreciseFloat y_from = y_center - y_height / PreciseFloat(self.zoom);
         PreciseFloat y_to = y_center + y_height / PreciseFloat(self.zoom);
 
-        PreciseFloat kx = PreciseFloat(pt.x) / PreciseFloat(self.width);
-        PreciseFloat ky = PreciseFloat(pt.y) / PreciseFloat(self.height);
+        PreciseFloat kx = PreciseFloat(pt.x) / PreciseFloat(width);
+        PreciseFloat ky = PreciseFloat(pt.y) / PreciseFloat(height);
         PreciseFloat real = precise_lerp(x_from, x_to, kx);
         PreciseFloat imag = precise_lerp(y_from, y_to, ky);
         return {real, imag};
@@ -541,6 +519,8 @@ class MandelbrotApp
     PreciseFloat animate_final_zoom = 1.f;
     bool         is_animating = false;
 
+    int width = 700;
+    int height = 700;
 
     cv::Mat image;
     ImmVision::ImageParams image_params;
@@ -562,7 +542,7 @@ public:
     void update_image()
     {
         auto& self = *this;
-        self.image = self.mandelbrot_params.mandelbrot_image();
+        self.image = self.mandelbrot_params.mandelbrot_image(self.width, self.height);
     }
 
     std::optional<PreciseCoords> mouse_coords()
@@ -570,7 +550,7 @@ public:
         auto& self = *this;
         auto mouseImageCoords = self.image_params.MouseInfo.MousePosition;
         if (mouseImageCoords.x > 0)
-            return  self.mandelbrot_params.pixel_to_complex_coords(mouseImageCoords);
+            return  self.mandelbrot_params.pixel_to_complex_coords(mouseImageCoords, self.width, self.height);
         else
             return std::nullopt;
     }
@@ -601,10 +581,10 @@ public:
         {
             ImVec2 delta = ImGui::GetMouseDragDelta(0);
             {
-                cv::Point2d imageCenterWithDelta = {(double)self.mandelbrot_params.width / 2., (double)self.mandelbrot_params.height / 2.};
+                cv::Point2d imageCenterWithDelta = {(double)self.width / 2., (double)self.height / 2.};
                 imageCenterWithDelta.x -= double(delta.x);
                 imageCenterWithDelta.y -= double(delta.y);
-                PreciseCoords new_center_coords = params.pixel_to_complex_coords(imageCenterWithDelta);
+                PreciseCoords new_center_coords = params.pixel_to_complex_coords(imageCenterWithDelta, self.width, self.height);
                 params.set_center(new_center_coords);
                 needs_refresh = true;
                 ImGui::ResetMouseDragDelta(0);
@@ -636,6 +616,18 @@ public:
         return true;
     }
 
+    bool gui_image_size()
+    {
+        auto& self = *this;
+        bool needs_refresh = false;
+        ImGui::Text("Image Size");
+        ImGui::SetNextItemWidth(200.f);
+        needs_refresh |=ImGui::SliderInt("Width", &self.width, 400, 2000);
+        ImGui::SetNextItemWidth(200.f);
+        needs_refresh |=ImGui::SliderInt("Height", &self.height, 400, 2000);
+        return needs_refresh;
+    }
+
     void gui()
     {
         auto& self = *this;
@@ -651,6 +643,8 @@ public:
 
         // Show FPS
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+        needs_refresh |= self.gui_image_size();
 
         // Params GUI
         needs_refresh |= self.mandelbrot_params.gui_params(self.mouse_coords());
@@ -677,7 +671,7 @@ public:
             self.update_image();
 
         self.image_params.RefreshImage = needs_refresh;
-        self.image_params.ImageDisplaySize = {self.mandelbrot_params.width, self.mandelbrot_params.height};
+        self.image_params.ImageDisplaySize = {self.width, self.height};
 
         ImGui::EndGroup();
         ImGui::SameLine();
@@ -701,7 +695,7 @@ public:
 void test_mandel()
 {
     auto params = MandelbrotParams();
-    auto mandel_image = params.mandelbrot_image();
+    auto mandel_image = params.mandelbrot_image(600, 600);
     cv::imshow("mandel_image", mandel_image);
     cv::waitKey();
 }
@@ -720,7 +714,7 @@ void measure_perf()
     auto params = MandelbrotParams();
 
     fplus::benchmark_session benchmark_sess;
-    auto make_mandelbrot = [&params] { auto m = params.mandelbrot_image(); };
+    auto make_mandelbrot = [&params] { auto m = params.mandelbrot_image(600, 600); };
     auto make_mandelbrot_bench = fplus::make_benchmark_void_function(benchmark_sess, "make_mandelbrot", make_mandelbrot);
 
     for (int i = 0; i < 100; ++i)
