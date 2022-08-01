@@ -190,6 +190,16 @@ namespace ImmVision
                         const cv::Size displayedImageSize
     );
 
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_ScaleOne(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize
+    );
+
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_FullView(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize
+    );
+
 
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //

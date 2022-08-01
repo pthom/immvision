@@ -169,4 +169,18 @@ namespace ImmVision
         return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
     }
 
+    cv::Matx33d MakeZoomPanMatrix_ScaleOne(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize)
+    {
+        return ZoomPanTransform::MakeScaleOne(imageSize, displayedImageSize);
+    }
+
+    cv::Matx33d MakeZoomPanMatrix_FullView(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize)
+    {
+        return ZoomPanTransform::MakeFullView(imageSize, displayedImageSize);
+    }
+
 }
