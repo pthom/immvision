@@ -562,4 +562,10 @@ namespace ImmVision
     }
 
 
+    cv::Mat GetCachedRgbaImage(const std::string& label_id)
+    {
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(label_id).ImageRgbaCache;
+        return r;
+    }
+
 } // namespace ImmVision
