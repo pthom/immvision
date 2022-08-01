@@ -1,0 +1,8 @@
+//
+// Created by Pascal Thomet on 01/08/2022.
+//
+
+#ifndef IMMVISION_NLOHMANN_JSON_HPP
+#define IMMVISION_NLOHMANN_JSON_HPP
+
+#endif //IMMVISION_NLOHMANN_JSON_HPP
