@@ -202,6 +202,16 @@ namespace ImmVision
                         const cv::Size displayedImageSize
     );
 
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_ScaleOne(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize
+    );
+
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_FullView(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize
+    );
+
 
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
@@ -303,7 +313,9 @@ namespace ImmVision
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     IMMVISION_API void ClearTextureCache();
 
-
+    // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
+    // Note: this image must be currently displayed. This function will return the transformed image
+    // (i.e with ColorMap, Zoom, etc.)
     IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label_id);
 
     // Return immvision version info
@@ -6225,6 +6237,20 @@ namespace ImmVision
         return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
     }
 
+    cv::Matx33d MakeZoomPanMatrix_ScaleOne(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize)
+    {
+        return ZoomPanTransform::MakeScaleOne(imageSize, displayedImageSize);
+    }
+
+    cv::Matx33d MakeZoomPanMatrix_FullView(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize)
+    {
+        return ZoomPanTransform::MakeFullView(imageSize, displayedImageSize);
+    }
+
 }
 
 
@@ -10391,34 +10417,6 @@ namespace ImGuiImm
         auto col = ImGui::GetStyle().Colors[ImGuiCol_Separator];
         ImGui::GetWindowDrawList()->AddLine(a, b, ImGui::GetColorU32(col), 1.f);
         ImGui::NewLine();
-    }
-
-    struct InputTextCallback_UserData
-    {
-        std::string*            Str;
-        ImGuiInputTextCallback  ChainCallback;
-        void*                   ChainCallbackUserData;
-    };
-
-    static int InputTextCallback(ImGuiInputTextCallbackData* data)
-    {
-        InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
-        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-        {
-            // Resize string callback
-            // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
-            std::string* str = user_data->Str;
-            IM_ASSERT(data->Buf == str->c_str());
-            str->resize(data->BufTextLen);
-            data->Buf = (char*)str->c_str();
-        }
-        else if (user_data->ChainCallback)
-        {
-            // Forward to user callback, if any
-            data->UserData = user_data->ChainCallbackUserData;
-            return user_data->ChainCallback(data);
-        }
-        return 0;
     }
 
     void Theme_Debug()

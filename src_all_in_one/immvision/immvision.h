@@ -198,6 +198,16 @@ namespace ImmVision
                         const cv::Size displayedImageSize
     );
 
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_ScaleOne(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize
+    );
+
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_FullView(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize
+    );
+
 
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
@@ -299,7 +309,9 @@ namespace ImmVision
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     IMMVISION_API void ClearTextureCache();
 
-
+    // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
+    // Note: this image must be currently displayed. This function will return the transformed image
+    // (i.e with ColorMap, Zoom, etc.)
     IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label_id);
 
     // Return immvision version info
