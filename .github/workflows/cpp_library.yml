@@ -34,7 +34,7 @@ jobs:
       run: ./scripts/install_xorg_dev.sh
 
     - name: prepare_build
-      run: python ./scripts/prepare_build.py
+      run: python3 ./scripts/prepare_build.py
 
     - name: Build and install
       run: |
