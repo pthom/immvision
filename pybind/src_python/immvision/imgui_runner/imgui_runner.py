@@ -29,10 +29,10 @@ class _ImGuiRunner:
     """
 
     backend: BackendAny = None
-    imgui_app_params_helper: _ImguiAppParamsHelper = None
+    window_geometry_helper: _ImguiAppParamsHelper = None
+    auto_size_helper: AutoSizeAppWindow = None
     imgui_app_params: ImguiAppParams
     running:bool = True
-    auto_size_app_window: AutoSizeAppWindow = None
     was_window_position_saved: bool = False
     gui_function: GuiFunction = None
     all_monitors_work_areas: List[WindowBounds] = None
@@ -44,8 +44,8 @@ class _ImGuiRunner:
         global _CURRENT_BACKEND
         _CURRENT_BACKEND = self.backend
 
-        self.imgui_app_params_helper = imgui_app_params_helper
-        self.imgui_app_params = self.imgui_app_params_helper.imgui_app_params
+        self.window_geometry_helper = imgui_app_params_helper
+        self.imgui_app_params = self.window_geometry_helper.imgui_app_params
         if self.imgui_app_params.use_power_save is not None:
             _power_save_instance().use_power_save = self.imgui_app_params.use_power_save
 
@@ -53,11 +53,10 @@ class _ImGuiRunner:
         self.was_window_position_saved = False
 
         self.init_backend_window()
-        self.auto_size_app_window = AutoSizeAppWindow(self.imgui_app_params_helper, self.backend)
+        self.auto_size_helper = AutoSizeAppWindow(self.window_geometry_helper, self.backend)
         imgui.create_context()
 
         self._init_backend_gl()
-
 
     def init_backend_window(self):
         # has to be done before imgui.create_context()
@@ -65,7 +64,7 @@ class _ImGuiRunner:
         self.all_monitors_work_areas = self.backend.get_all_monitors_work_areas()
 
         yet_unknown_real_window_size_after_auto_size = None
-        window_bounds = self.imgui_app_params_helper.app_window_bounds_initial(
+        window_bounds = self.window_geometry_helper.app_window_bounds_initial(
             self.all_monitors_work_areas, yet_unknown_real_window_size_after_auto_size)
         self.backend.init_backend_window(
              window_title = self.imgui_app_params.app_window_title,
@@ -83,22 +82,22 @@ class _ImGuiRunner:
 
     def _force_window_position_or_size(self):
         # This is done at the second frame, once we know the size of all the widgets
-        if self.imgui_app_params_helper.want_autosize():
+        if self.window_geometry_helper.want_autosize():
             # The window was resized by AutoSizeApp
             # We should now recenter the window if needed
             # and ensure it fits on the monitor
             real_window_size_after_auto_size = self.backend.get_window_size()
-            window_bounds = self.imgui_app_params_helper.app_window_bounds_initial(
+            window_bounds = self.window_geometry_helper.app_window_bounds_initial(
                 self.all_monitors_work_areas, real_window_size_after_auto_size)
             self.backend.set_window_bounds(window_bounds)
             self.backend.move_window_if_out_of_screen_bounds()
 
-        if not self.imgui_app_params_helper.want_autosize() and not self.imgui_app_params.app_window_full_screen:
+        if not self.window_geometry_helper.want_autosize() and not self.imgui_app_params.app_window_full_screen:
             # The window was not resized
             # However, we forcefully set its position once again, since some backends ignore
             # it position at window creation time (SDL)
             real_window_size_after_auto_size = self.backend.get_window_size()
-            window_bounds = self.imgui_app_params_helper.app_window_bounds_initial(
+            window_bounds = self.window_geometry_helper.app_window_bounds_initial(
                 self.all_monitors_work_areas, real_window_size_after_auto_size)
             self.backend.set_window_position(window_bounds.window_position)
 
@@ -110,7 +109,7 @@ class _ImGuiRunner:
             - handle exit
         """
         if self.imgui_app_params.provide_default_window:
-            self.auto_size_app_window.begin()
+            self.auto_size_helper.begin()
 
         try:
             self.gui_function()
@@ -127,7 +126,7 @@ class _ImGuiRunner:
             raise
 
         if self.imgui_app_params.provide_default_window:
-            self.auto_size_app_window.end()
+            self.auto_size_helper.end()
 
         if self.imgui_app_params.app_shall_exit:
             self.running = False

@@ -27,7 +27,7 @@ class AutoSizeAppWindow:
 
         self._computed_window_size = (
             min(int(user_widgets_size[0]) + widgets_margin, screen_size[0]),
-            min(int(user_widgets_size[1]) + widgets_margin, screen_size[0]))
+            min(int(user_widgets_size[1]) + widgets_margin, screen_size[1]))
 
         self._backend.set_window_size(self._computed_window_size)
 
