@@ -7,6 +7,3 @@
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/pthom/imgui.git
-[submodule "external/py-mahi-gui"]
-	path = pybind/py-mahi-gui
-	url = https://github.com/pthom/py-mahi-gui.git
