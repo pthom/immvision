@@ -32,7 +32,6 @@ class Options:
     build_32bits: Option = Option(False, "Build 32 bits version (only possible under windows)")
     vcpkg_bypass_install: Option = Option(False, "Bypass vcpkg install (advanced option, for CI only)")
     emscripten_bypass_opencv_compil: Option = Option(False, "Skip opencv compil for emscripten (advanced, for CI only)")
-    build_python_bindings: Option = Option(False, "Build python library using pybind11")
 
 
 OPTIONS = Options()
@@ -53,17 +52,7 @@ if os.path.realpath(INVOKE_DIR) == os.path.realpath(EXTERNAL_DIR):
 
 IS_DOCKER_BUILDER = os.path.isfile("/IMMVISION_DOCKER_BUILDER")
 
-VENV_PARENT_DIR = f"{REPO_DIR}" if not IS_DOCKER_BUILDER else "/"
-VENV_NAME = "venv"
-VENV_DIR = f"{VENV_PARENT_DIR}/{VENV_NAME}"
 # use "source" for bash, but for docker we may get "sh" which uses "." instead
-
-if os.name == "nt":
-    VENV_RUN_SOURCE = f"{VENV_DIR}\\Scripts\\activate "
-else:
-    source_cmd = ". "
-    VENV_RUN_SOURCE = f"{source_cmd} {VENV_DIR}/bin/activate "
-VENV_PACKAGES_DIR = f"{VENV_DIR}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
 
 VCPKG_BASENAME = "vcpkg" if not IS_DOCKER_BUILDER else "vcpkg_docker"
 VCPKG_DIR = f"{REPO_DIR}/external/{VCPKG_BASENAME}"
@@ -254,13 +243,6 @@ def run_cmake():
     if OPTIONS.activate_all_warnings.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
 
-    if OPTIONS.build_python_bindings.Value:
-        cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_BUILD_PYTHON_BINDINGS=ON"
-        if os.name == "nt":
-            cmake_cmd = cmake_cmd + f"{new_line} -DPYTHON_EXECUTABLE={VENV_DIR}/Scripts/python.exe"
-        else:
-            cmake_cmd = cmake_cmd + f"{new_line} -DPYTHON_EXECUTABLE={VENV_DIR}/bin/python"
-
     cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
     cmake_cmd = cmake_cmd + f"{new_line} -B ."
 
@@ -268,8 +250,6 @@ def run_cmake():
         arch = "win32" if OPTIONS.build_32bits.Value else "x64"
         cmake_cmd = cmake_cmd + f"{new_line} -A {arch}"
 
-    if OPTIONS.build_python_bindings.Value:
-        cmake_cmd = f"{VENV_RUN_SOURCE} && {cmake_cmd}"
     run(cmake_cmd)
 
 
@@ -304,10 +284,6 @@ def run_build_all():
         return
     my_chdir(INVOKE_DIR)
 
-    # Create virtual env for pybind
-    if OPTIONS.build_python_bindings.Value:
-        pybind_make_venv()
-
     # Install opencv and SDL (via vcpkg, conan, or via apt packages)
     if OPTIONS.use_vcpkg.Value and not OPTIONS.vcpkg_bypass_install.Value:
         vcpkg_install_thirdparties()
@@ -321,11 +297,6 @@ def run_build_all():
 
     # Launch the build
     run_build()
-
-    if OPTIONS.build_python_bindings.Value:
-        py_install_stubs()
-        pybind_pip_install_editable()
-
 
 
 ######################################################################
@@ -556,95 +527,6 @@ def emscripten_update_timestamp():
 # pybind
 ######################################################################
 
-
-@decorate_loudly_echo_function_name
-def pybind_make_venv():
-    """
-    Creates a python virtual environment used to build python bindings,
-    inside immvision_pybind/venv
-    """
-    my_chdir(f"{VENV_PARENT_DIR}")
-    if not os.path.isdir(VENV_NAME):
-        run(f"python3 -m venv {VENV_NAME}")
-    cmd = f"{VENV_RUN_SOURCE} && pip install -v -r {REPO_DIR}/pybind/requirements_dev_pybind.txt"
-    run(cmd)
-
-    print(f"""
-    Now, activate your python venv with:
-    
-        source {VENV_DIR}/bin/activate 
-    """)
-
-
-@decorate_loudly_echo_function_name
-def pybind_clone_pyimgui():
-    """
-    (Optional, for pybind building only) Clone pyimgui
-    pyimgui's pip version includes a version of imgui that is too old.
-    For development only, since scripts/requirements_dev_pybind.txt will install the correct version,
-    """
-    # We use a fork of pyimgui: https://github.com/pthom/pyimgui.git@pthom/docking_2022_04_05
-    # proposed as a PR here: https://github.com/pyimgui/pyimgui/pull/274
-    my_chdir(EXTERNAL_DIR)
-    _do_clone_repo("https://github.com/pthom/pyimgui.git", "pyimgui", branch="pthom/docking_powsersave")
-    my_chdir("pyimgui")
-    run("git submodule update --init")
-    run(f"{VENV_RUN_SOURCE} && pip install .")
-
-
-def _pybind_pip_install(editable: bool):
-    """
-    Runs `pip install` in the main directory and checks that the module works
-    """
-    def ls_echo_dir(folder):
-        return f"echo ls {folder}: && echo ------------ && ls -alh {folder}"
-
-    editable_flag = "--editable" if editable else ""
-    ls_install_dir = ls_echo_dir(f"{REPO_DIR}/pybind/src_python/immvision") if editable \
-        else ls_echo_dir(f"{VENV_PACKAGES_DIR}/immvision")
-
-    editable_env_variable = "export IMMVISION_PIP_EDITABLE=1" if editable else "unset IMMVISION_PIP_EDITABLE"
-
-    my_chdir(REPO_DIR)
-    commands = f"""
-        ## Set or unset IMMVISION_PIP_EDITABLE
-        {editable_env_variable}
-        ## Suppress temp build dir
-        rm -rf {REPO_DIR}/_skbuild
-        ## create virtual environment in venv
-        cd {VENV_PARENT_DIR}
-        python3 -m venv {VENV_NAME}
-        ## Use virtual env venv in later commands
-        {VENV_RUN_SOURCE}
-        ## Clean previously installed package
-        rm -rf {VENV_PACKAGES_DIR}/immvision 
-        ## Do install
-        cd {REPO_DIR}
-        pip install -v {editable_flag} .
-        ## List files (for debug) 
-        {ls_install_dir}
-        ## Test if we can import the module
-        python3 -c 'import immvision'
-    """
-    run(commands, chain_commands=True)
-
-
-@decorate_loudly_echo_function_name
-def pybind_pip_install_editable():
-    """
-    Runs `pip install --editable .` in the main directory and checks that the module works
-    """
-    _pybind_pip_install(True)
-
-
-@decorate_loudly_echo_function_name
-def pybind_pip_install():
-    """
-    Runs `pip install .` in the main directory and checks that the module works
-    """
-    _pybind_pip_install(False)
-
-
 @decorate_loudly_echo_function_name
 def py_install_stubs():
     """
@@ -701,24 +583,12 @@ def get_all_function_categories():
         ]
     }
 
-    function_list_pybind = {
-        "name": "Functions to build python bindings (immvision_pybind)",
-        "functions": [
-            py_install_stubs,
-            pybind_make_venv,
-            pybind_clone_pyimgui,
-            pybind_pip_install,
-            pybind_pip_install_editable
-        ]
-    }
-
     all_function_categories = [
         function_list_all_in_one,
         function_list_build,
         function_list_vcpkg,
         function_list_emscripten,
         function_list_advanced,
-        function_list_pybind
     ]
     return all_function_categories
 
