@@ -24,7 +24,6 @@ class Options:
     use_vcpkg: Option = Option(False, "Use vcpkg package manager")
     use_conan: Option = Option(False, "Use Conan package manager")
 
-    use_powersave: Option = Option(True, "Use imgui powersave version")
     activate_all_warnings: Option = Option(True, "Activate all warnings, as errors")
 
     # advanced options below
@@ -208,7 +207,6 @@ def _do_clone_repo(git_repo, folder, branch="", tag=""):
 def run_cmake():
     """
     Run cmake with correct flags:
-    * -DIMMVISION_USE_POWERSAVE=ON|OFF can optionally activate the power save mode
     * -DIMMVISION_ACTIVATE_ALL_WARNINGS==ON|OFF
     * -A : arch if building for Win32
     Notes:
@@ -252,9 +250,6 @@ def run_cmake():
 
     if OPTIONS.build_emscripten.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DOpenCV_DIR={EXTERNAL_DIR}/opencv_install_emscripten/lib/cmake/opencv4"
-
-    if OPTIONS.use_powersave.Value:
-        cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_USE_POWERSAVE=ON"
 
     if OPTIONS.activate_all_warnings.Value:
         cmake_cmd = cmake_cmd + f"{new_line} -DIMMVISION_ACTIVATE_ALL_WARNINGS=ON"
@@ -309,8 +304,6 @@ def run_build_all():
         return
     my_chdir(INVOKE_DIR)
 
-    _check_imgui_version()
-
     # Create virtual env for pybind
     if OPTIONS.build_python_bindings.Value:
         pybind_make_venv()
@@ -333,49 +326,6 @@ def run_build_all():
         py_install_stubs()
         pybind_pip_install_editable()
 
-
-
-######################################################################
-# imgui
-######################################################################
-def _check_imgui_version():
-    """
-    Two versions of imgui are available:
-    * standard version: docking branch of the standard repo (https://github.com/ocornut/imgui.git)
-    * power save version: see PR https://github.com/ocornut/imgui/pull/4076
-      This PR was adapted to imgui docking version of March 2022 here:
-      https://github.com/pthom/imgui/tree/docking_powersave
-
-    This checks that the correct one is checked out, based on the use_powersave option
-    """
-    imgui_git_repo = "https://github.com/pthom/imgui.git" if OPTIONS.use_powersave.Value \
-        else "https://github.com/ocornut/imgui.git"
-    imgui_branch = "docking_powersave" if OPTIONS.use_powersave.Value else "docking"
-
-    # Check if we changed to/from powersave mode
-    if os.path.isdir(f"{EXTERNAL_DIR}/imgui"):
-        previous_dir = os.getcwd()
-        os.chdir(f"{EXTERNAL_DIR}/imgui")
-        cmd_result = subprocess.check_output("git remote show origin", shell=True).decode("utf-8")
-        cmd_result_lines = cmd_result.split("\n")
-        os.chdir(previous_dir)
-        if f"  Fetch URL: {imgui_git_repo}" not in cmd_result_lines:
-            my_chdir(EXTERNAL_DIR)
-            print()
-            print("#             !!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING - MANUAL CLONE REQUIRED !!!!!!!!!!!!!!!!!!!!!!!!")
-            print()
-            print("#                        You need to re-download imgui (changed powersave mode)")
-            print("#                        Please remove external/imgui and re-clone manually, like this:")
-            print(f"""
-                cd {EXTERNAL_DIR}
-                rm -rf imgui
-                git clone {imgui_git_repo}
-                cd {imgui_git_repo}
-                git checkout {imgui_branch}
-                cd -
-            """)
-            print("#             !!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING - MANUAL CLONE REQUIRED !!!!!!!!!!!!!!!!!!!!!!!!")
-            sys.exit(1)
 
 
 ######################################################################
