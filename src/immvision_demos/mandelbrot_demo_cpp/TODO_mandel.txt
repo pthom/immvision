@@ -1,0 +1,9 @@
+* Cacher boutons zoom & pan / display settings-colormap
+* No save image !
+    // TODO: put colormap code this into ImmVision
+    // Pourquoi besoin de ## ? ImmVision::ImageDisplay(std::string("thumb##") + self.name, self.thumbnail());
+
+* Big zoom button
+* finish work on animation_image_reduce_factor:
+* use ImmVision::ImageDisplay
+        (which implies separate Gui for ColorMap)

@@ -11051,23 +11051,11 @@ namespace ImmVision
     
         std::string inner;
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
-        inner = inner + "active_on_full_image: " + ToString(v.ActiveOnFullImage) + "\n";
-        inner = inner + "active_on_roi: " + ToString(v.ActiveOnROI) + "\n";
-        inner = inner + "nb_sigmas: " + ToString(v.NbSigmas) + "\n";
-        inner = inner + "use_stats_min: " + ToString(v.UseStatsMin) + "\n";
-        inner = inner + "use_stats_max: " + ToString(v.UseStatsMax) + "\n";
-
-#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
         inner = inner + "ActiveOnFullImage: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "ActiveOnROI: " + ToString(v.ActiveOnROI) + "\n";
         inner = inner + "NbSigmas: " + ToString(v.NbSigmas) + "\n";
         inner = inner + "UseStatsMin: " + ToString(v.UseStatsMin) + "\n";
         inner = inner + "UseStatsMax: " + ToString(v.UseStatsMax) + "\n";
-
-#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -11085,23 +11073,11 @@ namespace ImmVision
     
         std::string inner;
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
-        inner = inner + "colormap: " + ToString(v.Colormap) + "\n";
-        inner = inner + "colormap_scale_min: " + ToString(v.ColormapScaleMin) + "\n";
-        inner = inner + "colormap_scale_max: " + ToString(v.ColormapScaleMax) + "\n";
-        inner = inner + "colormap_scale_from_stats: " + ToString(v.ColormapScaleFromStats) + "\n";
-        inner = inner + "internal_colormap_hovered: " + ToString(v.internal_ColormapHovered) + "\n";
-
-#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
         inner = inner + "Colormap: " + ToString(v.Colormap) + "\n";
         inner = inner + "ColormapScaleMin: " + ToString(v.ColormapScaleMin) + "\n";
         inner = inner + "ColormapScaleMax: " + ToString(v.ColormapScaleMax) + "\n";
         inner = inner + "ColormapScaleFromStats: " + ToString(v.ColormapScaleFromStats) + "\n";
         inner = inner + "internal_ColormapHovered: " + ToString(v.internal_ColormapHovered) + "\n";
-
-#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -11119,19 +11095,9 @@ namespace ImmVision
     
         std::string inner;
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
-        inner = inner + "is_mouse_hovering: " + ToString(v.IsMouseHovering) + "\n";
-        inner = inner + "mouse_position: " + ToString(v.MousePosition) + "\n";
-        inner = inner + "mouse_position_displayed: " + ToString(v.MousePosition_Displayed) + "\n";
-
-#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
         inner = inner + "IsMouseHovering: " + ToString(v.IsMouseHovering) + "\n";
         inner = inner + "MousePosition: " + ToString(v.MousePosition) + "\n";
         inner = inner + "MousePosition_Displayed: " + ToString(v.MousePosition_Displayed) + "\n";
-
-#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -11148,35 +11114,6 @@ namespace ImmVision
         r += "{\n";
     
         std::string inner;
-
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
-        inner = inner + "refresh_image: " + ToString(v.RefreshImage) + "\n";
-        inner = inner + "image_display_size: " + ToString(v.ImageDisplaySize) + "\n";
-        inner = inner + "zoom_pan_matrix: " + ToString(v.ZoomPanMatrix) + "\n";
-        inner = inner + "zoom_key: " + ToString(v.ZoomKey) + "\n";
-        inner = inner + "colormap_settings: " + ToString(v.ColormapSettings) + "\n";
-        inner = inner + "colormap_key: " + ToString(v.ColormapKey) + "\n";
-        inner = inner + "pan_with_mouse: " + ToString(v.PanWithMouse) + "\n";
-        inner = inner + "zoom_with_mouse_wheel: " + ToString(v.ZoomWithMouseWheel) + "\n";
-        inner = inner + "is_color_order_bgr: " + ToString(v.IsColorOrderBGR) + "\n";
-        inner = inner + "selected_channel: " + ToString(v.SelectedChannel) + "\n";
-        inner = inner + "show_school_paper_background: " + ToString(v.ShowSchoolPaperBackground) + "\n";
-        inner = inner + "show_alpha_channel_checkerboard: " + ToString(v.ShowAlphaChannelCheckerboard) + "\n";
-        inner = inner + "show_grid: " + ToString(v.ShowGrid) + "\n";
-        inner = inner + "draw_values_on_zoomed_pixels: " + ToString(v.DrawValuesOnZoomedPixels) + "\n";
-        inner = inner + "show_image_info: " + ToString(v.ShowImageInfo) + "\n";
-        inner = inner + "show_pixel_info: " + ToString(v.ShowPixelInfo) + "\n";
-        inner = inner + "show_zoom_buttons: " + ToString(v.ShowZoomButtons) + "\n";
-        inner = inner + "show_options_panel: " + ToString(v.ShowOptionsPanel) + "\n";
-        inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
-        inner = inner + "show_options_button: " + ToString(v.ShowOptionsButton) + "\n";
-        inner = inner + "watched_pixels: " + ToString(v.WatchedPixels) + "\n";
-        inner = inner + "add_watched_pixel_on_double_click: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
-        inner = inner + "highlight_watched_pixels: " + ToString(v.HighlightWatchedPixels) + "\n";
-        inner = inner + "mouse_info: " + ToString(v.MouseInfo) + "\n";
-
-#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "RefreshImage: " + ToString(v.RefreshImage) + "\n";
         inner = inner + "ImageDisplaySize: " + ToString(v.ImageDisplaySize) + "\n";
@@ -11202,8 +11139,6 @@ namespace ImmVision
         inner = inner + "AddWatchedPixelOnDoubleClick: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";
-
-#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -11575,17 +11510,10 @@ namespace ImmVision
             return ToString((double)v);
         }
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-        std::string ToString(bool v)
-        {
-            return (v ? "True" : "False");
-        }
-#else
         std::string ToString(bool v)
         {
             return (v ? "true" : "false");
         }
-#endif
 
     } // namespace StringUtils
 } // namespace ImmVision
