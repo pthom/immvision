@@ -25,11 +25,12 @@ def _install_opencv_conan(build_folder):
     # Run conan install
     install_conan_if_needed()
     ci_utils.chdir(build_folder)
-    ci_utils.run("conan install .. --build missing")
+    conan_file = "../conanfile_mac.txt" if platform.system() == "Darwin" else "../conanfile.txt"
+    ci_utils.run(f"conan install {conan_file} --build missing")
 
 
 def _install_opencv_package():
-    if platform.system() == "Linux":
+    if platform.system() == "Darwin":
         ci_utils.run("brew install opencv")
 
 
