@@ -7,7 +7,6 @@ project(immvision
 
 set(CMAKE_CXX_STANDARD 17)
 
-
 set(IMMVISION_VERSION ${PROJECT_VERSION})
 add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")
 
@@ -23,5 +22,4 @@ if (NOT SKBUILD)
     add_subdirectory(external)
     add_subdirectory(src)
     add_subdirectory(src_all_in_one)
-
 endif()

@@ -1,32 +1,6 @@
-* mahi : imgui release docking !!!
-    X doc structs
-    X leaked_ptr
-    struct region comment 
 
 Mandelbrot: Read optim & background https://theses.liacs.nl/pdf/2018-2019-JonckheereLSde.pdf / code: https://github.com/lucmans/fraccert
 
-
-* [ ] Colormaps
-    Voir implot::ShowColormapSelector 
-
-* Show emscripten demo on github
-* 
-
-* [ ] PIP
-  * [ ] change mat type if not castable (and cache)
-  * [ ] Publish ImGuiImm (+ ### https://github.com/altschuler/imgui-knobs)
-  * [Later] SDL Raise window
-  * [Later] Voir moderngl https://pythonawesome.com/a-python-wrapper-over-opengl-3-3-core-that-simplifies-the-creation-of-simple-graphics
-  * [Later] Check if it is reasonnable to share matrixes memory
-  * [Later] ToString => To/FromJson (use nlohmman)
-  * [Later] Add mix color precise + demos & video
-  * [Later] cf _skbuild_template: add conda & wheels
-  * [Later] pyimgui
-    * [ ] PR / Propose imgui_runner (power_save, change window size, etc)
-    * [Later] imgui & pyimgui : utiliser branche docking sans powersave / ou bien branche master & official?
-  * [Later] window sometimes remains opened at exit (notebook, sdl)
-  * Read https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
-  https://setuptools.pypa.io/en/latest/index.html
 
 
  * [ ] immvision
