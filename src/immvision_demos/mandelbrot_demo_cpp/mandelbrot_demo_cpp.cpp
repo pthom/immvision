@@ -13,7 +13,6 @@ TODO
 #include "immvision/immvision.h"
 #include "immvision/imgui_imm.h"
 #ifndef __EMSCRIPTEN__
-#include "fplus/fplus.hpp"
 #include "nlohmann_json.hpp"
 #endif
 
@@ -24,6 +23,7 @@ TODO
 #include <vector>
 #include <optional>
 #include <string>
+#include <fstream>
 
 #define PRECISE_FLOAT_DOUBLE
 //#define PRECISE_FLOAT_LONG_DOUBLE
@@ -136,7 +136,7 @@ cv::Mat_<ColorType> mandelbrot(
     };
 
 #ifndef __EMSCRIPTEN__
-#define PARALLEL_MANDEL
+//#define PARALLEL_MANDEL
 #endif
 
 #ifdef PARALLEL_MANDEL
@@ -732,22 +732,22 @@ void playground()
     app.run();
 }
 
-
-void measure_perf()
-{
-#ifndef __EMSCRIPTEN__
-    auto params = MandelbrotParams();
-
-    fplus::benchmark_session benchmark_sess;
-    auto make_mandelbrot = [&params] { auto m = params.mandelbrot_image({600, 600}); };
-    auto make_mandelbrot_bench = fplus::make_benchmark_void_function(benchmark_sess, "make_mandelbrot", make_mandelbrot);
-
-    for (int i = 0; i < 100; ++i)
-        make_mandelbrot_bench();
-
-    std::cout << benchmark_sess.report();
-#endif
-}
+//
+//void measure_perf()
+//{
+//#ifndef __EMSCRIPTEN__
+//    auto params = MandelbrotParams();
+//
+//    fplus::benchmark_session benchmark_sess;
+//    auto make_mandelbrot = [&params] { auto m = params.mandelbrot_image({600, 600}); };
+//    auto make_mandelbrot_bench = fplus::make_benchmark_void_function(benchmark_sess, "make_mandelbrot", make_mandelbrot);
+//
+//    for (int i = 0; i < 100; ++i)
+//        make_mandelbrot_bench();
+//
+//    std::cout << benchmark_sess.report();
+//#endif
+//}
 
 
 int main(int, char* [])
