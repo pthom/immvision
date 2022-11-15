@@ -1,0 +1,25 @@
+name: MacOS
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@master
+
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+
+    - name: prepare_build
+      run: |
+          python scripts/prepare_build.py
+
+    - name: run_build_all
+      run: |
+          mkdir build
+          cd build
+          cmake ..
+          make -j 4

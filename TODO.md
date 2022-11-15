@@ -4,7 +4,7 @@ Build
 ````
 mkdir build
 cd build
-conan install .. -build=missing
+conan install .. --build outdated
 cd ..
 
 cd external
