@@ -32,7 +32,7 @@
     };
 
     HelloImGui::RunnerParams params;
-    params.appWindowParams.windowSize = {1200.f, 800.f};
+    params.appWindowParams.windowGeometry.size = {1200, 800};
     params.callbacks.ShowGui = gui;
     params.callbacks.LoadAdditionalFonts = []{};
     HelloImGui::Run(params);

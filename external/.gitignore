@@ -2,3 +2,4 @@ opencv/
 opencv_build_emscripten/
 opencv_install_emscripten/
 vcpkg/
+imgui_bundle/

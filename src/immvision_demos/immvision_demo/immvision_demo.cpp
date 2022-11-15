@@ -231,7 +231,6 @@ void guiImageDisplayOnly()
     static cv::VideoCapture cap(0);
     static cv::Mat image;
     cap >> image;
-    ImGui::SetMaxWaitBeforeNextFrame(1. / 100.);
 #endif
 
     cv::Point2d mousePosition = ImmVision::ImageDisplay(
@@ -265,7 +264,7 @@ int main(int, char* [])
     //Foo(); return 0;
 
     HelloImGui::RunnerParams params;
-    params.appWindowParams.windowSize = {1400.f, 1000.f};
+    params.appWindowParams.windowGeometry.size = {1400, 1000};
     params.appWindowParams.windowTitle = "ImmVision Demo";
     params.callbacks.ShowGui = guiFunction;
     //params.callbacks.ShowGui = guiImageDisplayOnly;

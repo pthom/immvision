@@ -1,5 +1,44 @@
+# imgui_bundle
 
-Mandelbrot: Read optim & background https://theses.liacs.nl/pdf/2018-2019-JonckheereLSde.pdf / code: https://github.com/lucmans/fraccert
+Build
+````
+mkdir build
+cd build
+conan install .. -build=missing
+cd ..
+
+cd external
+git clone https://github.com/pthom/imgui_bundle.git
+cd imgui_bundle
+git submodule update --init --recursive
+````
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------
+
+# Mandelbrot: 
+Read optim & background https://theses.liacs.nl/pdf/2018-2019-JonckheereLSde.pdf / code: https://github.com/lucmans/fraccert
 
 
 

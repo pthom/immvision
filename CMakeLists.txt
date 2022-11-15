@@ -11,7 +11,6 @@ set(IMMVISION_VERSION ${PROJECT_VERSION})
 add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")
 
 if (NOT SKBUILD)
-    option(IMMVISION_BUILD_IMGUI "Build imgui" ON)
     option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
 
     option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)

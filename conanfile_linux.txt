@@ -1,6 +1,5 @@
 [requires]
 opencv/3.4.17
-sdl/2.0.20
 
 [generators]
 cmake_find_package

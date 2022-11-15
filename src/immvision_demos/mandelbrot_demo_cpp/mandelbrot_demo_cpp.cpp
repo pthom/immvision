@@ -710,7 +710,7 @@ public:
     {
         auto& self = *this;
         HelloImGui::RunnerParams params;
-        params.appWindowParams.windowSize = {1600, 1200};
+        params.appWindowParams.windowGeometry.size = {1600, 1200};
         params.callbacks.ShowGui = [&self]() { self.gui(); };
         HelloImGui::Run(params);
     }
