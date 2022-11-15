@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-
-
 import os.path
+import platform
 
 import ci_utils
 
@@ -9,7 +8,9 @@ import ci_utils
 def install_conan_if_needed():
     if not ci_utils.has_program("conan"):
         ci_utils.run("pip3 install conan")
-    ci_utils.run("conan profile update settings.compiler.libcxx=libstdc++11 default")
+    ci_utils.run("conan profile new default --detect --force")
+    if platform.system() == "Linux":
+        ci_utils.run("conan profile update settings.compiler.libcxx=libstdc++11 default")
 
 
 def prepare_build(build_folder="build"):
@@ -24,7 +25,7 @@ def prepare_build(build_folder="build"):
     # Run conan install
     install_conan_if_needed()
     ci_utils.chdir(build_folder)
-    ci_utils.run("conan install .. --build outdated -c tools.system.package_manager:mode=install")
+    ci_utils.run("conan install .. --build outdated")
 
 
 if __name__ == "__main__":

@@ -14,14 +14,8 @@ CHDIR_LAST_DIRECTORY = INVOKE_DIR
 
 
 @dataclass
-class Option:
-    Value: bool
-    Description: str
-
-
-@dataclass
 class Options:
-    only_echo_command: Option = Option(False, "Only echo shell command, but do nothing")
+    only_echo_command:bool = False
 
 
 OPTIONS = Options()
@@ -46,17 +40,17 @@ def my_chdir(folder):
     try:
         os.chdir(folder)
     except FileNotFoundError:
-        if OPTIONS.only_echo_command.Value:
+        if OPTIONS.only_echo_command:
             print(f"# Warning, folder {folder} does not yet exist")
         else:
             raise FileNotFoundError(f"# Cannot chdir to folder {folder} !")
-    if OPTIONS.only_echo_command.Value and folder != CHDIR_LAST_DIRECTORY:
+    if OPTIONS.only_echo_command and folder != CHDIR_LAST_DIRECTORY:
         print(f"cd {folder}")
     CHDIR_LAST_DIRECTORY = folder
 
 
 def run(cmd, chain_commands=False):
-    if OPTIONS.only_echo_command.Value:
+    if OPTIONS.only_echo_command:
         print(cmd)
         return
 
@@ -82,17 +76,17 @@ def chdir(folder):
     try:
         os.chdir(folder)
     except FileNotFoundError:
-        if OPTIONS.only_echo_command.Value:
+        if OPTIONS.only_echo_command:
             print(f"# Warning, folder {folder} does not yet exist")
         else:
             raise FileNotFoundError(f"# Cannot chdir to folder {folder} !")
-    if OPTIONS.only_echo_command.Value and folder != CHDIR_LAST_DIRECTORY:
+    if OPTIONS.only_echo_command and folder != CHDIR_LAST_DIRECTORY:
         print(f"cd {folder}")
     CHDIR_LAST_DIRECTORY = folder
 
 
 def run(cmd, chain_commands=False):
-    if OPTIONS.only_echo_command.Value:
+    if OPTIONS.only_echo_command:
         print(cmd)
         return
 

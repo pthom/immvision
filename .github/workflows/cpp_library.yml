@@ -20,7 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-2019, macos-latest, ubuntu-latest]
+         platform: [windows-2019, macos-latest, ubuntu-latest]
+         # platform: [ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v3
@@ -30,13 +31,13 @@ jobs:
 #    - name: Setup interactive tmate session
 #      uses: mxschmitt/action-tmate@v3
 
-    - name: install xorg-dev on ubuntu
-      run: ./scripts/install_xorg_dev.sh
+    - name: install linux deps on ubuntu
+      run: ./scripts/install_linux_deps.sh
 
     - name: prepare_build
       run: python3 ./scripts/prepare_build.py
 
-    - name: Build and install
+    - name: Build
       run: |
         cd build
         cmake ..
