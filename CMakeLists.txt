@@ -7,22 +7,13 @@ project(immvision
 
 set(CMAKE_CXX_STANDARD 17)
 
-option(IMMVISION_BUILD_PYTHON_BINDINGS "Build Python bindings for immvision" OFF)
-if (SKBUILD)
-    set(IMMVISION_BUILD_PYTHON_BINDINGS ON CACHE BOOL "" FORCE)
-endif()
 
 set(IMMVISION_VERSION ${PROJECT_VERSION})
 add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")
 
-if (IMMVISION_BUILD_PYTHON_BINDINGS)
-    include("${CMAKE_CURRENT_LIST_DIR}/pybind/pybind_cmake.cmake")
-endif()
-
 if (NOT SKBUILD)
     option(IMMVISION_BUILD_IMGUI "Build imgui" ON)
     option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
-
 
     # Advanced option: use powersave mode for imgui: see PR https://github.com/ocornut/imgui/pull/4076
     # This PR was adapted to imgui docking version of March 2022 here: https://github.com/pthom/imgui/tree/docking_powersave

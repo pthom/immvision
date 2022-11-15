@@ -90,17 +90,10 @@ namespace ImmVision
             return ToString((double)v);
         }
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-        std::string ToString(bool v)
-        {
-            return (v ? "True" : "False");
-        }
-#else
         std::string ToString(bool v)
         {
             return (v ? "true" : "false");
         }
-#endif
 
     } // namespace StringUtils
 } // namespace ImmVision
