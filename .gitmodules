@@ -1,3 +1,0 @@
-[submodule "pybind/cvnp"]
-	path = pybind/cvnp
-	url = https://github.com/pthom/cvnp.git
