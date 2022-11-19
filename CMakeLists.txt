@@ -19,7 +19,7 @@ endif()
 if(PROJECT_IS_TOP_LEVEL)
     option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
     option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
-    add_subdirectory(external)
+    add_subdirectory(external/imgui_bundle)
 endif()
 
 add_subdirectory(src)
