@@ -18,6 +18,10 @@
 #include <vector>
 #include <iostream>
 
+#ifndef IMMVISION_VERSION
+#define IMMVISION_VERSION "unknown version"
+#endif
+
 namespace ImmVision
 {
     void ClearTextureCache()
