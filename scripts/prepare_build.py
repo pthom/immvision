@@ -29,18 +29,8 @@ def _install_opencv_conan(build_folder):
     ci_utils.run(f"conan install {conan_file} --build missing")
 
 
-def _install_opencv_package():
-    if platform.system() == "Darwin":
-        ci_utils.run("brew install opencv")
-
-
 def prepare_build(build_folder="build", with_conan: bool = True):
-    ci_utils.do_clone_repo("https://github.com/pthom/imgui_bundle.git", "imgui_bundle", pull=True, init_submodules=True)
-    if with_conan:
-        _install_opencv_conan(build_folder)
-    else:
-        _install_opencv_package()
-
+    _install_opencv_conan(build_folder)
 
 
 if __name__ == "__main__":
