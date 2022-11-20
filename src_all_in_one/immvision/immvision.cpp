@@ -9917,7 +9917,9 @@ namespace ImmVision
 
         KeyType ImageTextureCache::GetID(const std::string& id_label)
         {
-            return hash_str(id_label);
+            ImGuiID id = ImGui::GetID(id_label.c_str());
+            return (KeyType)id;
+            //return hash_str(id_label);
         }
 
         ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const std::string& id_label)
@@ -10792,9 +10794,15 @@ namespace ImGuiImm
 //                       src/immvision/inspector.h included by src/immvision/internal/inspector.cpp             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// IMMVISION_API is a marker for public API functions. IMMVISION_STRUCT_API is a marker for public API structs (in comment lines)
+// Usage of ImmVision as a shared library is not recommended. No guaranty of ABI stability is provided
+#ifndef IMMVISION_API
+#define IMMVISION_API
+#endif
+
 namespace ImmVision
 {
-    void Inspector_AddImage(
+    IMMVISION_API void Inspector_AddImage(
         const cv::Mat& image,
         const std::string& legend,
         const std::string& zoomKey = "",
@@ -10803,8 +10811,10 @@ namespace ImmVision
         double zoomRatio = -1.,
         bool isColorOrderBGR = true
     );
-    void Inspector_Show();
-    void Inspector_ClearImages();
+
+    IMMVISION_API void Inspector_Show();
+
+    IMMVISION_API void Inspector_ClearImages();
 
 } // namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -161,7 +161,9 @@ namespace ImmVision
 
         KeyType ImageTextureCache::GetID(const std::string& id_label)
         {
-            return hash_str(id_label);
+            ImGuiID id = ImGui::GetID(id_label.c_str());
+            return (KeyType)id;
+            //return hash_str(id_label);
         }
 
         ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const std::string& id_label)
