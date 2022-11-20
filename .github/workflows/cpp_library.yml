@@ -1,0 +1,44 @@
+name: "CppLib"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+      - dev
+      - imgui_bundle
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: "10.15"
+
+jobs:
+  build:
+    name: Build Cpp Library
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+         platform: [windows-2019, macos-latest, ubuntu-latest]
+         # platform: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+
+#    - name: Setup interactive tmate session
+#      uses: mxschmitt/action-tmate@v3
+
+    - name: install linux deps on ubuntu
+      run: ./scripts/install_linux_deps.sh
+
+    - name: prepare_build
+      run: python3 ./scripts/prepare_build.py
+
+    - name: Build
+      run: |
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake --build . --config Release

@@ -3,9 +3,12 @@ cmake-build*/
 .idea/
 *.7z
 venv/
+venv*./
 venv_docker/
 install/
 .vscode/
 _skbuild/
 **/imgui.ini
 **/imgui_app_window.ini
+.DS_Store
+__pycache__

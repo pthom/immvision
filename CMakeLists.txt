@@ -7,35 +7,39 @@ project(immvision
 
 set(CMAKE_CXX_STANDARD 17)
 
-option(IMMVISION_BUILD_PYTHON_BINDINGS "Build Python bindings for immvision" OFF)
-if (SKBUILD)
-    set(IMMVISION_BUILD_PYTHON_BINDINGS ON CACHE BOOL "" FORCE)
-endif()
-
 set(IMMVISION_VERSION ${PROJECT_VERSION})
 add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")
 
-if (IMMVISION_BUILD_PYTHON_BINDINGS)
-    include("${CMAKE_CURRENT_LIST_DIR}/pybind/pybind_cmake.cmake")
-endif()
-
-if (NOT SKBUILD)
-    option(IMMVISION_BUILD_IMGUI "Build imgui" ON)
-    option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
-
-
-    # Advanced option: use powersave mode for imgui: see PR https://github.com/ocornut/imgui/pull/4076
-    # This PR was adapted to imgui docking version of March 2022 here: https://github.com/pthom/imgui/tree/docking_powersave
-    # only use if your version of imgui has this mode!
-    option(IMMVISION_USE_POWERSAVE "use powersave mode for imgui" OFF)
-
-    option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
-
-    # For conan, add binary dir to module search path
+# For conan, add binary dir to module search path
+option(IMMVISION_USE_CONAN "Use conan to get opencv" ON)
+if (IMMVISION_USE_CONAN)
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
-
-    add_subdirectory(external)
-    add_subdirectory(src)
-    add_subdirectory(src_all_in_one)
-
 endif()
+
+if(PROJECT_IS_TOP_LEVEL)
+    option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
+    option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
+else()
+    message(FATAL_ERROR "NoK")
+    option(IMMVISION_BUILD_DEMOS "Build immvision demos" OFF)
+endif()
+
+
+if (IMMVISION_BUILD_DEMOS)
+    set(HELLOIMGUI_WITH_SDL OFF CACHE BOOL "" FORCE)
+    set(HELLOIMGUI_WITH_GLFW ON CACHE BOOL "" FORCE)
+    include(FetchContent)
+    FetchContent_Declare(
+        hello_imgui
+        GIT_REPOSITORY https://github.com/pthom/hello_imgui.git
+        # Enter the desired git tag below
+        # GIT_TAG 0.8.0
+    )
+    FetchContent_MakeAvailable(hello_imgui)
+    # Make cmake function `hello_imgui_add_app` available
+    list(APPEND CMAKE_MODULE_PATH ${HELLOIMGUI_CMAKE_PATH})
+    include(hello_imgui_add_app)
+endif()
+
+add_subdirectory(src)
+add_subdirectory(src_all_in_one)

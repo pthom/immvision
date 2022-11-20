@@ -18,6 +18,10 @@
 #include <vector>
 #include <iostream>
 
+#ifndef IMMVISION_VERSION
+#define IMMVISION_VERSION "unknown version"
+#endif
+
 namespace ImmVision
 {
     void ClearTextureCache()
@@ -561,5 +565,11 @@ namespace ImmVision
         return Colormap::AvailableColormaps();
     }
 
+
+    cv::Mat GetCachedRgbaImage(const std::string& label_id)
+    {
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(label_id).ImageRgbaCache;
+        return r;
+    }
 
 } // namespace ImmVision

@@ -14,12 +14,18 @@
 #include <string>
 
 
+// IMMVISION_API is a marker for public API functions. IMMVISION_STRUCT_API is a marker for public API structs (in comment lines)
+// Usage of ImmVision as a shared library is not recommended. No guaranty of ABI stability is provided
+#ifndef IMMVISION_API
+#define IMMVISION_API
+#endif
+
+
 namespace ImmVision
 {
 
-    // !pydef_struct
     // Scale the Colormap according to the Image  stats
-    struct ColormapScaleFromStatsData
+    struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
         // Are we using the stats on the full image?
         // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
@@ -30,16 +36,15 @@ namespace ImmVision
         bool   ActiveOnROI = false;
         // If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
-        // If [Min | Max]AsLowerBound is true, then ColormapScale[Min | Max] will be calculated from
-        // the matrix min max values instead of a sigma based value
-        bool MinAsLowerBound = false;
-        bool MaxAsLowerBound = false;
+        // If UseStatsMin is true, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
+        bool UseStatsMin = false;
+        // If UseStatsMin is true, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value
+        bool UseStatsMax = false;
     };
 
 
-    // !pydef_struct
     // Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)
-    struct ColormapSettingsData
+    struct ColormapSettingsData                                                                 // IMMVISION_API_STRUCT
     {
         // Colormap, see available Colormaps with AvailableColormaps()
         // Work only with 1 channel matrices, i.e len(shape)==2
@@ -64,9 +69,8 @@ namespace ImmVision
     };
 
 
-    // !pydef_struct
     // Contains information about the mouse inside an image
-    struct MouseInformation
+    struct MouseInformation                                                                     // IMMVISION_API_STRUCT
     {
         // Is the mouse hovering the image
         bool IsMouseHovering = false;
@@ -85,9 +89,8 @@ namespace ImmVision
     };
 
 
-    // !pydef_struct
     // Set of display parameters and options for an Image
-    struct ImageParams
+    struct ImageParams                                                                           // IMMVISION_API_STRUCT
     {
         //
         // ImageParams store the parameters for a displayed image
@@ -184,21 +187,28 @@ namespace ImmVision
     };
 
 
-    // !pydef_function
     // Create ImageParams that display the image only, with no decoration, and no user interaction
-    ImageParams FactorImageParamsDisplayOnly();
+    IMMVISION_API ImageParams FactorImageParamsDisplayOnly();
 
 
-    // !pydef_function
     // Create a zoom/pan matrix centered around a given point of interest
-    cv::Matx33d MakeZoomPanMatrix(
-        const cv::Point2d & zoomCenter,
-        double zoomRatio,
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix(
+                        const cv::Point2d & zoomCenter,
+                        double zoomRatio,
+                        const cv::Size displayedImageSize
+    );
+
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_ScaleOne(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize
+    );
+
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_FullView(
+        cv::Size imageSize,
         const cv::Size displayedImageSize
     );
 
 
-    // !pydef_function
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
     // :param label_id
@@ -232,10 +242,9 @@ namespace ImmVision
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    void Image(const std::string& label_id, const cv::Mat& mat, ImageParams* params);
+    IMMVISION_API void Image(const std::string& label_id, const cv::Mat& mat, ImageParams* params);
 
 
-    // !pydef_function
     // Only, display the image, with no decoration, and no user interaction (by default)
     //
     // Parameters:
@@ -279,7 +288,7 @@ namespace ImmVision
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
-    cv::Point2d ImageDisplay(
+    IMMVISION_API cv::Point2d ImageDisplay(
         const std::string& label_id,
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
@@ -289,24 +298,24 @@ namespace ImmVision
         );
 
 
-    // !pydef_function
     // Return the list of the available color maps
     // Taken from https://github.com/yuki-koyama/tinycolormap, thanks to Yuki Koyama
-    std::vector<std::string> AvailableColormaps();
+    IMMVISION_API std::vector<std::string> AvailableColormaps();
 
 
-// !pydef_function
     // Clears the internal texture cache of immvision (this is done automatically at exit time)
     //
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    void ClearTextureCache();
+    IMMVISION_API void ClearTextureCache();
 
+    // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
+    // Note: this image must be currently displayed. This function will return the transformed image
+    // (i.e with ColorMap, Zoom, etc.)
+    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label_id);
 
-    // !pydef_function
     // Return immvision version info
-    std::string VersionInfo();
-
+    IMMVISION_API std::string VersionInfo();
 
 
 } // namespace ImmVision

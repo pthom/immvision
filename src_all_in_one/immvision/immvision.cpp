@@ -18,12 +18,18 @@
 #include <string>
 
 
+// IMMVISION_API is a marker for public API functions. IMMVISION_STRUCT_API is a marker for public API structs (in comment lines)
+// Usage of ImmVision as a shared library is not recommended. No guaranty of ABI stability is provided
+#ifndef IMMVISION_API
+#define IMMVISION_API
+#endif
+
+
 namespace ImmVision
 {
 
-    // !pydef_struct
     // Scale the Colormap according to the Image  stats
-    struct ColormapScaleFromStatsData
+    struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
         // Are we using the stats on the full image?
         // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
@@ -34,16 +40,15 @@ namespace ImmVision
         bool   ActiveOnROI = false;
         // If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
-        // If [Min | Max]AsLowerBound is true, then ColormapScale[Min | Max] will be calculated from
-        // the matrix min max values instead of a sigma based value
-        bool MinAsLowerBound = false;
-        bool MaxAsLowerBound = false;
+        // If UseStatsMin is true, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
+        bool UseStatsMin = false;
+        // If UseStatsMin is true, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value
+        bool UseStatsMax = false;
     };
 
 
-    // !pydef_struct
     // Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)
-    struct ColormapSettingsData
+    struct ColormapSettingsData                                                                 // IMMVISION_API_STRUCT
     {
         // Colormap, see available Colormaps with AvailableColormaps()
         // Work only with 1 channel matrices, i.e len(shape)==2
@@ -68,9 +73,8 @@ namespace ImmVision
     };
 
 
-    // !pydef_struct
     // Contains information about the mouse inside an image
-    struct MouseInformation
+    struct MouseInformation                                                                     // IMMVISION_API_STRUCT
     {
         // Is the mouse hovering the image
         bool IsMouseHovering = false;
@@ -89,9 +93,8 @@ namespace ImmVision
     };
 
 
-    // !pydef_struct
     // Set of display parameters and options for an Image
-    struct ImageParams
+    struct ImageParams                                                                           // IMMVISION_API_STRUCT
     {
         //
         // ImageParams store the parameters for a displayed image
@@ -188,21 +191,28 @@ namespace ImmVision
     };
 
 
-    // !pydef_function
     // Create ImageParams that display the image only, with no decoration, and no user interaction
-    ImageParams FactorImageParamsDisplayOnly();
+    IMMVISION_API ImageParams FactorImageParamsDisplayOnly();
 
 
-    // !pydef_function
     // Create a zoom/pan matrix centered around a given point of interest
-    cv::Matx33d MakeZoomPanMatrix(
-        const cv::Point2d & zoomCenter,
-        double zoomRatio,
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix(
+                        const cv::Point2d & zoomCenter,
+                        double zoomRatio,
+                        const cv::Size displayedImageSize
+    );
+
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_ScaleOne(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize
+    );
+
+    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_FullView(
+        cv::Size imageSize,
         const cv::Size displayedImageSize
     );
 
 
-    // !pydef_function
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
     // :param label_id
@@ -236,10 +246,9 @@ namespace ImmVision
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    void Image(const std::string& label_id, const cv::Mat& mat, ImageParams* params);
+    IMMVISION_API void Image(const std::string& label_id, const cv::Mat& mat, ImageParams* params);
 
 
-    // !pydef_function
     // Only, display the image, with no decoration, and no user interaction (by default)
     //
     // Parameters:
@@ -283,7 +292,7 @@ namespace ImmVision
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
-    cv::Point2d ImageDisplay(
+    IMMVISION_API cv::Point2d ImageDisplay(
         const std::string& label_id,
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
@@ -293,24 +302,24 @@ namespace ImmVision
         );
 
 
-    // !pydef_function
     // Return the list of the available color maps
     // Taken from https://github.com/yuki-koyama/tinycolormap, thanks to Yuki Koyama
-    std::vector<std::string> AvailableColormaps();
+    IMMVISION_API std::vector<std::string> AvailableColormaps();
 
 
-// !pydef_function
     // Clears the internal texture cache of immvision (this is done automatically at exit time)
     //
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    void ClearTextureCache();
+    IMMVISION_API void ClearTextureCache();
 
+    // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
+    // Note: this image must be currently displayed. This function will return the transformed image
+    // (i.e with ColorMap, Zoom, etc.)
+    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label_id);
 
-    // !pydef_function
     // Return immvision version info
-    std::string VersionInfo();
-
+    IMMVISION_API std::string VersionInfo();
 
 
 } // namespace ImmVision
@@ -4580,9 +4589,9 @@ namespace ImmVision
                 return false;
             if (fabs(v1.NbSigmas - v2.NbSigmas) > 1E-6)
                 return false;
-            if (v1.MinAsLowerBound != v2.MinAsLowerBound)
+            if (v1.UseStatsMin != v2.UseStatsMin)
                 return false;
-            if (v1.MaxAsLowerBound != v2.MaxAsLowerBound)
+            if (v1.UseStatsMax != v2.UseStatsMax)
                 return false;
             return true;
         }
@@ -4809,13 +4818,13 @@ namespace ImmVision
             else
                 imageStats = FillImageStats(m);
 
-            if (inout_settings->ColormapScaleFromStats.MinAsLowerBound)
+            if (inout_settings->ColormapScaleFromStats.UseStatsMin)
                 inout_settings->ColormapScaleMin = imageStats.min;
             else
                 inout_settings->ColormapScaleMin =
                     imageStats.mean - (double) inout_settings->ColormapScaleFromStats.NbSigmas * imageStats.stdev;
 
-            if (inout_settings->ColormapScaleFromStats.MaxAsLowerBound)
+            if (inout_settings->ColormapScaleFromStats.UseStatsMax)
                 inout_settings->ColormapScaleMax = imageStats.max;
             else
                 inout_settings->ColormapScaleMax =
@@ -5004,18 +5013,23 @@ namespace ImmVision
                 return;
             }
 
+            ImGui::Text("Image Stats");
             ImGui::Text("mean=%4lf stdev=%4lf", imageStats.mean, imageStats.stdev);
             ImGui::Text("min=%.4lf max=%.4lf", imageStats.min, imageStats.max);
             ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 1.f), "Current ColormapScale: Min=%.4lf Max=%.4lf",
                                inout_settings->ColormapScaleMin, inout_settings->ColormapScaleMax);
 
+            bool changed = false;
+
             ImGui::NewLine();
             ImGui::Text("Number of sigmas");
-            bool changed = false;
             changed |= ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 8., 150.f);
-            changed |= ImGui::Checkbox("Min as lower bound", &inout_settings->ColormapScaleFromStats.MinAsLowerBound);
+
+            ImGui::NewLine();
+            ImGui::TextWrapped("If UseStats[Min|Max] is true, then ColormapScale[Min|Max] will be calculated from the matrix [min|max] value instead of a sigma based value");
+            changed |= ImGui::Checkbox("Use stats min", &inout_settings->ColormapScaleFromStats.UseStatsMin);
             ImGui::SameLine();
-            changed |= ImGui::Checkbox("Max as lower bound", &inout_settings->ColormapScaleFromStats.MaxAsLowerBound);
+            changed |= ImGui::Checkbox("Use stats max", &inout_settings->ColormapScaleFromStats.UseStatsMax);
 
             if (isRoi)
             {
@@ -6221,6 +6235,20 @@ namespace ImmVision
     cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
     {
         return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
+    }
+
+    cv::Matx33d MakeZoomPanMatrix_ScaleOne(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize)
+    {
+        return ZoomPanTransform::MakeScaleOne(imageSize, displayedImageSize);
+    }
+
+    cv::Matx33d MakeZoomPanMatrix_FullView(
+        cv::Size imageSize,
+        const cv::Size displayedImageSize)
+    {
+        return ZoomPanTransform::MakeFullView(imageSize, displayedImageSize);
     }
 
 }
@@ -9171,6 +9199,10 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+#ifndef IMMVISION_VERSION
+#define IMMVISION_VERSION "unknown version"
+#endif
+
 namespace ImmVision
 {
     void ClearTextureCache()
@@ -9714,6 +9746,12 @@ namespace ImmVision
         return Colormap::AvailableColormaps();
     }
 
+
+    cv::Mat GetCachedRgbaImage(const std::string& label_id)
+    {
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(label_id).ImageRgbaCache;
+        return r;
+    }
 
 } // namespace ImmVision
 
@@ -11017,23 +11055,11 @@ namespace ImmVision
     
         std::string inner;
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
-        inner = inner + "active_on_full_image: " + ToString(v.ActiveOnFullImage) + "\n";
-        inner = inner + "active_on_roi: " + ToString(v.ActiveOnROI) + "\n";
-        inner = inner + "nb_sigmas: " + ToString(v.NbSigmas) + "\n";
-        inner = inner + "min_as_lower_bound: " + ToString(v.MinAsLowerBound) + "\n";
-        inner = inner + "max_as_lower_bound: " + ToString(v.MaxAsLowerBound) + "\n";
-
-#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
         inner = inner + "ActiveOnFullImage: " + ToString(v.ActiveOnFullImage) + "\n";
         inner = inner + "ActiveOnROI: " + ToString(v.ActiveOnROI) + "\n";
         inner = inner + "NbSigmas: " + ToString(v.NbSigmas) + "\n";
-        inner = inner + "MinAsLowerBound: " + ToString(v.MinAsLowerBound) + "\n";
-        inner = inner + "MaxAsLowerBound: " + ToString(v.MaxAsLowerBound) + "\n";
-
-#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
+        inner = inner + "UseStatsMin: " + ToString(v.UseStatsMin) + "\n";
+        inner = inner + "UseStatsMax: " + ToString(v.UseStatsMax) + "\n";
 
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -11051,23 +11077,11 @@ namespace ImmVision
     
         std::string inner;
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
-        inner = inner + "colormap: " + ToString(v.Colormap) + "\n";
-        inner = inner + "colormap_scale_min: " + ToString(v.ColormapScaleMin) + "\n";
-        inner = inner + "colormap_scale_max: " + ToString(v.ColormapScaleMax) + "\n";
-        inner = inner + "colormap_scale_from_stats: " + ToString(v.ColormapScaleFromStats) + "\n";
-        inner = inner + "internal_colormap_hovered: " + ToString(v.internal_ColormapHovered) + "\n";
-
-#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
         inner = inner + "Colormap: " + ToString(v.Colormap) + "\n";
         inner = inner + "ColormapScaleMin: " + ToString(v.ColormapScaleMin) + "\n";
         inner = inner + "ColormapScaleMax: " + ToString(v.ColormapScaleMax) + "\n";
         inner = inner + "ColormapScaleFromStats: " + ToString(v.ColormapScaleFromStats) + "\n";
         inner = inner + "internal_ColormapHovered: " + ToString(v.internal_ColormapHovered) + "\n";
-
-#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -11085,19 +11099,9 @@ namespace ImmVision
     
         std::string inner;
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
-        inner = inner + "is_mouse_hovering: " + ToString(v.IsMouseHovering) + "\n";
-        inner = inner + "mouse_position: " + ToString(v.MousePosition) + "\n";
-        inner = inner + "mouse_position_displayed: " + ToString(v.MousePosition_Displayed) + "\n";
-
-#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
         inner = inner + "IsMouseHovering: " + ToString(v.IsMouseHovering) + "\n";
         inner = inner + "MousePosition: " + ToString(v.MousePosition) + "\n";
         inner = inner + "MousePosition_Displayed: " + ToString(v.MousePosition_Displayed) + "\n";
-
-#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -11114,35 +11118,6 @@ namespace ImmVision
         r += "{\n";
     
         std::string inner;
-
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-
-        inner = inner + "refresh_image: " + ToString(v.RefreshImage) + "\n";
-        inner = inner + "image_display_size: " + ToString(v.ImageDisplaySize) + "\n";
-        inner = inner + "zoom_pan_matrix: " + ToString(v.ZoomPanMatrix) + "\n";
-        inner = inner + "zoom_key: " + ToString(v.ZoomKey) + "\n";
-        inner = inner + "colormap_settings: " + ToString(v.ColormapSettings) + "\n";
-        inner = inner + "colormap_key: " + ToString(v.ColormapKey) + "\n";
-        inner = inner + "pan_with_mouse: " + ToString(v.PanWithMouse) + "\n";
-        inner = inner + "zoom_with_mouse_wheel: " + ToString(v.ZoomWithMouseWheel) + "\n";
-        inner = inner + "is_color_order_bgr: " + ToString(v.IsColorOrderBGR) + "\n";
-        inner = inner + "selected_channel: " + ToString(v.SelectedChannel) + "\n";
-        inner = inner + "show_school_paper_background: " + ToString(v.ShowSchoolPaperBackground) + "\n";
-        inner = inner + "show_alpha_channel_checkerboard: " + ToString(v.ShowAlphaChannelCheckerboard) + "\n";
-        inner = inner + "show_grid: " + ToString(v.ShowGrid) + "\n";
-        inner = inner + "draw_values_on_zoomed_pixels: " + ToString(v.DrawValuesOnZoomedPixels) + "\n";
-        inner = inner + "show_image_info: " + ToString(v.ShowImageInfo) + "\n";
-        inner = inner + "show_pixel_info: " + ToString(v.ShowPixelInfo) + "\n";
-        inner = inner + "show_zoom_buttons: " + ToString(v.ShowZoomButtons) + "\n";
-        inner = inner + "show_options_panel: " + ToString(v.ShowOptionsPanel) + "\n";
-        inner = inner + "show_options_in_tooltip: " + ToString(v.ShowOptionsInTooltip) + "\n";
-        inner = inner + "show_options_button: " + ToString(v.ShowOptionsButton) + "\n";
-        inner = inner + "watched_pixels: " + ToString(v.WatchedPixels) + "\n";
-        inner = inner + "add_watched_pixel_on_double_click: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
-        inner = inner + "highlight_watched_pixels: " + ToString(v.HighlightWatchedPixels) + "\n";
-        inner = inner + "mouse_info: " + ToString(v.MouseInfo) + "\n";
-
-#else // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         inner = inner + "RefreshImage: " + ToString(v.RefreshImage) + "\n";
         inner = inner + "ImageDisplaySize: " + ToString(v.ImageDisplaySize) + "\n";
@@ -11168,8 +11143,6 @@ namespace ImmVision
         inner = inner + "AddWatchedPixelOnDoubleClick: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";
-
-#endif // #ifdef IMMVISION_BUILD_PYTHON_BINDINGS
 
         r = r + IndentLines(inner, 4);
         r += "}";
@@ -11541,17 +11514,10 @@ namespace ImmVision
             return ToString((double)v);
         }
 
-#ifdef IMMVISION_BUILD_PYTHON_BINDINGS
-        std::string ToString(bool v)
-        {
-            return (v ? "True" : "False");
-        }
-#else
         std::string ToString(bool v)
         {
             return (v ? "true" : "false");
         }
-#endif
 
     } // namespace StringUtils
 } // namespace ImmVision

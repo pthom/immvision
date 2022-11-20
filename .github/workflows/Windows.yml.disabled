@@ -1,0 +1,31 @@
+name: Windows
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+
+    - name: Download precompiled vcpkg
+      run: |
+        cd external
+        C:\msys64\usr\bin\wget.exe https://traineq.org/ImmvisionGithubFiles/vcpkg_nt.7z
+        7z x vcpkg_nt.7z
+
+    - name: Configure and build x64
+      run: |
+        mkdir build_x64
+        cd build_x64
+        python ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True --build_32bits=False -run_build_all
+
+    - name: Configure and build x86
+      run: |
+        mkdir build_x86
+        cd build_x86
+        python ../scripts/build_utilities.py run --use_vcpkg=True --vcpkg_bypass_install=True --build_32bits=True -run_build_all

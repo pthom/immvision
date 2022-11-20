@@ -1,0 +1,134 @@
+{
+    "params_list": [
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "None",
+            "coords": [
+                -0.5,
+                0.0
+            ],
+            "image_file": "centre.jpg",
+            "max_iterations": 1400,
+            "name": "Au centre, rien à voir",
+            "smooth_colors": false,
+            "zoom": 1.0
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Hot",
+            "coords": [
+                0.27668094779430163,
+                0.008101875630718678
+            ],
+            "image_file": "alien.jpg",
+            "max_iterations": 1400,
+            "name": "Aliens",
+            "smooth_colors": false,
+            "zoom": 140210.64691527165
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Parula",
+            "coords": [
+                0.2842921050702919,
+                -0.013582736321369538
+            ],
+            "image_file": "fougeres.jpg",
+            "max_iterations": 1400,
+            "name": "Des fougères ?",
+            "smooth_colors": false,
+            "zoom": 1875396656410.5059
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Jet",
+            "coords": [
+                -0.7961073900746515,
+                -0.18324251614029363
+            ],
+            "image_file": "fleurs.jpg",
+            "max_iterations": 1400,
+            "name": "Des fleurs ?",
+            "smooth_colors": true,
+            "zoom": 12297024368713.648
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Jet",
+            "coords": [
+                -0.7489866773629458,
+                0.0557677707850117
+            ],
+            "image_file": "pieuvres.jpg",
+            "max_iterations": 1400,
+            "name": "Pieuvres",
+            "smooth_colors": true,
+            "zoom": 290740.79744350753
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Magma",
+            "coords": [
+                -0.6584458959645855,
+                -0.4668502291946268
+            ],
+            "image_file": "mandelfeux.jpg",
+            "max_iterations": 1400,
+            "name": "minimandels et feux d'artifice",
+            "smooth_colors": false,
+            "zoom": 5599904409695.2705
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Gray",
+            "coords": [
+                -0.7151814853282958,
+                -0.2300242807571442
+            ],
+            "image_file": "dragons.jpg",
+            "max_iterations": 1748,
+            "name": "Dragons",
+            "smooth_colors": false,
+            "zoom": 41607758514562.26
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Heat",
+            "coords": [
+                -1.999943522417623,
+                7.797926036706406e-11
+            ],
+            "image_file": "psyche.jpg",
+            "max_iterations": 1400,
+            "name": "psychedelique\u0000n à voir",
+            "smooth_colors": false,
+            "zoom": 1875396656410.5132
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Heat",
+            "coords": [
+                -0.5963609484138049,
+                0.6627496361468662
+            ],
+            "image_file": "miro.jpg",
+            "max_iterations": 1400,
+            "name": "Miro",
+            "smooth_colors": false,
+            "zoom": 517761674048.91895
+        },
+        {
+            "automatic_iterations_increase": true,
+            "colormap_name": "Magma",
+            "coords": [
+                0.28443003463171357,
+                -0.012730088053867291
+            ],
+            "image_file": "singes.jpg",
+            "max_iterations": 1400,
+            "name": "Des singes (it=1200, zoom=5E10)",
+            "smooth_colors": false,
+            "zoom": 40764955294.2161
+        }
+    ]
+}
