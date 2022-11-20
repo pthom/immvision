@@ -20,7 +20,6 @@ if(PROJECT_IS_TOP_LEVEL)
     option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
     option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
 else()
-    message(FATAL_ERROR "NoK")
     option(IMMVISION_BUILD_DEMOS "Build immvision demos" OFF)
 endif()
 
