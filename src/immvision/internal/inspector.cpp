@@ -58,7 +58,7 @@ namespace ImmVision
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
                 auto id = ImageCache::gImageTextureCache.GetID(s_Inspector_ImagesAndParams[i].Label);
-                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(id);
+                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();

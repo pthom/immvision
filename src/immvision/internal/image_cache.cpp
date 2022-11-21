@@ -103,7 +103,7 @@ namespace ImmVision
 
             // Get caches
             CachedParams& cachedParams = mCacheParams.Get(id);
-            CachedImages& cachedImage = mCacheImages.Get(id);
+            CachedImageAndTexture& cachedImage = mCacheImages.Get(id);
             cachedParams.ParamsPtr = params;
             ImageParams oldParams = cachedParams.PreviousParams;
 
@@ -168,7 +168,7 @@ namespace ImmVision
         {
             return mCacheParams.Get(id);
         }
-        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(KeyType id)
+        ImageTextureCache::CachedImageAndTexture& ImageTextureCache::GetCacheImageAndTexture(KeyType id)
         {
             return mCacheImages.Get(id);
         }

@@ -9147,7 +9147,7 @@ namespace ImmVision
                 bool   IsMouseDragging = false;
                 struct ImageParams  PreviousParams;
             };
-            struct CachedImages
+            struct CachedImageAndTexture
             {
                 // This caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
@@ -9161,7 +9161,7 @@ namespace ImmVision
 
             bool UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh);
             CachedParams& GetCacheParams(KeyType id);
-            CachedImages& GetCacheImages(KeyType id);
+            CachedImageAndTexture& GetCacheImageAndTexture(KeyType id);
 
             void ClearImagesCache();
 
@@ -9174,7 +9174,7 @@ namespace ImmVision
 
             internal::Cache<KeyType, CachedParams> mCacheParams;
             double mCachedImagesTimeToLive = 5.;
-            internal::ShortLivedCache<KeyType, CachedImages> mCacheImages { mCachedImagesTimeToLive };
+            internal::ShortLivedCache<KeyType, CachedImageAndTexture> mCacheImages {mCachedImagesTimeToLive };
         };
 
         extern ImageTextureCache gImageTextureCache;
@@ -9229,7 +9229,7 @@ namespace ImmVision
         // If your editor is able to collapse the lambda definitions, you will see the structure.
 
         using CachedParams = ImageCache::ImageTextureCache::CachedParams;
-        using CachedImages = ImageCache::ImageTextureCache::CachedImages;
+        using CachedImages = ImageCache::ImageTextureCache::CachedImageAndTexture;
 
         //
         // Lambda / is Label visible
@@ -9668,7 +9668,7 @@ namespace ImmVision
             auto id = ImageCache::gImageTextureCache.GetID(label);
             bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(id);
-            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(id);
+            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
 
             // Handle Colormap
@@ -9755,7 +9755,7 @@ namespace ImmVision
     cv::Mat GetCachedRgbaImage(const std::string& label)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label);
-        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(id).ImageRgbaCache;
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).ImageRgbaCache;
         return r;
     }
 
@@ -9865,7 +9865,7 @@ namespace ImmVision
 
             // Get caches
             CachedParams& cachedParams = mCacheParams.Get(id);
-            CachedImages& cachedImage = mCacheImages.Get(id);
+            CachedImageAndTexture& cachedImage = mCacheImages.Get(id);
             cachedParams.ParamsPtr = params;
             ImageParams oldParams = cachedParams.PreviousParams;
 
@@ -9930,7 +9930,7 @@ namespace ImmVision
         {
             return mCacheParams.Get(id);
         }
-        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(KeyType id)
+        ImageTextureCache::CachedImageAndTexture& ImageTextureCache::GetCacheImageAndTexture(KeyType id)
         {
             return mCacheImages.Get(id);
         }
@@ -10875,7 +10875,7 @@ namespace ImmVision
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
                 auto id = ImageCache::gImageTextureCache.GetID(s_Inspector_ImagesAndParams[i].Label);
-                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(id);
+                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();

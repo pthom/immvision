@@ -23,7 +23,7 @@ namespace ImmVision
                 bool   IsMouseDragging = false;
                 struct ImageParams  PreviousParams;
             };
-            struct CachedImages
+            struct CachedImageAndTexture
             {
                 // This caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
@@ -37,7 +37,7 @@ namespace ImmVision
 
             bool UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh);
             CachedParams& GetCacheParams(KeyType id);
-            CachedImages& GetCacheImages(KeyType id);
+            CachedImageAndTexture& GetCacheImageAndTexture(KeyType id);
 
             void ClearImagesCache();
 
@@ -50,7 +50,7 @@ namespace ImmVision
 
             internal::Cache<KeyType, CachedParams> mCacheParams;
             double mCachedImagesTimeToLive = 5.;
-            internal::ShortLivedCache<KeyType, CachedImages> mCacheImages { mCachedImagesTimeToLive };
+            internal::ShortLivedCache<KeyType, CachedImageAndTexture> mCacheImages {mCachedImagesTimeToLive };
         };
 
         extern ImageTextureCache gImageTextureCache;

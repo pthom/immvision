@@ -45,7 +45,7 @@ namespace ImmVision
         // If your editor is able to collapse the lambda definitions, you will see the structure.
 
         using CachedParams = ImageCache::ImageTextureCache::CachedParams;
-        using CachedImages = ImageCache::ImageTextureCache::CachedImages;
+        using CachedImages = ImageCache::ImageTextureCache::CachedImageAndTexture;
 
         //
         // Lambda / is Label visible
@@ -484,7 +484,7 @@ namespace ImmVision
             auto id = ImageCache::gImageTextureCache.GetID(label);
             bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(id);
-            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(id);
+            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
 
             // Handle Colormap
@@ -571,7 +571,7 @@ namespace ImmVision
     cv::Mat GetCachedRgbaImage(const std::string& label)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label);
-        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(id).ImageRgbaCache;
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).ImageRgbaCache;
         return r;
     }
 
