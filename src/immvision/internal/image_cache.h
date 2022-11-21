@@ -31,9 +31,8 @@ namespace ImmVision
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
-
             // returns true if new entry
-            KeyType GetID(const std::string& id_label);
+            KeyType GetID(const std::string& id_label, bool use_id_stack);
 
             bool UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh);
             CachedParams& GetCacheParams(KeyType id);

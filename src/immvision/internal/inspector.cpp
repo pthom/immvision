@@ -23,7 +23,12 @@ namespace ImmVision
     };
 
     static std::vector<Inspector_ImageAndParams> s_Inspector_ImagesAndParams;
+    ImageCache::ImageTextureCache sInspectorImageTextureCache;
     static size_t s_Inspector_CurrentIndex = 0;
+
+    // In the inspector, we cannot rely on the ID stack, since calls to AddImages will have a different stack
+    // than when will later display the image
+    static bool sDontUseIdStack = false;
 
 
     void Inspector_AddImage(
@@ -43,13 +48,13 @@ namespace ImmVision
         params.ShowOptionsPanel = true;
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
-        auto id = ImageCache::gImageTextureCache.GetID(label);
-        s_Inspector_ImagesAndParams.push_back({id, label, image, params, zoomCenter, zoomRatio});
+        auto id = sInspectorImageTextureCache.GetID(label, sDontUseIdStack);
+        s_Inspector_ImagesAndParams.push_back({id, label, image.clone(), params, zoomCenter, zoomRatio});
 
         // bump cache
         {
             auto& imageAndParams = s_Inspector_ImagesAndParams.back();
-            ImageCache::gImageTextureCache.UpdateCache(id, imageAndParams.Image, &imageAndParams.Params, true);
+            sInspectorImageTextureCache.UpdateCache(id, imageAndParams.Image, &imageAndParams.Params, true);
         }
     }
 
@@ -65,8 +70,8 @@ namespace ImmVision
 
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
-                auto id = ImageCache::gImageTextureCache.GetID(imageAndParams.Label);
-                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
+                auto id = sInspectorImageTextureCache.GetID(imageAndParams.Label, sDontUseIdStack);
+                auto &cacheImage = sInspectorImageTextureCache.GetCacheImageAndTexture(id);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
@@ -102,7 +107,7 @@ namespace ImmVision
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
 
-                ImageCache::gImageTextureCache.UpdateCache(i.id, i.Image, &i.Params, true);
+                sInspectorImageTextureCache.UpdateCache(i.id, i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }
@@ -217,6 +222,8 @@ namespace ImmVision
     void Inspector_ClearImages()
     {
         s_Inspector_ImagesAndParams.clear();
+        sInspectorImageTextureCache.ClearImagesCache();
+        s_Inspector_CurrentIndex = 0;
     }
 
 }

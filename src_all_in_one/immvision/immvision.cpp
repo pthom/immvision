@@ -9155,9 +9155,8 @@ namespace ImmVision
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
-
             // returns true if new entry
-            KeyType GetID(const std::string& id_label);
+            KeyType GetID(const std::string& id_label, bool use_id_stack);
 
             bool UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh);
             CachedParams& GetCacheParams(KeyType id);
@@ -9201,6 +9200,37 @@ namespace ImmVision
 //                       src/immvision/internal/image.cpp continued                                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/inspector.h included by src/immvision/internal/image.cpp                 //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// IMMVISION_API is a marker for public API functions. IMMVISION_STRUCT_API is a marker for public API structs (in comment lines)
+// Usage of ImmVision as a shared library is not recommended. No guaranty of ABI stability is provided
+#ifndef IMMVISION_API
+#define IMMVISION_API
+#endif
+
+namespace ImmVision
+{
+    IMMVISION_API void Inspector_AddImage(
+        const cv::Mat& image,
+        const std::string& legend,
+        const std::string& zoomKey = "",
+        const std::string& colormapKey = "",
+        const cv::Point2d & zoomCenter = cv::Point2d(),
+        double zoomRatio = -1.,
+        bool isColorOrderBGR = true
+    );
+
+    IMMVISION_API void Inspector_Show();
+
+    IMMVISION_API void Inspector_ClearImages();
+
+} // namespace ImmVision
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/image.cpp continued                                             //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 #ifndef IMMVISION_VERSION
 #define IMMVISION_VERSION "unknown version"
@@ -9208,10 +9238,15 @@ namespace ImmVision
 
 namespace ImmVision
 {
+    // With Image and ImageDisplay we can rely on the ID stack,
+    // since calls to Image & ImageDisplay will have a reproducible id stack
+    static bool sDoUseIdStack = true;
+
     void ClearTextureCache()
     {
         ImageCache::gImageTextureCache.ClearImagesCache();
         Icons::ClearIconsTextureCache();
+        Inspector_ClearImages();
     }
 
 
@@ -9665,7 +9700,7 @@ namespace ImmVision
         ImGui::PushID(label.c_str());
         try
         {
-            auto id = ImageCache::gImageTextureCache.GetID(label);
+            auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
             bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(id);
             auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
@@ -9754,7 +9789,7 @@ namespace ImmVision
 
     cv::Mat GetCachedRgbaImage(const std::string& label)
     {
-        auto id = ImageCache::gImageTextureCache.GetID(label);
+        auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
         cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).ImageRgbaCache;
         return r;
     }
@@ -9920,10 +9955,17 @@ namespace ImmVision
             return isNewEntry;
         }
 
-        KeyType ImageTextureCache::GetID(const std::string& id_label)
+        KeyType ImageTextureCache::GetID(const std::string& id_label, bool use_id_stack)
         {
-            ImGuiID id = ImGui::GetID(id_label.c_str());
-            return id;
+            if (use_id_stack)
+            {
+                ImGuiID id = ImGui::GetID(id_label.c_str());
+                return id;
+            }
+            else
+            {
+                return hash_str(id_label);
+            }
         }
 
         ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(KeyType id)
@@ -10792,37 +10834,6 @@ namespace ImGuiImm
 //                       src/immvision/internal/inspector.cpp                                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/inspector.h included by src/immvision/internal/inspector.cpp             //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// IMMVISION_API is a marker for public API functions. IMMVISION_STRUCT_API is a marker for public API structs (in comment lines)
-// Usage of ImmVision as a shared library is not recommended. No guaranty of ABI stability is provided
-#ifndef IMMVISION_API
-#define IMMVISION_API
-#endif
-
-namespace ImmVision
-{
-    IMMVISION_API void Inspector_AddImage(
-        const cv::Mat& image,
-        const std::string& legend,
-        const std::string& zoomKey = "",
-        const std::string& colormapKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
-    );
-
-    IMMVISION_API void Inspector_Show();
-
-    IMMVISION_API void Inspector_ClearImages();
-
-} // namespace ImmVision
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/inspector.cpp continued                                         //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 
 namespace ImmVision
@@ -10840,7 +10851,12 @@ namespace ImmVision
     };
 
     static std::vector<Inspector_ImageAndParams> s_Inspector_ImagesAndParams;
+    ImageCache::ImageTextureCache sInspectorImageTextureCache;
     static size_t s_Inspector_CurrentIndex = 0;
+
+    // In the inspector, we cannot rely on the ID stack, since calls to AddImages will have a different stack
+    // than when will later display the image
+    static bool sDontUseIdStack = false;
 
 
     void Inspector_AddImage(
@@ -10860,13 +10876,13 @@ namespace ImmVision
         params.ShowOptionsPanel = true;
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
-        auto id = ImageCache::gImageTextureCache.GetID(label);
-        s_Inspector_ImagesAndParams.push_back({id, label, image, params, zoomCenter, zoomRatio});
+        auto id = sInspectorImageTextureCache.GetID(label, sDontUseIdStack);
+        s_Inspector_ImagesAndParams.push_back({id, label, image.clone(), params, zoomCenter, zoomRatio});
 
         // bump cache
         {
             auto& imageAndParams = s_Inspector_ImagesAndParams.back();
-            ImageCache::gImageTextureCache.UpdateCache(id, imageAndParams.Image, &imageAndParams.Params, true);
+            sInspectorImageTextureCache.UpdateCache(id, imageAndParams.Image, &imageAndParams.Params, true);
         }
     }
 
@@ -10882,8 +10898,8 @@ namespace ImmVision
 
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
-                auto id = ImageCache::gImageTextureCache.GetID(imageAndParams.Label);
-                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
+                auto id = sInspectorImageTextureCache.GetID(imageAndParams.Label, sDontUseIdStack);
+                auto &cacheImage = sInspectorImageTextureCache.GetCacheImageAndTexture(id);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
@@ -10919,7 +10935,7 @@ namespace ImmVision
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
 
-                ImageCache::gImageTextureCache.UpdateCache(i.id, i.Image, &i.Params, true);
+                sInspectorImageTextureCache.UpdateCache(i.id, i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }
@@ -11034,6 +11050,8 @@ namespace ImmVision
     void Inspector_ClearImages()
     {
         s_Inspector_ImagesAndParams.clear();
+        sInspectorImageTextureCache.ClearImagesCache();
+        s_Inspector_CurrentIndex = 0;
     }
 
 }

@@ -158,10 +158,17 @@ namespace ImmVision
             return isNewEntry;
         }
 
-        KeyType ImageTextureCache::GetID(const std::string& id_label)
+        KeyType ImageTextureCache::GetID(const std::string& id_label, bool use_id_stack)
         {
-            ImGuiID id = ImGui::GetID(id_label.c_str());
-            return id;
+            if (use_id_stack)
+            {
+                ImGuiID id = ImGui::GetID(id_label.c_str());
+                return id;
+            }
+            else
+            {
+                return hash_str(id_label);
+            }
         }
 
         ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(KeyType id)

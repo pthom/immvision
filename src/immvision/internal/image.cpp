@@ -11,6 +11,7 @@
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/misc/panic.h"
+#include "immvision/inspector.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -24,10 +25,15 @@
 
 namespace ImmVision
 {
+    // With Image and ImageDisplay we can rely on the ID stack,
+    // since calls to Image & ImageDisplay will have a reproducible id stack
+    static bool sDoUseIdStack = true;
+
     void ClearTextureCache()
     {
         ImageCache::gImageTextureCache.ClearImagesCache();
         Icons::ClearIconsTextureCache();
+        Inspector_ClearImages();
     }
 
 
@@ -481,7 +487,7 @@ namespace ImmVision
         ImGui::PushID(label.c_str());
         try
         {
-            auto id = ImageCache::gImageTextureCache.GetID(label);
+            auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
             bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(id);
             auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
@@ -570,7 +576,7 @@ namespace ImmVision
 
     cv::Mat GetCachedRgbaImage(const std::string& label)
     {
-        auto id = ImageCache::gImageTextureCache.GetID(label);
+        auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
         cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).ImageRgbaCache;
         return r;
     }
