@@ -513,14 +513,15 @@ namespace ImmVision
         bool showOptionsButton,
         bool isBgrOrBgra)
     {
-        static std::map<const cv::Mat *, ImageParams> s_Params;
-        if (s_Params.find(&mat) == s_Params.end())
+        ImGuiID id = ImGui::GetID(label_id.c_str());
+        static std::map<ImGuiID, ImageParams> s_Params;
+        if (s_Params.find(id) == s_Params.end())
         {
             ImageParams params = showOptionsButton ? ImageParams() : FactorImageParamsDisplayOnly();
-            s_Params[&mat] = params;
+            s_Params[id] = params;
         }
 
-        ImageParams& params = s_Params.at(&mat);
+        ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
