@@ -31,7 +31,7 @@ namespace ImmVision
     }
 
 
-    void Image(const std::string& label_id, const cv::Mat& image, ImageParams* params)
+    void Image(const std::string& label, const cv::Mat& image, ImageParams* params)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params).
@@ -50,10 +50,10 @@ namespace ImmVision
         //
         // Lambda / is Label visible
         //
-        auto fnIsLabelVisible = [&label_id]() -> bool {
-            if (label_id.empty())
+        auto fnIsLabelVisible = [&label]() -> bool {
+            if (label.empty())
                 return false;
-            if (label_id.find("##") == 0)
+            if (label.find("##") == 0)
                 return false;
             return true;
         };
@@ -457,7 +457,7 @@ namespace ImmVision
         {
             // BeginGroupPanel
             bool drawBorder =  fnIsLabelVisible();
-            std::string title = label_id + "##title";
+            std::string title = label + "##title";
             ImGuiImm::BeginGroupPanel_FlagBorder(title.c_str(), drawBorder);
             auto mouseInfo = fnShowFullGui(cacheParams, cacheImages);
             ImGuiImm::EndGroupPanel_FlagBorder();
@@ -473,17 +473,18 @@ namespace ImmVision
         if (image.empty())
         {
             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
-                               "%s -> empty image !!!", label_id.c_str());
+                               "%s -> empty image !!!", label.c_str());
             params->MouseInfo = MouseInformation();
             return;
         }
 
-        ImGui::PushID(label_id.c_str());
+        ImGui::PushID(label.c_str());
         try
         {
-            bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
-            auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
-            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
+            auto id = ImageCache::gImageTextureCache.GetID(label);
+            bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(id, image, params, params->RefreshImage);
+            auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(id);
+            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(id);
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
 
             // Handle Colormap
@@ -567,9 +568,10 @@ namespace ImmVision
     }
 
 
-    cv::Mat GetCachedRgbaImage(const std::string& label_id)
+    cv::Mat GetCachedRgbaImage(const std::string& label)
     {
-        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(label_id).ImageRgbaCache;
+        auto id = ImageCache::gImageTextureCache.GetID(label);
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(id).ImageRgbaCache;
         return r;
     }
 

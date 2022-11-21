@@ -215,12 +215,13 @@ namespace ImmVision
 
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
-    // :param label_id
+    // :param label
     //     A legend that will be displayed.
     //     Important notes:
     //         - With ImGui and ImmVision, widgets *must* have a unique Ids.
     //           For this widget, the id is given by this label.
     //           Two widgets (for example) two images *cannot* have the same label or the same id!
+    //           (you can use ImGui::PushID / ImGui::PopID to circumvent this, or add suffixes with ##)
     //
     //           If they do, they might not refresh correctly!
     //           To circumvent this, you can:
@@ -246,7 +247,7 @@ namespace ImmVision
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    IMMVISION_API void Image(const std::string& label_id, const cv::Mat& mat, ImageParams* params);
+    IMMVISION_API void Image(const std::string& label, const cv::Mat& mat, ImageParams* params);
 
 
     // Only, display the image, with no decoration, and no user interaction (by default)
@@ -316,7 +317,7 @@ namespace ImmVision
     // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
     // Note: this image must be currently displayed. This function will return the transformed image
     // (i.e with ColorMap, Zoom, etc.)
-    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label_id);
+    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label);
 
     // Return immvision version info
     IMMVISION_API std::string VersionInfo();
@@ -7029,7 +7030,7 @@ namespace ImmVision_GlProvider
     {
         static int counter = 0;
         ++counter;
-        std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
+        //std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
         glBindTexture(GL_TEXTURE_2D, textureId);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -7048,7 +7049,7 @@ namespace ImmVision_GlProvider
 
     unsigned int GenTexture()
     {
-        std::cout << "GenTexture()\n";
+        //std::cout << "GenTexture()\n";
         _AssertOpenGlLoaderWorking();
         GLuint textureId_Gl;
         glGenTextures(1, &textureId_Gl);
@@ -7057,7 +7058,7 @@ namespace ImmVision_GlProvider
 
     void DeleteTexture(unsigned int texture_id)
     {
-        std::cout << "DeleteTexture()\n";
+        //std::cout << "DeleteTexture()\n";
         _AssertOpenGlLoaderWorking();
         glDeleteTextures(1, &texture_id);
     }
@@ -9131,7 +9132,7 @@ namespace ImmVision
 {
     namespace ImageCache
     {
-        using KeyType = std::size_t;
+        using KeyType = ImGuiID;
 
         class ImageTextureCache
         {
@@ -9156,16 +9157,18 @@ namespace ImmVision
 
 
             // returns true if new entry
-            bool UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh);
             KeyType GetID(const std::string& id_label);
-            CachedParams& GetCacheParams(const std::string& id_label);
-            CachedImages& GetCacheImages(const std::string& id_label);
+
+            bool UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh);
+            CachedParams& GetCacheParams(KeyType id);
+            CachedImages& GetCacheImages(KeyType id);
+
             void ClearImagesCache();
 
         private:
             // Methods
-            void UpdateLinkedZooms(const std::string& id_label);
-            void UpdateLinkedColormapSettings(const std::string& id_label);
+            void UpdateLinkedZooms(KeyType id);
+            void UpdateLinkedColormapSettings(KeyType id);
             bool AddEntryIfMissing(KeyType key);
 
 
@@ -9212,7 +9215,7 @@ namespace ImmVision
     }
 
 
-    void Image(const std::string& label_id, const cv::Mat& image, ImageParams* params)
+    void Image(const std::string& label, const cv::Mat& image, ImageParams* params)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params).
@@ -9231,10 +9234,10 @@ namespace ImmVision
         //
         // Lambda / is Label visible
         //
-        auto fnIsLabelVisible = [&label_id]() -> bool {
-            if (label_id.empty())
+        auto fnIsLabelVisible = [&label]() -> bool {
+            if (label.empty())
                 return false;
-            if (label_id.find("##") == 0)
+            if (label.find("##") == 0)
                 return false;
             return true;
         };
@@ -9638,7 +9641,7 @@ namespace ImmVision
         {
             // BeginGroupPanel
             bool drawBorder =  fnIsLabelVisible();
-            std::string title = label_id + "##title";
+            std::string title = label + "##title";
             ImGuiImm::BeginGroupPanel_FlagBorder(title.c_str(), drawBorder);
             auto mouseInfo = fnShowFullGui(cacheParams, cacheImages);
             ImGuiImm::EndGroupPanel_FlagBorder();
@@ -9654,17 +9657,18 @@ namespace ImmVision
         if (image.empty())
         {
             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
-                               "%s -> empty image !!!", label_id.c_str());
+                               "%s -> empty image !!!", label.c_str());
             params->MouseInfo = MouseInformation();
             return;
         }
 
-        ImGui::PushID(label_id.c_str());
+        ImGui::PushID(label.c_str());
         try
         {
-            bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(label_id, image, params, params->RefreshImage);
-            auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(label_id);
-            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(label_id);
+            auto id = ImageCache::gImageTextureCache.GetID(label);
+            bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(id, image, params, params->RefreshImage);
+            auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(id);
+            auto &cacheImages = ImageCache::gImageTextureCache.GetCacheImages(id);
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
 
             // Handle Colormap
@@ -9694,14 +9698,15 @@ namespace ImmVision
         bool showOptionsButton,
         bool isBgrOrBgra)
     {
-        static std::map<const cv::Mat *, ImageParams> s_Params;
-        if (s_Params.find(&mat) == s_Params.end())
+        ImGuiID id = ImGui::GetID(label_id.c_str());
+        static std::map<ImGuiID, ImageParams> s_Params;
+        if (s_Params.find(id) == s_Params.end())
         {
             ImageParams params = showOptionsButton ? ImageParams() : FactorImageParamsDisplayOnly();
-            s_Params[&mat] = params;
+            s_Params[id] = params;
         }
 
-        ImageParams& params = s_Params.at(&mat);
+        ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
@@ -9747,9 +9752,10 @@ namespace ImmVision
     }
 
 
-    cv::Mat GetCachedRgbaImage(const std::string& label_id)
+    cv::Mat GetCachedRgbaImage(const std::string& label)
     {
-        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(label_id).ImageRgbaCache;
+        auto id = ImageCache::gImageTextureCache.GetID(label);
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImages(id).ImageRgbaCache;
         return r;
     }
 
@@ -9852,15 +9858,14 @@ namespace ImmVision
         }
 
 
-        bool ImageTextureCache::UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh)
+        bool ImageTextureCache::UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
             // Update cache entries
-            auto cacheKey = GetID(id_label);
-            bool isNewEntry = AddEntryIfMissing(cacheKey);
+            bool isNewEntry = AddEntryIfMissing(id);
 
             // Get caches
-            CachedParams& cachedParams = mCacheParams.Get(cacheKey);
-            CachedImages& cachedImage = mCacheImages.Get(cacheKey);
+            CachedParams& cachedParams = mCacheParams.Get(id);
+            CachedImages& cachedImage = mCacheImages.Get(id);
             cachedParams.ParamsPtr = params;
             ImageParams oldParams = cachedParams.PreviousParams;
 
@@ -9905,9 +9910,9 @@ namespace ImmVision
             }
 
             if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
-                UpdateLinkedZooms(id_label);
+                UpdateLinkedZooms(id);
             if (! Colormap::IsEqual(oldParams.ColormapSettings, params->ColormapSettings))
-                UpdateLinkedColormapSettings(id_label);
+                UpdateLinkedColormapSettings(id);
 
             cachedParams.PreviousParams = *params;
             mCacheImages.ClearOldEntries();
@@ -9918,17 +9923,16 @@ namespace ImmVision
         KeyType ImageTextureCache::GetID(const std::string& id_label)
         {
             ImGuiID id = ImGui::GetID(id_label.c_str());
-            return (KeyType)id;
-            //return hash_str(id_label);
+            return id;
         }
 
-        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const std::string& id_label)
+        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(KeyType id)
         {
-            return mCacheParams.Get(GetID(id_label));
+            return mCacheParams.Get(id);
         }
-        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const std::string& id_label)
+        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(KeyType id)
         {
-            return mCacheImages.Get(GetID(id_label));
+            return mCacheImages.Get(id);
         }
 
         void ImageTextureCache::ClearImagesCache()
@@ -9936,10 +9940,9 @@ namespace ImmVision
             mCacheImages.Clear();
         }
 
-        void ImageTextureCache::UpdateLinkedZooms(const std::string& id_label)
+        void ImageTextureCache::UpdateLinkedZooms(KeyType id)
         {
-            auto currentCacheKey = GetID(id_label);
-            auto & currentCache = mCacheParams.Get(currentCacheKey);
+            auto & currentCache = mCacheParams.Get(id);
             std::string zoomKey = currentCache.ParamsPtr->ZoomKey;
             if (zoomKey.empty())
                 return;
@@ -9947,14 +9950,13 @@ namespace ImmVision
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
+                if ((otherCacheKey != id) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
                     otherCache.ParamsPtr->ZoomPanMatrix = newZoom;
             }
         }
-        void ImageTextureCache::UpdateLinkedColormapSettings(const std::string& id_label)
+        void ImageTextureCache::UpdateLinkedColormapSettings(KeyType id)
         {
-            auto currentCacheKey = GetID(id_label);
-            auto & currentCache = mCacheParams.Get(currentCacheKey);
+            auto & currentCache = mCacheParams.Get(id);
             std::string colormapKey = currentCache.ParamsPtr->ColormapKey;
             if (colormapKey.empty())
                 return;
@@ -9962,7 +9964,7 @@ namespace ImmVision
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.ParamsPtr->ColormapKey == colormapKey))
+                if ((otherCacheKey != id) && (otherCache.ParamsPtr->ColormapKey == colormapKey))
                     otherCache.ParamsPtr->ColormapSettings = newColorAdjustments;
             }
         }
@@ -10827,6 +10829,7 @@ namespace ImmVision
 {
     struct Inspector_ImageAndParams
     {
+        ImageCache::KeyType id;
         std::string Label;
         cv::Mat Image;
         ImageParams Params;
@@ -10857,7 +10860,8 @@ namespace ImmVision
         params.ShowOptionsPanel = true;
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
-        s_Inspector_ImagesAndParams.push_back({label, image, params, zoomCenter, zoomRatio});
+        auto id = ImageCache::gImageTextureCache.GetID(label);
+        s_Inspector_ImagesAndParams.push_back({id, label, image, params, zoomCenter, zoomRatio});
     }
 
     void priv_Inspector_ShowImagesListbox(float width)
@@ -10870,14 +10874,15 @@ namespace ImmVision
             {
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
-                std::string id = s_Inspector_ImagesAndParams[i].Label + "##_" + std::to_string(i);
-                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(
-                    s_Inspector_ImagesAndParams[i].Label);
+                auto id = ImageCache::gImageTextureCache.GetID(s_Inspector_ImagesAndParams[i].Label);
+                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(id);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
                 ImVec2 pos = ImGui::GetCursorScreenPos();
-                if (ImGui::Selectable(id.c_str(), is_selected, 0, itemSize))
+
+                std::string id_selectable = s_Inspector_ImagesAndParams[i].Label + "##_" + std::to_string(i);
+                if (ImGui::Selectable(id_selectable.c_str(), is_selected, 0, itemSize))
                     s_Inspector_CurrentIndex = i;
 
                 float imageRatio = cacheImage.GlTexture->mImageSize.x / cacheImage.GlTexture->mImageSize.y;
@@ -10906,7 +10911,7 @@ namespace ImmVision
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
 
-                ImageCache::gImageTextureCache.UpdateCache(i.Label, i.Image, &i.Params, true);
+                ImageCache::gImageTextureCache.UpdateCache(i.id, i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }

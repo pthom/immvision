@@ -96,15 +96,14 @@ namespace ImmVision
         }
 
 
-        bool ImageTextureCache::UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh)
+        bool ImageTextureCache::UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh)
         {
             // Update cache entries
-            auto cacheKey = GetID(id_label);
-            bool isNewEntry = AddEntryIfMissing(cacheKey);
+            bool isNewEntry = AddEntryIfMissing(id);
 
             // Get caches
-            CachedParams& cachedParams = mCacheParams.Get(cacheKey);
-            CachedImages& cachedImage = mCacheImages.Get(cacheKey);
+            CachedParams& cachedParams = mCacheParams.Get(id);
+            CachedImages& cachedImage = mCacheImages.Get(id);
             cachedParams.ParamsPtr = params;
             ImageParams oldParams = cachedParams.PreviousParams;
 
@@ -149,9 +148,9 @@ namespace ImmVision
             }
 
             if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
-                UpdateLinkedZooms(id_label);
+                UpdateLinkedZooms(id);
             if (! Colormap::IsEqual(oldParams.ColormapSettings, params->ColormapSettings))
-                UpdateLinkedColormapSettings(id_label);
+                UpdateLinkedColormapSettings(id);
 
             cachedParams.PreviousParams = *params;
             mCacheImages.ClearOldEntries();
@@ -162,17 +161,16 @@ namespace ImmVision
         KeyType ImageTextureCache::GetID(const std::string& id_label)
         {
             ImGuiID id = ImGui::GetID(id_label.c_str());
-            return (KeyType)id;
-            //return hash_str(id_label);
+            return id;
         }
 
-        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(const std::string& id_label)
+        ImageTextureCache::CachedParams& ImageTextureCache::GetCacheParams(KeyType id)
         {
-            return mCacheParams.Get(GetID(id_label));
+            return mCacheParams.Get(id);
         }
-        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(const std::string& id_label)
+        ImageTextureCache::CachedImages& ImageTextureCache::GetCacheImages(KeyType id)
         {
-            return mCacheImages.Get(GetID(id_label));
+            return mCacheImages.Get(id);
         }
 
         void ImageTextureCache::ClearImagesCache()
@@ -180,10 +178,9 @@ namespace ImmVision
             mCacheImages.Clear();
         }
 
-        void ImageTextureCache::UpdateLinkedZooms(const std::string& id_label)
+        void ImageTextureCache::UpdateLinkedZooms(KeyType id)
         {
-            auto currentCacheKey = GetID(id_label);
-            auto & currentCache = mCacheParams.Get(currentCacheKey);
+            auto & currentCache = mCacheParams.Get(id);
             std::string zoomKey = currentCache.ParamsPtr->ZoomKey;
             if (zoomKey.empty())
                 return;
@@ -191,14 +188,13 @@ namespace ImmVision
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
+                if ((otherCacheKey != id) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
                     otherCache.ParamsPtr->ZoomPanMatrix = newZoom;
             }
         }
-        void ImageTextureCache::UpdateLinkedColormapSettings(const std::string& id_label)
+        void ImageTextureCache::UpdateLinkedColormapSettings(KeyType id)
         {
-            auto currentCacheKey = GetID(id_label);
-            auto & currentCache = mCacheParams.Get(currentCacheKey);
+            auto & currentCache = mCacheParams.Get(id);
             std::string colormapKey = currentCache.ParamsPtr->ColormapKey;
             if (colormapKey.empty())
                 return;
@@ -206,7 +202,7 @@ namespace ImmVision
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
-                if ((otherCacheKey != currentCacheKey) && (otherCache.ParamsPtr->ColormapKey == colormapKey))
+                if ((otherCacheKey != id) && (otherCache.ParamsPtr->ColormapKey == colormapKey))
                     otherCache.ParamsPtr->ColormapSettings = newColorAdjustments;
             }
         }

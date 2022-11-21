@@ -8,7 +8,7 @@ namespace ImmVision
 {
     namespace ImageCache
     {
-        using KeyType = std::size_t;
+        using KeyType = ImGuiID;
 
         class ImageTextureCache
         {
@@ -33,16 +33,18 @@ namespace ImmVision
 
 
             // returns true if new entry
-            bool UpdateCache(const std::string& id_label, const cv::Mat& image, ImageParams* params, bool userRefresh);
             KeyType GetID(const std::string& id_label);
-            CachedParams& GetCacheParams(const std::string& id_label);
-            CachedImages& GetCacheImages(const std::string& id_label);
+
+            bool UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh);
+            CachedParams& GetCacheParams(KeyType id);
+            CachedImages& GetCacheImages(KeyType id);
+
             void ClearImagesCache();
 
         private:
             // Methods
-            void UpdateLinkedZooms(const std::string& id_label);
-            void UpdateLinkedColormapSettings(const std::string& id_label);
+            void UpdateLinkedZooms(KeyType id);
+            void UpdateLinkedColormapSettings(KeyType id);
             bool AddEntryIfMissing(KeyType key);
 
 

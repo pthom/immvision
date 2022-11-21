@@ -12,6 +12,7 @@ namespace ImmVision
 {
     struct Inspector_ImageAndParams
     {
+        ImageCache::KeyType id;
         std::string Label;
         cv::Mat Image;
         ImageParams Params;
@@ -42,7 +43,8 @@ namespace ImmVision
         params.ShowOptionsPanel = true;
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
-        s_Inspector_ImagesAndParams.push_back({label, image, params, zoomCenter, zoomRatio});
+        auto id = ImageCache::gImageTextureCache.GetID(label);
+        s_Inspector_ImagesAndParams.push_back({id, label, image, params, zoomCenter, zoomRatio});
     }
 
     void priv_Inspector_ShowImagesListbox(float width)
@@ -55,14 +57,15 @@ namespace ImmVision
             {
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
-                std::string id = s_Inspector_ImagesAndParams[i].Label + "##_" + std::to_string(i);
-                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(
-                    s_Inspector_ImagesAndParams[i].Label);
+                auto id = ImageCache::gImageTextureCache.GetID(s_Inspector_ImagesAndParams[i].Label);
+                auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImages(id);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
                 ImVec2 pos = ImGui::GetCursorScreenPos();
-                if (ImGui::Selectable(id.c_str(), is_selected, 0, itemSize))
+
+                std::string id_selectable = s_Inspector_ImagesAndParams[i].Label + "##_" + std::to_string(i);
+                if (ImGui::Selectable(id_selectable.c_str(), is_selected, 0, itemSize))
                     s_Inspector_CurrentIndex = i;
 
                 float imageRatio = cacheImage.GlTexture->mImageSize.x / cacheImage.GlTexture->mImageSize.y;
@@ -91,7 +94,7 @@ namespace ImmVision
                         i.InitialZoomCenter, i.InitialZoomRatio, i.Params.ImageDisplaySize);
                 }
 
-                ImageCache::gImageTextureCache.UpdateCache(i.Label, i.Image, &i.Params, true);
+                ImageCache::gImageTextureCache.UpdateCache(i.id, i.Image, &i.Params, true);
                 i.WasSentToTextureCache = true;
             }
         }

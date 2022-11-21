@@ -211,12 +211,13 @@ namespace ImmVision
 
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
-    // :param label_id
+    // :param label
     //     A legend that will be displayed.
     //     Important notes:
     //         - With ImGui and ImmVision, widgets *must* have a unique Ids.
     //           For this widget, the id is given by this label.
     //           Two widgets (for example) two images *cannot* have the same label or the same id!
+    //           (you can use ImGui::PushID / ImGui::PopID to circumvent this, or add suffixes with ##)
     //
     //           If they do, they might not refresh correctly!
     //           To circumvent this, you can:
@@ -242,7 +243,7 @@ namespace ImmVision
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    IMMVISION_API void Image(const std::string& label_id, const cv::Mat& mat, ImageParams* params);
+    IMMVISION_API void Image(const std::string& label, const cv::Mat& mat, ImageParams* params);
 
 
     // Only, display the image, with no decoration, and no user interaction (by default)
@@ -312,7 +313,7 @@ namespace ImmVision
     // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
     // Note: this image must be currently displayed. This function will return the transformed image
     // (i.e with ColorMap, Zoom, etc.)
-    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label_id);
+    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label);
 
     // Return immvision version info
     IMMVISION_API std::string VersionInfo();
