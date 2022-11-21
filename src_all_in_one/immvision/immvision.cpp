@@ -10862,6 +10862,12 @@ namespace ImmVision
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
         auto id = ImageCache::gImageTextureCache.GetID(label);
         s_Inspector_ImagesAndParams.push_back({id, label, image, params, zoomCenter, zoomRatio});
+
+        // bump cache
+        {
+            auto& imageAndParams = s_Inspector_ImagesAndParams.back();
+            ImageCache::gImageTextureCache.UpdateCache(id, imageAndParams.Image, &imageAndParams.Params, true);
+        }
     }
 
     void priv_Inspector_ShowImagesListbox(float width)
@@ -10872,16 +10878,18 @@ namespace ImmVision
         {
             for (size_t i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
             {
+                auto& imageAndParams = s_Inspector_ImagesAndParams[i];
+
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
 
-                auto id = ImageCache::gImageTextureCache.GetID(s_Inspector_ImagesAndParams[i].Label);
+                auto id = ImageCache::gImageTextureCache.GetID(imageAndParams.Label);
                 auto &cacheImage = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id);
 
                 ImVec2 itemSize(width - 10.f, 40.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
                 ImVec2 pos = ImGui::GetCursorScreenPos();
 
-                std::string id_selectable = s_Inspector_ImagesAndParams[i].Label + "##_" + std::to_string(i);
+                std::string id_selectable = imageAndParams.Label + "##_" + std::to_string(i);
                 if (ImGui::Selectable(id_selectable.c_str(), is_selected, 0, itemSize))
                     s_Inspector_CurrentIndex = i;
 
