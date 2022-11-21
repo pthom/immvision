@@ -42,7 +42,7 @@ namespace ImmVision_GlProvider
     {
         static int counter = 0;
         ++counter;
-        std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
+        //std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
         glBindTexture(GL_TEXTURE_2D, textureId);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -61,7 +61,7 @@ namespace ImmVision_GlProvider
 
     unsigned int GenTexture()
     {
-        std::cout << "GenTexture()\n";
+        //std::cout << "GenTexture()\n";
         _AssertOpenGlLoaderWorking();
         GLuint textureId_Gl;
         glGenTextures(1, &textureId_Gl);
@@ -70,7 +70,7 @@ namespace ImmVision_GlProvider
 
     void DeleteTexture(unsigned int texture_id)
     {
-        std::cout << "DeleteTexture()\n";
+        //std::cout << "DeleteTexture()\n";
         _AssertOpenGlLoaderWorking();
         glDeleteTextures(1, &texture_id);
     }
