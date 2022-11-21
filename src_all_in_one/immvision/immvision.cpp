@@ -9539,6 +9539,7 @@ namespace ImmVision
             {
                 double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.;
                 params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
+                ImGui::GetIO().MouseWheel = 0.f;
             }
         };
         auto fnShowZoomButtons = [&params, &image]()
