@@ -185,6 +185,26 @@ namespace ImmVision
             mCacheImages.Clear();
         }
 
+        void ImageTextureCache::OnDeleteImageParams(ImageParams *paramsPtr)
+        {
+            auto keys = mCacheParams.Keys();
+
+            std::vector<KeyType> keysToDelete;
+
+            for(auto key: keys)
+            {
+                auto& cachedValue = mCacheParams.Get(key);
+                if (cachedValue.ParamsPtr == paramsPtr)
+                    keysToDelete.push_back(key);
+            }
+
+            if (keysToDelete.size() > 0)
+            {
+                for (auto key: keysToDelete)
+                    mCacheParams.RemoveKey(key);
+            }
+        }
+
         void ImageTextureCache::UpdateLinkedZooms(KeyType id)
         {
             auto & currentCache = mCacheParams.Get(id);

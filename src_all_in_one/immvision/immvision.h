@@ -184,6 +184,8 @@ namespace ImmVision
 
         // Mouse position information. These values are filled after displaying an image
         MouseInformation MouseInfo = MouseInformation();
+
+        ~ImageParams();
     };
 
 

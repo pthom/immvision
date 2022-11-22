@@ -188,6 +188,8 @@ namespace ImmVision
 
         // Mouse position information. These values are filled after displaying an image
         MouseInformation MouseInfo = MouseInformation();
+
+        ~ImageParams();
     };
 
 
@@ -4851,7 +4853,9 @@ namespace ImmVision
             if (image.channels() != 1)
                 return;
 
-            assert(!roi.empty());
+            if(roi.empty())
+                return;
+
             AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
 
             if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
@@ -9164,6 +9168,8 @@ namespace ImmVision
 
             void ClearImagesCache();
 
+            void OnDeleteImageParams(ImageParams* paramsPtr);
+
         private:
             // Methods
             void UpdateLinkedZooms(KeyType id);
@@ -9795,6 +9801,10 @@ namespace ImmVision
         return r;
     }
 
+    ImageParams::~ImageParams()
+    {
+        ImageCache::gImageTextureCache.OnDeleteImageParams(this);
+    }
 } // namespace ImmVision
 
 
@@ -9981,6 +9991,26 @@ namespace ImmVision
         void ImageTextureCache::ClearImagesCache()
         {
             mCacheImages.Clear();
+        }
+
+        void ImageTextureCache::OnDeleteImageParams(ImageParams *paramsPtr)
+        {
+            auto keys = mCacheParams.Keys();
+
+            std::vector<KeyType> keysToDelete;
+
+            for(auto key: keys)
+            {
+                auto& cachedValue = mCacheParams.Get(key);
+                if (cachedValue.ParamsPtr == paramsPtr)
+                    keysToDelete.push_back(key);
+            }
+
+            if (keysToDelete.size() > 0)
+            {
+                for (auto key: keysToDelete)
+                    mCacheParams.RemoveKey(key);
+            }
         }
 
         void ImageTextureCache::UpdateLinkedZooms(KeyType id)

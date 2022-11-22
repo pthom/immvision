@@ -312,7 +312,9 @@ namespace ImmVision
             if (image.channels() != 1)
                 return;
 
-            assert(!roi.empty());
+            if(roi.empty())
+                return;
+
             AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
 
             if (inout_settings->ColormapScaleFromStats.ActiveOnROI)

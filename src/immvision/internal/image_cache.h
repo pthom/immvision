@@ -40,6 +40,8 @@ namespace ImmVision
 
             void ClearImagesCache();
 
+            void OnDeleteImageParams(ImageParams* paramsPtr);
+
         private:
             // Methods
             void UpdateLinkedZooms(KeyType id);

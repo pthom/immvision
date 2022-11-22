@@ -582,4 +582,8 @@ namespace ImmVision
         return r;
     }
 
+    ImageParams::~ImageParams()
+    {
+        ImageCache::gImageTextureCache.OnDeleteImageParams(this);
+    }
 } // namespace ImmVision
