@@ -60,9 +60,9 @@ VCPKG_DIR = f"{REPO_DIR}/external/{VCPKG_BASENAME}"
 
 def has_program(program_name):
     if os.name == "nt":
-        paths = os.environ['PATH'].split(";")
+        paths = os.environ["PATH"].split(";")
     else:
-        paths = os.environ['PATH'].split(":")
+        paths = os.environ["PATH"].split(":")
     for path in paths:
         prog_path = f"{path}/{program_name}"
         if os.name == "nt":
@@ -114,12 +114,7 @@ def run(cmd, chain_commands=False):
 
 
 def _cmd_to_echo_and_cmd_lines(cmd: str) -> [str]:
-    lines_with_echo = [
-        "echo '###### Run command ######'",
-        f"echo '{cmd}'",
-        "echo ''",
-        cmd
-    ]
+    lines_with_echo = ["echo '###### Run command ######'", f"echo '{cmd}'", "echo ''", cmd]
     return lines_with_echo
 
 
@@ -132,7 +127,7 @@ def _chain_and_echo_commands(commands: str):
     """
     Take a series of shell command on a multiline string (one command per line)
     and returns a shell command that will execute each of them in sequence,
-    while echoing them, and ignoring commented lines (with a #)    
+    while echoing them, and ignoring commented lines (with a #)
     """
     lines = commands.split("\n")
     # strip lines
@@ -171,6 +166,7 @@ def decorate_loudly_echo_function_name(fn):
                 subprocess.check_call(f"echo '{line}'", shell=True)
 
         return fn(*args, **kwargs)
+
     wrapper_func.__doc__ = fn.__doc__
     wrapper_func.__name__ = fn.__name__
     return wrapper_func
@@ -186,7 +182,6 @@ def _do_clone_repo(git_repo, folder, branch="", tag=""):
         run(f"git pull")
     elif len(tag) > 0:
         run(f"git checkout {tag}")
-
 
 
 ######################################################################
@@ -246,7 +241,7 @@ def run_cmake():
     cmake_cmd = cmake_cmd + f"{new_line} -DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}"
     cmake_cmd = cmake_cmd + f"{new_line} -B ."
 
-    if os.name == 'nt':
+    if os.name == "nt":
         arch = "win32" if OPTIONS.build_32bits.Value else "x64"
         cmake_cmd = cmake_cmd + f"{new_line} -A {arch}"
 
@@ -303,7 +298,7 @@ def run_build_all():
 # vcpkg
 ######################################################################
 def _vcpkg_optional_triplet_name():
-    if os.name == 'nt':
+    if os.name == "nt":
         if OPTIONS.windows_vcpkg_static.Value:
             return "x86-windows-static-md" if OPTIONS.build_32bits.Value else "x64-windows-static-md"
         else:
@@ -324,7 +319,7 @@ def vcpkg_install_thirdparties():
         my_chdir(EXTERNAL_DIR)
         _do_clone_repo("https://github.com/Microsoft/vcpkg.git", VCPKG_BASENAME, branch="master")
         my_chdir(f"{VCPKG_DIR}")
-        if os.name == 'nt':
+        if os.name == "nt":
             run(".\\bootstrap-vcpkg.bat")
         else:
             run("./bootstrap-vcpkg.sh")
@@ -349,7 +344,7 @@ def vcpkg_export():
     Used mainly for CI where vcpkg is deployed by downloading a precompiled vcpkg folder.
     """
     my_chdir(EXTERNAL_DIR)
-    
+
     # Build vcpkg libraries
     if os.name != "nt":
         vcpkg_install_thirdparties()
@@ -364,7 +359,9 @@ def vcpkg_export():
     my_chdir(EXTERNAL_DIR)
     if os.path.exists("vcpkg.7z"):
         run("rm vcpkg.7z")
-    run(f'7z a -t7z vcpkg_{os.name}.7z vcpkg -xr!"vcpkg/downloads" -xr!"vcpkg/buildtrees" -xr!"vcpkg/.git" -xr!"vcpkg/packages"')
+    run(
+        f'7z a -t7z vcpkg_{os.name}.7z vcpkg -xr!"vcpkg/downloads" -xr!"vcpkg/buildtrees" -xr!"vcpkg/.git" -xr!"vcpkg/packages"'
+    )
     # scp vcpkg_nt.7z pascal@traineq.org:HTML/ImmvisionGithubFiles/
 
 
@@ -398,7 +395,8 @@ def _propose_install_opencv_sdl_for_ubuntu():
     if not _is_ubuntu():
         return
     if not _has_ubuntu_package_opencv_sdl():
-        print("""
+        print(
+            """
         #
         # You need to install opencv and sdl2:
         # * Either use Conan (--use_conan=True) or Vcpkg (--use_vcpkg=True)
@@ -406,7 +404,8 @@ def _propose_install_opencv_sdl_for_ubuntu():
         #        Under Ubuntu, run:
         #            sudo apt-get update && sudo apt-get install -y libopencv-dev libsdl2-dev
         #
-        """)
+        """
+        )
 
 
 ######################################################################
@@ -415,14 +414,17 @@ def _propose_install_opencv_sdl_for_ubuntu():
 def _complain_and_exit_if_emscripten_absent():
     if not HAS_EMSCRIPTEN:
         if os.path.isdir(f"{HOME_FOLDER}/emsdk"):
-            print(f"""
+            print(
+                f"""
             Emscripten is not activated! Before running this script, call
                 source {HOME_FOLDER}/emsdk/emsdk_env.sh
             .
-            """)
+            """
+            )
             exit(1)
         else:
-            print(f"""
+            print(
+                f"""
             Emscripten is not installed or not activated.
 
             1. First, install emscripten :
@@ -432,7 +434,8 @@ def _complain_and_exit_if_emscripten_absent():
 
             2. Then, activate emscripten: before running this script. Call:
                     source {HOME_FOLDER}/emsdk/emsdk_env.sh
-            """)
+            """
+            )
             exit(1)
 
 
@@ -520,18 +523,20 @@ def emscripten_update_timestamp():
     now = datetime.datetime.now()
     datestr_file = f"{REPO_DIR}/src/immvision_demos/inspector_demo/datestr.h"
     with open(datestr_file, "w") as f:
-        f.write(f"#define datestr \"{now}\"")
+        f.write(f'#define datestr "{now}"')
 
 
 ######################################################################
 # pybind
 ######################################################################
 
+
 @decorate_loudly_echo_function_name
 def py_install_stubs():
     """
     Install stubs for python (useful to help opencv development in your IDE
     """
+
     def install_stub(package_name, stub_url):
         VENV_PACKAGES_DIR = "venv"
         package_stub_path = f"{VENV_PACKAGES_DIR}/{package_name}/__init__.pyi"
@@ -550,38 +555,28 @@ def get_all_function_categories():
         "name": "All in one build process",
         "functions": [
             run_build_all,
-        ]
+        ],
     }
 
-    function_list_build = {
-        "name": "Run cmake and build project",
-        "functions": [
-            run_cmake,
-            run_build
-        ]
-    }
+    function_list_build = {"name": "Run cmake and build project", "functions": [run_cmake, run_build]}
 
     function_list_vcpkg = {
         "name": "Build vcpkg packages (if --use_vcpkg=True)",
         "functions": [
             vcpkg_install_thirdparties,
-        ]
+        ],
     }
 
     function_list_emscripten = {
         "name": """Build for emscripten (activate your emscripten environment before!)""",
-        "functions": [
-            install_emscripten,
-            opencv_build_emscripten,
-            emscripten_update_timestamp
-        ]
+        "functions": [install_emscripten, opencv_build_emscripten, emscripten_update_timestamp],
     }
 
     function_list_advanced = {
         "name": "Advanced functions",
         "functions": [
             vcpkg_export,
-        ]
+        ],
     }
 
     all_function_categories = [
@@ -626,11 +621,12 @@ def help_commands():
     for category in get_all_function_categories():
         print(f"\t{category['name']}")
         print("\t==================================================================================================")
-        for fn in category['functions']:
+        for fn in category["functions"]:
             doc_lines = fn.__doc__.split("\n")[1:]
 
             def indent_doc_line(line):
                 return "\t\t" + line.strip()
+
             doc_detail_lines = list(map(indent_doc_line, doc_lines))
             doc_indented = "\n".join(doc_detail_lines)
             print(f"\t[-{fn.__name__}]")
@@ -641,15 +637,19 @@ def show_help():
     help_commands()
     help_options()
     if not HAS_EMSCRIPTEN:
-        print("Emscripten: activate emscripten in order to get related utilities, first : for example\n\
-        source ~/emsdk/emsdk_env.sh")
+        print(
+            "Emscripten: activate emscripten in order to get related utilities, first : for example\n\
+        source ~/emsdk/emsdk_env.sh"
+        )
     if OPTIONS.only_echo_command.Value:
-        print(f"""
+        print(
+            f"""
         Currently, commands are only output to the terminal. To run them, add 'run' as first or last parameter i.e 
                 {sys.argv[0]} run ...
         or
                 {sys.argv[0]} .... run 
-        """)
+        """
+        )
 
 
 def display_current_options():
@@ -736,7 +736,8 @@ def main():
         if OPTIONS.only_echo_command.Value:
             run_command_1 = f"{sys.argv[0]} run {' '.join(sys.argv[1:])}"
             run_command_2 = f"{sys.argv[0]} {' '.join(sys.argv[1:])} run"
-            print(f"""
+            print(
+                f"""
             ***************************************************************************
             Nothing will be  done on the system! You will be shown the commands to run, 
             and you can copy-paste them.
@@ -750,7 +751,8 @@ def main():
             {run_command_2}
             
             ***************************************************************************
-            """)
+            """
+            )
         command()
 
     return 0

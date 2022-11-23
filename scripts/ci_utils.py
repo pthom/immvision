@@ -15,7 +15,7 @@ CHDIR_LAST_DIRECTORY = INVOKE_DIR
 
 @dataclass
 class Options:
-    only_echo_command:bool = False
+    only_echo_command: bool = False
 
 
 OPTIONS = Options()
@@ -23,9 +23,9 @@ OPTIONS = Options()
 
 def has_program(program_name):
     if os.name == "nt":
-        paths = os.environ['PATH'].split(";")
+        paths = os.environ["PATH"].split(";")
     else:
-        paths = os.environ['PATH'].split(":")
+        paths = os.environ["PATH"].split(":")
     for path in paths:
         prog_path = f"{path}/{program_name}"
         if os.name == "nt":
@@ -108,12 +108,7 @@ def run(cmd, chain_commands=False):
 
 
 def _cmd_to_echo_and_cmd_lines(cmd: str) -> [str]:
-    lines_with_echo = [
-        "echo '###### Run command ######'",
-        f"echo '{cmd}'",
-        "echo ''",
-        cmd
-    ]
+    lines_with_echo = ["echo '###### Run command ######'", f"echo '{cmd}'", "echo ''", cmd]
     return lines_with_echo
 
 
@@ -165,6 +160,7 @@ def decorate_loudly_echo_function_name(fn):
                 subprocess.check_call(f"echo '{line}'", shell=True)
 
         return fn(*args, **kwargs)
+
     wrapper_func.__doc__ = fn.__doc__
     wrapper_func.__name__ = fn.__name__
     return wrapper_func

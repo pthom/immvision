@@ -25,7 +25,9 @@ def _install_opencv_conan(build_folder):
     # Run conan install
     install_conan_if_needed()
     ci_utils.chdir(build_folder)
-    conan_file = "../conanfile_opencv_default.txt" if platform.system() == "Windows" else "../conanfile_opencv_minimal.txt"
+    conan_file = (
+        "../conanfile_opencv_default.txt" if platform.system() == "Windows" else "../conanfile_opencv_minimal.txt"
+    )
     ci_utils.run(f"conan install {conan_file} --build missing")
 
 

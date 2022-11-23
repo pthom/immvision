@@ -11,7 +11,7 @@ from immvision.debug_utils import timeit
 import imgui
 import immvision
 
-PreciseFloat = float #np.float64
+PreciseFloat = float  # np.float64
 ColorType = np.float32
 
 
@@ -22,18 +22,13 @@ def lerp(a, b, x):
 
 @njit
 def unlerp(a, b, p):
-    return (p - a) / (b -a)
+    return (p - a) / (b - a)
 
 
 @njit(cache=True, nogil=True, parallel=True)
 def mandelbrot_numba(
-    width: int, 
-    height: int, 
-    x_center: PreciseFloat,
-    y_center: PreciseFloat,
-    zoom: PreciseFloat,
-    max_iterations: int
-    ) -> np.ndarray:
+    width: int, height: int, x_center: PreciseFloat, y_center: PreciseFloat, zoom: PreciseFloat, max_iterations: int
+) -> np.ndarray:
     result = np.zeros((height, width), ColorType)
 
     # Compute boundings
@@ -50,7 +45,7 @@ def mandelbrot_numba(
         for ix in range(width):
             kx: PreciseFloat = ix / width
 
-            # start iteration 
+            # start iteration
             x0 = lerp(x_from, x_to, kx)
 
             x: PreciseFloat = 0.0
@@ -68,7 +63,7 @@ def mandelbrot_numba(
                 if norm2 > 4.0:
                     escaped = True
                     # color using pretty linear gradient
-                    color:ColorType = 1.0 - 0.01 * (iteration - np.log2(np.log2(norm2)))
+                    color: ColorType = 1.0 - 0.01 * (iteration - np.log2(np.log2(norm2)))
                     break
 
             if not escaped:
@@ -85,7 +80,7 @@ class MandelbrotParams:
     height: int = 600
     # x in [-2, 1] and y in [-1, 1]
     x_center: PreciseFloat = -0.5
-    y_center: PreciseFloat = 0.
+    y_center: PreciseFloat = 0.0
     zoom: PreciseFloat = 1
     max_iterations: int = 100
 
@@ -134,9 +129,9 @@ class MandelbrotApp:
         -0.596360941 + 0.662749640j,
         -1.99991175020 + 0j,
         -1.67440967428 + 0.00004716557j,
-        -0.139975337339 -0.992076239092j,
-        0.432456684114 -0.340532264460j,
-        ]
+        -0.139975337339 - 0.992076239092j,
+        0.432456684114 - 0.340532264460j,
+    ]
 
     def __init__(self):
         self.move_to_poi()
@@ -154,7 +149,6 @@ class MandelbrotApp:
 
         needs_refresh = False
 
-
         # Show FPS
         imgui.text(f"FPS: {imgui.get_io().framerate:.1f}")
 
@@ -163,42 +157,47 @@ class MandelbrotApp:
             self.mandelbrot_params.set_center(self.last_mouse_coords[0], self.last_mouse_coords[1])
             needs_refresh = True
 
-
         # Change location to interesting location
         changed, self.idx_poi = imgui.slider_int(
-            "interesting location", self.idx_poi,
-            0, len(self.mandelbrot_poi_list) - 1)
+            "interesting location", self.idx_poi, 0, len(self.mandelbrot_poi_list) - 1
+        )
         if changed:
             needs_refresh = True
             self.move_to_poi()
 
         # Edit zoom
-        logarithmic_flag=(1<<4) | (1<<5)
-        changed, new_zoom = imgui.slider_float("zoom", params.zoom, 0.5, 1E12, format="%.4G", flags=logarithmic_flag)
+        logarithmic_flag = (1 << 4) | (1 << 5)
+        changed, new_zoom = imgui.slider_float("zoom", params.zoom, 0.5, 1e12, format="%.4G", flags=logarithmic_flag)
         params.zoom = PreciseFloat(new_zoom)
-        if changed: needs_refresh = True
+        if changed:
+            needs_refresh = True
 
         center = self.mandelbrot_params.get_center()
         imgui.text(f"center: {center[0]} + {center[1]} * i")
 
         # Edit max_iterations
         changed, params.max_iterations = imgui.slider_int("iterations", params.max_iterations, 1, 1000)
-        if changed: needs_refresh = True
+        if changed:
+            needs_refresh = True
 
         # Edit image size
         imgui.set_next_item_width(200)
-        changed, params.width =imgui.slider_int("Width", params.width, 400, 2000)
-        if changed: needs_refresh = True
+        changed, params.width = imgui.slider_int("Width", params.width, 400, 2000)
+        if changed:
+            needs_refresh = True
         imgui.same_line()
         imgui.set_next_item_width(200)
-        changed, params.height =imgui.slider_int("Height", params.height, 400, 2000)
-        if changed: needs_refresh = True
+        changed, params.height = imgui.slider_int("Height", params.height, 400, 2000)
+        if changed:
+            needs_refresh = True
 
         # Edit position
-        changed, params.x_center = imgui.slider_float("x", params.x_center, -2., 1., "%.6f")
-        if changed: needs_refresh = True
-        changed, params.y_center = imgui.slider_float("y", params.y_center, -1., 1., "%.6f")
-        if changed: needs_refresh = True
+        changed, params.x_center = imgui.slider_float("x", params.x_center, -2.0, 1.0, "%.6f")
+        if changed:
+            needs_refresh = True
+        changed, params.y_center = imgui.slider_float("y", params.y_center, -1.0, 1.0, "%.6f")
+        if changed:
+            needs_refresh = True
 
         # recalculate image if needed
         # self.image_params.refresh_image = needs_refresh
@@ -207,16 +206,15 @@ class MandelbrotApp:
             print("needs_refresh")
 
         mouse_position = immvision.image_display(
-            "mandelbrot", self.image, refresh_image=needs_refresh, show_options_button=True)
+            "mandelbrot", self.image, refresh_image=needs_refresh, show_options_button=True
+        )
 
-        if mouse_position[0] >= 0.:
+        if mouse_position[0] >= 0.0:
             complex_coords = self.mandelbrot_params.pixel_to_complex_coords(mouse_position)
             imgui.text(f"Complex position: {complex_coords[0]} + {complex_coords[1]} * i")
             self.last_mouse_coords = complex_coords
         else:
             self.last_mouse_coords = None
-
-
 
     def run(self):
         # immvision.power_save_disable()
@@ -229,7 +227,7 @@ def playground0():
     mandel_image = params.mandelbrot_image()
 
     # convert from float in [0, 1] to to uint8 in [0, 255] for PIL
-    mandel_image = np.clip(mandel_image*255, 0, 255).astype(np.uint8)
+    mandel_image = np.clip(mandel_image * 255, 0, 255).astype(np.uint8)
     mandel_image = Image.fromarray(mandel_image)
     mandel_image.show()
 

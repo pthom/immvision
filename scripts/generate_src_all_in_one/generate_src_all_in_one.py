@@ -17,7 +17,7 @@ def fread_lines(filename):
     Python 2 & 3 agnostic fopen + readlines
     """
     if version_info[0] >= 3:
-        f = open(filename, "r", encoding='utf-8', errors='ignore')
+        f = open(filename, "r", encoding="utf-8", errors="ignore")
     else:
         f = open(filename, "r")
     return f.readlines()
@@ -28,7 +28,7 @@ def fread_content(filename):
     Python 2 & 3 agnostic fopen + readlines
     """
     if version_info[0] >= 3:
-        f = open(filename, "r", encoding='utf-8', errors='ignore')
+        f = open(filename, "r", encoding="utf-8", errors="ignore")
     else:
         f = open(filename, "r")
     return f.read()
@@ -46,7 +46,7 @@ def fwrite_content(filename, content):
             return
 
     if version_info[0] >= 3:
-        f = open(filename, "w", encoding='utf-8', errors='ignore')
+        f = open(filename, "w", encoding="utf-8", errors="ignore")
     else:
         f = open(filename, "w")
     f.write(content)
@@ -58,10 +58,10 @@ def is_local_include_line(code_line):
     Tests whether or not a C++ code line is a include statement that concerns a fplus header,
     (i.e this will *exclude* lines like "#include <vector>")
     """
-    possible_include_paths = [ 'immvision/', 'immdebug/', 'immvision_gl_loader/']
+    possible_include_paths = ["immvision/", "immdebug/", "immvision_gl_loader/"]
     result = False
     for possible_include_path in possible_include_paths:
-        if code_line.startswith(f'#include <{possible_include_path}'):
+        if code_line.startswith(f"#include <{possible_include_path}"):
             result = True
         if code_line.startswith(f'#include "{possible_include_path}'):
             result = True
@@ -80,10 +80,7 @@ def extract_local_include_file(code_line):
     """
     Extracts the included file path from an include statement
     """
-    result = (code_line
-                .replace("#include \"", "")
-                .replace("\"", "")
-                .replace(">", "")[:-1])
+    result = code_line.replace('#include "', "").replace('"', "").replace(">", "")[:-1]
     # possible_include_paths = [ 'immvision/', 'immdebug/']
     # for possible_include_path in possible_include_paths:
     #     result = result.replace(possible_include_path, "")
@@ -91,9 +88,9 @@ def extract_local_include_file(code_line):
 
 
 def extract_external_include_file(code_line):
-    result:str = code_line.replace("#include ", "").replace("\n", "")
+    result: str = code_line.replace("#include ", "").replace("\n", "")
     if "#" in result:
-        result = result[:result.index("#")]
+        result = result[: result.index("#")]
     return result
 
 
@@ -108,7 +105,9 @@ def decorate_code_info(info):
     return result
 
 
-def amalgamate_one_file(included_filename, including_filename, already_included_local_files, already_included_external_files):
+def amalgamate_one_file(
+    included_filename, including_filename, already_included_local_files, already_included_external_files
+):
     """
     Recursive function that will create an amalgamation for a given header file.
     """
@@ -146,7 +145,9 @@ def amalgamate_one_file(included_filename, including_filename, already_included_
                 already_included_external_files.append(external_file)
         elif is_local_include_line(code_line):
             new_file = extract_local_include_file(code_line)
-            include_addition = amalgamate_one_file(new_file, included_filename_relative, already_included_local_files, already_included_external_files)
+            include_addition = amalgamate_one_file(
+                new_file, included_filename_relative, already_included_local_files, already_included_external_files
+            )
             if len(include_addition) > 0:
                 parsed_result = parsed_result + include_addition
                 was_file_interrupted_by_include = True
@@ -177,12 +178,11 @@ def amalgamate_cpp_files_content(folder, cpp_files: typing.List[str]):
     already_included_external_files = []
     for cpp_file in cpp_files:
         content = content + amalgamate_one_file(
-            folder + "/" + cpp_file,
-            "",
-            already_included_local_files,
-            already_included_external_files)
+            folder + "/" + cpp_file, "", already_included_local_files, already_included_external_files
+        )
         content = content + "\n"
     return content
+
 
 def find_all_files_of_extension(folder, extension):
     found_files = []

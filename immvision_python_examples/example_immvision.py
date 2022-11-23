@@ -16,6 +16,7 @@ def static_vars(**kwargs):
         for k in kwargs:
             setattr(func, k, kwargs[k])
         return func
+
     return decorate
 
 
@@ -23,11 +24,11 @@ def static_vars(**kwargs):
 def mandelbrot(height, width, x=-0.5, y=0, zoom=1, max_iterations=100):
     # To make navigation easier we calculate these values
     x_width = 1.5
-    y_height = 1.5*height/width
-    x_from = x - x_width/zoom
-    x_to = x + x_width/zoom
-    y_from = y - y_height/zoom
-    y_to = y + y_height/zoom
+    y_height = 1.5 * height / width
+    x_from = x - x_width / zoom
+    x_to = x + x_width / zoom
+    y_from = y - y_height / zoom
+    y_to = y + y_height / zoom
     # Here the actual algorithm starts
     x = np.linspace(x_from, x_to, width).reshape((1, width))
     y = np.linspace(y_from, y_to, height).reshape((height, 1))
@@ -39,11 +40,11 @@ def mandelbrot(height, width, x=-0.5, y=0, zoom=1, max_iterations=100):
     # To keep track on which points did not converge so far
     m = np.full(c.shape, True, dtype=bool)
     for i in range(max_iterations):
-        z[m] = z[m]**2 + c[m]
-        diverged = np.greater(np.abs(z), 2, out=np.full(c.shape, False), where=m) # Find diverging
-        div_time[diverged] = i      # set the value of the diverged iteration number
+        z[m] = z[m] ** 2 + c[m]
+        diverged = np.greater(np.abs(z), 2, out=np.full(c.shape, False), where=m)  # Find diverging
+        div_time[diverged] = i  # set the value of the diverged iteration number
 
-        #m[np.abs(z) > 2] = False    # to remember which have diverged
+        # m[np.abs(z) > 2] = False    # to remember which have diverged
         m[diverged] = False
 
     return div_time
@@ -65,7 +66,7 @@ def show_camera():
 
 start_time = time.time_ns()
 image = cv2.imread(f"{THIS_DIR}/house.jpg")
-image = np.random.rand(100,100,3)
+image = np.random.rand(100, 100, 3)
 image = mandelbrot(800, 1000)
 image = image.astype(np.int32)
 
@@ -76,7 +77,7 @@ def _test_gui_function(params: immvision.ImguiAppParams):
     # imgui.same_line()
     immvision.image_display("image", image, image_display_size=(0, 300))
 
-    elapsed = (time.time_ns() - start_time) / 1E9
+    elapsed = (time.time_ns() - start_time) / 1e9
     imgui.text(f"elapsed time: {elapsed:.2f}s FPS: {imgui.get_io().framerate:.2f}")
     if imgui.button("Exit"):
         params.app_shall_exit = True
@@ -104,8 +105,8 @@ def main_autosize():
         gui_test_autosize(params)
 
     immvision.run(my_gui, params)
-    #immvision.run(my_gui, params)
-    #immvision.run(my_gui, params)
+    # immvision.run(my_gui, params)
+    # immvision.run(my_gui, params)
 
 
 def main():
