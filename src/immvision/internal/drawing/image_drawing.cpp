@@ -272,6 +272,32 @@ namespace ImmVision
             return (!params.ColormapSettings.Colormap.empty() || !params.ColormapSettings.internal_ColormapHovered.empty());
         }
 
+        cv::Mat _DrawLutGraph(const std::vector<double>& x, const std::vector<double>& y, cv::Size size)
+        {
+            cv::Mat image(size, CV_8UC4);
+            assert(x.size() == y.size());
+            size_t len = x.size();
+
+            auto toPoint = [size](double x, double y) -> cv::Point2d {
+                cv::Point2d r {
+                    x * (double)(size.width - 1),
+                    (1. - y) * (double)(size.height - 1),
+                };
+                return r;
+            };
+
+            image = cv::Scalar(200, 200, 200, 0);
+            // cv::Scalar color(255, 80, 50, 255);
+            cv::Scalar color(0, 255, 255, 255);
+            for (size_t i = 0; i < len - 1; ++i)
+            {
+                double x0 = x[i], y0 = y[i];
+                double x1 = x[i + 1], y1 = y[i + 1];
+                CvDrawingUtils::line(image, toPoint(x0, y0), toPoint(x1, y1), color);
+            }
+            return image;
+        }
+
     } // namespace ImageDrawing
 
 } // namespace ImmVision
