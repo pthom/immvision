@@ -280,8 +280,8 @@ namespace ImmVision
 
             auto toPoint = [size](double x, double y) -> cv::Point2d {
                 cv::Point2d r {
-                    x * (double)(size.width - 1),
-                    (1. - y) * (double)(size.height - 1),
+                    1. + x * (double)(size.width - 3),
+                    1. + (1. - y) * (double)(size.height - 3),
                 };
                 return r;
             };
