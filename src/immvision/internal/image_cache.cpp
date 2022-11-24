@@ -139,6 +139,11 @@ namespace ImmVision
                 }
                 if (ShallRefreshTexture(oldParams, *params))
                     shallRefreshTexture = true;
+                if (cachedParams.WasZoomJustUpdatedByLink)
+                {
+                    shallRefreshTexture = true;
+                    cachedParams.WasZoomJustUpdatedByLink = false;
+                }
             }
 
             if (shallRefreshTexture)
@@ -147,7 +152,7 @@ namespace ImmVision
                     *params, image, cachedImage.ImageRgbaCache, shallRefreshRgbaCache, cachedImage.GlTexture.get());
             }
 
-            if (! ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
+            if (!cachedParams.WasZoomJustUpdatedByLink && !ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
                 UpdateLinkedZooms(id);
             if (! Colormap::IsEqual(oldParams.ColormapSettings, params->ColormapSettings))
                 UpdateLinkedColormapSettings(id);
@@ -211,12 +216,34 @@ namespace ImmVision
             std::string zoomKey = currentCache.ParamsPtr->ZoomKey;
             if (zoomKey.empty())
                 return;
+
             ZoomPanTransform::MatrixType newZoom = currentCache.ParamsPtr->ZoomPanMatrix;
+            double currentZoomRatio = newZoom(0, 0);
+
+            cv::Size displayedImageSize = currentCache.ParamsPtr->ImageDisplaySize;
+            cv::Point2d visibleImageCenter_ImageCoords;
+            {
+                cv::Point2d visibleCenter_Viewport(
+                    (double)displayedImageSize.width / 2., (double)displayedImageSize.height / 2.);
+                visibleImageCenter_ImageCoords = ZoomPanTransform::Apply(newZoom.inv(), visibleCenter_Viewport);
+            }
+
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
                 if ((otherCacheKey != id) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
-                    otherCache.ParamsPtr->ZoomPanMatrix = newZoom;
+                {
+                    cv::Size otherDisplayedImageSize = otherCache.ParamsPtr->ImageDisplaySize;
+
+                    double sizeRatioOtherImage = (double)otherDisplayedImageSize.width / (double)displayedImageSize.width;
+                    double zoomRatioOtherImage = currentZoomRatio * sizeRatioOtherImage;
+                    auto zoomMatrixOtherImage = ZoomPanTransform::MakeZoomMatrix(
+                        visibleImageCenter_ImageCoords, zoomRatioOtherImage, otherDisplayedImageSize);
+                    otherCache.ParamsPtr->ZoomPanMatrix = zoomMatrixOtherImage;
+                    otherCache.PreviousParams.ZoomPanMatrix = zoomMatrixOtherImage;
+                    otherCache.ParamsPtr->RefreshImage = true;
+                    otherCache.WasZoomJustUpdatedByLink = true;
+                }
             }
         }
         void ImageTextureCache::UpdateLinkedColormapSettings(KeyType id)
