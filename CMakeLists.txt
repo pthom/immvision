@@ -45,4 +45,7 @@ if (IMMVISION_BUILD_DEMOS)
 endif()
 
 add_subdirectory(src)
-add_subdirectory(src_all_in_one)
+
+if (PROJECT_IS_TOP_LEVEL)
+    add_subdirectory(src_all_in_one)
+endif()
