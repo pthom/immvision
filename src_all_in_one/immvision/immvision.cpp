@@ -7,12 +7,12 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/colormap.h included by src/immvision/internal/cv/colormap.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include "imgui.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/image.h included by src/immvision/internal/cv/colormap.h                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "imgui.h"
 #include <opencv2/core.hpp>
 #include <vector>
 #include <string>
@@ -450,7 +450,7 @@ namespace ImmVision
         std::vector<std::string> AvailableColormaps();
 
         const insertion_order_map<std::string, cv::Mat>& ColormapsImages();
-        const insertion_order_map<std::string, unsigned int>& ColormapsTextures();
+        const insertion_order_map<std::string, ImTextureID>& ColormapsTextures();
         void ClearColormapsTexturesCache();
 
         //
@@ -4684,11 +4684,11 @@ namespace ImmVision
         }
 
 
-        const insertion_order_map<std::string, unsigned int>& ColormapsTextures()
+        const insertion_order_map<std::string, ImTextureID>& ColormapsTextures()
         {
             FillTextureCache();
 
-            static insertion_order_map<std::string, unsigned int> cache;
+            static insertion_order_map<std::string, ImTextureID> cache;
             if (cache.empty())
             {
                 for (const auto& k: sColormapsTexturesCache.insertion_order_keys())
@@ -6957,9 +6957,9 @@ namespace ImmVision_GlProvider
     // InitGlProvider must be called before the OpenGl Loader is reset
     void ResetGlProvider();
 
-    void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId);
-    unsigned int GenTexture();
-    void DeleteTexture(unsigned int texture_id);
+    void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, ImTextureID textureId);
+    ImTextureID GenTexture();
+    void DeleteTexture(ImTextureID texture_id);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -7036,12 +7036,13 @@ namespace ImmVision_GlProvider
         ImmVision::Icons::ClearIconsTextureCache();
     }
 
-    void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)
+    void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, ImTextureID textureId)
     {
         static int counter = 0;
         ++counter;
         //std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
-        glBindTexture(GL_TEXTURE_2D, textureId);
+        GLuint textureIdAsUint = (GLuint)(size_t)textureId;
+        glBindTexture(GL_TEXTURE_2D, textureIdAsUint);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #if defined(__EMSCRIPTEN__) || defined(IMMVISION_USE_GLES2) || defined(IMMVISION_USE_GLES3)
@@ -7057,20 +7058,21 @@ namespace ImmVision_GlProvider
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    unsigned int GenTexture()
+    ImTextureID GenTexture()
     {
         //std::cout << "GenTexture()\n";
         _AssertOpenGlLoaderWorking();
         GLuint textureId_Gl;
         glGenTextures(1, &textureId_Gl);
-        return textureId_Gl;
+        return (ImTextureID)(size_t)textureId_Gl;
     }
 
-    void DeleteTexture(unsigned int texture_id)
+    void DeleteTexture(ImTextureID texture_id)
     {
         //std::cout << "DeleteTexture()\n";
         _AssertOpenGlLoaderWorking();
-        glDeleteTextures(1, &texture_id);
+        GLuint textureIdAsUint = (GLuint)(size_t)texture_id;
+        glDeleteTextures(1, &textureIdAsUint);
     }
 }
 
@@ -7087,7 +7089,7 @@ namespace ImmVision
 {
     GlTexture::GlTexture()
     {
-        unsigned int textureId_Gl = ImmVision_GlProvider::GenTexture();
+        ImTextureID textureId_Gl = ImmVision_GlProvider::GenTexture();
         this->mImTextureId = textureId_Gl;
     }
 

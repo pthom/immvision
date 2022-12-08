@@ -1,4 +1,5 @@
 #pragma once
+#include "imgui.h"
 
 namespace ImmVision_GlProvider
 {
@@ -7,7 +8,7 @@ namespace ImmVision_GlProvider
     // InitGlProvider must be called before the OpenGl Loader is reset
     void ResetGlProvider();
 
-    void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId);
-    unsigned int GenTexture();
-    void DeleteTexture(unsigned int texture_id);
+    void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, ImTextureID textureId);
+    ImTextureID GenTexture();
+    void DeleteTexture(ImTextureID texture_id);
 }

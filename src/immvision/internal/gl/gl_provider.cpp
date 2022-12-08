@@ -38,12 +38,13 @@ namespace ImmVision_GlProvider
         ImmVision::Icons::ClearIconsTextureCache();
     }
 
-    void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, unsigned int textureId)
+    void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, ImTextureID textureId)
     {
         static int counter = 0;
         ++counter;
         //std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
-        glBindTexture(GL_TEXTURE_2D, textureId);
+        GLuint textureIdAsUint = (GLuint)(size_t)textureId;
+        glBindTexture(GL_TEXTURE_2D, textureIdAsUint);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #if defined(__EMSCRIPTEN__) || defined(IMMVISION_USE_GLES2) || defined(IMMVISION_USE_GLES3)
@@ -59,20 +60,21 @@ namespace ImmVision_GlProvider
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    unsigned int GenTexture()
+    ImTextureID GenTexture()
     {
         //std::cout << "GenTexture()\n";
         _AssertOpenGlLoaderWorking();
         GLuint textureId_Gl;
         glGenTextures(1, &textureId_Gl);
-        return textureId_Gl;
+        return (ImTextureID)(size_t)textureId_Gl;
     }
 
-    void DeleteTexture(unsigned int texture_id)
+    void DeleteTexture(ImTextureID texture_id)
     {
         //std::cout << "DeleteTexture()\n";
         _AssertOpenGlLoaderWorking();
-        glDeleteTextures(1, &texture_id);
+        GLuint textureIdAsUint = (GLuint)(size_t)texture_id;
+        glDeleteTextures(1, &textureIdAsUint);
     }
 }
 

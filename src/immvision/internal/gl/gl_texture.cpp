@@ -8,7 +8,7 @@ namespace ImmVision
 {
     GlTexture::GlTexture()
     {
-        unsigned int textureId_Gl = ImmVision_GlProvider::GenTexture();
+        ImTextureID textureId_Gl = ImmVision_GlProvider::GenTexture();
         this->mImTextureId = textureId_Gl;
     }
 

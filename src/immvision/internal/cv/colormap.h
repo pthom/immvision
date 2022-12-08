@@ -1,4 +1,5 @@
 #pragma once
+#include "imgui.h"
 #include "immvision/image.h"
 #include "immvision/internal/misc/insertion_order_map.h"
 #include <opencv2/core.hpp>
@@ -34,7 +35,7 @@ namespace ImmVision
         std::vector<std::string> AvailableColormaps();
 
         const insertion_order_map<std::string, cv::Mat>& ColormapsImages();
-        const insertion_order_map<std::string, unsigned int>& ColormapsTextures();
+        const insertion_order_map<std::string, ImTextureID>& ColormapsTextures();
         void ClearColormapsTexturesCache();
 
         //

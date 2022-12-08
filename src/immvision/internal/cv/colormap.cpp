@@ -143,11 +143,11 @@ namespace ImmVision
         }
 
 
-        const insertion_order_map<std::string, unsigned int>& ColormapsTextures()
+        const insertion_order_map<std::string, ImTextureID>& ColormapsTextures()
         {
             FillTextureCache();
 
-            static insertion_order_map<std::string, unsigned int> cache;
+            static insertion_order_map<std::string, ImTextureID> cache;
             if (cache.empty())
             {
                 for (const auto& k: sColormapsTexturesCache.insertion_order_keys())
