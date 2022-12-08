@@ -4,8 +4,19 @@ find_package(OpenCV REQUIRED)
 set(target_name immvision)
 add_library(${target_name} ${sources})
 target_include_directories(${target_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
 target_link_libraries(${target_name} PUBLIC
     imgui
     immvision_gl_loader
-    opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs
+    opencv_core
+    opencv_imgproc
+    opencv_imgcodecs
+#    opencv_highgui
     )
+
+#target_link_libraries(${target_name} PUBLIC
+#    imgui
+#    immvision_gl_loader
+#    )
+#target_include_directories(${target_name} PUBLIC ${OpenCV_INCLUDE_DIRS})
+# message(FATAL_ERROR "target_include_directories(${target_name} PRIVATE ${OpenCV_INCLUDE_DIRS})")
