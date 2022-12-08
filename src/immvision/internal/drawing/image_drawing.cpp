@@ -6,7 +6,6 @@
 #include "immvision/internal/cv/colormap.h"
 
 #include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
 
 
 namespace ImmVision
