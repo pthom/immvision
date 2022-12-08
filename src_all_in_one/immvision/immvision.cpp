@@ -4472,7 +4472,7 @@ namespace ImmVision
 
         // members
         ImVec2 mImageSize;
-        unsigned int mImTextureId;
+        ImTextureID mImTextureId;
     };
 
 
@@ -6616,7 +6616,7 @@ namespace ImmVision
             ZoomFullView,
             AdjustLevels,
         };
-        unsigned int GetIcon(IconType iconType);
+        ImTextureID GetIcon(IconType iconType);
 
         bool IconButton(IconType iconType, bool disabled = false);
 
@@ -6626,27 +6626,6 @@ namespace ImmVision
 
     } // namespace Icons
 } // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/drawing/internal_icons.cpp continued                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/imgui_imm_gl_image.h included by src/immvision/internal/drawing/internal_icons.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//
-// Wrappers for ImGui::Image, ImGui::ImageButton and ImGui::GetWindowDrawList()->AddImage
-//
-// They have the same behavior under C++, but under python this is transferred to the python interpreter
-// (see gl_provider_python.cpp for their python definition)
-//
-namespace ImGuiImmGlImage
-{
-    IMGUI_API void  Image(unsigned int user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0));
-    IMGUI_API bool  ImageButton(unsigned int user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1));    // <0 frame_padding uses default frame padding settings. 0 for no padding
-    IMGUI_API void  GetWindowDrawList_AddImage(unsigned int user_texture_id, const ImVec2& p_min, const ImVec2& p_max, const ImVec2& uv_min = ImVec2(0, 0), const ImVec2& uv_max = ImVec2(1, 1), ImU32 col = IM_COL32_WHITE);
-} // namespace ImGuiImmGlImage
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/drawing/internal_icons.cpp continued                            //
@@ -6875,7 +6854,7 @@ namespace ImmVision
         static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
         static cv::Size gIconSize(20,  20);
 
-        unsigned int GetIcon(IconType iconType)
+        ImTextureID GetIcon(IconType iconType)
         {
             if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
             {
@@ -6911,7 +6890,7 @@ namespace ImmVision
                 spaceLabel += " ";
             bool clicked = ImGui::Button(spaceLabel.c_str());
 
-            ImGuiImmGlImage::GetWindowDrawList_AddImage(
+            ImGui::GetWindowDrawList()->AddImage(
                 GetIcon(iconType),
                 cursorPos,
                 {cursorPos.x + (float)gIconSize.width, cursorPos.y + (float)gIconSize.height},
@@ -6943,11 +6922,11 @@ namespace ImmVision
             ImmVision::Image("test2", img, &imageParams2);
 
             ImVec2 iconSize(15.f, 15.f);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
         }
 
         void ClearIconsTextureCache()
@@ -7122,7 +7101,7 @@ namespace ImmVision
         ImVec2 size_(size);
         if (size.x == 0.f)
             size_ = this->mImageSize;
-        ImGuiImmGlImage::Image(this->mImTextureId, size_, uv0, uv1, tint_col, border_col);
+        ImGui::Image(this->mImTextureId, size_, uv0, uv1, tint_col, border_col);
     }
 
     bool GlTexture::DrawButton(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) const
@@ -7130,7 +7109,7 @@ namespace ImmVision
         ImVec2 size_(size);
         if (size.x == 0.f)
             size_ = this->mImageSize;
-        return ImGuiImmGlImage::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
+        return ImGui::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
     }
 
     void GlTexture::Draw_DisableDragWindow(const ImVec2 &size) const
@@ -7144,7 +7123,7 @@ namespace ImmVision
         std::stringstream id;
         id << "##" << mImTextureId;
         ImGui::InvisibleButton(id.str().c_str(), size);
-        ImGuiImmGlImage::GetWindowDrawList_AddImage(mImTextureId, imageTl, imageBr);
+        ImGui::GetWindowDrawList()->AddImage(mImTextureId, imageTl, imageBr);
     }
 
     void GlTexture::Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height)
@@ -7170,31 +7149,6 @@ namespace ImmVision
         Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows);
     }
 } // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/imgui_imm_gl_image.cpp                                       //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-namespace ImGuiImmGlImage
-{
-
-#ifndef IMMVISION_BUILDING_PYBIND
-    void  Image(unsigned int user_texture_id, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
-    {
-        ImGui::Image(user_texture_id, size, uv0, uv1, tint_col, border_col);
-    }
-    bool  ImageButton(unsigned int user_texture_id, const ImVec2& size, const ImVec2& uv0,  const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
-    {
-        return ImGui::ImageButton(user_texture_id, size, uv0, uv1, frame_padding, bg_col, tint_col);
-    }
-    void  GetWindowDrawList_AddImage(unsigned int user_texture_id, const ImVec2& p_min, const ImVec2& p_max, const ImVec2& uv_min, const ImVec2& uv_max, ImU32 col)
-    {
-        ImGui::GetWindowDrawList()->AddImage(user_texture_id, p_min, p_max, uv_min, uv_max, col);
-    }
-#endif
-} // namespace ImGuiImmGlImage
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -10994,7 +10948,7 @@ namespace ImmVision
                 ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
 
-                ImGuiImmGlImage::GetWindowDrawList_AddImage(cacheImage.GlTexture->mImTextureId, image_tl, image_br);
+                ImGui::GetWindowDrawList()->AddImage(cacheImage.GlTexture->mImTextureId, image_tl, image_br);
             }
             ImGui::EndListBox();
         }

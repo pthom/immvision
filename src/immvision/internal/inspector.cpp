@@ -1,7 +1,6 @@
 #include "immvision/inspector.h"
 #include "immvision/image.h"
 #include "immvision/internal/image_cache.h"
-#include "immvision/internal/gl/imgui_imm_gl_image.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/imgui/image_widgets.h"
 
@@ -85,7 +84,7 @@ namespace ImmVision
                 ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
 
-                ImGuiImmGlImage::GetWindowDrawList_AddImage(cacheImage.GlTexture->mImTextureId, image_tl, image_br);
+                ImGui::GetWindowDrawList()->AddImage(cacheImage.GlTexture->mImTextureId, image_tl, image_br);
             }
             ImGui::EndListBox();
         }

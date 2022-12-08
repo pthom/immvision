@@ -3,7 +3,6 @@
 #include "immvision/internal/gl/gl_texture.h"
 #include "immvision/image.h"
 #include "immvision/imgui_imm.h"
-#include "immvision/internal/gl/imgui_imm_gl_image.h"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include "imgui_internal.h"
@@ -232,7 +231,7 @@ namespace ImmVision
         static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
         static cv::Size gIconSize(20,  20);
 
-        unsigned int GetIcon(IconType iconType)
+        ImTextureID GetIcon(IconType iconType)
         {
             if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
             {
@@ -268,7 +267,7 @@ namespace ImmVision
                 spaceLabel += " ";
             bool clicked = ImGui::Button(spaceLabel.c_str());
 
-            ImGuiImmGlImage::GetWindowDrawList_AddImage(
+            ImGui::GetWindowDrawList()->AddImage(
                 GetIcon(iconType),
                 cursorPos,
                 {cursorPos.x + (float)gIconSize.width, cursorPos.y + (float)gIconSize.height},
@@ -300,11 +299,11 @@ namespace ImmVision
             ImmVision::Image("test2", img, &imageParams2);
 
             ImVec2 iconSize(15.f, 15.f);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
-            ImGuiImmGlImage::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
+            ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
         }
 
         void ClearIconsTextureCache()

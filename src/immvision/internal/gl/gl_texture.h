@@ -26,7 +26,7 @@ namespace ImmVision
 
         // members
         ImVec2 mImageSize;
-        unsigned int mImTextureId;
+        ImTextureID mImTextureId;
     };
 
 
