@@ -11,12 +11,5 @@ target_link_libraries(${target_name} PUBLIC
     opencv_core
     opencv_imgproc
     opencv_imgcodecs
-#    opencv_highgui
     )
 
-#target_link_libraries(${target_name} PUBLIC
-#    imgui
-#    immvision_gl_loader
-#    )
-#target_include_directories(${target_name} PUBLIC ${OpenCV_INCLUDE_DIRS})
-# message(FATAL_ERROR "target_include_directories(${target_name} PRIVATE ${OpenCV_INCLUDE_DIRS})")
