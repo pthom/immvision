@@ -379,9 +379,7 @@ namespace ImGuiImm
     void Theme_CorporateGrey()
     {
         ImGuiStyle & style = ImGui::GetStyle();
-        // [ADAPT_IMGUI_BUNDLE]
-        auto colors = style.Colors;
-        // [/ADAPT_IMGUI_BUNDLE]
+        ImVec4 * colors = style.Colors;
 
         /// 0 = FLAT APPEARENCE
         /// 1 = MORE "3D" LOOK
@@ -476,7 +474,7 @@ namespace ImGuiImm
         ImGui::GetStyle().FrameRounding = 4.0f;
         ImGui::GetStyle().GrabRounding = 4.0f;
 
-        auto colors = ImGui::GetStyle().Colors;
+        ImVec4* colors = ImGui::GetStyle().Colors;
         colors[ImGuiCol_Text] = ImVec4(0.95f, 0.96f, 0.98f, 1.00f);
         colors[ImGuiCol_TextDisabled] = ImVec4(0.36f, 0.42f, 0.47f, 1.00f);
         colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
@@ -530,7 +528,7 @@ namespace ImGuiImm
 
     void Theme_EmbraceTheDarkness()
     {
-        auto colors = ImGui::GetStyle().Colors;
+        ImVec4* colors = ImGui::GetStyle().Colors;
         colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
         colors[ImGuiCol_TextDisabled]           = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
         colors[ImGuiCol_WindowBg]               = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
