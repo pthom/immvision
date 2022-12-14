@@ -192,7 +192,7 @@ struct MandelbrotParams
         if (mouse_coords.has_value())
             ImGui::Text("%s", precise_coords_to_string(*mouse_coords).c_str());
         else
-            ImGui::Text("");
+            ImGui::NewLine();
     }
 
     bool gui_options()
