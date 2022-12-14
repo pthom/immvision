@@ -16,7 +16,7 @@ namespace ImmVision
         cv::Mat Image;
         ImageParams Params;
 
-        const cv::Point2d InitialZoomCenter = cv::Point2d();
+        cv::Point2d InitialZoomCenter = cv::Point2d();
         double InitialZoomRatio = 1.;
         bool WasSentToTextureCache = false;
     };
@@ -60,11 +60,14 @@ namespace ImmVision
     void priv_Inspector_ShowImagesListbox(float width)
     {
         ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
+        int idxSuppress = -1;
         if (ImGui::BeginListBox("##ImageList",
                                 ImVec2(width - 10.f, ImGui::GetContentRegionAvail().y)))
         {
             for (size_t i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
             {
+                ImGui::PushID(i * 3424553);
+
                 auto& imageAndParams = s_Inspector_ImagesAndParams[i];
 
                 const bool is_selected = (s_Inspector_CurrentIndex == i);
@@ -76,6 +79,16 @@ namespace ImmVision
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
                 ImVec2 pos = ImGui::GetCursorScreenPos();
 
+                {
+                    auto col = ImGui::GetStyle().Colors[ImGuiCol_Button];
+                    col.x = 1.;
+                    ImGui::PushStyleColor(ImGuiCol_Button, col);
+                    if (ImGui::SmallButton("x"))
+                        idxSuppress = i;
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine();
+                }
+
                 std::string id_selectable = imageAndParams.Label + "##_" + std::to_string(i);
                 if (ImGui::Selectable(id_selectable.c_str(), is_selected, 0, itemSize))
                     s_Inspector_CurrentIndex = i;
@@ -85,8 +98,13 @@ namespace ImmVision
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
 
                 ImGui::GetWindowDrawList()->AddImage(cacheImage.GlTexture->mImTextureId, image_tl, image_br);
+
+                ImGui::PopID();
             }
             ImGui::EndListBox();
+
+            if (idxSuppress >= 0)
+                s_Inspector_ImagesAndParams.erase(s_Inspector_ImagesAndParams.begin() + (size_t)idxSuppress);
         }
     };
 
