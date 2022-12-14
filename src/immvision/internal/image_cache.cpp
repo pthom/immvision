@@ -261,8 +261,15 @@ namespace ImmVision
             }
         }
 
+        ImageTextureCache::~ImageTextureCache()
+        {
+            if (this == &gImageTextureCache)
+                gImageTextureCacheAlive = false;
+        }
 
-    ImageTextureCache gImageTextureCache;
+
+        ImageTextureCache gImageTextureCache;
+        bool gImageTextureCacheAlive = true;
     } // namespace ImageUtils
 
 

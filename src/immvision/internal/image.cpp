@@ -584,6 +584,7 @@ namespace ImmVision
 
     ImageParams::~ImageParams()
     {
-        ImageCache::gImageTextureCache.OnDeleteImageParams(this);
+        if (ImageCache::gImageTextureCacheAlive)
+            ImageCache::gImageTextureCache.OnDeleteImageParams(this);
     }
 } // namespace ImmVision

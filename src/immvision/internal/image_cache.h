@@ -43,6 +43,7 @@ namespace ImmVision
 
             void OnDeleteImageParams(ImageParams* paramsPtr);
 
+            ~ImageTextureCache();
         private:
             // Methods
             void UpdateLinkedZooms(KeyType id);
@@ -56,6 +57,7 @@ namespace ImmVision
         };
 
         extern ImageTextureCache gImageTextureCache;
+        extern bool gImageTextureCacheAlive;
 
     } // namespace ImageUtils
 
