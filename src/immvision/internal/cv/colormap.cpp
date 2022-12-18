@@ -361,8 +361,9 @@ namespace ImmVision
                 ImVec4 colorHovered = colorSelected;
                 colorHovered.w = 0.65f;
 
-                float widthText = 75.f;
-                ImVec2 sizeTexture(200.f, 15.f);
+                float kFont = ImGui::GetFontSize();
+                float widthText = kFont * 5.5f;
+                ImVec2 sizeTexture(kFont * 14.f, kFont);
 
                 bool isHovered;
                 {
