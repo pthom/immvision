@@ -108,7 +108,8 @@ namespace ImmVision
                                 bool add_cartouche = false,
                                 double size = 3.,
                                 double size_hole = 2.,
-                                int thickness = 1);
+                                int thickness = 1,
+                                double font_scale = 0.4);
 
         void draw_transparent_pixel(
             cv::Mat &img_rgba,

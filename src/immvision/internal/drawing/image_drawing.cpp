@@ -12,6 +12,14 @@ namespace ImmVision
 {
     namespace ImageDrawing
     {
+        static float _ImmDrawingFontScaleRatio()
+        {
+            if (ImGui::GetFontSize() < 20.f)
+                return 1.f;
+            else
+                return 1.5f;
+        }
+
         cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params)
         {
             cv::Mat r = image.clone();
@@ -37,7 +45,8 @@ namespace ImmVision
                     true, // add_cartouche
                     4.,   // size
                     2.5,  // size_hole
-                    1     // thickness
+                    1,    // thickness
+                    0.4 * (double) _ImmDrawingFontScaleRatio() // font size
                 );
             }
 
@@ -111,7 +120,7 @@ namespace ImmVision
                         textColor,
                         true, // center_around_point
                         false, // add_cartouche
-                        0.3,  //fontScale
+                        0.3 * (double) _ImmDrawingFontScaleRatio() ,  //fontScale
                         1     //int thickness
                     );
                 }

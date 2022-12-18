@@ -340,7 +340,8 @@ namespace ImmVision
                                 bool add_cartouche /*= false*/,
                                 double size /*= 3.*/,
                                 double size_hole /*= 2.*/,
-                                int thickness /*= 1*/)
+                                int thickness /*= 1*/,
+                                double font_scale /*= 0.4*/)
         {
             if (add_cartouche)
                 for (auto x : std::vector<double>{-1., 1.})
@@ -350,7 +351,7 @@ namespace ImmVision
             cross_hole(img, position, color, size, size_hole, thickness);
             double delta_y = size_hole + size + 6.;
             cv::Point2d text_position = {position.x, position.y - delta_y};
-            text(img, text_position, name, color, true, add_cartouche);
+            text(img, text_position, name, color, true, add_cartouche, font_scale);
         }
 
         cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2)
