@@ -7,6 +7,12 @@ namespace ImmVision
 {
     namespace ImageWidgets
     {
+        float FontSizeRatio()
+        {
+            float r = ImGui::GetFontSize() / 14.5;
+            return r;
+        }
+
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
@@ -69,7 +75,7 @@ namespace ImmVision
                 {
                     cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
                     ImVec4 colorAsImVec = Vec3bToImVec4(col);
-                    ImGui::SetNextItemWidth(150.f);
+                    ImGui::SetNextItemWidth(150.f * FontSizeRatio());
                     ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
                 }
@@ -77,7 +83,7 @@ namespace ImmVision
                 {
                     cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
                     ImVec4 colorAsImVec = Vec4bToImVec4(col);
-                    ImGui::SetNextItemWidth(200.f);
+                    ImGui::SetNextItemWidth(200.f * FontSizeRatio());
                     ImGui::ColorEdit4(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
                 }

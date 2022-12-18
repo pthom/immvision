@@ -36,6 +36,11 @@ namespace ImmVision
         Inspector_ClearImages();
     }
 
+    static float FontSizeRatio()
+    {
+        float r = ImGui::GetFontSize() / 14.5;
+        return r;
+    }
 
     void Image(const std::string& label, const cv::Mat& image, ImageParams* params)
     {
@@ -149,7 +154,7 @@ namespace ImmVision
         auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnColormap](
                 CachedParams & cacheParams)
         {
-            float optionsWidth = 330.f;
+            float optionsWidth = 330.f * FontSizeRatio();
             // Group with fixed width, so that Collapsing headers stop at optionsWidth
             ImGuiImm::BeginGroupFixedWidth(optionsWidth);
 
@@ -249,7 +254,7 @@ namespace ImmVision
                 {
                     ImGui::Text("File name");
                     char *filename = cacheParams.FilenameEditBuffer.data();
-                    ImGui::SetNextItemWidth(200.f);
+                    ImGui::SetNextItemWidth(200.f * FontSizeRatio());
                     ImGui::InputText("##filename", filename, 1000);
                     //ImGui::SetNextItemWidth(200.f);
                     ImGui::Text("The image will be saved in the current folder");

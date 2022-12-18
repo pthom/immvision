@@ -229,7 +229,15 @@ namespace ImmVision
 
 
         static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
-        static cv::Size gIconSize(20,  20);
+        //static cv::Size gIconSize(20,  20);
+
+        cv::Size IconSize()
+        {
+            // Make icons size proportionnal to font size
+            float k = ImGui::GetFontSize() / 14.5f;
+            int size = int(k * 20.f);
+            return {size, size};
+        }
 
         ImTextureID GetIcon(IconType iconType)
         {
@@ -244,7 +252,7 @@ namespace ImmVision
                     m = MakeMagnifierImage(iconType);
 
                 cv::Mat resized = m;
-                cv::resize(m, resized, cv::Size(gIconSize.width * 2, gIconSize.height * 2), 0., 0., cv::INTER_AREA);
+                cv::resize(m, resized, cv::Size(IconSize().width * 2, IconSize().height * 2), 0., 0., cv::INTER_AREA);
                 auto texture = std::make_unique<GlTextureCv>(resized, true);
                 sIconsTextureCache[iconType] = std::move(texture);
             }
@@ -270,7 +278,7 @@ namespace ImmVision
             ImGui::GetWindowDrawList()->AddImage(
                 GetIcon(iconType),
                 cursorPos,
-                {cursorPos.x + (float)gIconSize.width, cursorPos.y + (float)gIconSize.height},
+                {cursorPos.x + (float)IconSize().width, cursorPos.y + (float)IconSize().height},
                 ImVec2(0.f, 0.f),
                 ImVec2(1.f, 1.f),
                 backColor
