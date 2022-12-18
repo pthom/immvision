@@ -241,7 +241,7 @@ namespace ImmVision
                         visibleImageCenter_ImageCoords, zoomRatioOtherImage, otherDisplayedImageSize);
                     otherCache.ParamsPtr->ZoomPanMatrix = zoomMatrixOtherImage;
                     otherCache.PreviousParams.ZoomPanMatrix = zoomMatrixOtherImage;
-                    otherCache.ParamsPtr->RefreshImage = true;
+                    // otherCache.ParamsPtr->RefreshImage = true;
                     otherCache.WasZoomJustUpdatedByLink = true;
                 }
             }
