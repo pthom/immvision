@@ -75,7 +75,7 @@ namespace ImmVision
                 auto id = sInspectorImageTextureCache.GetID(imageAndParams.Label, sDontUseIdStack);
                 auto &cacheImage = sInspectorImageTextureCache.GetCacheImageAndTexture(id);
 
-                ImVec2 itemSize(width - 10.f, 40.f);
+                ImVec2 itemSize(width - 10.f, ImGui::GetFontSize() * 3.f);
                 float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
                 ImVec2 pos = ImGui::GetCursorScreenPos();
 
@@ -151,18 +151,19 @@ namespace ImmVision
     {
         ImVec2 imageSize;
 
-        float x_margin = 30.f;
-        float y_margin = 5.f;
-        float image_info_height = 120.f;
+        float emSize = ImGui::GetFontSize();
+        float x_margin = emSize * 2.f;
+        float y_margin = emSize / 3.f;
+        float image_info_height =  ImGui::GetFontSize() * 10.f;
         if (!s_Inspector_ImagesAndParams.empty())
         {
             const auto &params = s_Inspector_ImagesAndParams.front().Params;
             if (!params.ShowImageInfo)
-                image_info_height -= 20.f;
+                image_info_height -= emSize * 1.5f;
             if (!params.ShowPixelInfo)
-                image_info_height -= 20.f;
+                image_info_height -= emSize * 1.5f;
         }
-        float image_options_width = showOptionsColumn ? 300.f : 0.f;
+        float image_options_width = showOptionsColumn ? ImGui::GetFontSize() * 19.f : 0.f;
         ImVec2 winSize = ImGui::GetWindowSize();
         imageSize = ImVec2(
             winSize.x - listWidth - x_margin - image_options_width,
@@ -187,7 +188,7 @@ namespace ImmVision
                 showOptionsColumn = false;
         }
 
-        static float listWidth = ImGui::GetWindowSize().x / 10.f;
+        static float listWidth = ImGui::GetFontSize() * 8.5f;
 
         ImVec2 imageSize = priv_Inspector_ImageSize(listWidth, showOptionsColumn);
         priv_Inspector_CleanImagesParams(imageSize);
