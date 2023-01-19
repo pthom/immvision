@@ -13,11 +13,20 @@ project(immvision
 #------------------------------------------------------------------------------
 # IMMVISION_FETCH_OPENCV
 # if ON, we will fetch a build a very minimal version of OpenCV in the build directory
-# This version is extremely minimal: no highgui, no video capture, etc.
+# This version is extremely minimal: no highgui, no video capture, no img_proc, etc.
 #
-# For a complete version of OpenCV use your own version
+# For a complete version of OpenCV, it is preferable to use your own version
 option(IMMVISION_FETCH_OPENCV OFF)
 #------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# IMMVISION_FETCH_OPENCV_FULL
+# if ON, the fetched build of OpenCV will be less minimal, and use OpenCV defaults
+#
+# For a complete version of OpenCV use your own version
+option(IMMVISION_FETCH_OPENCV_FULL OFF)
+#------------------------------------------------------------------------------
+
 
 #------------------------------------------------------------------------------
 # IMMVISION_BUILD_DEMOS
