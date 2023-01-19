@@ -16,7 +16,7 @@ TODO
 #include "nlohmann_json.hpp"
 #endif
 
-#include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <array>
@@ -715,15 +715,6 @@ public:
         HelloImGui::Run(params);
     }
 };
-
-
-void test_mandel()
-{
-    auto params = MandelbrotParams();
-    auto mandel_image = params.mandelbrot_image({600, 600});
-    cv::imshow("mandel_image", mandel_image);
-    cv::waitKey();
-}
 
 
 void playground()

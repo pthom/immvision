@@ -3,7 +3,7 @@
 #include "immvision/imgui_imm.h"
 #include "immvision/internal/cv/colormap.h"
 
-#include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <array>
@@ -225,13 +225,7 @@ void guiImageDisplayOnly()
     //static cv::Mat image = cv::imread("resources/house.jpg", cv::IMREAD_UNCHANGED);
     //static cv::Mat image = cv::imread("resources/bear_transparent.png", cv::IMREAD_UNCHANGED);
 
-#ifdef __EMSCRIPTEN__
     static cv::Mat image = cv::imread("resources/house.jpg", cv::IMREAD_UNCHANGED);
-#else
-    static cv::VideoCapture cap(0);
-    static cv::Mat image;
-    cap >> image;
-#endif
 
     cv::Point2d mousePosition = ImmVision::ImageDisplay(
         "image",

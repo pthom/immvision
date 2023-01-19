@@ -40,8 +40,8 @@ namespace ImmVision_GlProvider
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, ImTextureID textureId)
     {
-        static int counter = 0;
-        ++counter;
+        //static int counter = 0;
+        //++counter;
         //std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
         GLuint textureIdAsUint = (GLuint)(size_t)textureId;
         glBindTexture(GL_TEXTURE_2D, textureIdAsUint);

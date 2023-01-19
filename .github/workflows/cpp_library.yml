@@ -28,17 +28,15 @@ jobs:
       with:
         submodules: true
 
-#    - name: Setup interactive tmate session
-#      uses: mxschmitt/action-tmate@v3
-
     - name: install linux deps on ubuntu
       run: ./scripts/install_linux_deps.sh
 
-    - name: prepare_build
-      run: python3 ./scripts/prepare_build.py
+#    - name: Setup interactive tmate session
+#      uses: mxschmitt/action-tmate@v3
 
     - name: Build
       run: |
+        mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DIMMVISION_FETCH_OPENCV=ON
         cmake --build . --config Release

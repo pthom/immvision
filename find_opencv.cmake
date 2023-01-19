@@ -232,7 +232,6 @@ macro(immvision_find_opencv)
         ----------------------------------------------------------------------------------
         ")
     else()
-        dump_cmake_variables(OpenCV)
         message("found OpenCV OpenCV_DIR=${OpenCV_DIR} ")
     endif()
 

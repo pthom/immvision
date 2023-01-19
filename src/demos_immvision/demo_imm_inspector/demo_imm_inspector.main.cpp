@@ -2,7 +2,7 @@
 #include "hello_imgui/hello_imgui.h"
 #include "datestr.h"
 #include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
 
  int main(int , char *[])
 {
