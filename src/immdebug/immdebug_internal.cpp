@@ -24,10 +24,12 @@ namespace ImmVision
             return v;
         }
 
-        void WriteMat(std::ostream &os, const cv::Mat &m)
+        void WriteMat(std::ostream &os, const cv::Mat &_m)
         {
-            if (!m.isContinuous())
-                throw std::runtime_error("WriteMat only supports continuous Mat");
+            cv::Mat m = _m;
+            if (!_m.isContinuous())
+                m  = _m.clone();
+
             size_t elem_size = m.elemSize();
             int elem_type = m.type();
 
@@ -191,18 +193,34 @@ namespace ImmVision
             std::string folder = ImmDebugFolder(false);
             namespace fs = std::filesystem;
 
-            // if there is an image in the folder, read the first one and return true
+            std::vector<fs::path> imagePayloads;
             for(const fs::directory_entry& entry : fs::directory_iterator(folder))
             {
                 const auto& path = entry.path();
                 if (! fs::is_regular_file(path))
                     continue;
-                std::ifstream is(path, std::ios::binary);
+                imagePayloads.push_back(path);
+            }
+
+            if (!imagePayloads.empty())
+            {
+                if (imagePayloads.size() > 1)
+                {
+                    std::sort(imagePayloads.begin(), imagePayloads.end(),
+                              [](const fs::path& f1, const fs::path& f2) {
+                                  return last_write_time(f1) < last_write_time(f2);
+                              }
+                    );
+                }
+                auto oldestPayload = imagePayloads.front();
+                std::ifstream is(oldestPayload, std::ios::binary);
                 imagePayload = ReadImagePayload(is);
                 is.close();
-                RemoveOneFile(path);
+                RemoveOneFile(oldestPayload);
                 return imagePayload;
             }
+
+
             return std::nullopt;
         }
 

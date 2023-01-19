@@ -16,7 +16,7 @@ namespace ImmVision
             // members
             struct CachedParams
             {
-                // This caches are small and will persist during the application lifetime
+                // These caches are small and will persist during the application lifetime
                 ImageParams* ParamsPtr = nullptr;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
@@ -26,7 +26,7 @@ namespace ImmVision
             };
             struct CachedImageAndTexture
             {
-                // This caches are heavy and will be destroyed
+                // These caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
                 cv::Mat     ImageRgbaCache;
                 std::unique_ptr<GlTextureCv> GlTexture;
