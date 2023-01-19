@@ -90,7 +90,7 @@ namespace ImmVision
         void RemovePingFile() { std::filesystem::remove(PingFilename()); }
         std::string PingFilename()
         {
-            return std::filesystem::temp_directory_path().string() + "/" +mLockName + ".ping";
+            return std::filesystem::temp_directory_path().string() + "/" + mLockName + ".ping";
         }
 
         std::string mLockName;

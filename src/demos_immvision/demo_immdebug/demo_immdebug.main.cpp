@@ -1,7 +1,4 @@
 #include "immdebug/immdebug.h"
-#include "immdebug/immdebug_internal.h"
-
-#include <iostream>
 
 int main()
 {
@@ -15,10 +12,4 @@ int main()
         "colorAdjustmentsKey",
         true
         );
-
-    auto v = ImmVision::ImmDebug_Internal::ReadImagePayload();
-    if (v)
-    {
-        std::cout << "Found one payload size = " << v->Image.size() << std::endl;
-    }
 }

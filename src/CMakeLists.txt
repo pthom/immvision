@@ -15,7 +15,7 @@ endif()
 
 add_subdirectory(immvision_gl_loader)
 add_subdirectory(immvision)
-if (PROJECT_IS_TOP_LEVEL)
+if (IMMVISION_BUILD_VIEWER)
     add_subdirectory(immdebug)
     add_subdirectory(immdebug_viewer)
 endif()
