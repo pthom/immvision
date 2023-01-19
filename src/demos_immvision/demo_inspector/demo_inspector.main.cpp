@@ -4,13 +4,18 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
- int main(int , char *[])
+
+#include <filesystem>
+std::string ResourcesDir()
 {
-    std::cout << datestr << std::endl;
+    std::filesystem::path this_file(__FILE__);
+    return this_file.parent_path().parent_path() / "resources";
+}
 
+void FillInspector()
+{
     std::string zoomKey = "zk";
-
-    auto image = cv::imread(HelloImGui::assetFileFullPath("house.jpg"));
+    auto image = cv::imread(ResourcesDir() + "/house.jpg");
     ImmVision::Inspector_AddImage(image, "Original", zoomKey);
 
     cv::Mat gray;
@@ -24,18 +29,22 @@
     cv::Mat place = cv::imread(HelloImGui::assetFileFullPath("reddit_place_2022.png"));
     cv::resize(place, place, cv::Size(2000, 2000));
     ImmVision::Inspector_AddImage(place, "Place", "", "", cv::Point2d(130., 1617.), 1.5);
+}
 
-    auto gui = []()
+
+void gui()
+{
+    static bool inited = false;
+    if (!inited)
     {
-        ImGui::Text("%s FPS:%.1f", datestr, (double)ImGui::GetIO().Framerate);
-        ImmVision::Inspector_Show();
-    };
+        FillInspector();
+        inited = true;
+    }
+    ImmVision::Inspector_Show();
+}
 
-    HelloImGui::RunnerParams params;
-    params.appWindowParams.windowGeometry.size = {1200, 800};
-    params.callbacks.ShowGui = gui;
-    params.callbacks.LoadAdditionalFonts = []{};
-    HelloImGui::Run(params);
-
+int main(int , char *[])
+{
+    HelloImGui::Run(gui);
     return 0;
 }

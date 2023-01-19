@@ -39,8 +39,7 @@ using ColorType = double;
 //using ColorType = int;
 
 
-std::string ASSETS_FOLDER = "/Users/pascal/dvp/OpenSource/ImGuiWork/immvision/src/immvision_demos/mandelbrot_demo_cpp/assets";
-    //"./assets/";
+std::string ASSETS_FOLDER = "assets/";
 std::string LOCATIONS_FILE = ASSETS_FOLDER + "/locations.json";
 
 
