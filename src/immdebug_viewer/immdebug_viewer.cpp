@@ -1,6 +1,9 @@
+#include "hello_imgui/hello_imgui.h"
 #include "immdebug_viewer/single_instance_app.h"
 #include "immdebug/immdebug_internal.h"
-#include <thread>
+#include "immvision/inspector.h"
+
+#include "GLFW/glfw3.h"
 #include <iostream>
 
 
@@ -12,85 +15,41 @@ void AddIncomingImages()
         imagePayload = ImmVision::ImmDebug_Internal::ReadImagePayload();
         if (imagePayload)
         {
-            std::cout << "Should display payload of size " << imagePayload->Image.size() << std::endl;
+            HelloImGui::Log(HelloImGui::LogLevel::Info, "Received image payload");
+
+            ImmVision::Inspector_AddImage(
+                imagePayload->Image,
+                imagePayload->Legend,
+                imagePayload->ZoomKey,
+                imagePayload->ColorAdjustmentsKey,
+                imagePayload->ZoomCenter,
+                imagePayload->ZoomRatio,
+                imagePayload->isColorOrderBGR
+            );
+
         }
-//        ImGuiCv::ImageExplorers_AddImage(
-//            imagePayload.Label,
-//            imagePayload.Image,
-//            imagePayload.InitialImageAdjustments,
-//            imagePayload.AdditionalLegend
-//        );
+
     } while(imagePayload);
 }
-//
-//cv::Mat MakeWindowIcon()
-//{
-//    cv::Mat icon(cv::Size(48, 48), CV_8UC3);
-//    icon = cv::Scalar(100, 180, 120);
-//    auto fontFace = cv::FONT_HERSHEY_SIMPLEX;
-//    double fontScale = 0.33;
-//    cv::putText(icon, "ImViewer", cv::Point(3, 30), fontFace, fontScale, cv::Scalar(200, 50, 50));
-//    return icon;
-//}
-//
-//void RunViewer(MakeSingleInstanceApp &singleInstanceApp)
-//{
-////    ImGuiExt::ImGuiRunner::ImGuiParams params;
-////    params.windowed_full_screen = true;
-////    params.win_width = 1024;
-////    params.win_height = 768;
-////    params.win_title = "imdebugui - Viewer";
-////    params.clear_color = ImColor(114, 144, 154);
-////
-////    params.icon = MakeWindowIcon();
-////
-////    ImGuiExt::ImGuiRunner::run([&]() {
-////        ApplySkin();
-////        ImGuiCv::ImageExplorers_ShowAll();
-////
-////        // check for new images to show (every 10 frames, to reduce disk usage)
-////        static int idx = 0;
-////        if (idx % 10 == 0)
-////            AddIncomingImages();
-////        idx++;
-////
-////        if (singleInstanceApp.WasPingedFromOtherInstance())
-////            ImGuiExt::ImGuiRunner::BringMainWindowToTop();
-////
-////    }, params);
-//
-//
-//    while(true)
-//    {
-//        if (singleInstanceApp.WasPingedFromOtherInstance())
-//            std::cout << "Received ping !" << std::endl;
-//
-//        using namespace std::literals;
-//        std::this_thread::sleep_for(1s);
-//    }
-//}
-//
-//#ifdef _WIN32
-//int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
-//#else
-//
-//int main()
-//#endif
-//{
-//    //MakeSingleInstanceApp::RemoveAtom(); return 0;
-//
-//    if (MakeSingleInstanceApp::IsOtherInstanceLaunched_PingIfSo())
-//    {
-//        std::cout << "Found other instance. It was pinged!" << std::endl;
-//        return 1;
-//    }
-//
-//    MakeSingleInstanceApp singleInstanceApp;
-//    singleInstanceApp.CreateSingleInstanceAppAtomId();
-//    RunViewer(singleInstanceApp);
-//
-//    return 0;
-//}
+
+
+void Gui(ImmVision::SingleInstanceApp& singleInstanceApp)
+{
+    // check for new images to show (every 10 frames, to reduce disk usage)
+    static int idx = 0;
+    if (idx % 10 == 0)
+        AddIncomingImages();
+    idx++;
+
+    if (singleInstanceApp.WasPinged())
+    {
+        glfwFocusWindow((GLFWwindow*) HelloImGui::GetRunnerParams()->backendPointers.glfwWindow);
+        HelloImGui::Log(HelloImGui::LogLevel::Warning, "Pong");
+    }
+
+    HelloImGui::LogGui(ImVec2(0.f, 300.f));
+    ImmVision::Inspector_Show();
+}
 
 
 int main()
@@ -106,12 +65,13 @@ int main()
         return 0;
     }
 
-    for (int i = 0; i < 200; ++i)
-    {
+    HelloImGui::RunnerParams params;
+    params.appWindowParams.windowGeometry.size = {800, 800};
+    params.callbacks.ShowGui = [&singleInstanceApp]() {
+        Gui(singleInstanceApp);
+    };
 
-        if (singleInstanceApp.WasPinged())
-            std::cout << "Ping in main\n";
-        std::this_thread::sleep_for(50ms);
-    }
+    HelloImGui::Run(params);
+
     return 0;
 }
