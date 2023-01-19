@@ -1,2 +1,2 @@
 add_executable(demo_immdebug demo_immdebug.main.cpp)
-target_link_libraries(demo_immdebug PRIVATE immdebug)
+target_link_libraries(demo_immdebug PRIVATE immdebug opencv_imgproc opencv_imgcodecs)
