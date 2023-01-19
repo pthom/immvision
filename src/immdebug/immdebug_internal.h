@@ -13,7 +13,7 @@ namespace ImmVision
             cv::Mat Image;
             std::string Legend = "";
             cv::Point2d ZoomCenter = cv::Point2d();
-            double ZoomRatio = 1.;
+            double ZoomRatio = -1.;
             std::string ZoomKey = "";
             std::string ColorAdjustmentsKey = "";
             bool isColorOrderBGR = true;

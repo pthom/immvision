@@ -9,6 +9,8 @@
 
 namespace ImmVision
 {
+    static ImVec2 gInspectorImageSize(0.f, 0.f);
+
     struct Inspector_ImageAndParams
     {
         ImageCache::KeyType id;
@@ -45,6 +47,9 @@ namespace ImmVision
         params.ZoomKey = zoomKey;
         params.ColormapKey = colormapKey;
         params.ShowOptionsPanel = true;
+
+        if (gInspectorImageSize.x > 0.f)
+            params.ImageDisplaySize = cv::Size((int)gInspectorImageSize.x, (int)gInspectorImageSize.y);
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
         auto id = sInspectorImageTextureCache.GetID(label, sDontUseIdStack);
@@ -172,6 +177,8 @@ namespace ImmVision
             imageSize.x = 1.f;
         if (imageSize.y < 1.f)
             imageSize.y = 1.f;
+
+        gInspectorImageSize = imageSize;
         return imageSize;
     };
 

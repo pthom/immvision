@@ -9,6 +9,7 @@
 
 void AddIncomingImages()
 {
+    bool foundNewImages = false;
     std::optional<ImmVision::ImmDebug_Internal::ImagePayload> imagePayload;
     do
     {
@@ -26,15 +27,22 @@ void AddIncomingImages()
                 imagePayload->ZoomRatio,
                 imagePayload->isColorOrderBGR
             );
-
+            foundNewImages = true;
         }
 
     } while(imagePayload);
+
+    if (foundNewImages)
+        glfwFocusWindow((GLFWwindow*) HelloImGui::GetRunnerParams()->backendPointers.glfwWindow);
 }
 
 
 void Gui(ImmVision::SingleInstanceApp& singleInstanceApp)
 {
+    ImmVision::Inspector_Show();
+    HelloImGui::LogGui(ImVec2(0.f, 300.f));
+
+
     // check for new images to show (every 10 frames, to reduce disk usage)
     static int idx = 0;
     if (idx % 10 == 0)
@@ -47,9 +55,8 @@ void Gui(ImmVision::SingleInstanceApp& singleInstanceApp)
         HelloImGui::Log(HelloImGui::LogLevel::Warning, "Pong");
     }
 
-    HelloImGui::LogGui(ImVec2(0.f, 300.f));
-    ImmVision::Inspector_Show();
 }
+
 
 
 int main()
@@ -66,7 +73,9 @@ int main()
     }
 
     HelloImGui::RunnerParams params;
-    params.appWindowParams.windowGeometry.size = {800, 800};
+    params.appWindowParams.windowGeometry.fullScreenMode = HelloImGui::FullScreenMode::FullMonitorWorkArea;
+    params.appWindowParams.restorePreviousGeometry = true;
+    params.appWindowParams.windowTitle = "ImmVision - immdebug viewer";
     params.callbacks.ShowGui = [&singleInstanceApp]() {
         Gui(singleInstanceApp);
     };
