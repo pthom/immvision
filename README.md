@@ -2,19 +2,20 @@
 
 # ImmVision
 
-ImmVision is a powerful image debugger and viewer.
+ImmVision (a.k.a Immediate Vision) is an image debugger and viewer.
 
-
-## Standalone Image Debugger (during execution, *and* post-mortem)
+## ImmDebug: standalone Image Debugger (during execution, *and* post-mortem)
 
 immvision includes an advanced image debugger which you can easily plug into your C++ projects in order to be able to visually debug images inside your image processing algorithms, during execution or even *after* execution (post-mortem).
 
-This requires **no dependency** apart from OpenCV, and you do **not** need to link your programm to immvision (you will just need to copy 4 cpp files in your project).
+This requires **no dependency** apart from OpenCV, and you do **not** need to link your program to immvision (you will just need to copy 4 cpp files in your project).
 
 Let's consider an example: 
 in  the following program, the image is modified in several steps, and each call to `ImmVision::ImmDebug` will add another debugged image to the debugger.
 
 ```cpp
+#include "immdebug/immdebug.h"
+
 void ExampleImageProcessingWithDebug()
 {
     cv::Mat image = cv::imread(ResourcesDir() + "/house.jpg");
@@ -88,7 +89,7 @@ namespace ImmVision
 Step 3: Add some calls to `ImmVision::ImmDebug` in your program
 
 
-`ImmVision::ImmDebug` is non blocking on the client side (all it does is to save a file in the temporary directory).
+`ImmVision::ImmDebug` is non-blocking on the client side (all it does is to save a file in the temporary directory).
 
 You can then run `immdebug_viewer` by calling `ImmVision::LaunchImmDebugViewer` (if you copied it into your PATH), otherwise you can launch it manually.
 
