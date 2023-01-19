@@ -8,7 +8,7 @@
 std::string ResourcesDir()
 {
     std::filesystem::path this_file(__FILE__);
-    return this_file.parent_path().parent_path() / "resources";
+    return (this_file.parent_path().parent_path() / "resources").string();
 }
 
 enum class Orientation
