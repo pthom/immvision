@@ -4602,7 +4602,7 @@ namespace ImmVision
 
         bool CanColormap(const cv::Mat &image)
         {
-            return image.channels() == 1;
+            return ((image.type() == CV_32FC1) || (image.type() == CV_64FC1));
         }
 
 
@@ -4612,7 +4612,6 @@ namespace ImmVision
             ColormapSettingsData r;
             return r;
         }
-
 
 
         //
@@ -9283,7 +9282,7 @@ namespace ImmVision
             // members
             struct CachedParams
             {
-                // This caches are small and will persist during the application lifetime
+                // These caches are small and will persist during the application lifetime
                 ImageParams* ParamsPtr = nullptr;
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
@@ -9293,7 +9292,7 @@ namespace ImmVision
             };
             struct CachedImageAndTexture
             {
-                // This caches are heavy and will be destroyed
+                // These caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
                 cv::Mat     ImageRgbaCache;
                 std::unique_ptr<GlTextureCv> GlTexture;
@@ -9978,6 +9977,10 @@ namespace ImmVision
         {
             if (Colormap::IsNone(params->ColormapSettings))
                 params->ColormapSettings = Colormap::ComputeInitialColormapSettings(image);
+            {
+                cv::Rect fullRoi(cv::Point2d(), image.size());
+                Colormap::InitStatsOnNewImage(image, fullRoi, &params->ColormapSettings);
+            }
             if (params->ZoomPanMatrix == cv::Matx33d::eye())
                 params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
         }

@@ -61,7 +61,7 @@ namespace ImmVision
 
         bool CanColormap(const cv::Mat &image)
         {
-            return image.channels() == 1;
+            return ((image.type() == CV_32FC1) || (image.type() == CV_64FC1));
         }
 
 
@@ -71,7 +71,6 @@ namespace ImmVision
             ColormapSettingsData r;
             return r;
         }
-
 
 
         //

@@ -22,6 +22,10 @@ namespace ImmVision
         {
             if (Colormap::IsNone(params->ColormapSettings))
                 params->ColormapSettings = Colormap::ComputeInitialColormapSettings(image);
+            {
+                cv::Rect fullRoi(cv::Point2d(), image.size());
+                Colormap::InitStatsOnNewImage(image, fullRoi, &params->ColormapSettings);
+            }
             if (params->ZoomPanMatrix == cv::Matx33d::eye())
                 params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
         }
