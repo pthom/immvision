@@ -60,6 +60,17 @@ option(IMMVISION_BUILD_ALL_IN_ONE OFF)
 option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
 #------------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
+# IMMVISION_OPENCV_CONAN
+# For conan, add binary dir to module search path
+# this way, if you run
+#     conan install ../conanfile_opencv.txt --build=missing
+# in the build dir, you can use OpenCV provided by conan
+option(IMMVISION_OPENCV_CONAN "Use conan to get opencv" ON)
+if (IMMVISION_OPENCV_CONAN)
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
+endif()
+#------------------------------------------------------------------------------
 
 ###############################################################################
 # Build process
