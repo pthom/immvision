@@ -10,12 +10,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(IMMVISION_VERSION ${PROJECT_VERSION})
 add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")
 
-# For conan, add binary dir to module search path
-option(IMMVISION_USE_CONAN "Use conan to get opencv" ON)
-if (IMMVISION_USE_CONAN)
-    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
-endif()
-
 if(PROJECT_IS_TOP_LEVEL)
     option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
     option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
@@ -46,6 +40,7 @@ endif()
 
 add_subdirectory(src)
 
-if (PROJECT_IS_TOP_LEVEL)
+option(IMMVISION_BUILD_ALL_IN_ONE OFF)
+if (IMMVISION_BUILD_ALL_IN_ONE)
     add_subdirectory(src_all_in_one)
 endif()
