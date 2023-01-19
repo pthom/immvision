@@ -29,14 +29,14 @@ void ExampleImageProcessingWithDebug()
     cv::blur(black, blur, cv::Size(5, 5));
     ImmVision::ImmDebug(blur, "blur");
 
-    cv::Mat canny;
-    cv::Canny(blur, canny, 80., 120.);
-    ImmVision::ImmDebug(canny, "canny");
-
     cv::Mat floatImage;
-    canny.convertTo(floatImage, CV_64FC1);
+    blur.convertTo(floatImage, CV_64FC1);
+    floatImage = floatImage / 255.;
     ImmVision::ImmDebug(floatImage, "floatImage");
 
+    cv::Mat sobel;
+    cv::Sobel(floatImage, sobel, CV_64F, 1, 1);
+    ImmVision::ImmDebug(sobel, "sobel");
 }
 
 
