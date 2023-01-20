@@ -6,6 +6,9 @@ ImmVision (a.k.a Immediate Vision) is an image debugger and viewer.
 
 ## ImmDebug: standalone Image Debugger (during execution, *and* post-mortem)
 
+[Video tutorial on Youtube](https://www.youtube.com/watch?v=ztVBk2FN6_8)
+
+
 immvision includes an advanced image debugger which you can easily plug into your C++ projects in order to be able to visually debug images inside your image processing algorithms, during execution or even *after* execution (post-mortem).
 
 This requires **no dependency** apart from OpenCV, and you do **not** need to link your program to immvision (you will just need to copy 4 cpp files in your project).
@@ -103,6 +106,9 @@ Features:
 
 
 ## Image Viewer
+
+[Video tutorial on YouTube](https://youtu.be/nuJW21-BCkE)
+
 
 This image viewer runs inside [ImGui](https://github.com/ocornut/imgui) (and thus your program must be linked to it).
 
