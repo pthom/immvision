@@ -1,6 +1,6 @@
 For pip, Opencv was precompiled, using the following commands:
 
-````
+```
 mkdir pm
 cd pm
 git clone https://github.com/opencv/opencv.git
@@ -40,7 +40,7 @@ cd ..
 7z a -t7z opencv_install_windows_pip.7z opencv_install_windows_pip
 scp  opencv_install_windows_pip.7z pascal@traineq.org:HTML/ImmvisionGithubFiles/
 
-````
+```
 
 
 And it can be used like this:
@@ -50,11 +50,11 @@ Note:
                 instead of 
         set(IMMVISION_PYBIND_USE_CONAN ON)
 
-````
+```
 python -m venv venv
  .\venv\Scripts\activate
 $OpenCV_DIR=(pwd).Path + "/opencv_install_windows_pip"
 $OpenCV_DIR=$OpenCV_DIR -replace "\\","/"
 $env:OpenCV_DIR = $OpenCV_DIR
 pip install -v -e /path/to/immvision_folder
-````
+```

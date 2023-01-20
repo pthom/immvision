@@ -52,13 +52,13 @@ The debugger will then display:
 
 #### Step 1: compile immdebug_viewer
 
-````
+```
 git clone https://github.com/pthom/immvision.git
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
-````
+```
 
 Optionally, copy bin/immdebug_viewer somewhere in you PATH.
 

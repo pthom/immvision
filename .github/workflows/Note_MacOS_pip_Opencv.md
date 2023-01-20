@@ -1,6 +1,6 @@
 For pip, Opencv was precompiled, using the following commands:
 
-````
+```
 mkdir pm
 cd pm
 git clone https://github.com/opencv/opencv.git
@@ -40,7 +40,7 @@ cd ..
 tar cvfz opencv_install_macos_pip.tgz opencv_install_macos_pip
 scp  opencv_install_macos_pip.tgz pascal@traineq.org:HTML/ImmvisionGithubFiles/
 
-````
+```
 
 
 And it can be used like this
@@ -50,9 +50,9 @@ Note:
                 instead of 
         set(IMMVISION_PYBIND_USE_CONAN ON)
 
-````
+```
 python3 -m venv venv
 source venv/bin/activate
 export OpenCV_DIR=$(pwd)/opencv_install_macos_pip/lib/cmake/opencv4
 pip install -v /path/to/immvision_folder
-````
+```
