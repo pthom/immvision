@@ -27,22 +27,25 @@
 
 namespace ImmVision
 {
+    // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
+    enum class ColorMapStatsTypeId
+    {
+        FromFullImage,
+        FromVisibleROI
+    };
 
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
-        // Are we using the stats on the full image?
-        // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
-        bool ActiveOnFullImage = true;
-        // Are we using the stats on the ROI?
-        // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
-        // Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
-        bool   ActiveOnROI = false;
-        // If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
+        // Are we using the stats on the full image, the visible ROI, or are we using Min/Max values
+        ColorMapStatsTypeId ColorMapStatsType;
+
+        // If stats active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
-        // If UseStatsMin is true, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
+
+        // If ColorMapScaleType==ColorMapStatsType::FromMinMax, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
         bool UseStatsMin = false;
-        // If UseStatsMin is true, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value
+        // If ColorMapScaleType==ColorMapStatsType::FromMinMax, then ColormapScaleMax will be calculated from the matrix min value instead of a sigma based value
         bool UseStatsMax = false;
     };
 
@@ -4586,9 +4589,7 @@ namespace ImmVision
 
         bool IsEqual(const ColormapScaleFromStatsData& v1, const ColormapScaleFromStatsData& v2)
         {
-            if (v1.ActiveOnFullImage != v2.ActiveOnFullImage)
-                return false;
-            if (v1.ActiveOnROI != v2.ActiveOnROI)
+            if (v1.ColorMapStatsType != v2.ColorMapStatsType)
                 return false;
             if (fabs(v1.NbSigmas - v2.NbSigmas) > 1E-6)
                 return false;
@@ -4834,16 +4835,6 @@ namespace ImmVision
         }
 
 
-        void AssertColormapScaleFromStats_ActiveMostOne(ColormapSettingsData* const settings)
-        {
-            if (settings->ColormapScaleFromStats.ActiveOnFullImage && settings->ColormapScaleFromStats.ActiveOnROI)
-            {
-                std::string msg = "ActiveOnFullImage and ActiveOnFullImage cannot be true together!";
-                fprintf(stderr, "%s", msg.c_str());
-                throw std::runtime_error(msg.c_str());
-            }
-        }
-
         void UpdateRoiStatsInteractively(
             const cv::Mat &image,
             const cv::Rect& roi,
@@ -4855,9 +4846,7 @@ namespace ImmVision
             if(roi.empty())
                 return;
 
-            AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
-
-            if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
+            if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI)
                 ApplyColormapStatsToMinMax(image, roi, inout_settings);
         }
 
@@ -4872,11 +4861,10 @@ namespace ImmVision
 
             if (roi.empty())
                 return;
-            AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
 
-            if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
+            if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI)
                 ApplyColormapStatsToMinMax(image, roi, inout_settings);
-            else if (inout_settings->ColormapScaleFromStats.ActiveOnFullImage)
+            else if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromFullImage)
                 ApplyColormapStatsToMinMax(image, std::nullopt, inout_settings);
         }
 
@@ -4993,32 +4981,6 @@ namespace ImmVision
                 DrawColorTabsSubtitles("From Image Stats", availableGuiWidth);
             }
 
-            bool *activeFlag;
-            bool *otherActiveFlag;
-            std::string activeLabel;
-            if (isRoi)
-            {
-                activeLabel = "Active##Roi";
-                activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
-                otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
-            }
-            else
-            {
-                activeLabel = "Active##Full";
-                activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
-                otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
-            }
-
-            ImGui::Checkbox(activeLabel.c_str(), activeFlag);
-            if (*activeFlag)
-                *otherActiveFlag = false;
-
-            if (!(*activeFlag))
-            {
-                ImGui::PopID();
-                return;
-            }
-
             ImGui::Text("Image Stats");
             ImGui::Text("mean=%4lf stdev=%4lf", imageStats.mean, imageStats.stdev);
             ImGui::Text("min=%.4lf max=%.4lf", imageStats.min, imageStats.max);
@@ -5057,6 +5019,10 @@ namespace ImmVision
             ColormapSettingsData* inout_settings
             )
         {
+            GuiChooseColormap(inout_settings);
+
+            ImGui::RadioButton("Colormap from Image Stats", true);
+
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
             if (ImGui::BeginTabBar("##TabBar", tab_bar_flags))
             {
@@ -5081,9 +5047,8 @@ namespace ImmVision
                 ImGui::EndTabBar();
             }
 
-            ImGuiImm::SeparatorFixedWidth(availableGuiWidth);
+            // ImGuiImm::SeparatorFixedWidth(availableGuiWidth);
 
-            GuiChooseColormap(inout_settings);
         }
 
 
@@ -9687,7 +9652,7 @@ namespace ImmVision
                 return;
             ImGui::SetItemUsingMouseWheel();
 
-            if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
+            if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && ImGui::IsItemHovered() && ImGui::IsItemFocused() )
             {
                 double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.;
                 params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
@@ -11330,8 +11295,13 @@ namespace ImmVision
 
 namespace ImmVision
 {
-    // <autogen:tostring> // Autogenerated code below! Do not edit!
-
+    std::string ToString(ColorMapStatsTypeId id)
+    {
+        if (id == ColorMapStatsTypeId::FromFullImage)
+            return "FromFullImage";
+        else
+            return "FromVisibleROI";
+    }
 
     std::string ToString(const ColormapScaleFromStatsData& v)
     {
@@ -11344,8 +11314,7 @@ namespace ImmVision
     
         std::string inner;
 
-        inner = inner + "ActiveOnFullImage: " + ToString(v.ActiveOnFullImage) + "\n";
-        inner = inner + "ActiveOnROI: " + ToString(v.ActiveOnROI) + "\n";
+        inner = inner + "ColorMapStatsType: " + ToString(v.ColorMapStatsType) + "\n";
         inner = inner + "NbSigmas: " + ToString(v.NbSigmas) + "\n";
         inner = inner + "UseStatsMin: " + ToString(v.UseStatsMin) + "\n";
         inner = inner + "UseStatsMax: " + ToString(v.UseStatsMax) + "\n";
@@ -11438,7 +11407,6 @@ namespace ImmVision
         return r;
     }
     
-    // </autogen:tostring> // Autogenerated code end
 }
 
 

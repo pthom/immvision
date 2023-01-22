@@ -45,9 +45,7 @@ namespace ImmVision
 
         bool IsEqual(const ColormapScaleFromStatsData& v1, const ColormapScaleFromStatsData& v2)
         {
-            if (v1.ActiveOnFullImage != v2.ActiveOnFullImage)
-                return false;
-            if (v1.ActiveOnROI != v2.ActiveOnROI)
+            if (v1.ColorMapStatsType != v2.ColorMapStatsType)
                 return false;
             if (fabs(v1.NbSigmas - v2.NbSigmas) > 1E-6)
                 return false;
@@ -293,16 +291,6 @@ namespace ImmVision
         }
 
 
-        void AssertColormapScaleFromStats_ActiveMostOne(ColormapSettingsData* const settings)
-        {
-            if (settings->ColormapScaleFromStats.ActiveOnFullImage && settings->ColormapScaleFromStats.ActiveOnROI)
-            {
-                std::string msg = "ActiveOnFullImage and ActiveOnFullImage cannot be true together!";
-                fprintf(stderr, "%s", msg.c_str());
-                throw std::runtime_error(msg.c_str());
-            }
-        }
-
         void UpdateRoiStatsInteractively(
             const cv::Mat &image,
             const cv::Rect& roi,
@@ -314,9 +302,7 @@ namespace ImmVision
             if(roi.empty())
                 return;
 
-            AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
-
-            if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
+            if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI)
                 ApplyColormapStatsToMinMax(image, roi, inout_settings);
         }
 
@@ -331,11 +317,10 @@ namespace ImmVision
 
             if (roi.empty())
                 return;
-            AssertColormapScaleFromStats_ActiveMostOne(inout_settings);
 
-            if (inout_settings->ColormapScaleFromStats.ActiveOnROI)
+            if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI)
                 ApplyColormapStatsToMinMax(image, roi, inout_settings);
-            else if (inout_settings->ColormapScaleFromStats.ActiveOnFullImage)
+            else if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromFullImage)
                 ApplyColormapStatsToMinMax(image, std::nullopt, inout_settings);
         }
 
@@ -452,32 +437,6 @@ namespace ImmVision
                 DrawColorTabsSubtitles("From Image Stats", availableGuiWidth);
             }
 
-            bool *activeFlag;
-            bool *otherActiveFlag;
-            std::string activeLabel;
-            if (isRoi)
-            {
-                activeLabel = "Active##Roi";
-                activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
-                otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
-            }
-            else
-            {
-                activeLabel = "Active##Full";
-                activeFlag = & inout_settings->ColormapScaleFromStats.ActiveOnFullImage;
-                otherActiveFlag = & inout_settings->ColormapScaleFromStats.ActiveOnROI;
-            }
-
-            ImGui::Checkbox(activeLabel.c_str(), activeFlag);
-            if (*activeFlag)
-                *otherActiveFlag = false;
-
-            if (!(*activeFlag))
-            {
-                ImGui::PopID();
-                return;
-            }
-
             ImGui::Text("Image Stats");
             ImGui::Text("mean=%4lf stdev=%4lf", imageStats.mean, imageStats.stdev);
             ImGui::Text("min=%.4lf max=%.4lf", imageStats.min, imageStats.max);
@@ -516,33 +475,35 @@ namespace ImmVision
             ColormapSettingsData* inout_settings
             )
         {
-            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
-            if (ImGui::BeginTabBar("##TabBar", tab_bar_flags))
-            {
-                if (ImGui::BeginTabItem("From Image Stats"))
-                {
-                    GuiImageStats(image, std::nullopt, inout_settings, availableGuiWidth);
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("From ROI Stats"))
-                {
-                    GuiImageStats(image, roi, inout_settings, availableGuiWidth);
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Min - Max"))
-                {
-                    DrawColorTabsSubtitles("Min - Max manual values", availableGuiWidth);
+            GuiChooseColormap(inout_settings);
 
-                    ImGuiImm::SliderAnyFloatLogarithmic("Scale min", &inout_settings->ColormapScaleMin, -255., 255.);
-                    ImGuiImm::SliderAnyFloatLogarithmic("Scale max", &inout_settings->ColormapScaleMax, -255., 255.);
-                    ImGui::EndTabItem();
-                }
-                ImGui::EndTabBar();
+            if (ImGui::RadioButton(
+                "Colormap from Image Stats",
+                inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromFullImage))
+            {
+                inout_settings->ColormapScaleFromStats.ColorMapStatsType = ColorMapStatsTypeId::FromFullImage;
+            }
+            if (ImGui::RadioButton(
+                "Colormap from Visible ROI Stats",
+                inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI))
+            {
+                inout_settings->ColormapScaleFromStats.ColorMapStatsType = ColorMapStatsTypeId::FromVisibleROI;
             }
 
-            ImGuiImm::SeparatorFixedWidth(availableGuiWidth);
+            std::optional<cv::Rect> optionalRoi;
+            if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI)
+                optionalRoi = roi;
+            GuiImageStats(image, optionalRoi, inout_settings, availableGuiWidth);
 
-            GuiChooseColormap(inout_settings);
+
+            {
+                DrawColorTabsSubtitles("Min - Max manual values", availableGuiWidth);
+                ImGuiImm::SliderAnyFloatLogarithmic("Scale min", &inout_settings->ColormapScaleMin, -255., 255.);
+                ImGuiImm::SliderAnyFloatLogarithmic("Scale max", &inout_settings->ColormapScaleMax, -255., 255.);
+            }
+
+            // ImGuiImm::SeparatorFixedWidth(availableGuiWidth);
+
         }
 
 

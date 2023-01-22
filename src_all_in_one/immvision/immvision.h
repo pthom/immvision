@@ -23,22 +23,25 @@
 
 namespace ImmVision
 {
+    // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
+    enum class ColorMapStatsTypeId
+    {
+        FromFullImage,
+        FromVisibleROI
+    };
 
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
-        // Are we using the stats on the full image?
-        // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
-        bool ActiveOnFullImage = true;
-        // Are we using the stats on the ROI?
-        // If ActiveOnFullImage and ActiveOnROI are both false, then ColormapSettingsData.ColormapScaleMin/Max will be used
-        // Note: ActiveOnROI and ActiveOnFullImage cannot be true at the same time!
-        bool   ActiveOnROI = false;
-        // If active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
+        // Are we using the stats on the full image, the visible ROI, or are we using Min/Max values
+        ColorMapStatsTypeId ColorMapStatsType;
+
+        // If stats active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
-        // If UseStatsMin is true, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
+
+        // If ColorMapScaleType==ColorMapStatsType::FromMinMax, then ColormapScaleMin will be calculated from the matrix min value instead of a sigma based value
         bool UseStatsMin = false;
-        // If UseStatsMin is true, then ColormapScaleMax will be calculated from the matrix max value instead of a sigma based value
+        // If ColorMapScaleType==ColorMapStatsType::FromMinMax, then ColormapScaleMax will be calculated from the matrix min value instead of a sigma based value
         bool UseStatsMax = false;
     };
 
