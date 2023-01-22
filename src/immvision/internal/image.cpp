@@ -154,7 +154,7 @@ namespace ImmVision
         auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnColormap](
                 CachedParams & cacheParams)
         {
-            float optionsWidth = 330.f * FontSizeRatio();
+            float optionsWidth = 260.f * FontSizeRatio();
             // Group with fixed width, so that Collapsing headers stop at optionsWidth
             ImGuiImm::BeginGroupFixedWidth(optionsWidth);
 
