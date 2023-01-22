@@ -452,7 +452,6 @@ namespace ImmVision
         //
         std::vector<std::string> AvailableColormaps();
 
-        const insertion_order_map<std::string, cv::Mat>& ColormapsImages();
         const insertion_order_map<std::string, ImTextureID>& ColormapsTextures();
         void ClearColormapsTexturesCache();
 
@@ -4651,7 +4650,7 @@ namespace ImmVision
         }
 
 
-        const insertion_order_map<std::string, cv::Mat>& ColormapsImages()
+        const insertion_order_map<std::string, cv::Mat>& _ColormapsImages()
         {
             static insertion_order_map<std::string, cv::Mat> cache;
             if (cache.empty())
@@ -4673,7 +4672,7 @@ namespace ImmVision
         {
             if (sColormapsTexturesCache.empty())
             {
-                auto images = ColormapsImages();
+                auto images = _ColormapsImages();
                 for (const auto& k: images.insertion_order_keys())
                 {
                     cv::Mat& m = images.get(k);
@@ -9382,6 +9381,7 @@ namespace ImmVision
         ImageCache::gImageTextureCache.ClearImagesCache();
         Icons::ClearIconsTextureCache();
         Inspector_ClearImages();
+        Colormap::ClearColormapsTexturesCache();
     }
 
     static float FontSizeRatio()

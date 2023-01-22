@@ -4,6 +4,7 @@
 
 #include "immvision/image.h"
 #include "immvision/internal/drawing/internal_icons.h"
+#include "immvision/internal/cv/colormap.h"
 #include "immvision/imgui_imm.h"
 #include "immvision/internal/misc/portable_file_dialogs.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
@@ -34,6 +35,7 @@ namespace ImmVision
         ImageCache::gImageTextureCache.ClearImagesCache();
         Icons::ClearIconsTextureCache();
         Inspector_ClearImages();
+        Colormap::ClearColormapsTexturesCache();
     }
 
     static float FontSizeRatio()

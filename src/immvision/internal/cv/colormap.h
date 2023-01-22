@@ -34,7 +34,6 @@ namespace ImmVision
         //
         std::vector<std::string> AvailableColormaps();
 
-        const insertion_order_map<std::string, cv::Mat>& ColormapsImages();
         const insertion_order_map<std::string, ImTextureID>& ColormapsTextures();
         void ClearColormapsTexturesCache();
 
