@@ -325,7 +325,6 @@ namespace ImmVision
         }
 
 
-
         //
         // GUI
         //
@@ -347,7 +346,7 @@ namespace ImmVision
 
                 float kFont = ImGui::GetFontSize();
                 float widthText = kFont * 5.5f;
-                ImVec2 sizeTexture(kFont * 14.f, kFont);
+                ImVec2 sizeTexture(kFont * 12.f, kFont * 0.8f);
 
                 bool isHovered;
                 {
@@ -421,49 +420,69 @@ namespace ImmVision
 
         void GuiImageStats(const cv::Mat& m, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings, float availableGuiWidth)
         {
+            float em = ImGui::GetFontSize();
+
             ImageStats imageStats;
             bool isRoi = roi.has_value();
             if (isRoi)
             {
                 imageStats = FillImageStats(m(roi.value()));
                 ImGui::PushID("ROI");
-                DrawColorTabsSubtitles("From ROI Stats", availableGuiWidth);
-                ImGui::Text("ROI: Pos(%i, %i), Size(%i, %i)", roi->x, roi->y, roi->width, roi->height);
             }
             else
             {
                 imageStats = FillImageStats(m);
                 ImGui::PushID("Full");
-                DrawColorTabsSubtitles("From Image Stats", availableGuiWidth);
             }
 
-            ImGui::Text("Image Stats");
-            ImGui::Text("mean=%4lf stdev=%4lf", imageStats.mean, imageStats.stdev);
-            ImGui::Text("min=%.4lf max=%.4lf", imageStats.min, imageStats.max);
-            ImGui::TextColored(ImVec4(1.f, 1.f, 0.5f, 1.f), "Current ColormapScale: Min=%.4lf Max=%.4lf",
-                               inout_settings->ColormapScaleMin, inout_settings->ColormapScaleMax);
+            ImGui::Text("Stats:");
+            ImGui::Text("min=%.3lf max=%.3lf", imageStats.min, imageStats.max);
+            ImGui::Text("mean=%3lf stdev=%3lf", imageStats.mean, imageStats.stdev);
 
             bool changed = false;
 
-            ImGui::NewLine();
-            ImGui::Text("Number of sigmas");
-            changed |= ImGuiImm::SliderAnyFloat("##Number of sigmas", &inout_settings->ColormapScaleFromStats.NbSigmas, 0., 8., 150.f);
-
-            ImGui::NewLine();
-            ImGui::TextWrapped("If UseStats[Min|Max] is true, then ColormapScale[Min|Max] will be calculated from the matrix [min|max] value instead of a sigma based value");
-            changed |= ImGui::Checkbox("Use stats min", &inout_settings->ColormapScaleFromStats.UseStatsMin);
-            ImGui::SameLine();
-            changed |= ImGui::Checkbox("Use stats max", &inout_settings->ColormapScaleFromStats.UseStatsMax);
-
-            if (isRoi)
             {
-                ImVec4 col(1.f, 0.6f, 0.6f, 1.f);
-                ImGui::TextColored(col, "Warning, if using \"number of sigmas\" on a ROI");
-                ImGui::TextColored(col, "the colormap scale will vary immediately");
-                ImGui::TextColored(col, "whenever you zoom in/out or pan");
+                std::string help = "The number of sigmas will impact\n"
+                                   "how the colormap scale min and max are calculated from\n"
+                                   "the mean and standard deviation";
+                changed |= ImGuiImm::SliderAnyFloat(
+                    "Nb of sigmas",
+                    &inout_settings->ColormapScaleFromStats.NbSigmas,
+                    0., 8.,
+                    em * 10.f);
+                ImGui::SameLine();
+                ImGui::Text("(?)");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("%s", help.c_str());
             }
+
+            {
+                std::string help = "If \"Use stats min\" is checked, then the scale\n"
+                                   "will be calculated from the image minimum value \n"
+                                   "instead of a sigma based value\n"
+                                   "\n"
+                                   "(same for max values)";
+                changed |= ImGui::Checkbox("Use stats min", &inout_settings->ColormapScaleFromStats.UseStatsMin);
+                ImGui::SameLine();
+                changed |= ImGui::Checkbox("Use stats max", &inout_settings->ColormapScaleFromStats.UseStatsMax);
+                ImGui::SameLine();
+                ImGui::Text("(?)");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("%s", help.c_str());
+            }
+
             if (changed)
                 ApplyColormapStatsToMinMax(m, roi, inout_settings);
+
+            {
+                ImGui::Text("Colormap scale");
+                ImGuiImm::SliderAnyFloatLogarithmic("Min", &inout_settings->ColormapScaleMin, -255., 255.,
+                                                    em * 6.f);
+                ImGui::SameLine();
+                ImGuiImm::SliderAnyFloatLogarithmic("Max", &inout_settings->ColormapScaleMax, -255., 255.,
+                                                    em * 6.f);
+            }
+
             ImGui::PopID();
         }
 
@@ -477,30 +496,35 @@ namespace ImmVision
         {
             GuiChooseColormap(inout_settings);
 
-            if (ImGui::RadioButton(
-                "Colormap from Image Stats",
-                inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromFullImage))
             {
-                inout_settings->ColormapScaleFromStats.ColorMapStatsType = ColorMapStatsTypeId::FromFullImage;
-            }
-            if (ImGui::RadioButton(
-                "Colormap from Visible ROI Stats",
-                inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI))
-            {
-                inout_settings->ColormapScaleFromStats.ColorMapStatsType = ColorMapStatsTypeId::FromVisibleROI;
+                ImGui::NewLine();
+                ImGui::Text("Colormap stats ROI:");
+                if (ImGui::RadioButton(
+                    "full image",
+                    inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromFullImage))
+                {
+                    inout_settings->ColormapScaleFromStats.ColorMapStatsType = ColorMapStatsTypeId::FromFullImage;
+                }
+                ImGui::SameLine();
+                if (ImGui::RadioButton(
+                    "visible ROI",
+                    inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI))
+                {
+                    inout_settings->ColormapScaleFromStats.ColorMapStatsType = ColorMapStatsTypeId::FromVisibleROI;
+                }
+                std::string helpRoi = "Warning, if using \"number of sigmas\" on a ROI\n"
+                                      "the colormap scale will vary immediately\n"
+                                      "whenever you zoom in/out or pan";
+                ImGui::SameLine();
+                ImGui::Text("(?)");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("%s", helpRoi.c_str());
             }
 
             std::optional<cv::Rect> optionalRoi;
             if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI)
                 optionalRoi = roi;
             GuiImageStats(image, optionalRoi, inout_settings, availableGuiWidth);
-
-
-            {
-                DrawColorTabsSubtitles("Min - Max manual values", availableGuiWidth);
-                ImGuiImm::SliderAnyFloatLogarithmic("Scale min", &inout_settings->ColormapScaleMin, -255., 255.);
-                ImGuiImm::SliderAnyFloatLogarithmic("Scale max", &inout_settings->ColormapScaleMax, -255., 255.);
-            }
 
             // ImGuiImm::SeparatorFixedWidth(availableGuiWidth);
 
