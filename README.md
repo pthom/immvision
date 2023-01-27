@@ -47,7 +47,8 @@ void ExampleImageProcessingWithDebug()
 
 ```
 
-The debugger will then display:
+
+immdebug is an external application, which will receive the images in real time and enable to analyse them at each step. It will then display:
 
 ![debugger](doc/immdebug.jpg)
 
