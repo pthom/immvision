@@ -207,7 +207,7 @@ endmacro()
 
 
 macro(immvision_find_opencv)
-    if (EMSCRIPTEN)
+    if (EMSCRIPTEN AND IMMVISION_FETCH_OPENCV)
         immvision_download_emscripten_precompiled_opencv_4_7_0()
     else()
         find_package(OpenCV)
