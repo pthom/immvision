@@ -1,3 +1,4 @@
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "immvision/internal/cv/colormap.h"
 
 #include "immvision/internal/misc/tinycolormap.hpp"
@@ -6,7 +7,6 @@
 #include "immvision/internal/gl/gl_texture.h"
 #include "immvision/imgui_imm.h"
 #include "imgui.h"
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 
 #include <opencv2/core.hpp>
