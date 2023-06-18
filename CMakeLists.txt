@@ -78,8 +78,10 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/find_opencv.cmake)
+if (NOT OpenCV_FOUND)
 immvision_find_opencv()
 find_package(OpenCV REQUIRED)  # Will try to find OpenCV (if IMMVISION_FETCH_OPENCV, will also download and build it)
+endif()
 
 set(IMMVISION_VERSION ${PROJECT_VERSION})
 add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")
