@@ -118,9 +118,12 @@ namespace ImmVision
                 if (isNewEntry)
                     InitializeMissingParams(params, image);
 
-                bool tryAdaptZoomToNewDisplaySize =
-                    (oldParams.ImageDisplaySize != params->ImageDisplaySize)
-                    &&  !(oldParams.ImageDisplaySize.area() == 0);
+                bool wasDisplaySizeChanged = oldParams.ImageDisplaySize != params->ImageDisplaySize;
+                bool wasImageSizeChanged = ( (cachedParams.PreviousImageSize.area() != 0)
+                                             && (cachedParams.PreviousImageSize != image.size()));
+                bool isDisplaySizeEmpty = (oldParams.ImageDisplaySize.area() == 0);
+
+                bool tryAdaptZoomToNewDisplaySize = wasDisplaySizeChanged && !wasImageSizeChanged && !isDisplaySizeEmpty;
                 if (tryAdaptZoomToNewDisplaySize)
                 {
                     params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
@@ -162,6 +165,7 @@ namespace ImmVision
                 UpdateLinkedColormapSettings(id);
 
             cachedParams.PreviousParams = *params;
+            cachedParams.PreviousImageSize = image.size();
             mCacheImages.ClearOldEntries();
 
             return isNewEntry;
