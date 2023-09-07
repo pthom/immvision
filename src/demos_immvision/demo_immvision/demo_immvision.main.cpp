@@ -120,7 +120,7 @@ struct AppState {
         immvisionParams.ZoomKey = "z";
 
         immvisionParamsSobel = ImmVision::ImageParams();
-        immvisionParamsSobel.ImageDisplaySize = cv::Size(600, 0);
+        immvisionParamsSobel.ImageDisplaySize = cv::Size(300, 0);
         immvisionParamsSobel.ZoomKey = "z";
         immvisionParamsSobel.ShowOptionsPanel = true;
     }
