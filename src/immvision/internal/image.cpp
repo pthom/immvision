@@ -256,7 +256,18 @@ namespace ImmVision
                         {
                             try
                             {
-                                cv::imwrite(filename, image);
+                                cv::Mat imageAsSaved = image;  // image with possible RGB2BGR conversion
+                                if (image.type() == CV_8UC3)
+                                {
+                                    if (!params->IsColorOrderBGR)
+                                        cv::cvtColor(image, imageAsSaved, cv::COLOR_RGB2BGR);
+                                }
+                                if (image.type() == CV_8UC4)
+                                {
+                                    if (!params->IsColorOrderBGR)
+                                        cv::cvtColor(image, imageAsSaved, cv::COLOR_RGBA2BGRA);
+                                }
+                                cv::imwrite(filename, imageAsSaved);
                             }
                             catch(const cv::Exception& e)
                             {
