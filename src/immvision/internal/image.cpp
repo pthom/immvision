@@ -154,7 +154,7 @@ namespace ImmVision
         // Lambdas / Options & Adjustments
         //
         auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnColormap](
-                CachedParams & cacheParams)
+                CachedParams & cacheParams, const CachedImages& cachedImages)
         {
             float optionsWidth = 260.f * FontSizeRatio();
             // Group with fixed width, so that Collapsing headers stop at optionsWidth
@@ -232,11 +232,25 @@ namespace ImmVision
                 // Use portable_file_dialogs if available
                 if (pfd::settings::available())
                 {
-                    if (ImGui::Button("Save Image"))
+                    bool isFloatImage = [&image]() {
+                        int type = image.type();
+                        int depth = type & CV_MAT_DEPTH_MASK;
+                        return depth == CV_32F || depth == CV_64F;
+                    }();
+
+                    std::string tooltipSaveRawImage =
+                        "Saves the raw image\n"
+                        "Specify the format via the filename extension (.jpg, .png, .hdr, etc)\n"
+                        "\n"
+                        "- For CV_8UC3 images, use .jpg, .png, or .bmp\n"
+                        "- For 4 channel images, prefer to use .png\n"
+                        "- For float images (CV_32FC1, etc.), use .hdr";
+
+                    if (ImGui::Button("Save image"))
                     {
                         pfd::settings::verbose(true);
                         std::string filename = pfd::save_file("Select a file", ".",
-                                                              { "Image Files", "*.png *.jpg *.jpeg *.jpg *.bmp *.gif *.exr",
+                                                              { "Image Files", "*.png *.jpg *.jpeg *.jpg *.bmp *.gif *.hdr *.exr",
                                                                 "All Files", "*" }).result();
                         if (!filename.empty())
                         {
@@ -251,6 +265,43 @@ namespace ImmVision
                             }
                         }
                     }
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("%s", tooltipSaveRawImage.c_str());
+
+                    //
+                    // For float images, give the possibility to save them with the colormap applied
+                    //
+                    if (isFloatImage)
+                    {
+                        std::string tooltipExportColormap =
+                            "Export the colormap image as RGB\n"
+                            "(Hint: use a lossless format, such as with the \".bmp\" extension)";
+                        if (ImGui::Button("Export colormap image"))
+                        {
+                            pfd::settings::verbose(true);
+                            std::string filename = pfd::save_file("Select a file", ".",
+                                                                  { "Image Files", "*.png *.jpg *.jpeg *.jpg *.bmp *.gif *.hdr",
+                                                                    "All Files", "*" }).result();
+                            if (!filename.empty())
+                            {
+                                try
+                                {
+                                    cv::Mat colorMapBgr;
+                                    cv::cvtColor(cachedImages.ImageRgbaCache, colorMapBgr, cv::COLOR_RGBA2BGR);
+                                    cv::imwrite(filename, colorMapBgr);
+                                }
+                                catch(const cv::Exception& e)
+                                {
+                                    std::string errorMessage = std::string("Could not save image\n") + e.err.c_str();
+                                    pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
+                                }
+                            }
+                        }
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("%s", tooltipExportColormap.c_str());
+
+                    }
+
                 }
                 else
                 {
@@ -276,13 +327,13 @@ namespace ImmVision
             else
                 params->ShowOptionsPanel = !params->ShowOptionsPanel;
         };
-        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams)
+        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams, const CachedImages& cachedImages)
         {
             if (params->ShowOptionsInTooltip)
             {
                 if (ImGui::BeginPopup("Options"))
                 {
-                    fnOptionsInnerGui(cacheParams);
+                    fnOptionsInnerGui(cacheParams, cachedImages);
                     ImGui::EndPopup();
                 }
             }
@@ -291,7 +342,7 @@ namespace ImmVision
                 ImGui::SameLine();
                 ImGui::BeginGroup();
                 ImGui::Text("Options");
-                fnOptionsInnerGui(cacheParams);
+                fnOptionsInnerGui(cacheParams, cachedImages);
                 ImGui::EndGroup();
             }
         };
@@ -463,7 +514,7 @@ namespace ImmVision
             ImGui::EndGroup();
 
             // Show Options
-            fnOptionGui(cacheParams);
+            fnOptionGui(cacheParams, cacheImages);
 
             return mouseInfo;
         };
