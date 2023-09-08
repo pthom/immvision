@@ -192,9 +192,11 @@ namespace ImmVision
 
             std::string tooltipExportColormap =
                 "Export the colormap image as RGB\n"
-                "(Hint: use a lossless format, such as with the \".bmp\" extension)";
+                "(Hint: use a lossless format, such as .png or .bmp)";
 
-            auto fnSaveImage = [](const std::string& filename, const cv::Mat& imageToSave)
+            bool usePortableFileDialogs = pfd::settings::available();
+
+            auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const cv::Mat& imageToSave)
             {
                 if (!filename.empty())
                 {
@@ -205,7 +207,7 @@ namespace ImmVision
                     catch(const cv::Exception& e)
                     {
                         std::string errorMessage = std::string("Could not save image\n") + e.err.c_str();
-                        if (pfd::settings::available())
+                        if (usePortableFileDialogs)
                             pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
                         else
                             fprintf(stderr, errorMessage.c_str());
@@ -213,7 +215,7 @@ namespace ImmVision
                 }
             };
 
-            std::function<std::string(void)> fnAskForFilenameWithPfd = []() -> std::string
+            auto fnAskForFilenameWithPfd = []() -> std::string
             {
                 pfd::settings::verbose(true);
                 std::string filename = pfd::save_file("Select a file", ".",
@@ -221,19 +223,25 @@ namespace ImmVision
                                                         "All Files", "*" }).result();
                 return filename;
             };
-            std::function<std::string(void)> fnAskForFilenameWithImGui = [&cacheParams]() -> std::string
+            auto fnAskForFilenameWithImGui = [&cacheParams]() -> std::string
+            {
+                char *filename = cacheParams.FilenameEditBuffer.data();
+                return filename;
+            };
+            auto fnAskForFilename = [usePortableFileDialogs, fnAskForFilenameWithImGui, fnAskForFilenameWithPfd]() {
+                return usePortableFileDialogs ? fnAskForFilenameWithPfd() : fnAskForFilenameWithImGui();
+            };
+            auto fnInputFilenameWithImGui = [&cacheParams]()
             {
                 ImGui::Text("File name");
                 char *filename = cacheParams.FilenameEditBuffer.data();
                 ImGui::SetNextItemWidth(200.f * FontSizeRatio());
                 ImGui::InputText("##filename", filename, 1000);
                 ImGui::Text("The image will be saved in the current folder");
-                return filename;
             };
 
-            // Use portable_file_dialogs if available
-            auto fnAskForFilename = pfd::settings::available() ? fnAskForFilenameWithPfd : fnAskForFilenameWithImGui;
-
+            if (!usePortableFileDialogs)
+                fnInputFilenameWithImGui();
             // Save image button
             if (ImGuiImm::ButtonWithTooltip("Save image", tooltipSaveRawImage))
                 fnSaveImage(fnAskForFilename(), fnGetImageToSave());
@@ -332,6 +340,7 @@ namespace ImmVision
             ImGuiImm::EndGroupFixedWidth();
 
         };
+
         auto fnToggleShowOptions = [&params]()
         {
             if (params->ShowOptionsInTooltip)
@@ -339,6 +348,7 @@ namespace ImmVision
             else
                 params->ShowOptionsPanel = !params->ShowOptionsPanel;
         };
+
         auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams, const cv::Mat& imageWithColormap)
         {
             if (params->ShowOptionsInTooltip)
