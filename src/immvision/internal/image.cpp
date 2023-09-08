@@ -243,10 +243,69 @@ namespace ImmVision
 
         };
 
-        auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnColormap_Gui, &fnSaveImage_Gui](
-                CachedParams & cacheParams, const cv::Mat& imageWithColormap)
+        auto fnImageDisplayOptions_Gui = [&params, &image]()
+        {
+            if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
+            {
+                ImGui::Text("Color Order");
+                ImGui::SameLine();
+                int v = params->IsColorOrderBGR ? 0 : 1;
+                ImGui::RadioButton("RGB", &v, 1);
+                ImGui::SameLine();
+                ImGui::RadioButton("BGR", &v, 0);
+                params->IsColorOrderBGR = (v == 0);
+            }
+            ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
+            if (image.type() == CV_8UC4)
+                ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
+            if (image.channels() > 1)
+            {
+                ImGui::Text("Channels: ");
+                ImGui::RadioButton("All", &params->SelectedChannel, -1); ImGui::SameLine();
+                for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
+                {
+                    ImGui::RadioButton(std::to_string(channel_id).c_str(), &params->SelectedChannel, channel_id);
+                    ImGui::SameLine();
+                }
+                ImGui::NewLine();
+            }
+            {
+                ImGuiImm::BeginGroupPanel("High zoom options");
+                ImGui::Checkbox("Grid", &params->ShowGrid);
+                ImGui::Checkbox("Draw values on pixels", &params->DrawValuesOnZoomedPixels);
+                ImGuiImm::EndGroupPanel();
+            }
+
+        };
+
+        auto fnMiscOptions_Gui = [&params]()
+        {
+            {
+                ImGuiImm::BeginGroupPanel("Image display options");
+                ImGui::Checkbox("Show image info", &params->ShowImageInfo);
+                ImGui::Checkbox("Show pixel info", &params->ShowPixelInfo);
+                ImGui::Checkbox("Show zoom buttons", &params->ShowZoomButtons);
+                ImGuiImm::EndGroupPanel();
+            }
+
+            ImGui::Checkbox("Pan with mouse", &params->PanWithMouse);
+            ImGui::Checkbox("Zoom with mouse wheel", &params->ZoomWithMouseWheel);
+
+            ImGui::Separator();
+            if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
+            {
+                if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
+                    params->ShowOptionsPanel = true;
+            }
+        };
+
+        auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded,
+                                  &fnColormap_Gui, &fnSaveImage_Gui, &fnImageDisplayOptions_Gui, &fnMiscOptions_Gui]
+                                      (CachedParams & cacheParams, const cv::Mat& imageWithColormap)
         {
             float optionsWidth = 260.f * FontSizeRatio();
+
+
             // Group with fixed width, so that Collapsing headers stop at optionsWidth
             ImGuiImm::BeginGroupFixedWidth(optionsWidth);
 
@@ -260,61 +319,11 @@ namespace ImmVision
 
             // Image display options
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Image Display"))
-            {
-                if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
-                {
-                    ImGui::Text("Color Order");
-                    ImGui::SameLine();
-                    int v = params->IsColorOrderBGR ? 0 : 1;
-                    ImGui::RadioButton("RGB", &v, 1);
-                    ImGui::SameLine();
-                    ImGui::RadioButton("BGR", &v, 0);
-                    params->IsColorOrderBGR = (v == 0);
-                }
-                ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
-                if (image.type() == CV_8UC4)
-                    ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
-                if (image.channels() > 1)
-                {
-                    ImGui::Text("Channels: ");
-                    ImGui::RadioButton("All", &params->SelectedChannel, -1); ImGui::SameLine();
-                    for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
-                    {
-                        ImGui::RadioButton(std::to_string(channel_id).c_str(), &params->SelectedChannel, channel_id);
-                        ImGui::SameLine();
-                    }
-                    ImGui::NewLine();
-                }
-                {
-                    ImGuiImm::BeginGroupPanel("High zoom options");
-                    ImGui::Checkbox("Grid", &params->ShowGrid);
-                    ImGui::Checkbox("Draw values on pixels", &params->DrawValuesOnZoomedPixels);
-                    ImGuiImm::EndGroupPanel();
-                }
+                fnImageDisplayOptions_Gui();
 
-            }
-
-            // Image display options
-            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Options"))
-            {
-                {
-                    ImGuiImm::BeginGroupPanel("Image display options");
-                    ImGui::Checkbox("Show image info", &params->ShowImageInfo);
-                    ImGui::Checkbox("Show pixel info", &params->ShowPixelInfo);
-                    ImGui::Checkbox("Show zoom buttons", &params->ShowZoomButtons);
-                    ImGuiImm::EndGroupPanel();
-                }
-
-                ImGui::Checkbox("Pan with mouse", &params->PanWithMouse);
-                ImGui::Checkbox("Zoom with mouse wheel", &params->ZoomWithMouseWheel);
-
-                ImGui::Separator();
-                if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
-                {
-                    if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
-                        params->ShowOptionsPanel = true;
-                }
-            }
+            // Misc options
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Misc"))
+                fnMiscOptions_Gui();
 
             // Save Image
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Save"))
