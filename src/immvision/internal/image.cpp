@@ -210,7 +210,7 @@ namespace ImmVision
                         if (usePortableFileDialogs)
                             pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
                         else
-                            fprintf(stderr, errorMessage.c_str());
+                            fprintf(stderr, "%s", errorMessage.c_str());
                     }
                 }
             };
