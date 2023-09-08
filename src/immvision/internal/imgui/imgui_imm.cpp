@@ -331,6 +331,14 @@ namespace ImGuiImm
         ImGui::NewLine();
     }
 
+    bool ButtonWithTooltip(const std::string& label, const std::string& tooltip)
+    {
+        bool r = ImGui::Button(label.c_str());
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", tooltip.c_str());
+        return r;
+    }
+
     void Theme_Debug()
     {
         ImGuiStyle &style = ImGui::GetStyle();

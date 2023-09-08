@@ -50,6 +50,8 @@ namespace ImGuiImm
 
     void BeginGroupFixedWidth(float width);
     void EndGroupFixedWidth();
+
+    bool ButtonWithTooltip(const std::string& label, const std::string& tooltip);
 }
 
 
