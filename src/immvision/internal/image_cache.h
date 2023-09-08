@@ -29,7 +29,7 @@ namespace ImmVision
             {
                 // These caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
-                cv::Mat     ImageRgbaCache;
+                cv::Mat     ImageRgbaCache;             // Image with applied colormap, alpha grid & paper background
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
