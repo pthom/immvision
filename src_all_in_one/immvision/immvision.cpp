@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/colormap.cpp                                                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#define IMGUI_DEFINE_MATH_OPERATORS
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/colormap.h included by src/immvision/internal/cv/colormap.cpp//
@@ -4545,6 +4546,8 @@ namespace ImGuiImm
 
     void BeginGroupFixedWidth(float width);
     void EndGroupFixedWidth();
+
+    bool ButtonWithTooltip(const std::string& label, const std::string& tooltip);
 }
 
 
@@ -4552,7 +4555,6 @@ namespace ImGuiImm
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/colormap.cpp continued                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 
 
@@ -6948,7 +6950,7 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/gl/gl_provider.cpp                                              //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef IMMVISION_BUILDING_PYBIND // see gl_provider_python for the pybind version
+#ifndef IMMVISION_BUILDING_PYBIND
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -7010,12 +7012,28 @@ namespace ImmVision_GlProvider
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <iostream>
 
+#if defined(IMMVISION_USE_GLAD)
+#include <glad/glad.h>
+#endif
+
 namespace ImmVision_GlProvider
 {
     void _AssertOpenGlLoaderWorking()
     {
+        // These OpenGL functions pointers should be filled once the OpenGL loader was inited
         size_t glGenTexturesAddress = (size_t)glGenTextures;
         size_t glDeleteTexturesAddress = (size_t)glDeleteTextures;
+
+        // If they are empty, and if we are using glad, the user probably forgot to call gladLoadGL().
+        // Let's help him (this is especially useful for python bindings where no bindings for glad are provided)
+        if ((glGenTexturesAddress == 0) || (glDeleteTexturesAddress == 0))
+        {
+#if defined(IMMVISION_USE_GLAD)
+            gladLoadGL();
+            glGenTexturesAddress = (size_t)glGenTextures;
+            glDeleteTexturesAddress = (size_t)glDeleteTextures;
+#endif
+        }
 
         if ((glGenTexturesAddress == 0) || (glDeleteTexturesAddress == 0))
         {
@@ -9275,13 +9293,14 @@ namespace ImmVision
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
                 bool   WasZoomJustUpdatedByLink = false;
+                cv::Size PreviousImageSize;
                 struct ImageParams  PreviousParams;
             };
             struct CachedImageAndTexture
             {
                 // These caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
-                cv::Mat     ImageRgbaCache;
+                cv::Mat     ImageRgbaCache;             // Image with applied colormap, alpha grid & paper background
                 std::unique_ptr<GlTextureCv> GlTexture;
             };
 
@@ -9485,7 +9504,7 @@ namespace ImmVision
         //
         // Lambdas / Colormap
         //
-        auto fnColormap = [&params, &image](float availableGuiWidth)
+        auto fnColormap_Gui = [&params, &image](float availableGuiWidth)
         {
             cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
             Colormap::GuiShowColormapSettingsData(
@@ -9499,16 +9518,173 @@ namespace ImmVision
         //
         // Lambdas / Options & Adjustments
         //
-        auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded, &fnColormap](
-                CachedParams & cacheParams)
+        auto fnSaveImage_Gui = [&image, &params](CachedParams & cacheParams, const cv::Mat& imageWithColormap)
+        {
+            bool isFloatImage = [&image]() {
+                int type = image.type();
+                int depth = type & CV_MAT_DEPTH_MASK;
+                return depth == CV_32F || depth == CV_64F;
+            }();
+
+            auto fnGetImageToSave = [&image, &params]() -> cv::Mat
+            {
+                cv::Mat imageAsSaved = image;  // image with possible RGB2BGR conversion
+                if (image.type() == CV_8UC3)
+                {
+                    if (!params->IsColorOrderBGR)
+                        cv::cvtColor(image, imageAsSaved, cv::COLOR_RGB2BGR);
+                }
+                if (image.type() == CV_8UC4)
+                {
+                    if (!params->IsColorOrderBGR)
+                        cv::cvtColor(image, imageAsSaved, cv::COLOR_RGBA2BGRA);
+                }
+                return imageAsSaved;
+            };
+            auto fnGetImageWithColorMapToSave = [&imageWithColormap]() {
+                cv::Mat colorMapBgr;
+                cv::cvtColor(imageWithColormap, colorMapBgr, cv::COLOR_RGBA2BGR);
+                return colorMapBgr;
+            };
+
+            std::string tooltipSaveRawImage =
+                "Saves the raw image\n"
+                "Specify the format via the filename extension (.jpg, .png, .hdr, etc)\n"
+                "\n"
+                "- For CV_8UC3 images, use .jpg, .png, or .bmp\n"
+                "- For 4 channel images, prefer to use .png\n"
+                "- For float images (CV_32FC1, etc.), use .hdr";
+
+            std::string tooltipExportColormap =
+                "Export the colormap image as RGB\n"
+                "(Hint: use a lossless format, such as .png or .bmp)";
+
+            bool usePortableFileDialogs = pfd::settings::available();
+
+            auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const cv::Mat& imageToSave)
+            {
+                if (!filename.empty())
+                {
+                    try
+                    {
+                        cv::imwrite(filename, imageToSave);
+                    }
+                    catch(const cv::Exception& e)
+                    {
+                        std::string errorMessage = std::string("Could not save image\n") + e.err.c_str();
+                        if (usePortableFileDialogs)
+                            pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
+                        else
+                            fprintf(stderr, "%s", errorMessage.c_str());
+                    }
+                }
+            };
+
+            auto fnAskForFilenameWithPfd = []() -> std::string
+            {
+                pfd::settings::verbose(true);
+                std::string filename = pfd::save_file("Select a file", ".",
+                                                      { "Image Files", "*.png *.jpg *.jpeg *.jpg *.bmp *.gif *.hdr *.exr",
+                                                        "All Files", "*" }).result();
+                return filename;
+            };
+            auto fnAskForFilenameWithImGui = [&cacheParams]() -> std::string
+            {
+                char *filename = cacheParams.FilenameEditBuffer.data();
+                return filename;
+            };
+            auto fnAskForFilename = [usePortableFileDialogs, fnAskForFilenameWithImGui, fnAskForFilenameWithPfd]() {
+                return usePortableFileDialogs ? fnAskForFilenameWithPfd() : fnAskForFilenameWithImGui();
+            };
+            auto fnInputFilenameWithImGui = [&cacheParams]()
+            {
+                ImGui::Text("File name");
+                char *filename = cacheParams.FilenameEditBuffer.data();
+                ImGui::SetNextItemWidth(200.f * FontSizeRatio());
+                ImGui::InputText("##filename", filename, 1000);
+                ImGui::Text("The image will be saved in the current folder");
+            };
+
+            if (!usePortableFileDialogs)
+                fnInputFilenameWithImGui();
+            // Save image button
+            if (ImGuiImm::ButtonWithTooltip("Save image", tooltipSaveRawImage))
+                fnSaveImage(fnAskForFilename(), fnGetImageToSave());
+            // For float images, give the possibility to save them with the colormap applied
+            if (isFloatImage && ImGuiImm::ButtonWithTooltip("Export colormap image", tooltipExportColormap))
+                fnSaveImage(fnAskForFilename(), fnGetImageWithColorMapToSave());
+
+        };
+
+        auto fnImageDisplayOptions_Gui = [&params, &image]()
+        {
+            if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
+            {
+                ImGui::Text("Color Order");
+                ImGui::SameLine();
+                int v = params->IsColorOrderBGR ? 0 : 1;
+                ImGui::RadioButton("RGB", &v, 1);
+                ImGui::SameLine();
+                ImGui::RadioButton("BGR", &v, 0);
+                params->IsColorOrderBGR = (v == 0);
+            }
+            ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
+            if (image.type() == CV_8UC4)
+                ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
+            if (image.channels() > 1)
+            {
+                ImGui::Text("Channels: ");
+                ImGui::RadioButton("All", &params->SelectedChannel, -1); ImGui::SameLine();
+                for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
+                {
+                    ImGui::RadioButton(std::to_string(channel_id).c_str(), &params->SelectedChannel, channel_id);
+                    ImGui::SameLine();
+                }
+                ImGui::NewLine();
+            }
+            {
+                ImGuiImm::BeginGroupPanel("High zoom options");
+                ImGui::Checkbox("Grid", &params->ShowGrid);
+                ImGui::Checkbox("Draw values on pixels", &params->DrawValuesOnZoomedPixels);
+                ImGuiImm::EndGroupPanel();
+            }
+
+        };
+
+        auto fnMiscOptions_Gui = [&params]()
+        {
+            {
+                ImGuiImm::BeginGroupPanel("Image display options");
+                ImGui::Checkbox("Show image info", &params->ShowImageInfo);
+                ImGui::Checkbox("Show pixel info", &params->ShowPixelInfo);
+                ImGui::Checkbox("Show zoom buttons", &params->ShowZoomButtons);
+                ImGuiImm::EndGroupPanel();
+            }
+
+            ImGui::Checkbox("Pan with mouse", &params->PanWithMouse);
+            ImGui::Checkbox("Zoom with mouse wheel", &params->ZoomWithMouseWheel);
+
+            ImGui::Separator();
+            if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
+            {
+                if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
+                    params->ShowOptionsPanel = true;
+            }
+        };
+
+        auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded,
+                                  &fnColormap_Gui, &fnSaveImage_Gui, &fnImageDisplayOptions_Gui, &fnMiscOptions_Gui]
+                                      (CachedParams & cacheParams, const cv::Mat& imageWithColormap)
         {
             float optionsWidth = 260.f * FontSizeRatio();
+
+
             // Group with fixed width, so that Collapsing headers stop at optionsWidth
             ImGuiImm::BeginGroupFixedWidth(optionsWidth);
 
             // Colormap
             if (Colormap::CanColormap(image) && ImageWidgets::CollapsingHeader_OptionalCacheState("Colormap"))
-                fnColormap(optionsWidth);
+                fnColormap_Gui(optionsWidth);
 
             // Watched Pixels
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Watched Pixels", wasWatchedPixelAdded))
@@ -9516,105 +9692,20 @@ namespace ImmVision
 
             // Image display options
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Image Display"))
-            {
-                if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
-                {
-                    ImGui::Text("Color Order");
-                    ImGui::SameLine();
-                    int v = params->IsColorOrderBGR ? 0 : 1;
-                    ImGui::RadioButton("RGB", &v, 1);
-                    ImGui::SameLine();
-                    ImGui::RadioButton("BGR", &v, 0);
-                    params->IsColorOrderBGR = (v == 0);
-                }
-                ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
-                if (image.type() == CV_8UC4)
-                    ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
-                if (image.channels() > 1)
-                {
-                    ImGui::Text("Channels: ");
-                    ImGui::RadioButton("All", &params->SelectedChannel, -1); ImGui::SameLine();
-                    for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
-                    {
-                        ImGui::RadioButton(std::to_string(channel_id).c_str(), &params->SelectedChannel, channel_id);
-                        ImGui::SameLine();
-                    }
-                    ImGui::NewLine();
-                }
-                {
-                    ImGuiImm::BeginGroupPanel("High zoom options");
-                    ImGui::Checkbox("Grid", &params->ShowGrid);
-                    ImGui::Checkbox("Draw values on pixels", &params->DrawValuesOnZoomedPixels);
-                    ImGuiImm::EndGroupPanel();
-                }
+                fnImageDisplayOptions_Gui();
 
-            }
-
-            // Image display options
-            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Options"))
-            {
-                {
-                    ImGuiImm::BeginGroupPanel("Image display options");
-                    ImGui::Checkbox("Show image info", &params->ShowImageInfo);
-                    ImGui::Checkbox("Show pixel info", &params->ShowPixelInfo);
-                    ImGui::Checkbox("Show zoom buttons", &params->ShowZoomButtons);
-                    ImGuiImm::EndGroupPanel();
-                }
-
-                ImGui::Checkbox("Pan with mouse", &params->PanWithMouse);
-                ImGui::Checkbox("Zoom with mouse wheel", &params->ZoomWithMouseWheel);
-
-                ImGui::Separator();
-                if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
-                {
-                    if (!params->ShowOptionsInTooltip) // We were in a tooltip when clicking
-                        params->ShowOptionsPanel = true;
-                }
-            }
+            // Misc options
+            if (ImageWidgets::CollapsingHeader_OptionalCacheState("Misc"))
+                fnMiscOptions_Gui();
 
             // Save Image
             if (ImageWidgets::CollapsingHeader_OptionalCacheState("Save"))
-            {
-                // Use portable_file_dialogs if available
-                if (pfd::settings::available())
-                {
-                    if (ImGui::Button("Save Image"))
-                    {
-                        pfd::settings::verbose(true);
-                        std::string filename = pfd::save_file("Select a file", ".",
-                                                              { "Image Files", "*.png *.jpg *.jpeg *.jpg *.bmp *.gif *.exr",
-                                                                "All Files", "*" }).result();
-                        if (!filename.empty())
-                        {
-                            try
-                            {
-                                cv::imwrite(filename, image);
-                            }
-                            catch(const cv::Exception& e)
-                            {
-                                std::string errorMessage = std::string("Could not save image\n") + e.err.c_str();
-                                pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    ImGui::Text("File name");
-                    char *filename = cacheParams.FilenameEditBuffer.data();
-                    ImGui::SetNextItemWidth(200.f * FontSizeRatio());
-                    ImGui::InputText("##filename", filename, 1000);
-                    //ImGui::SetNextItemWidth(200.f);
-                    ImGui::Text("The image will be saved in the current folder");
-                    ImGui::Text("with a format corresponding to the extension");
-                    if (ImGui::SmallButton("save"))
-                        cv::imwrite(filename, image);
-                }
-            }
+                fnSaveImage_Gui(cacheParams, imageWithColormap);
 
             ImGuiImm::EndGroupFixedWidth();
 
         };
+
         auto fnToggleShowOptions = [&params]()
         {
             if (params->ShowOptionsInTooltip)
@@ -9622,13 +9713,14 @@ namespace ImmVision
             else
                 params->ShowOptionsPanel = !params->ShowOptionsPanel;
         };
-        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams)
+
+        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams, const cv::Mat& imageWithColormap)
         {
             if (params->ShowOptionsInTooltip)
             {
                 if (ImGui::BeginPopup("Options"))
                 {
-                    fnOptionsInnerGui(cacheParams);
+                    fnOptionsInnerGui(cacheParams, imageWithColormap);
                     ImGui::EndPopup();
                 }
             }
@@ -9637,7 +9729,7 @@ namespace ImmVision
                 ImGui::SameLine();
                 ImGui::BeginGroup();
                 ImGui::Text("Options");
-                fnOptionsInnerGui(cacheParams);
+                fnOptionsInnerGui(cacheParams, imageWithColormap);
                 ImGui::EndGroup();
             }
         };
@@ -9735,10 +9827,10 @@ namespace ImmVision
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params](CachedImages & cacheImages) ->  MouseInformation
+        auto fnShowImage = [&params](const GlTextureCv& glTexture) ->  MouseInformation
         {
             cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
-                    *cacheImages.GlTexture,
+                    glTexture,
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
 
             MouseInformation mouseInfo;
@@ -9778,7 +9870,7 @@ namespace ImmVision
 
             ImGui::BeginGroup();
             // Show image
-            auto mouseInfo = fnShowImage(cacheImages);
+            auto mouseInfo = fnShowImage(*cacheImages.GlTexture);
             // Add Watched Pixel on double click
             if (   params->AddWatchedPixelOnDoubleClick
                 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)
@@ -9809,7 +9901,7 @@ namespace ImmVision
             ImGui::EndGroup();
 
             // Show Options
-            fnOptionGui(cacheParams);
+            fnOptionGui(cacheParams, cacheImages.ImageRgbaCache);
 
             return mouseInfo;
         };
@@ -10061,9 +10153,12 @@ namespace ImmVision
                 if (isNewEntry)
                     InitializeMissingParams(params, image);
 
-                bool tryAdaptZoomToNewDisplaySize =
-                    (oldParams.ImageDisplaySize != params->ImageDisplaySize)
-                    &&  !(oldParams.ImageDisplaySize.area() == 0);
+                bool wasDisplaySizeChanged = oldParams.ImageDisplaySize != params->ImageDisplaySize;
+                bool wasImageSizeChanged = ( (cachedParams.PreviousImageSize.area() != 0)
+                                             && (cachedParams.PreviousImageSize != image.size()));
+                bool isDisplaySizeEmpty = (oldParams.ImageDisplaySize.area() == 0);
+
+                bool tryAdaptZoomToNewDisplaySize = wasDisplaySizeChanged && !wasImageSizeChanged && !isDisplaySizeEmpty;
                 if (tryAdaptZoomToNewDisplaySize)
                 {
                     params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
@@ -10105,6 +10200,7 @@ namespace ImmVision
                 UpdateLinkedColormapSettings(id);
 
             cachedParams.PreviousParams = *params;
+            cachedParams.PreviousImageSize = image.size();
             mCacheImages.ClearOldEntries();
 
             return isNewEntry;
@@ -10350,7 +10446,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/imgui/imgui_imm.cpp                                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <sstream>
 #include <stack>
@@ -10679,6 +10774,14 @@ namespace ImGuiImm
         ImGui::NewLine();
     }
 
+    bool ButtonWithTooltip(const std::string& label, const std::string& tooltip)
+    {
+        bool r = ImGui::Button(label.c_str());
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", tooltip.c_str());
+        return r;
+    }
+
     void Theme_Debug()
     {
         ImGuiStyle &style = ImGui::GetStyle();
@@ -11003,7 +11106,7 @@ namespace ImGuiImm
 
         if( bStyleDark_ )
         {
-            for (int i = 0; i <= ImGuiCol_COUNT; i++)
+            for (int i = 0; i < ImGuiCol_COUNT; i++)
             {
                 ImVec4& col = style.Colors[i];
                 float H, S, V;
@@ -11022,7 +11125,7 @@ namespace ImGuiImm
         }
         else
         {
-            for (int i = 0; i <= ImGuiCol_COUNT; i++)
+            for (int i = 0; i < ImGuiCol_COUNT; i++)
             {
                 ImVec4& col = style.Colors[i];
                 if( col.w < 1.00f )
