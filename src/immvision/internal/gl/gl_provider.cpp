@@ -1,4 +1,4 @@
-#ifndef IMMVISION_BUILDING_PYBIND // see gl_provider_python for the pybind version
+#ifndef IMMVISION_BUILDING_PYBIND
 
 #include "immvision/internal/gl/gl_provider.h"
 #include "immvision_gl_loader/immvision_gl_loader.h"
@@ -7,12 +7,28 @@
 #include "immvision/internal/drawing/internal_icons.h"
 #include <iostream>
 
+#if defined(IMMVISION_USE_GLAD)
+#include <glad/glad.h>
+#endif
+
 namespace ImmVision_GlProvider
 {
     void _AssertOpenGlLoaderWorking()
     {
+        // These OpenGL functions pointers should be filled once the OpenGL loader was inited
         size_t glGenTexturesAddress = (size_t)glGenTextures;
         size_t glDeleteTexturesAddress = (size_t)glDeleteTextures;
+
+        // If they are empty, and if we are using glad, the user probably forgot to call gladLoadGL().
+        // Let's help him (this is especially useful for python bindings where no bindings for glad are provided)
+        if ((glGenTexturesAddress == 0) || (glDeleteTexturesAddress == 0))
+        {
+#if defined(IMMVISION_USE_GLAD)
+            gladLoadGL();
+            glGenTexturesAddress = (size_t)glGenTextures;
+            glDeleteTexturesAddress = (size_t)glDeleteTextures;
+#endif
+        }
 
         if ((glGenTexturesAddress == 0) || (glDeleteTexturesAddress == 0))
         {
