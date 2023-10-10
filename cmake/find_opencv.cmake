@@ -126,9 +126,18 @@ macro(immvision_fetch_opencv_from_source)
 
     include(FetchContent)
     Set(FETCHCONTENT_QUIET FALSE)
+
+    # Make it possible to use another opencv repo: to speedup transfer times, you can use a local git server
+    set(immvision_opencv_git_repo https://github.com/opencv/opencv.git)
+    if(DEFINED ENV{IMMVISION_OPENCV_GIT_REPO})
+        set(immvision_opencv_git_repo $ENV{IMMVISION_OPENCV_GIT_REPO})
+    elseif(DEFINED IMMVISION_OPENCV_GIT_REPO)
+        set(immvision_opencv_git_repo ${IMMVISION_OPENCV_GIT_REPO})
+    endif()
+
     FetchContent_Declare(
         OpenCV_Fetch
-        GIT_REPOSITORY https://github.com/opencv/opencv.git
+        GIT_REPOSITORY ${immvision_opencv_git_repo}
         GIT_TAG 4.6.0
         # GIT_REMOTE_UPDATE_STRATEGY REBASE
     )
