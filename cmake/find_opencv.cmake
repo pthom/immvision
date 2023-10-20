@@ -65,12 +65,22 @@ macro(immvision_download_emscripten_precompiled_opencv_4_7_0)
 
     include(FetchContent)
     Set(FETCHCONTENT_QUIET FALSE)
-    FetchContent_Declare(
-        opencv_package_emscripten
-        URL https://github.com/pthom/imgui_bundle/releases/download/v0.7.2/opencv_4.7.0_emscripten_install.tgz
-        URL_MD5 3e109af66b4938959f1d7a1db0ea13da
-        DOWNLOAD_EXTRACT_TIMESTAMP ON
-    )
+    option(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD "" OFF)
+    if(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD)
+        FetchContent_Declare(
+            opencv_package_emscripten
+            URL https://github.com/pthom/imgui_bundle/releases/download/v0.9.0/opencv_4.7_pthread_emscripten_install.tgz
+            URL_MD5 83073495c5bcbfb8411ab2c3f68c2d98
+            DOWNLOAD_EXTRACT_TIMESTAMP ON
+        )
+    else()
+        FetchContent_Declare(
+            opencv_package_emscripten
+            URL https://github.com/pthom/imgui_bundle/releases/download/v0.7.2/opencv_4.7.0_emscripten_install.tgz
+            URL_MD5 3e109af66b4938959f1d7a1db0ea13da
+            DOWNLOAD_EXTRACT_TIMESTAMP ON
+        )
+    endif()
     FetchContent_MakeAvailable(opencv_package_emscripten)
     set(OpenCV_DIR  ${CMAKE_BINARY_DIR}/_deps/opencv_package_emscripten-src/lib/cmake/opencv4)
 endmacro()
