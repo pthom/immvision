@@ -10570,7 +10570,7 @@ namespace ImGuiImm
 
         ImVec2 effectiveSize = size;
         if (size.x < 0.0f)
-            effectiveSize.x = ImGui::GetWindowContentRegionWidth();
+            effectiveSize.x = ImGui::GetWindowWidth();
         else
             effectiveSize.x = size.x;
         ImGui::Dummy(ImVec2(effectiveSize.x, 0.0f));
