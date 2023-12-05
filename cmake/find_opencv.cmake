@@ -266,7 +266,17 @@ macro(immvision_find_opencv)
     if (WIN32 AND OpenCV_FOUND)
         set(immvision_OpenCV_DLL_PATH "${OpenCV_LIB_PATH}/../bin")
         message("immvision_OpenCV_DLL_PATH=${immvision_OpenCV_DLL_PATH}")
+
         file(GLOB immvision_opencv_world_dll ${immvision_OpenCV_DLL_PATH}/opencv_world*.dll)
+
+        if (SKBUILD AND CMAKE_BUILD_TYPE STREQUAL "Release")
+            # Remove OpenCV debug dlls (their name end with d.dll):
+            #   When building the pip package, we do not want to deploy the debug dlls
+            #   (they are not needed by the python code, and they are huge)
+            message(STATUS "immvision_find_opencv: removing OpenCV debug dlls")
+            list(FILTER immvision_opencv_world_dll EXCLUDE REGEX ".*d.dll")
+        endif()
+
         if (immvision_opencv_world_dll)
             if (IMGUI_BUNDLE_BUILD_PYTHON)
                 install(FILES ${immvision_opencv_world_dll} DESTINATION .)
