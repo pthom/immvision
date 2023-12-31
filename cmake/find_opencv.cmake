@@ -227,12 +227,12 @@ endmacro()
 
 macro(immvision_find_opencv)
     if (EMSCRIPTEN AND IMMVISION_FETCH_OPENCV)
-        find_package(OpenCV)
+        find_package(OpenCV QUIET)
         if (NOT OpenCV_FOUND)
             immvision_download_emscripten_precompiled_opencv_4_7_0()
         endif()
     else()
-        find_package(OpenCV)
+        find_package(OpenCV QUIET)
         if (NOT OpenCV_FOUND)
             if ("$ENV{IMMVISION_FETCH_OPENCV}" OR IMMVISION_FETCH_OPENCV)
                 set(fetch_opencv ON)
@@ -246,7 +246,7 @@ macro(immvision_find_opencv)
         endif()
     endif()
 
-    find_package(OpenCV)
+    find_package(OpenCV QUIET)
     if (NOT OpenCV_FOUND)
         message("
         ----------------------------------------------------------------------------------
