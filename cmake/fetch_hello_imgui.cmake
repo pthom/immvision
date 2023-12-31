@@ -1,8 +1,6 @@
 macro(fetch_hello_imgui)
     # Download hello_imgui if not available as a target
     if(NOT TARGET hello_imgui)
-        set(HELLOIMGUI_WITH_SDL OFF CACHE BOOL "" FORCE)
-        set(HELLOIMGUI_WITH_GLFW ON CACHE BOOL "" FORCE)
         include(FetchContent)
         FetchContent_Declare(
             hello_imgui
