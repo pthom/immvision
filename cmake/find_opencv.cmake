@@ -279,7 +279,13 @@ macro(immvision_find_opencv)
 
         if (immvision_opencv_world_dll)
             if (IMGUI_BUNDLE_BUILD_PYTHON)
-                install(FILES ${immvision_opencv_world_dll} DESTINATION .)
+                if (SKBUILD)
+                    # specific for imgui_bundle pip package
+                    install(FILES ${immvision_opencv_world_dll} DESTINATION imgui_bundle)
+                else()
+                    # Not sure we should install in other cases
+                    install(FILES ${immvision_opencv_world_dll} DESTINATION .)
+                endif()
             endif()
             set(IMMVISION_OPENCV_WORLD_DLL ${immvision_opencv_world_dll} CACHE STRING "opencv_word dll needed by cpp programs" FORCE)
         endif()
