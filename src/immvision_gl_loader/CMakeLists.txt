@@ -13,7 +13,7 @@ if (IMMVISION_USE_GLAD)
         ${GLAD_DIR}/include/KHR/khrplatform.h)
     # source_group_by_path_all(${GLAD_DIR} ${GLAD_FILES})
     add_library(glad_imm ${GLAD_FILES})
-    target_include_directories(glad_imm PUBLIC SYSTEM ${GLAD_DIR}/include)
+    target_include_directories(glad_imm PUBLIC $<BUILD_INTERFACE:${GLAD_DIR}/include>)
     get_target_property(library_type glad_imm TYPE)
     if (library_type STREQUAL SHARED_LIBRARY)
         # If glad_imm is a shared library, define the macro GLAD_API_EXPORT on the command line.
@@ -24,7 +24,7 @@ endif()
 
 
 add_library(immvision_gl_loader immvision_gl_loader.cpp immvision_gl_loader.h)
-target_include_directories(immvision_gl_loader PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+target_include_directories(immvision_gl_loader PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
 if (NOT EMSCRIPTEN)
     find_package(OpenGL REQUIRED)
