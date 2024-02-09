@@ -269,7 +269,7 @@ macro(immvision_find_opencv)
 
         file(GLOB immvision_opencv_world_dll ${immvision_OpenCV_DLL_PATH}/opencv_world*.dll)
 
-        if (SKBUILD AND CMAKE_BUILD_TYPE STREQUAL "Release")
+        if (SKBUILD)
             # Remove OpenCV debug dlls (their name end with d.dll):
             #   When building the pip package, we do not want to deploy the debug dlls
             #   (they are not needed by the python code, and they are huge)
