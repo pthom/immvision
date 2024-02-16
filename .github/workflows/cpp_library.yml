@@ -38,5 +38,5 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DIMMVISION_FETCH_OPENCV=ON
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DIMMVISION_FETCH_OPENCV=ON -DHELLOIMGUI_DOWNLOAD_FREETYPE_IF_NEEDED=ON
         cmake --build . --config Release
