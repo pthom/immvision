@@ -259,7 +259,7 @@ namespace ImmVision
     // Only, display the image, with no decoration, and no user interaction (by default)
     //
     // Parameters:
-    // :param label
+    // :param label_id
     //     A legend that will be displayed.
     //     Important notes:
     //         - With ImGui and ImmVision, widgets must have a unique Ids. For this widget, the id is given by this label.
@@ -269,7 +269,7 @@ namespace ImmVision
     //              "MyLabel##some_unique_id"    (the part after "##" will not be displayed but will be part of the id)
     //        - To display an empty legend, use "##_some_unique_id"
     //
-    // :param Mat:
+    // :param mat:
     //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
     //
     // :param imageDisplaySize:
