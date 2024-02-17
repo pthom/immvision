@@ -24,7 +24,7 @@ namespace ImmVision
     };
 
     static std::vector<Inspector_ImageAndParams> s_Inspector_ImagesAndParams;
-    ImageCache::ImageTextureCache sInspectorImageTextureCache;
+    ImageCache::ImageTextureCache sInspectorImageTextureCache(3600. * 24. * 365. * 10.); // 10 years TTL!
     static size_t s_Inspector_CurrentIndex = 0;
 
     // In the inspector, we cannot rely on the ID stack, since calls to AddImages will have a different stack

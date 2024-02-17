@@ -276,7 +276,7 @@ namespace ImmVision
         }
 
 
-        ImageTextureCache gImageTextureCache;
+        ImageTextureCache gImageTextureCache(5.); // TTL of 5 seconds
         bool gImageTextureCacheAlive = true;
     } // namespace ImageUtils
 

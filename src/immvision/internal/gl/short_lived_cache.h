@@ -2,6 +2,7 @@
 
 #include <map>
 #include <vector>
+#include <cassert>
 
 #include "immvision/internal/gl/short_lived_cache.h"
 

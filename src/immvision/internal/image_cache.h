@@ -44,6 +44,7 @@ namespace ImmVision
 
             void OnDeleteImageParams(ImageParams* paramsPtr);
 
+            ImageTextureCache(double cachedImagesTimeToLive): mCachedImagesTimeToLive(cachedImagesTimeToLive) {}
             ~ImageTextureCache();
         private:
             // Methods
