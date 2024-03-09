@@ -239,6 +239,10 @@ namespace ImmVision
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
+
+                if (otherCache.ParamsPtr == currentCache.ParamsPtr)
+                    continue;
+
                 if ((otherCacheKey != id) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
                 {
                     cv::Size otherDisplayedImageSize = otherCache.ParamsPtr->ImageDisplaySize;
