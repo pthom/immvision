@@ -10275,6 +10275,10 @@ namespace ImmVision
             for (auto& otherCacheKey : mCacheParams.Keys())
             {
                 CachedParams & otherCache = mCacheParams.Get(otherCacheKey);
+
+                if (otherCache.ParamsPtr == currentCache.ParamsPtr)
+                    continue;
+
                 if ((otherCacheKey != id) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
                 {
                     cv::Size otherDisplayedImageSize = otherCache.ParamsPtr->ImageDisplaySize;
@@ -11338,9 +11342,10 @@ namespace ImmVision
                 showOptionsColumn = false;
         }
 
-        static float listWidth = ImGui::GetFontSize() * 8.5f;
+        static float initialListWidth = ImGui::GetFontSize() * 8.5f;
+        static float currentListWidth = initialListWidth;
 
-        ImVec2 imageSize = priv_Inspector_ImageSize(listWidth, showOptionsColumn);
+        ImVec2 imageSize = priv_Inspector_ImageSize(currentListWidth, showOptionsColumn);
         priv_Inspector_CleanImagesParams(imageSize);
 
         ImGui::Columns(2);
@@ -11351,17 +11356,15 @@ namespace ImmVision
         {
             // Set column width
             {
-                static bool wasWidthSet = false;
-                if (!wasWidthSet)
-                {
-                    ImGui::SetColumnWidth(0, listWidth);
-                    wasWidthSet = true;
-                }
+                static int idxFrame = 0;
+                ++idxFrame;
+                if (idxFrame <= 2) // The column width is not set at the first frame
+                    ImGui::SetColumnWidth(0, initialListWidth);
                 ImGui::Text("Image list");
-                listWidth = ImGui::GetColumnWidth(0);
+                currentListWidth = ImGui::GetColumnWidth(0);
             }
             // Show image list
-            priv_Inspector_ShowImagesListbox(listWidth);
+            priv_Inspector_ShowImagesListbox(currentListWidth);
         }
 
         ImGui::NextColumn();
