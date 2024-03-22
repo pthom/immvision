@@ -27,6 +27,13 @@ option(IMMVISION_FETCH_OPENCV OFF)
 option(IMMVISION_FETCH_OPENCV_FULL OFF)
 #------------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
+# IMMVISION_SERIALIZE_JSON
+# if ON, the ImageParams class will be able to serialize to JSON
+# This requires nlohmann/json
+option(IMMVISION_SERIALIZE_JSON OFF)
+#------------------------------------------------------------------------------
+
 
 #------------------------------------------------------------------------------
 # IMMVISION_BUILD_DEMOS

@@ -183,6 +183,11 @@ namespace ImmVision
         ~ImageParams();
     };
 
+#ifdef IMMVISION_SERIALIZE_JSON
+    IMMVISION_API std::string ImageParamsToJson(const ImageParams& params);
+    IMMVISION_API void FillImageParamsFromJson(const std::string& json, ImageParams* params);
+    IMMVISION_API ImageParams ImageParamsFromJson(const std::string& json);
+#endif
 
     // Create ImageParams that display the image only, with no decoration, and no user interaction
     IMMVISION_API ImageParams FactorImageParamsDisplayOnly();
