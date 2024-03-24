@@ -6518,15 +6518,32 @@ namespace ImmVision
                 assert(!finalImage.empty());
             }
 
+            double gridMinZoomFactor = 12.;
+            double zoomFactor = (double)params.ZoomPanMatrix(0, 0);
+
             //
             // Zoom
             //
             {
+                //zoomFactor >= gridMinZoomFactor
+                int warpInterpolationFlags = cv::INTER_NEAREST;
+                if (zoomFactor < 1.0)
+                    // If the zoom factor is less than 1, we use INTER_AREA to downscale the image
+                    warpInterpolationFlags = cv::INTER_AREA;
+                else if (zoomFactor < gridMinZoomFactor)
+                    // If the zoom factor is less than the gridMinZoomFactor, we use INTER_CUBIC to upscale the image
+                    // This is to avoid aliasing when zooming in
+                    warpInterpolationFlags = cv::INTER_CUBIC;
+                else
+                    // If the zoom factor is greater than the gridMinZoomFactor, we use INTER_NEAREST to upscale the image
+                    // This is to display exact pixel values when zooming in really close
+                    warpInterpolationFlags = cv::INTER_NEAREST;
+
                 cv::Mat backgroundWithImage = fnMakeBackground();
                 cv::warpAffine(finalImage, backgroundWithImage,
                                ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
                                params.ImageDisplaySize,
-                               cv::INTER_NEAREST,
+                               warpInterpolationFlags,
                                cv::BorderTypes::BORDER_TRANSPARENT,
                                cv::Scalar(127, 127, 127, 127)
                 );
@@ -6538,8 +6555,6 @@ namespace ImmVision
             //
             {
                 // Draw grid
-                double gridMinZoomFactor = 12.;
-                double zoomFactor = (double)params.ZoomPanMatrix(0, 0);
                 if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
                     DrawGrid(finalImage, params);
 
