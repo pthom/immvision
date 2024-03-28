@@ -46,9 +46,9 @@ macro(immvision_download_opencv_official_package_win)
     Set(FETCHCONTENT_QUIET FALSE)
     FetchContent_Declare(
         opencv_official_package_win
+        DOWNLOAD_EXTRACT_TIMESTAMP ON
         URL https://github.com/pthom/imgui_bundle/releases/download/v0.6.6/opencv-4.6.0_official_win_x64_world.zip
         URL_MD5 a9d92bdf8510d09c3bf3cb080731ea91
-        DOWNLOAD_EXTRACT_TIMESTAMP ON
     )
     FetchContent_MakeAvailable(opencv_official_package_win)
     set(opencv_official_package_win_dir ${CMAKE_BINARY_DIR}/_deps/opencv_official_package_win-src/opencv/build)
@@ -69,16 +69,16 @@ macro(immvision_download_emscripten_precompiled_opencv_4_7_0)
     if(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD)
         FetchContent_Declare(
             opencv_package_emscripten
+            DOWNLOAD_EXTRACT_TIMESTAMP ON
             URL https://github.com/pthom/imgui_bundle/releases/download/v0.9.0/opencv_4.7_pthread_emscripten_install.tgz
             URL_MD5 83073495c5bcbfb8411ab2c3f68c2d98
-            DOWNLOAD_EXTRACT_TIMESTAMP ON
         )
     else()
         FetchContent_Declare(
             opencv_package_emscripten
+            DOWNLOAD_EXTRACT_TIMESTAMP ON
             URL https://github.com/pthom/imgui_bundle/releases/download/v0.7.2/opencv_4.7.0_emscripten_install.tgz
             URL_MD5 3e109af66b4938959f1d7a1db0ea13da
-            DOWNLOAD_EXTRACT_TIMESTAMP ON
         )
     endif()
     FetchContent_MakeAvailable(opencv_package_emscripten)
