@@ -6061,7 +6061,12 @@ namespace ImmVision
                             cv::Size originalImageSize
                             );
 
-    } // namespace ZoomPanTransform
+        // Custom version of cv::warpAffine for small sizes, since cv::warpAffine happily ignores cv::INTER_AREA
+        // cf https://github.com/pthom/immvision/issues/6 and
+        // cf https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/imgwarp.cpp#L2826-L2827
+        void _WarpAffineInterAreaForSmallSizes(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m);
+
+} // namespace ZoomPanTransform
 
     cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize);
 
@@ -6070,6 +6075,8 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/zoom_pan_transform.cpp continued                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <opencv2/imgproc.hpp>
 
 namespace ImmVision
 {
@@ -6232,6 +6239,35 @@ namespace ImmVision
             return roi;
         }
 
+        // Custom version of cv::warpAffine for small sizes, since cv::warpAffine happily ignores cv::INTER_AREA
+        // cf https://github.com/pthom/immvision/issues/6 and
+        // cf https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/imgwarp.cpp#L2826-L2827
+        void _WarpAffineInterAreaForSmallSizes(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m)
+        {
+            // Since in our case, we are only dealing with transformations that do not modify
+            // the orientation of the vertical arrow and horizontal axes, we take the easy route:
+            // first resize the image and then place it at the correct location in the final image.
+
+
+            // first, compute the resized image size by using the transformation matrix.
+            cv::Point2d tl = ZoomPanTransform::Apply(m, cv::Point2d(0., 0.));
+            cv::Point2d br = ZoomPanTransform::Apply(m, cv::Point2d((double)src.cols, (double)src.rows));
+            cv::Size resizedSize(MathUtils::RoundInt(br.x - tl.x), MathUtils::RoundInt(br.y - tl.y));
+
+            // then, resize the image
+            cv::Mat resized;
+            cv::resize(src, resized, resizedSize, 0, 0, cv::INTER_AREA);
+
+            // then, place the resized image at the correct location in the final image.
+            cv::Matx23d translation = cv::Matx23d::eye();
+            translation(0, 2) = tl.x;
+            translation(1, 2) = tl.y;
+
+
+            cv::warpAffine(resized, dst, translation, dst.size(), cv::INTER_AREA);
+        }
+
+
     } // namespace ZoomPanTransform
 
     cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
@@ -6252,7 +6288,6 @@ namespace ImmVision
     {
         return ZoomPanTransform::MakeFullView(imageSize, displayedImageSize);
     }
-
 }
 
 
@@ -6294,7 +6329,7 @@ namespace ImmVision
 //                       src/immvision/internal/drawing/image_drawing.cpp continued                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 
 namespace ImmVision
@@ -6409,7 +6444,7 @@ namespace ImmVision
                         textColor,
                         true, // center_around_point
                         false, // add_cartouche
-                        0.3 * (double) _ImmDrawingFontScaleRatio() ,  //fontScale
+                        0.42 * (double) _ImmDrawingFontScaleRatio() ,  //fontScale
                         1     //int thickness
                     );
                 }
@@ -6540,13 +6575,26 @@ namespace ImmVision
                     warpInterpolationFlags = cv::INTER_NEAREST;
 
                 cv::Mat backgroundWithImage = fnMakeBackground();
-                cv::warpAffine(finalImage, backgroundWithImage,
-                               ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
-                               params.ImageDisplaySize,
-                               warpInterpolationFlags,
-                               cv::BorderTypes::BORDER_TRANSPARENT,
-                               cv::Scalar(127, 127, 127, 127)
-                );
+
+                // Use custom version of cv::warpAffine for small sizes,
+                // since cv::warpAffine happily ignores cv::INTER_AREA
+                if (zoomFactor < 1.)
+                {
+                    ZoomPanTransform::_WarpAffineInterAreaForSmallSizes(
+                        finalImage,
+                        backgroundWithImage,
+                        params.ZoomPanMatrix);
+                }
+                else
+                {
+                    cv::warpAffine(finalImage, backgroundWithImage,
+                                   ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
+                                   params.ImageDisplaySize,
+                                    warpInterpolationFlags,
+                                   cv::BorderTypes::BORDER_TRANSPARENT,
+                                   cv::Scalar(127, 127, 127, 127)
+                    );
+                }
                 finalImage = backgroundWithImage;
             }
 
@@ -7225,6 +7273,8 @@ namespace ImmVision
             {
                 // If you encounter this assert during debugging, it is perhaps due to ShortLiveCache (below)
                 // which periodically removes elements that were unused during a given period (5 seconds)
+                // You can temporarily disable this feature by adding a return statement at the very beginning of
+                // ShortLivedCache::ClearOldEntries()
                 assert(mDict.find(k) != mDict.end());
                 return mDict.at(k);
             }
@@ -7320,6 +7370,7 @@ namespace ImmVision
 
             void ClearOldEntries()
             {
+                return;
                 double now = TimerSeconds();
                 std::vector<Key> oldEntries;
                 for (const auto& key: Keys())
@@ -7368,7 +7419,6 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image.cpp                                                       //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <opencv2/imgcodecs.hpp>
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
