@@ -120,7 +120,7 @@ namespace ImmVision
                         textColor,
                         true, // center_around_point
                         false, // add_cartouche
-                        0.3 * (double) _ImmDrawingFontScaleRatio() ,  //fontScale
+                        0.42 * (double) _ImmDrawingFontScaleRatio() ,  //fontScale
                         1     //int thickness
                     );
                 }
