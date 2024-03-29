@@ -6,6 +6,7 @@
 #include "immvision/internal/cv/colormap.h"
 
 #include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 
 namespace ImmVision
@@ -251,13 +252,26 @@ namespace ImmVision
                     warpInterpolationFlags = cv::INTER_NEAREST;
 
                 cv::Mat backgroundWithImage = fnMakeBackground();
-                cv::warpAffine(finalImage, backgroundWithImage,
-                               ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
-                               params.ImageDisplaySize,
-                               warpInterpolationFlags,
-                               cv::BorderTypes::BORDER_TRANSPARENT,
-                               cv::Scalar(127, 127, 127, 127)
-                );
+
+                // Use custom version of cv::warpAffine for small sizes,
+                // since cv::warpAffine happily ignores cv::INTER_AREA
+                if (zoomFactor < 1.)
+                {
+                    ZoomPanTransform::_WarpAffineInterAreaForSmallSizes(
+                        finalImage,
+                        backgroundWithImage,
+                        params.ZoomPanMatrix);
+                }
+                else
+                {
+                    cv::warpAffine(finalImage, backgroundWithImage,
+                                   ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
+                                   params.ImageDisplaySize,
+                                    warpInterpolationFlags,
+                                   cv::BorderTypes::BORDER_TRANSPARENT,
+                                   cv::Scalar(127, 127, 127, 127)
+                    );
+                }
                 finalImage = backgroundWithImage;
             }
 

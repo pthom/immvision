@@ -1,6 +1,8 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/misc/math_utils.h"
 
+#include <opencv2/imgproc.hpp>
+
 namespace ImmVision
 {
     namespace ZoomPanTransform
@@ -162,6 +164,35 @@ namespace ImmVision
             return roi;
         }
 
+        // Custom version of cv::warpAffine for small sizes, since cv::warpAffine happily ignores cv::INTER_AREA
+        // cf https://github.com/pthom/immvision/issues/6 and
+        // cf https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/imgwarp.cpp#L2826-L2827
+        void _WarpAffineInterAreaForSmallSizes(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m)
+        {
+            // Since in our case, we are only dealing with transformations that do not modify
+            // the orientation of the vertical arrow and horizontal axes, we take the easy route:
+            // first resize the image and then place it at the correct location in the final image.
+
+
+            // first, compute the resized image size by using the transformation matrix.
+            cv::Point2d tl = ZoomPanTransform::Apply(m, cv::Point2d(0., 0.));
+            cv::Point2d br = ZoomPanTransform::Apply(m, cv::Point2d((double)src.cols, (double)src.rows));
+            cv::Size resizedSize(MathUtils::RoundInt(br.x - tl.x), MathUtils::RoundInt(br.y - tl.y));
+
+            // then, resize the image
+            cv::Mat resized;
+            cv::resize(src, resized, resizedSize, 0, 0, cv::INTER_AREA);
+
+            // then, place the resized image at the correct location in the final image.
+            cv::Matx23d translation = cv::Matx23d::eye();
+            translation(0, 2) = tl.x;
+            translation(1, 2) = tl.y;
+
+
+            cv::warpAffine(resized, dst, translation, dst.size(), cv::INTER_AREA);
+        }
+
+
     } // namespace ZoomPanTransform
 
     cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
@@ -182,5 +213,4 @@ namespace ImmVision
     {
         return ZoomPanTransform::MakeFullView(imageSize, displayedImageSize);
     }
-
 }

@@ -31,7 +31,12 @@ namespace ImmVision
                             cv::Size originalImageSize
                             );
 
-    } // namespace ZoomPanTransform
+        // Custom version of cv::warpAffine for small sizes, since cv::warpAffine happily ignores cv::INTER_AREA
+        // cf https://github.com/pthom/immvision/issues/6 and
+        // cf https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/imgwarp.cpp#L2826-L2827
+        void _WarpAffineInterAreaForSmallSizes(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m);
+
+} // namespace ZoomPanTransform
 
     cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize);
 
