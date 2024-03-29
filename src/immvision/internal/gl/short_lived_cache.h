@@ -25,6 +25,8 @@ namespace ImmVision
             {
                 // If you encounter this assert during debugging, it is perhaps due to ShortLiveCache (below)
                 // which periodically removes elements that were unused during a given period (5 seconds)
+                // You can temporarily disable this feature by adding a return statement at the very beginning of
+                // ShortLivedCache::ClearOldEntries()
                 assert(mDict.find(k) != mDict.end());
                 return mDict.at(k);
             }
@@ -120,6 +122,7 @@ namespace ImmVision
 
             void ClearOldEntries()
             {
+                return;
                 double now = TimerSeconds();
                 std::vector<Key> oldEntries;
                 for (const auto& key: Keys())
