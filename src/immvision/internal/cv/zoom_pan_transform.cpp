@@ -188,8 +188,8 @@ namespace ImmVision
             translation(0, 2) = tl.x;
             translation(1, 2) = tl.y;
 
-
-            cv::warpAffine(resized, dst, translation, dst.size(), cv::INTER_AREA);
+            // copy resized
+            cv::warpAffine(resized, dst, translation, dst.size(), cv::INTER_NEAREST, cv::BORDER_TRANSPARENT);
         }
 
 
