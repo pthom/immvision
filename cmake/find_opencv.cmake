@@ -57,11 +57,30 @@ macro(immvision_download_opencv_official_package_win)
     # set(OpenCV_STATIC ON)
 endmacro()
 
+function(check_emscripten_emcc_version)
+    execute_process(
+        COMMAND emcc --version
+        OUTPUT_VARIABLE EMCC_VERSION_OUTPUT
+    )
+    string(REGEX MATCH "emcc.* ([0-9]+\\.[0-9]+\\.[0-9]+)" _ ${EMCC_VERSION_OUTPUT})
+    set(EMCC_VERSION ${CMAKE_MATCH_1})
+    set(REQUIRED_EMCC_VERSION "3.1.57")
+    if(EMCC_VERSION VERSION_LESS REQUIRED_EMCC_VERSION)
+        message(FATAL_ERROR "emscripten / emcc version must be at least ${REQUIRED_EMCC_VERSION}, but found ${EMCC_VERSION}")
+    endif()
+endfunction()
 
-macro(immvision_download_emscripten_precompiled_opencv_4_7_0)
-    # Download a precompiled version of opencv4.7.0 for emscripten
-    # (see Readme_devel.md for info on how it was built)
-    message("Download a precompiled version of opencv4.7.0 for emscripten")
+macro(immvision_download_emscripten_precompiled_opencv_4_9_0)
+    # Download a precompiled version of opencv4.9.0 for emscripten
+    # (see imgui_bundle/devel_docs/devdoc_parts/emscripten_build.adoc for info on how it was built)
+    message("Download a precompiled version of opencv4.9.0 for emscripten")
+    check_emscripten_emcc_version()
+
+    # Check that we are using emcc version 3.1.57 or higher
+    execute_process(
+        COMMAND emcc --version
+        OUTPUT_VARIABLE emcc_version
+    )
 
     include(FetchContent)
     Set(FETCHCONTENT_QUIET FALSE)
@@ -70,15 +89,15 @@ macro(immvision_download_emscripten_precompiled_opencv_4_7_0)
         FetchContent_Declare(
             opencv_package_emscripten
             DOWNLOAD_EXTRACT_TIMESTAMP ON
-            URL https://github.com/pthom/imgui_bundle/releases/download/v0.9.0/opencv_4.7_pthread_emscripten_install.tgz
-            URL_MD5 83073495c5bcbfb8411ab2c3f68c2d98
+            URL https://github.com/pthom/imgui_bundle/releases/download/v1.3.0/opencv_4.9_pthread_emscripten_install.tgz
+            URL_MD5 fd8df379812422e169d0397a0e4d5bb7
         )
     else()
         FetchContent_Declare(
             opencv_package_emscripten
             DOWNLOAD_EXTRACT_TIMESTAMP ON
-            URL https://github.com/pthom/imgui_bundle/releases/download/v0.7.2/opencv_4.7.0_emscripten_install.tgz
-            URL_MD5 3e109af66b4938959f1d7a1db0ea13da
+            URL https://github.com/pthom/imgui_bundle/releases/download/v1.3.0/opencv_4.9_no_pthread_emscripten_install.tgz
+            URL_MD5 2a9e65542123548bec1b80ee2cb6056e
         )
     endif()
     FetchContent_MakeAvailable(opencv_package_emscripten)
@@ -229,7 +248,7 @@ macro(immvision_find_opencv)
     if (EMSCRIPTEN AND IMMVISION_FETCH_OPENCV)
         find_package(OpenCV QUIET)
         if (NOT OpenCV_FOUND)
-            immvision_download_emscripten_precompiled_opencv_4_7_0()
+            immvision_download_emscripten_precompiled_opencv_4_9_0()
         endif()
     else()
         find_package(OpenCV QUIET)
