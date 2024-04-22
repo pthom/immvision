@@ -22,6 +22,7 @@ namespace ImmVision
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
                 bool   WasZoomJustUpdatedByLink = false;
+                bool   IsResizing = false;
                 cv::Size PreviousImageSize;
                 struct ImageParams  PreviousParams;
             };

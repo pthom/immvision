@@ -142,6 +142,9 @@ namespace ImmVision
         bool PanWithMouse = true;
         bool ZoomWithMouseWheel = true;
 
+        // Can the image widget be resized by the user
+        bool CanResize = true;
+
         // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
         bool IsColorOrderBGR = true;
 

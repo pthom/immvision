@@ -147,6 +147,9 @@ namespace ImmVision
         bool PanWithMouse = true;
         bool ZoomWithMouseWheel = true;
 
+        // Can the image widget be resized by the user
+        bool CanResize = true;
+
         // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
         bool IsColorOrderBGR = true;
 
@@ -9363,6 +9366,7 @@ namespace ImmVision
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
                 bool   WasZoomJustUpdatedByLink = false;
+                bool   IsResizing = false;
                 cv::Size PreviousImageSize;
                 struct ImageParams  PreviousParams;
             };
@@ -9811,6 +9815,8 @@ namespace ImmVision
         // Mouse dragging
         auto fnHandleMouseDragging = [&params](CachedParams & cacheParams)
         {
+            if (cacheParams.IsResizing)
+                return;
             ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
 
             int mouseDragButton = 0;
@@ -9914,6 +9920,50 @@ namespace ImmVision
             return mouseInfo;
         };
 
+        //
+        // Lambda / Show resize widget in the bottom right corner
+        //
+        auto fnShowResizeWidget = [&params](CachedParams & cacheParams)
+        {
+            if (!params->CanResize)
+                return;
+            ImVec2 imageBottomRight = ImGui::GetItemRectMax();
+            float em = ImGui::GetFontSize();
+            float size = em * 1.0f;
+            ImVec2 br(imageBottomRight.x, imageBottomRight.y);
+            ImVec2 bl(br.x - size, br.y);
+            ImVec2 tr(br.x, br.y - size);
+            ImVec2 tl(br.x - size, br.y - size);
+
+            ImRect zone(tl, br);
+            ImGui::GetWindowDrawList()->AddTriangleFilled(br, bl, tr, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
+
+            if (!cacheParams.IsResizing)
+            {
+                if (ImGui::IsMouseHoveringRect(zone.Min, zone.Max) && ImGui::IsMouseDown(0))
+                {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                    cacheParams.IsResizing = true;
+                }
+            }
+            if (cacheParams.IsResizing)
+            {
+                if (ImGui::IsMouseDown(0))
+                {
+                    if (ImGui::GetIO().MouseDelta.x != 0. || ImGui::GetIO().MouseDelta.y != 0.)
+                    {
+                        params->ImageDisplaySize.width += ImGui::GetIO().MouseDelta.x;
+                        params->ImageDisplaySize.height += ImGui::GetIO().MouseDelta.y;
+                    }
+                }
+                else
+                {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+                    cacheParams.IsResizing = false;
+                }
+            }
+        };
+
 
         //
         // Lambda / Show pixel info
@@ -9942,6 +9992,7 @@ namespace ImmVision
             ImGui::BeginGroup();
             // Show image
             auto mouseInfo = fnShowImage(*cacheImages.GlTexture);
+            fnShowResizeWidget(cacheParams);
             // Add Watched Pixel on double click
             if (   params->AddWatchedPixelOnDoubleClick
                 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)
@@ -10066,6 +10117,7 @@ namespace ImmVision
             imageParams.ShowOptionsPanel = false;
             imageParams.ZoomWithMouseWheel = false;
             imageParams.PanWithMouse = false;
+            imageParams.CanResize = false;
             imageParams.ShowPixelInfo = false;
             imageParams.ShowImageInfo = false;
             imageParams.ShowGrid = false;
