@@ -10120,9 +10120,9 @@ namespace ImmVision
         {
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
-//            params.CanResize = true;
             params.RefreshImage = refreshImage;
             params.IsColorOrderBGR = isBgrOrBgra;
+            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), params.ImageDisplaySize);
         }
 
         Image(label_id, mat, &params);
@@ -10153,9 +10153,12 @@ namespace ImmVision
             params.CanResize = true;
             params.RefreshImage = refreshImage;
             params.IsColorOrderBGR = isBgrOrBgra;
+            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), params.ImageDisplaySize);
         }
         std::string hiddenLabel = std::string("##") + label_id;
         Image(hiddenLabel, mat, &params);
+
+
 
         *size = ImVec2((float)params.ImageDisplaySize.width, (float)params.ImageDisplaySize.height);
         return params.MouseInfo.MousePosition;
