@@ -592,9 +592,15 @@ namespace ImmVision
             // BeginGroupPanel
             bool drawBorder =  fnIsLabelVisible();
             std::string title = label + "##title";
-            ImGuiImm::BeginGroupPanel_FlagBorder(title.c_str(), drawBorder);
+            if (drawBorder)
+                ImGuiImm::BeginGroupPanel_FlagBorder(title.c_str(), drawBorder);
+            else
+                ImGui::BeginGroup();
             auto mouseInfo = fnShowFullGui(cacheParams, cacheImages);
-            ImGuiImm::EndGroupPanel_FlagBorder();
+            if (drawBorder)
+                ImGuiImm::EndGroupPanel_FlagBorder();
+            else
+                ImGui::EndGroup();
             return mouseInfo;
         };
 

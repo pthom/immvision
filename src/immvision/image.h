@@ -271,6 +271,9 @@ namespace ImmVision
     //     Size of the displayed image (can be different from the mat size)
     //     If you specify only the width or height (e.g (300, 0), then the other dimension
     //     will be calculated automatically, respecting the original image w/h ratio.
+    //     Warning:
+    //              if your legend is displayed (i.e. it does not start with "##"),
+    //              then the total size of the widget will be larger than the imageDisplaySize.
     //
     // :param refreshImage:
     //     images textures are cached. Set to true if your image matrix/buffer has changed
