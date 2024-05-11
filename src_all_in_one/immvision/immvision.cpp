@@ -326,6 +326,7 @@ namespace ImmVision
         const cv::Mat& mat,
         ImVec2* size,
         bool refreshImage = false,
+        bool resizable = true,
         bool showOptionsButton = false,
         bool isBgrOrBgra = true
     );
@@ -10116,7 +10117,6 @@ namespace ImmVision
             s_Params[id] = params;
         }
 
-
         ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
@@ -10137,10 +10137,12 @@ namespace ImmVision
         const cv::Mat& mat,
         ImVec2* size,
         bool refreshImage,
+        bool resizable,
         bool showOptionsButton,
         bool isBgrOrBgra
     )
     {
+        IM_ASSERT(size != nullptr && "ImageDisplayResizable: size must not be null");
         ImGuiID id = ImGui::GetID(label_id.c_str());
         static std::map<ImGuiID, ImageParams> s_Params;
         if (s_Params.find(id) == s_Params.end())
@@ -10154,7 +10156,7 @@ namespace ImmVision
         {
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
-            params.CanResize = true;
+            params.CanResize = resizable;
             params.RefreshImage = refreshImage;
             params.IsColorOrderBGR = isBgrOrBgra;
 
@@ -10163,8 +10165,6 @@ namespace ImmVision
         }
         std::string hiddenLabel = std::string("##") + label_id;
         Image(hiddenLabel, mat, &params);
-
-
 
         *size = ImVec2((float)params.ImageDisplaySize.width, (float)params.ImageDisplaySize.height);
         return params.MouseInfo.MousePosition;

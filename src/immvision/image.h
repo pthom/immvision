@@ -313,6 +313,7 @@ namespace ImmVision
         const cv::Mat& mat,
         ImVec2* size,
         bool refreshImage = false,
+        bool resizable = true,
         bool showOptionsButton = false,
         bool isBgrOrBgra = true
     );
