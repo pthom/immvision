@@ -668,9 +668,45 @@ namespace ImmVision
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
             params.IsColorOrderBGR = isBgrOrBgra;
+            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), params.ImageDisplaySize);
         }
 
         Image(label_id, mat, &params);
+        return params.MouseInfo.MousePosition;
+    }
+
+    IMMVISION_API cv::Point2d ImageDisplayResizable(
+        const std::string& label_id,
+        const cv::Mat& mat,
+        ImVec2* size,
+        bool refreshImage,
+        bool showOptionsButton,
+        bool isBgrOrBgra
+    )
+    {
+        ImGuiID id = ImGui::GetID(label_id.c_str());
+        static std::map<ImGuiID, ImageParams> s_Params;
+        if (s_Params.find(id) == s_Params.end())
+        {
+            ImageParams params = showOptionsButton ? ImageParams() : FactorImageParamsDisplayOnly();
+            s_Params[id] = params;
+        }
+
+        ImageParams& params = s_Params.at(id);
+        {
+            params.ShowOptionsButton = showOptionsButton;
+            params.ImageDisplaySize = cv::Size((int)size->x, (int)size->y);
+            params.CanResize = true;
+            params.RefreshImage = refreshImage;
+            params.IsColorOrderBGR = isBgrOrBgra;
+            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), params.ImageDisplaySize);
+        }
+        std::string hiddenLabel = std::string("##") + label_id;
+        Image(hiddenLabel, mat, &params);
+
+
+
+        *size = ImVec2((float)params.ImageDisplaySize.width, (float)params.ImageDisplaySize.height);
         return params.MouseInfo.MousePosition;
     }
 

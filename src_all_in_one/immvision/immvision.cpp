@@ -264,7 +264,7 @@ namespace ImmVision
     IMMVISION_API void Image(const std::string& label, const cv::Mat& mat, ImageParams* params);
 
 
-    // Only, display the image, with no decoration, and no user interaction (by default)
+    // ImageDisplay: Only, display the image, with no user interaction (by default)
     //
     // Parameters:
     // :param label_id
@@ -276,6 +276,8 @@ namespace ImmVision
     //           To circumvent this, you can modify your label like this:
     //              "MyLabel##some_unique_id"    (the part after "##" will not be displayed but will be part of the id)
     //        - To display an empty legend, use "##_some_unique_id"
+    //        - if your legend is displayed (i.e. it does not start with "##"),
+    //          then the total size of the widget will be larger than the imageDisplaySize.
     //
     // :param mat:
     //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
@@ -284,9 +286,6 @@ namespace ImmVision
     //     Size of the displayed image (can be different from the mat size)
     //     If you specify only the width or height (e.g (300, 0), then the other dimension
     //     will be calculated automatically, respecting the original image w/h ratio.
-    //     Warning:
-    //              if your legend is displayed (i.e. it does not start with "##"),
-    //              then the total size of the widget will be larger than the imageDisplaySize.
     //
     // :param refreshImage:
     //     images textures are cached. Set to true if your image matrix/buffer has changed
@@ -318,6 +317,18 @@ namespace ImmVision
         bool showOptionsButton = false,
         bool isBgrOrBgra = true
         );
+
+    // ImageDisplayResizable: display the image, with no user interaction (by default)
+    // The image can be resized by the user (and the new size will be stored in the size parameter)
+    // The label will not be displayed (but it will be used as an id, and must be unique)
+    IMMVISION_API cv::Point2d ImageDisplayResizable(
+        const std::string& label_id,
+        const cv::Mat& mat,
+        ImVec2* size,
+        bool refreshImage = false,
+        bool showOptionsButton = false,
+        bool isBgrOrBgra = true
+    );
 
 
     // Return the list of the available color maps
@@ -10109,11 +10120,44 @@ namespace ImmVision
         {
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
+//            params.CanResize = true;
             params.RefreshImage = refreshImage;
             params.IsColorOrderBGR = isBgrOrBgra;
         }
 
         Image(label_id, mat, &params);
+        return params.MouseInfo.MousePosition;
+    }
+
+    IMMVISION_API cv::Point2d ImageDisplayResizable(
+        const std::string& label_id,
+        const cv::Mat& mat,
+        ImVec2* size,
+        bool refreshImage,
+        bool showOptionsButton,
+        bool isBgrOrBgra
+    )
+    {
+        ImGuiID id = ImGui::GetID(label_id.c_str());
+        static std::map<ImGuiID, ImageParams> s_Params;
+        if (s_Params.find(id) == s_Params.end())
+        {
+            ImageParams params = showOptionsButton ? ImageParams() : FactorImageParamsDisplayOnly();
+            s_Params[id] = params;
+        }
+
+        ImageParams& params = s_Params.at(id);
+        {
+            params.ShowOptionsButton = showOptionsButton;
+            params.ImageDisplaySize = cv::Size((int)size->x, (int)size->y);
+            params.CanResize = true;
+            params.RefreshImage = refreshImage;
+            params.IsColorOrderBGR = isBgrOrBgra;
+        }
+        std::string hiddenLabel = std::string("##") + label_id;
+        Image(hiddenLabel, mat, &params);
+
+        *size = ImVec2((float)params.ImageDisplaySize.width, (float)params.ImageDisplaySize.height);
         return params.MouseInfo.MousePosition;
     }
 
