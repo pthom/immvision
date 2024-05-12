@@ -319,12 +319,12 @@ namespace ImmVision
         );
 
     // ImageDisplayResizable: display the image, with no user interaction (by default)
-    // The image can be resized by the user (and the new size will be stored in the size parameter)
+    // The image can be resized by the user (and the new size will be stored in the size parameter, if provided)
     // The label will not be displayed (but it will be used as an id, and must be unique)
     IMMVISION_API cv::Point2d ImageDisplayResizable(
         const std::string& label_id,
         const cv::Mat& mat,
-        ImVec2* size,
+        ImVec2* size = nullptr,
         bool refreshImage = false,
         bool resizable = true,
         bool showOptionsButton = false,
@@ -10132,6 +10132,9 @@ namespace ImmVision
         return params.MouseInfo.MousePosition;
     }
 
+
+    static std::map<ImGuiID, ImVec2> s_ImageDisplayResizable_Sizes;
+
     IMMVISION_API cv::Point2d ImageDisplayResizable(
         const std::string& label_id,
         const cv::Mat& mat,
@@ -10142,7 +10145,14 @@ namespace ImmVision
         bool isBgrOrBgra
     )
     {
-        IM_ASSERT(size != nullptr && "ImageDisplayResizable: size must not be null");
+        if (size == nullptr)
+        {
+            ImGuiID id = ImGui::GetID(label_id.c_str());
+            if (s_ImageDisplayResizable_Sizes.find(id) == s_ImageDisplayResizable_Sizes.end())
+                s_ImageDisplayResizable_Sizes[id] = ImVec2(0, 0);
+            size = &s_ImageDisplayResizable_Sizes[id];
+        }
+
         ImGuiID id = ImGui::GetID(label_id.c_str());
         static std::map<ImGuiID, ImageParams> s_Params;
         if (s_Params.find(id) == s_Params.end())

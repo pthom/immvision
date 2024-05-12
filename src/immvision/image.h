@@ -306,12 +306,12 @@ namespace ImmVision
         );
 
     // ImageDisplayResizable: display the image, with no user interaction (by default)
-    // The image can be resized by the user (and the new size will be stored in the size parameter)
+    // The image can be resized by the user (and the new size will be stored in the size parameter, if provided)
     // The label will not be displayed (but it will be used as an id, and must be unique)
     IMMVISION_API cv::Point2d ImageDisplayResizable(
         const std::string& label_id,
         const cv::Mat& mat,
-        ImVec2* size,
+        ImVec2* size = nullptr,
         bool refreshImage = false,
         bool resizable = true,
         bool showOptionsButton = false,
