@@ -8,7 +8,7 @@ namespace ImmVision
 {
     namespace ImageWidgets
     {
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize);
+        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow);
         void ShowImageInfo(const cv::Mat &image, double zoomFactor);
         void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageParams& params);
 

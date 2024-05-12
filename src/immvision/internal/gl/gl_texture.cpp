@@ -33,7 +33,7 @@ namespace ImmVision
         return ImGui::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
     }
 
-    void GlTexture::Draw_DisableDragWindow(const ImVec2 &size) const
+    void GlTexture::Draw_DisableDragWindow(const ImVec2 &size, bool disableDragWindow) const
     {
         ImVec2 size_(size);
         if (size.x == 0.f)
@@ -43,7 +43,10 @@ namespace ImmVision
         ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
         std::stringstream id;
         id << "##" << mImTextureId;
-        ImGui::InvisibleButton(id.str().c_str(), size);
+        if (disableDragWindow)
+            ImGui::InvisibleButton(id.str().c_str(), size);
+        else
+            ImGui::Dummy(size);
         ImGui::GetWindowDrawList()->AddImage(mImTextureId, imageTl, imageBr);
     }
 

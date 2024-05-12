@@ -4492,7 +4492,7 @@ namespace ImmVision
 
         void Draw(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0)) const;
         bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
-        void Draw_DisableDragWindow(const ImVec2& size = ImVec2(0, 0)) const;
+        void Draw_DisableDragWindow(const ImVec2& size, bool disableDragWindow) const;
 
         void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
 
@@ -7223,7 +7223,7 @@ namespace ImmVision
         return ImGui::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
     }
 
-    void GlTexture::Draw_DisableDragWindow(const ImVec2 &size) const
+    void GlTexture::Draw_DisableDragWindow(const ImVec2 &size, bool disableDragWindow) const
     {
         ImVec2 size_(size);
         if (size.x == 0.f)
@@ -7233,7 +7233,10 @@ namespace ImmVision
         ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
         std::stringstream id;
         id << "##" << mImTextureId;
-        ImGui::InvisibleButton(id.str().c_str(), size);
+        if (disableDragWindow)
+            ImGui::InvisibleButton(id.str().c_str(), size);
+        else
+            ImGui::Dummy(size);
         ImGui::GetWindowDrawList()->AddImage(mImTextureId, imageTl, imageBr);
     }
 
@@ -9343,7 +9346,7 @@ namespace ImmVision
 {
     namespace ImageWidgets
     {
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize);
+        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow);
         void ShowImageInfo(const cv::Mat &image, double zoomFactor);
         void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageParams& params);
 
@@ -9921,9 +9924,10 @@ namespace ImmVision
         //
         auto fnShowImage = [&params](const GlTextureCv& glTexture) ->  MouseInformation
         {
+            bool disableDragWindow = params->PanWithMouse;
             cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
                     glTexture,
-                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
+                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height), disableDragWindow);
 
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())
@@ -10720,10 +10724,10 @@ namespace ImmVision
             return r;
         }
 
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
+        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
-            texture.Draw_DisableDragWindow(displaySize);
+            texture.Draw_DisableDragWindow(displaySize, disableDragWindow);
             bool isImageHovered = ImGui::IsItemHovered();
             ImVec2 mouse = ImGui::GetMousePos();
             if (isImageHovered)

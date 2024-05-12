@@ -13,10 +13,10 @@ namespace ImmVision
             return r;
         }
 
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize)
+        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
-            texture.Draw_DisableDragWindow(displaySize);
+            texture.Draw_DisableDragWindow(displaySize, disableDragWindow);
             bool isImageHovered = ImGui::IsItemHovered();
             ImVec2 mouse = ImGui::GetMousePos();
             if (isImageHovered)

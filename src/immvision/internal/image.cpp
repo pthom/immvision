@@ -466,9 +466,10 @@ namespace ImmVision
         //
         auto fnShowImage = [&params](const GlTextureCv& glTexture) ->  MouseInformation
         {
+            bool disableDragWindow = params->PanWithMouse;
             cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
                     glTexture,
-                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height));
+                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height), disableDragWindow);
 
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())
