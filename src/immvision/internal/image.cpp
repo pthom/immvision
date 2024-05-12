@@ -497,11 +497,21 @@ namespace ImmVision
             ImVec2 tl(br.x - size, br.y - size);
 
             ImRect zone(tl, br);
-            ImGui::GetWindowDrawList()->AddTriangleFilled(br, bl, tr, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
+
+            {
+                auto cursorPos = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(tl);
+                ImGui::InvisibleButton("##resize", zone.GetSize());
+                ImGui::SetCursorPos(cursorPos);
+            }
+
+            bool isMouseHoveringWidget = ImGui::IsMouseHoveringRect(zone.Min, zone.Max);
+            ImU32 color = isMouseHoveringWidget ? ImGui::GetColorU32(ImGuiCol_ButtonHovered) : ImGui::GetColorU32(ImGuiCol_Button);
+            ImGui::GetWindowDrawList()->AddTriangleFilled(br, bl, tr, color);
 
             if (!cacheParams.IsResizing)
             {
-                if (ImGui::IsMouseHoveringRect(zone.Min, zone.Max) && ImGui::IsMouseDown(0))
+                if (isMouseHoveringWidget && ImGui::IsMouseDown(0))
                 {
                     ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
                     cacheParams.IsResizing = true;
