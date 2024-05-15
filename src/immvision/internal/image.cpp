@@ -498,6 +498,10 @@ namespace ImmVision
 
             ImRect zone(tl, br);
 
+            // A hack for imgui bundle / imgui_fig:
+            // An invisible button will stop the node from being dragged when resizing
+            // (do not activate otherwise, this breaks the pan and thus can only be used when pan is disabled)
+            if (!params->PanWithMouse)
             {
                 auto cursorPos = ImGui::GetCursorPos();
                 ImGui::SetCursorPos(tl);
