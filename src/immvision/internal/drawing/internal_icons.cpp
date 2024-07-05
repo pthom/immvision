@@ -270,10 +270,8 @@ namespace ImmVision
                 ImGuiImm::PushDisabled();
 
             // Cannot use InvisibleButton, since it does not handle "Repeat"
-            std::string spaceLabel = " ";
-            while (ImGui::CalcTextSize(spaceLabel.c_str()).x < 14.f)
-                spaceLabel += " ";
-            bool clicked = ImGui::Button(spaceLabel.c_str());
+            ImVec2 btnSize(ImGui::GetFontSize() * 1.5f, ImGui::GetFontSize() * 1.5f);
+            bool clicked = ImGui::Button("##btn", btnSize);
 
             ImGui::GetWindowDrawList()->AddImage(
                 GetIcon(iconType),
