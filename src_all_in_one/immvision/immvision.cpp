@@ -149,6 +149,8 @@ namespace ImmVision
 
         // Can the image widget be resized by the user
         bool CanResize = true;
+        // Does the widget keep an aspect ratio equal to the image when resized
+        bool ResizeKeepAspectRatio = true;
 
         // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
         bool IsColorOrderBGR = true;
@@ -6978,10 +6980,8 @@ namespace ImmVision
                 ImGuiImm::PushDisabled();
 
             // Cannot use InvisibleButton, since it does not handle "Repeat"
-            std::string spaceLabel = " ";
-            while (ImGui::CalcTextSize(spaceLabel.c_str()).x < 14.f)
-                spaceLabel += " ";
-            bool clicked = ImGui::Button(spaceLabel.c_str());
+            ImVec2 btnSize(ImGui::GetFontSize() * 1.5f, ImGui::GetFontSize() * 1.5f);
+            bool clicked = ImGui::Button("##btn", btnSize);
 
             ImGui::GetWindowDrawList()->AddImage(
                 GetIcon(iconType),
@@ -9756,6 +9756,7 @@ namespace ImmVision
 
             ImGui::Checkbox("Pan with mouse", &params->PanWithMouse);
             ImGui::Checkbox("Zoom with mouse wheel", &params->ZoomWithMouseWheel);
+            ImGui::Checkbox("Resize keep aspect ratio", &params->ResizeKeepAspectRatio);
 
             ImGui::Separator();
             if (ImGui::Checkbox("Show Options in tooltip window", &params->ShowOptionsInTooltip))
@@ -9942,7 +9943,7 @@ namespace ImmVision
         //
         // Lambda / Show resize widget in the bottom right corner
         //
-        auto fnShowResizeWidget = [&params](CachedParams & cacheParams)
+        auto fnShowResizeWidget = [&params, &image](CachedParams & cacheParams)
         {
             if (!params->CanResize)
                 return;
@@ -9985,8 +9986,23 @@ namespace ImmVision
                 {
                     if (ImGui::GetIO().MouseDelta.x != 0. || ImGui::GetIO().MouseDelta.y != 0.)
                     {
-                        params->ImageDisplaySize.width += ImGui::GetIO().MouseDelta.x;
-                        params->ImageDisplaySize.height += ImGui::GetIO().MouseDelta.y;
+                        params->ImageDisplaySize.width += (int)ImGui::GetIO().MouseDelta.x;
+                        params->ImageDisplaySize.height += (int)ImGui::GetIO().MouseDelta.y;
+
+                        if (params->ImageDisplaySize.width < 5)
+                            params->ImageDisplaySize.width = 5;
+                        if (params->ImageDisplaySize.height < 5)
+                            params->ImageDisplaySize.height = 5;
+
+                        if (params->ResizeKeepAspectRatio)
+                        {
+                            float imageDisplayRatio = (float)params->ImageDisplaySize.width / (float)params->ImageDisplaySize.height;
+                            float imageRatio = (float)image.cols / (float)image.rows;
+                            if (imageDisplayRatio > imageRatio)
+                                params->ImageDisplaySize.width = (int)((float)params->ImageDisplaySize.height * imageRatio);
+                            else
+                                params->ImageDisplaySize.height = (int)((float)params->ImageDisplaySize.width / imageRatio);
+                        }
                     }
                 }
                 else
@@ -10208,6 +10224,7 @@ namespace ImmVision
             imageParams.ZoomWithMouseWheel = false;
             imageParams.PanWithMouse = false;
             imageParams.CanResize = false;
+            imageParams.ResizeKeepAspectRatio = true;
             imageParams.ShowPixelInfo = false;
             imageParams.ShowImageInfo = false;
             imageParams.ShowGrid = false;

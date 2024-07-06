@@ -136,6 +136,8 @@ namespace ImmVision
 
         // Can the image widget be resized by the user
         bool CanResize = true;
+        // Does the widget keep an aspect ratio equal to the image when resized
+        bool ResizeKeepAspectRatio = true;
 
         // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
         bool IsColorOrderBGR = true;
