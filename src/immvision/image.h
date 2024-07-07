@@ -26,7 +26,7 @@ namespace ImmVision
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
         // Are we using the stats on the full image, the visible ROI, or are we using Min/Max values
-        ColorMapStatsTypeId ColorMapStatsType;
+        ColorMapStatsTypeId ColorMapStatsType = ColorMapStatsTypeId::FromFullImage;
 
         // If stats active (either on ROI or on Image), how many sigmas around the mean should the Colormap be applied
         double NbSigmas = 1.5;
