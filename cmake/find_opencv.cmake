@@ -47,11 +47,11 @@ macro(immvision_download_opencv_official_package_win)
     FetchContent_Declare(
         opencv_official_package_win
         DOWNLOAD_EXTRACT_TIMESTAMP ON
-        URL https://github.com/pthom/imgui_bundle/releases/download/v0.6.6/opencv-4.6.0_official_win_x64_world.zip
-        URL_MD5 a9d92bdf8510d09c3bf3cb080731ea91
+        URL https://github.com/pthom/imgui_bundle/releases/download/v1.3.0/opencv-4.10.0-windows.zip
+        URL_MD5 309471e093251b78a25bef1f8c255ce6
     )
     FetchContent_MakeAvailable(opencv_official_package_win)
-    set(opencv_official_package_win_dir ${CMAKE_BINARY_DIR}/_deps/opencv_official_package_win-src/opencv/build)
+    set(opencv_official_package_win_dir ${CMAKE_BINARY_DIR}/_deps/opencv_official_package_win-src/opencv-4.10.0-windows/build)
     message(WARNING "opencv_official_package_win_dir=${opencv_official_package_win_dir}")
     set(OpenCV_DIR ${opencv_official_package_win_dir})
     # set(OpenCV_STATIC ON)
@@ -265,7 +265,7 @@ macro(immvision_find_opencv)
         endif()
     endif()
 
-    find_package(OpenCV QUIET)
+    find_package(OpenCV)
     if (NOT OpenCV_FOUND)
         message("
         ----------------------------------------------------------------------------------
