@@ -31,7 +31,7 @@ namespace ImmVision
         if (size.x == 0.f)
             size_ = this->mImageSize;
         char id[64];
-        snprintf(id, 64, "##%p", this->mImTextureId);
+        snprintf(id, 64, "##%p", this);
         return ImGui::ImageButton(id, this->mImTextureId, size_, uv0, uv1, bg_col, tint_col);
     }
 
