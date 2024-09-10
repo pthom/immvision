@@ -30,7 +30,9 @@ namespace ImmVision
         ImVec2 size_(size);
         if (size.x == 0.f)
             size_ = this->mImageSize;
-        return ImGui::ImageButton(this->mImTextureId, size_, uv0, uv1, frame_padding, bg_col, tint_col);
+        char id[64];
+        snprintf(id, 64, "##%p", this->mImTextureId);
+        return ImGui::ImageButton(id, this->mImTextureId, size_, uv0, uv1, bg_col, tint_col);
     }
 
     void GlTexture::Draw_DisableDragWindow(const ImVec2 &size, bool disableDragWindow) const

@@ -305,11 +305,11 @@ namespace ImmVision
             ImmVision::Image("test2", img, &imageParams2);
 
             ImVec2 iconSize(15.f, 15.f);
-            ImGui::ImageButton(GetIcon(IconType::ZoomScaleOne), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomPlus), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomMinus), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::ZoomFullView), iconSize);
-            ImGui::ImageButton(GetIcon(IconType::AdjustLevels), iconSize);
+            ImGui::ImageButton("ZoomScaleOne", GetIcon(IconType::ZoomScaleOne), iconSize);
+            ImGui::ImageButton("ZoomPlus", GetIcon(IconType::ZoomPlus), iconSize);
+            ImGui::ImageButton("ZoomMinus", GetIcon(IconType::ZoomMinus), iconSize);
+            ImGui::ImageButton("ZoomFullView", GetIcon(IconType::ZoomFullView), iconSize);
+            ImGui::ImageButton("AdjustLevels", GetIcon(IconType::AdjustLevels), iconSize);
         }
 
         void ClearIconsTextureCache()
