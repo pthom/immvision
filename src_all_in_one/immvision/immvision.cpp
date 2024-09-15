@@ -9964,10 +9964,10 @@ namespace ImmVision
             // (do not activate otherwise, this breaks the pan and thus can only be used when pan is disabled)
             if (!params->PanWithMouse)
             {
-                auto cursorPos = ImGui::GetCursorPos();
-                ImGui::SetCursorPos(tl);
+                auto cursorPos = ImGui::GetCursorScreenPos();
+                ImGui::SetCursorScreenPos(tl);
                 ImGui::InvisibleButton("##resize", zone.GetSize());
-                ImGui::SetCursorPos(cursorPos);
+                ImGui::SetCursorScreenPos(cursorPos);
             }
 
             bool isMouseHoveringWidget = ImGui::IsMouseHoveringRect(zone.Min, zone.Max);
