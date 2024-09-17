@@ -7,6 +7,23 @@ namespace ImmVision
 {
     namespace ImageWidgets
     {
+        void GlTexture_Draw_DisableDragWindow(const GlTexture& texture, const ImVec2 &size, bool disableDragWindow)
+        {
+            ImVec2 size_(size);
+            if (size.x == 0.f)
+                size_ = texture.mImageSize;
+
+            ImVec2 imageTl = ImGui::GetCursorScreenPos();
+            ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
+            std::stringstream id;
+            id << "##" << texture.mImTextureId;
+            if (disableDragWindow)
+                ImGui::InvisibleButton(id.str().c_str(), size);
+            else
+                ImGui::Dummy(size);
+            ImGui::GetWindowDrawList()->AddImage(texture.mImTextureId, imageTl, imageBr);
+        }
+
         float FontSizeRatio()
         {
             float r = ImGui::GetFontSize() / 14.5;
@@ -16,7 +33,7 @@ namespace ImmVision
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
-            texture.Draw_DisableDragWindow(displaySize, disableDragWindow);
+            GlTexture_Draw_DisableDragWindow(texture, displaySize, disableDragWindow);
             bool isImageHovered = ImGui::IsItemHovered();
             ImVec2 mouse = ImGui::GetMousePos();
             if (isImageHovered)

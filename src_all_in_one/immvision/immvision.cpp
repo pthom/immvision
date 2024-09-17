@@ -4492,15 +4492,10 @@ namespace ImmVision
         GlTexture(const GlTexture& ) = delete;
         GlTexture& operator=(const GlTexture& ) = delete;
 
-        void Draw(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0)) const;
-        bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
-        void Draw_DisableDragWindow(const ImVec2& size, bool disableDragWindow) const;
-
         // members
         ImVec2 mImageSize;
         ImTextureID mImTextureId;
     };
-
 
     struct GlTextureCv : public GlTexture
     {
@@ -4584,6 +4579,27 @@ namespace ImmVision
 {
     namespace Colormap
     {
+        namespace  // utility functions for this file
+        {
+            void GlTexture_Draw(const GlTexture& texture, const ImVec2& size)
+            {
+                ImVec2 size_(size);
+                if (size.x == 0.f)
+                    size_ = texture.mImageSize;
+                ImGui::Image(texture.mImTextureId, size_);
+            }
+
+            bool GlTexture_DrawButton(const GlTexture& texture, const ImVec2& size)
+            {
+                ImVec2 size_(size);
+                if (size.x == 0.f)
+                    size_ = texture.mImageSize;
+                char id[64];
+                snprintf(id, 64, "##%p", &texture);
+                return ImGui::ImageButton(id, texture.mImTextureId, size_);
+            }
+        }
+
         //
         // Base operations for ColormapSettingsData
         //
@@ -4936,9 +4952,9 @@ namespace ImmVision
                 pos.x += widthText;
                 ImGui::SetCursorPos(pos);
                 if (wasSelected)
-                    kv.second->DrawButton(sizeTexture);
+                    GlTexture_DrawButton(*kv.second, sizeTexture);
                 else
-                kv.second->Draw(sizeTexture);
+                    GlTexture_DrawButton(*kv.second, sizeTexture);
                 if (ImGui::IsItemHovered())
                 {
                     if (!lastUnselectedColormap.has_value())
@@ -7202,41 +7218,6 @@ namespace ImmVision
     GlTexture::~GlTexture()
     {
         ImmVision_GlProvider::DeleteTexture(mImTextureId);
-    }
-
-    void GlTexture::Draw(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) const
-    {
-        ImVec2 size_(size);
-        if (size.x == 0.f)
-            size_ = this->mImageSize;
-        ImGui::Image(this->mImTextureId, size_, uv0, uv1, tint_col, border_col);
-    }
-
-    bool GlTexture::DrawButton(const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) const
-    {
-        ImVec2 size_(size);
-        if (size.x == 0.f)
-            size_ = this->mImageSize;
-        char id[64];
-        snprintf(id, 64, "##%p", this);
-        return ImGui::ImageButton(id, this->mImTextureId, size_, uv0, uv1, bg_col, tint_col);
-    }
-
-    void GlTexture::Draw_DisableDragWindow(const ImVec2 &size, bool disableDragWindow) const
-    {
-        ImVec2 size_(size);
-        if (size.x == 0.f)
-            size_ = this->mImageSize;
-
-        ImVec2 imageTl = ImGui::GetCursorScreenPos();
-        ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
-        std::stringstream id;
-        id << "##" << mImTextureId;
-        if (disableDragWindow)
-            ImGui::InvisibleButton(id.str().c_str(), size);
-        else
-            ImGui::Dummy(size);
-        ImGui::GetWindowDrawList()->AddImage(mImTextureId, imageTl, imageBr);
     }
 
     //
@@ -10743,6 +10724,23 @@ namespace ImmVision
 {
     namespace ImageWidgets
     {
+        void GlTexture_Draw_DisableDragWindow(const GlTexture& texture, const ImVec2 &size, bool disableDragWindow)
+        {
+            ImVec2 size_(size);
+            if (size.x == 0.f)
+                size_ = texture.mImageSize;
+
+            ImVec2 imageTl = ImGui::GetCursorScreenPos();
+            ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
+            std::stringstream id;
+            id << "##" << texture.mImTextureId;
+            if (disableDragWindow)
+                ImGui::InvisibleButton(id.str().c_str(), size);
+            else
+                ImGui::Dummy(size);
+            ImGui::GetWindowDrawList()->AddImage(texture.mImTextureId, imageTl, imageBr);
+        }
+
         float FontSizeRatio()
         {
             float r = ImGui::GetFontSize() / 14.5;
@@ -10752,7 +10750,7 @@ namespace ImmVision
         cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
-            texture.Draw_DisableDragWindow(displaySize, disableDragWindow);
+            GlTexture_Draw_DisableDragWindow(texture, displaySize, disableDragWindow);
             bool isImageHovered = ImGui::IsItemHovered();
             ImVec2 mouse = ImGui::GetMousePos();
             if (isImageHovered)

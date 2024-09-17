@@ -17,6 +17,27 @@ namespace ImmVision
 {
     namespace Colormap
     {
+        namespace  // utility functions for this file
+        {
+            void GlTexture_Draw(const GlTexture& texture, const ImVec2& size)
+            {
+                ImVec2 size_(size);
+                if (size.x == 0.f)
+                    size_ = texture.mImageSize;
+                ImGui::Image(texture.mImTextureId, size_);
+            }
+
+            bool GlTexture_DrawButton(const GlTexture& texture, const ImVec2& size)
+            {
+                ImVec2 size_(size);
+                if (size.x == 0.f)
+                    size_ = texture.mImageSize;
+                char id[64];
+                snprintf(id, 64, "##%p", &texture);
+                return ImGui::ImageButton(id, texture.mImTextureId, size_);
+            }
+        }
+
         //
         // Base operations for ColormapSettingsData
         //
@@ -369,9 +390,9 @@ namespace ImmVision
                 pos.x += widthText;
                 ImGui::SetCursorPos(pos);
                 if (wasSelected)
-                    kv.second->DrawButton(sizeTexture);
+                    GlTexture_DrawButton(*kv.second, sizeTexture);
                 else
-                kv.second->Draw(sizeTexture);
+                    GlTexture_DrawButton(*kv.second, sizeTexture);
                 if (ImGui::IsItemHovered())
                 {
                     if (!lastUnselectedColormap.has_value())

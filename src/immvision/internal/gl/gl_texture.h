@@ -18,12 +18,6 @@ namespace ImmVision
         GlTexture(const GlTexture& ) = delete;
         GlTexture& operator=(const GlTexture& ) = delete;
 
-        void Draw(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0)) const;
-        bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
-        void Draw_DisableDragWindow(const ImVec2& size, bool disableDragWindow) const;
-
-        void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
-
         // members
         ImVec2 mImageSize;
         ImTextureID mImTextureId;
