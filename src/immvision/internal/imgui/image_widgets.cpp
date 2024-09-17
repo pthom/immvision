@@ -11,17 +11,17 @@ namespace ImmVision
         {
             ImVec2 size_(size);
             if (size.x == 0.f)
-                size_ = texture.mImageSize;
+                size_ = texture.SizeImVec2();
 
             ImVec2 imageTl = ImGui::GetCursorScreenPos();
             ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
             std::stringstream id;
-            id << "##" << texture.mImTextureId;
+            id << "##" << texture.TextureId;
             if (disableDragWindow)
                 ImGui::InvisibleButton(id.str().c_str(), size);
             else
                 ImGui::Dummy(size);
-            ImGui::GetWindowDrawList()->AddImage(texture.mImTextureId, imageTl, imageBr);
+            ImGui::GetWindowDrawList()->AddImage(texture.TextureId, imageTl, imageBr);
         }
 
         float FontSizeRatio()
@@ -30,7 +30,7 @@ namespace ImmVision
             return r;
         }
 
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow)
+        cv::Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
             GlTexture_Draw_DisableDragWindow(texture, displaySize, disableDragWindow);

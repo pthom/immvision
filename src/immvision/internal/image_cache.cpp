@@ -94,7 +94,7 @@ namespace ImmVision
             {
                 mCacheImages.AddKey(key);
                 isNewEntry = true;
-                mCacheImages.Get(key).GlTexture = std::make_unique<GlTextureCv>();
+                mCacheImages.Get(key).mGlTexture = std::make_unique<GlTexture>();
             }
             return isNewEntry;
         }
@@ -137,7 +137,7 @@ namespace ImmVision
                 bool fullRefresh =
                     (      userRefresh
                         || isNewEntry
-                        || (cachedImage.GlTexture->mImageSize.x == 0.f)
+                        || (cachedImage.mGlTexture->Size.empty())
                         || ShallRefreshRgbaCache(oldParams, *params));
                 if (fullRefresh)
                 {
@@ -156,7 +156,7 @@ namespace ImmVision
             if (shallRefreshTexture)
             {
                 ImageDrawing::BlitImageTexture(
-                    *params, image, cachedImage.ImageRgbaCache, shallRefreshRgbaCache, cachedImage.GlTexture.get());
+                    *params, image, cachedImage.mImageRgbaCache, shallRefreshRgbaCache, cachedImage.mGlTexture.get());
             }
 
             if (!cachedParams.WasZoomJustUpdatedByLink && !ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))

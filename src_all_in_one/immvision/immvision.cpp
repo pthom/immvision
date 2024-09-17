@@ -4473,37 +4473,52 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/gl/gl_texture.h included by src/immvision/internal/cv/colormap.cpp//
+//                       src/immvision/gl_texture.h included by src/immvision/internal/cv/colormap.cpp          //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <memory>
+
 
 namespace ImmVision
 {
-    /// GlTexture holds a OpenGL Texture (created via glGenTextures)
-    /// You can blit (i.e transfer) image buffer onto it.
-    /// The linked OpenGL texture lifetime is linked to this.
-    /// GlTexture is not copiable (since it holds a reference to a texture stored on the GPU)
+    // GlTexture contains an OpenGL texture which can be created or updated from a cv::Mat (C++), or numpy array (Python)
     struct GlTexture
     {
-        GlTexture();
-        virtual ~GlTexture();
+        //
+        // Constructors
+        //
 
-        // non copiable
+        // Create an empty texture
+        GlTexture();
+        // Create a texture from an image (cv::Mat in C++, numpy array in Python)
+        GlTexture(const cv::Mat& image, bool isColorOrderBGR);
+        // The destructor will delete the texture from the GPU
+        ~GlTexture();
+
+        // GlTextureCv is non copiable (since it holds a reference to a texture stored on the GPU),
+        // but it is movable.
         GlTexture(const GlTexture& ) = delete;
         GlTexture& operator=(const GlTexture& ) = delete;
+        GlTexture(GlTexture&& other) noexcept = default;
+        GlTexture& operator=(GlTexture&& other) noexcept = default;
 
-        // members
-        ImVec2 mImageSize;
-        ImTextureID mImTextureId;
-    };
 
-    struct GlTextureCv : public GlTexture
-    {
-        GlTextureCv() = default;
-        GlTextureCv(const cv::Mat& mat, bool isBgrOrder);
-        ~GlTextureCv() override = default;
+        //
+        // Methods
+        //
 
-        void BlitMat(const cv::Mat& mat, bool isBgrOrder);
+        // Update the texture from a new image (cv::Mat in C++, numpy array in Python).
+        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR);
+        // Returns the size as ImVec2
+        ImVec2 SizeImVec2() const;
+
+
+        //
+        // Members
+        //
+
+        // OpenGL texture ID on the GPU
+        ImTextureID TextureId;
+        // Image size in pixels
+        cv::Size Size;
     };
 } // namespace ImmVision
 
@@ -4585,18 +4600,18 @@ namespace ImmVision
             {
                 ImVec2 size_(size);
                 if (size.x == 0.f)
-                    size_ = texture.mImageSize;
-                ImGui::Image(texture.mImTextureId, size_);
+                    size_ = texture.SizeImVec2();
+                ImGui::Image(texture.TextureId, size_);
             }
 
             bool GlTexture_DrawButton(const GlTexture& texture, const ImVec2& size)
             {
                 ImVec2 size_(size);
                 if (size.x == 0.f)
-                    size_ = texture.mImageSize;
+                    size_ = texture.SizeImVec2();
                 char id[64];
                 snprintf(id, 64, "##%p", &texture);
-                return ImGui::ImageButton(id, texture.mImTextureId, size_);
+                return ImGui::ImageButton(id, texture.TextureId, size_);
             }
         }
 
@@ -4705,7 +4720,7 @@ namespace ImmVision
         }
 
 
-        static insertion_order_map<std::string, std::unique_ptr<GlTextureCv>> sColormapsTexturesCache;
+        static insertion_order_map<std::string, std::unique_ptr<GlTexture>> sColormapsTexturesCache;
 
 
         void FillTextureCache()
@@ -4716,7 +4731,7 @@ namespace ImmVision
                 for (const auto& k: images.insertion_order_keys())
                 {
                     cv::Mat& m = images.get(k);
-                    auto texture = std::make_unique<GlTextureCv>(m, true);
+                    auto texture = std::make_unique<GlTexture>(m, true);
                     sColormapsTexturesCache.insert(k, std::move(texture));
                 }
             }
@@ -4731,7 +4746,7 @@ namespace ImmVision
             if (cache.empty())
             {
                 for (const auto& k: sColormapsTexturesCache.insertion_order_keys())
-                    cache.insert(k, sColormapsTexturesCache.get(k)->mImTextureId);
+                    cache.insert(k, sColormapsTexturesCache.get(k)->TextureId);
             }
             return cache;
         }
@@ -6350,7 +6365,7 @@ namespace ImmVision
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,
             bool shall_refresh_rgba,
-            GlTextureCv* outTexture
+            GlTexture* outTexture
         );
 
         bool HasColormapParam(const ImageParams& params);
@@ -6520,7 +6535,7 @@ namespace ImmVision
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,
             bool shall_refresh_rgba,
-            GlTextureCv* outTexture
+            GlTexture* outTexture
         )
         {
             if (image.empty())
@@ -6657,7 +6672,7 @@ namespace ImmVision
             //
             // Blit
             //
-            outTexture->BlitMat(finalImage, false);
+            outTexture->UpdateFromImage(finalImage, false);
         }
 
         bool HasColormapParam(const ImageParams &params)
@@ -6951,7 +6966,7 @@ namespace ImmVision
         }
 
 
-        static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
+        static std::map<IconType, std::unique_ptr<GlTexture>> sIconsTextureCache;
         //static cv::Size gIconSize(20,  20);
 
         cv::Size IconSize()
@@ -6976,10 +6991,10 @@ namespace ImmVision
 
                 cv::Mat resized = m;
                 cv::resize(m, resized, cv::Size(IconSize().width * 2, IconSize().height * 2), 0., 0., cv::INTER_AREA);
-                auto texture = std::make_unique<GlTextureCv>(resized, true);
+                auto texture = std::make_unique<GlTexture>(resized, true);
                 sIconsTextureCache[iconType] = std::move(texture);
             }
-            return sIconsTextureCache[iconType]->mImTextureId;
+            return sIconsTextureCache[iconType]->TextureId;
         }
 
         bool IconButton(IconType iconType, bool disabled)
@@ -7206,37 +7221,39 @@ namespace ImmVision_GlProvider
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
 namespace ImmVision
 {
     GlTexture::GlTexture()
     {
         ImTextureID textureId_Gl = ImmVision_GlProvider::GenTexture();
-        this->mImTextureId = textureId_Gl;
+        this->TextureId = textureId_Gl;
     }
 
     GlTexture::~GlTexture()
     {
-        ImmVision_GlProvider::DeleteTexture(mImTextureId);
+        ImmVision_GlProvider::DeleteTexture(TextureId);
     }
 
-    //
-    // ImageTextureCv
-    //
-    GlTextureCv::GlTextureCv(const cv::Mat& mat, bool isBgrOrder) : GlTextureCv()
+    GlTexture::GlTexture(const cv::Mat& image, bool isColorOrderBGR) : GlTexture()
     {
-        BlitMat(mat, isBgrOrder);
+        UpdateFromImage(image, isColorOrderBGR);
     }
 
-    void GlTextureCv::BlitMat(const cv::Mat& mat, bool isBgrOrder)
+    void GlTexture::UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR)
     {
-        if (mat.empty())
+        if (image.empty())
             return;
-        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat, isBgrOrder);
+        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(image, isColorOrderBGR);
 
-        ImmVision_GlProvider::Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows, mImTextureId);
-        this->mImageSize = ImVec2((float)mat_rgba.cols, (float) mat_rgba.rows);
+        ImmVision_GlProvider::Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows, TextureId);
+        this->Size = mat_rgba.size();
     }
+
+    ImVec2 GlTexture::SizeImVec2() const
+    {
+        return {(float)Size.width, (float)Size.height};
+    }
+
 } // namespace ImmVision
 
 
@@ -9321,7 +9338,7 @@ namespace ImmVision
 {
     namespace ImageWidgets
     {
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow);
+        cv::Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow);
         void ShowImageInfo(const cv::Mat &image, double zoomFactor);
         void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageParams& params);
 
@@ -9367,8 +9384,8 @@ namespace ImmVision
             {
                 // These caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
-                cv::Mat     ImageRgbaCache;             // Image with applied colormap, alpha grid & paper background
-                std::unique_ptr<GlTextureCv> GlTexture;
+                cv::Mat     mImageRgbaCache;             // Image with applied colormap, alpha grid & paper background
+                std::unique_ptr<GlTexture> mGlTexture;
             };
 
             // returns true if new entry
@@ -9898,7 +9915,7 @@ namespace ImmVision
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params](const GlTextureCv& glTexture) ->  MouseInformation
+        auto fnShowImage = [&params](const GlTexture& glTexture) ->  MouseInformation
         {
             bool disableDragWindow = params->PanWithMouse;
             cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
@@ -10015,7 +10032,7 @@ namespace ImmVision
 
             ImGui::BeginGroup();
             // Show image
-            auto mouseInfo = fnShowImage(*cacheImages.GlTexture);
+            auto mouseInfo = fnShowImage(*cacheImages.mGlTexture);
             fnShowResizeWidget(cacheParams);
             // Add Watched Pixel on double click
             if (   params->AddWatchedPixelOnDoubleClick
@@ -10047,7 +10064,7 @@ namespace ImmVision
             ImGui::EndGroup();
 
             // Show Options
-            fnOptionGui(cacheParams, cacheImages.ImageRgbaCache);
+            fnOptionGui(cacheParams, cacheImages.mImageRgbaCache);
 
             return mouseInfo;
         };
@@ -10228,7 +10245,7 @@ namespace ImmVision
     cv::Mat GetCachedRgbaImage(const std::string& label)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
-        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).ImageRgbaCache;
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
         return r;
     }
 
@@ -10334,7 +10351,7 @@ namespace ImmVision
             {
                 mCacheImages.AddKey(key);
                 isNewEntry = true;
-                mCacheImages.Get(key).GlTexture = std::make_unique<GlTextureCv>();
+                mCacheImages.Get(key).mGlTexture = std::make_unique<GlTexture>();
             }
             return isNewEntry;
         }
@@ -10377,7 +10394,7 @@ namespace ImmVision
                 bool fullRefresh =
                     (      userRefresh
                         || isNewEntry
-                        || (cachedImage.GlTexture->mImageSize.x == 0.f)
+                        || (cachedImage.mGlTexture->Size.empty())
                         || ShallRefreshRgbaCache(oldParams, *params));
                 if (fullRefresh)
                 {
@@ -10396,7 +10413,7 @@ namespace ImmVision
             if (shallRefreshTexture)
             {
                 ImageDrawing::BlitImageTexture(
-                    *params, image, cachedImage.ImageRgbaCache, shallRefreshRgbaCache, cachedImage.GlTexture.get());
+                    *params, image, cachedImage.mImageRgbaCache, shallRefreshRgbaCache, cachedImage.mGlTexture.get());
             }
 
             if (!cachedParams.WasZoomJustUpdatedByLink && !ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
@@ -10728,17 +10745,17 @@ namespace ImmVision
         {
             ImVec2 size_(size);
             if (size.x == 0.f)
-                size_ = texture.mImageSize;
+                size_ = texture.SizeImVec2();
 
             ImVec2 imageTl = ImGui::GetCursorScreenPos();
             ImVec2 imageBr(imageTl.x + size.x, imageTl.y + size.y);
             std::stringstream id;
-            id << "##" << texture.mImTextureId;
+            id << "##" << texture.TextureId;
             if (disableDragWindow)
                 ImGui::InvisibleButton(id.str().c_str(), size);
             else
                 ImGui::Dummy(size);
-            ImGui::GetWindowDrawList()->AddImage(texture.mImTextureId, imageTl, imageBr);
+            ImGui::GetWindowDrawList()->AddImage(texture.TextureId, imageTl, imageBr);
         }
 
         float FontSizeRatio()
@@ -10747,7 +10764,7 @@ namespace ImmVision
             return r;
         }
 
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow)
+        cv::Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
             GlTexture_Draw_DisableDragWindow(texture, displaySize, disableDragWindow);
@@ -11654,11 +11671,11 @@ namespace ImmVision
                 if (ImGui::Selectable(id_selectable.c_str(), is_selected, 0, itemSize))
                     s_Inspector_CurrentIndex = i;
 
-                float imageRatio = cacheImage.GlTexture->mImageSize.x / cacheImage.GlTexture->mImageSize.y;
+                float imageRatio = cacheImage.mGlTexture->SizeImVec2().x / cacheImage.mGlTexture->SizeImVec2().y;
                 ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
 
-                ImGui::GetWindowDrawList()->AddImage(cacheImage.GlTexture->mImTextureId, image_tl, image_br);
+                ImGui::GetWindowDrawList()->AddImage(cacheImage.mGlTexture->TextureId, image_tl, image_br);
 
                 ImGui::PopID();
             }

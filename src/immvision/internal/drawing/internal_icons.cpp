@@ -1,6 +1,6 @@
 #include "immvision/internal/drawing/internal_icons.h"
 #include "immvision/internal/cv/cv_drawing_utils.h"
-#include "immvision/internal/gl/gl_texture.h"
+#include "immvision/gl_texture.h"
 #include "immvision/image.h"
 #include "immvision/imgui_imm.h"
 #include <opencv2/core.hpp>
@@ -228,7 +228,7 @@ namespace ImmVision
         }
 
 
-        static std::map<IconType, std::unique_ptr<GlTextureCv>> sIconsTextureCache;
+        static std::map<IconType, std::unique_ptr<GlTexture>> sIconsTextureCache;
         //static cv::Size gIconSize(20,  20);
 
         cv::Size IconSize()
@@ -253,10 +253,10 @@ namespace ImmVision
 
                 cv::Mat resized = m;
                 cv::resize(m, resized, cv::Size(IconSize().width * 2, IconSize().height * 2), 0., 0., cv::INTER_AREA);
-                auto texture = std::make_unique<GlTextureCv>(resized, true);
+                auto texture = std::make_unique<GlTexture>(resized, true);
                 sIconsTextureCache[iconType] = std::move(texture);
             }
-            return sIconsTextureCache[iconType]->mImTextureId;
+            return sIconsTextureCache[iconType]->TextureId;
         }
 
         bool IconButton(IconType iconType, bool disabled)

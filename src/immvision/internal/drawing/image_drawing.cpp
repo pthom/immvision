@@ -164,7 +164,7 @@ namespace ImmVision
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,
             bool shall_refresh_rgba,
-            GlTextureCv* outTexture
+            GlTexture* outTexture
         )
         {
             if (image.empty())
@@ -301,7 +301,7 @@ namespace ImmVision
             //
             // Blit
             //
-            outTexture->BlitMat(finalImage, false);
+            outTexture->UpdateFromImage(finalImage, false);
         }
 
         bool HasColormapParam(const ImageParams &params)

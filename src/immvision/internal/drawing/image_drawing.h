@@ -1,6 +1,6 @@
 #pragma once
 #include "immvision/image.h"
-#include "immvision/internal/gl/gl_texture.h"
+#include "immvision/gl_texture.h"
 #include <opencv2/core.hpp>
 
 namespace ImmVision
@@ -21,7 +21,7 @@ namespace ImmVision
             const cv::Mat& image,
             cv::Mat& in_out_rgba_image_cache,
             bool shall_refresh_rgba,
-            GlTextureCv* outTexture
+            GlTexture* outTexture
         );
 
         bool HasColormapParam(const ImageParams& params);

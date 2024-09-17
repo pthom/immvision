@@ -1,5 +1,5 @@
 #pragma once
-#include "immvision/internal/gl/gl_texture.h"
+#include "immvision/gl_texture.h"
 #include "immvision/image.h"
 #include "imgui.h"
 #include <opencv2/core.hpp>
@@ -8,7 +8,7 @@ namespace ImmVision
 {
     namespace ImageWidgets
     {
-        cv::Point2d DisplayTexture_TrackMouse(const GlTextureCv& texture, ImVec2 displaySize, bool disableDragWindow);
+        cv::Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow);
         void ShowImageInfo(const cv::Mat &image, double zoomFactor);
         void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageParams& params);
 

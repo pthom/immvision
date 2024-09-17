@@ -1,6 +1,6 @@
 #pragma once
 #include "immvision/image.h"
-#include "immvision/internal/gl/gl_texture.h"
+#include "immvision/gl_texture.h"
 #include "immvision/internal/gl/short_lived_cache.h"
 
 
@@ -30,8 +30,8 @@ namespace ImmVision
             {
                 // These caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
-                cv::Mat     ImageRgbaCache;             // Image with applied colormap, alpha grid & paper background
-                std::unique_ptr<GlTextureCv> GlTexture;
+                cv::Mat     mImageRgbaCache;             // Image with applied colormap, alpha grid & paper background
+                std::unique_ptr<GlTexture> mGlTexture;
             };
 
             // returns true if new entry

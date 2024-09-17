@@ -4,7 +4,7 @@
 #include "immvision/internal/misc/tinycolormap.hpp"
 #include "immvision/internal/misc/magic_enum.hpp"
 #include "immvision/internal/misc/math_utils.h"
-#include "immvision/internal/gl/gl_texture.h"
+#include "immvision/gl_texture.h"
 #include "immvision/imgui_imm.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -23,18 +23,18 @@ namespace ImmVision
             {
                 ImVec2 size_(size);
                 if (size.x == 0.f)
-                    size_ = texture.mImageSize;
-                ImGui::Image(texture.mImTextureId, size_);
+                    size_ = texture.SizeImVec2();
+                ImGui::Image(texture.TextureId, size_);
             }
 
             bool GlTexture_DrawButton(const GlTexture& texture, const ImVec2& size)
             {
                 ImVec2 size_(size);
                 if (size.x == 0.f)
-                    size_ = texture.mImageSize;
+                    size_ = texture.SizeImVec2();
                 char id[64];
                 snprintf(id, 64, "##%p", &texture);
-                return ImGui::ImageButton(id, texture.mImTextureId, size_);
+                return ImGui::ImageButton(id, texture.TextureId, size_);
             }
         }
 
@@ -143,7 +143,7 @@ namespace ImmVision
         }
 
 
-        static insertion_order_map<std::string, std::unique_ptr<GlTextureCv>> sColormapsTexturesCache;
+        static insertion_order_map<std::string, std::unique_ptr<GlTexture>> sColormapsTexturesCache;
 
 
         void FillTextureCache()
@@ -154,7 +154,7 @@ namespace ImmVision
                 for (const auto& k: images.insertion_order_keys())
                 {
                     cv::Mat& m = images.get(k);
-                    auto texture = std::make_unique<GlTextureCv>(m, true);
+                    auto texture = std::make_unique<GlTexture>(m, true);
                     sColormapsTexturesCache.insert(k, std::move(texture));
                 }
             }
@@ -169,7 +169,7 @@ namespace ImmVision
             if (cache.empty())
             {
                 for (const auto& k: sColormapsTexturesCache.insertion_order_keys())
-                    cache.insert(k, sColormapsTexturesCache.get(k)->mImTextureId);
+                    cache.insert(k, sColormapsTexturesCache.get(k)->TextureId);
             }
             return cache;
         }

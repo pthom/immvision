@@ -1,5 +1,4 @@
-#include "immvision/internal/gl/gl_texture.h"
-
+#include "immvision/gl_texture.h"
 #include "immvision/internal/cv/cv_drawing_utils.h"
 #include "immvision/internal/gl/gl_provider.h"
 
@@ -9,29 +8,32 @@ namespace ImmVision
     GlTexture::GlTexture()
     {
         ImTextureID textureId_Gl = ImmVision_GlProvider::GenTexture();
-        this->mImTextureId = textureId_Gl;
+        this->TextureId = textureId_Gl;
     }
 
     GlTexture::~GlTexture()
     {
-        ImmVision_GlProvider::DeleteTexture(mImTextureId);
+        ImmVision_GlProvider::DeleteTexture(TextureId);
     }
 
-    //
-    // ImageTextureCv
-    //
-    GlTextureCv::GlTextureCv(const cv::Mat& mat, bool isBgrOrder) : GlTextureCv()
+    GlTexture::GlTexture(const cv::Mat& image, bool isColorOrderBGR) : GlTexture()
     {
-        BlitMat(mat, isBgrOrder);
+        UpdateFromImage(image, isColorOrderBGR);
     }
 
-    void GlTextureCv::BlitMat(const cv::Mat& mat, bool isBgrOrder)
+    void GlTexture::UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR)
     {
-        if (mat.empty())
+        if (image.empty())
             return;
-        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat, isBgrOrder);
+        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(image, isColorOrderBGR);
 
-        ImmVision_GlProvider::Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows, mImTextureId);
-        this->mImageSize = ImVec2((float)mat_rgba.cols, (float) mat_rgba.rows);
+        ImmVision_GlProvider::Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows, TextureId);
+        this->Size = mat_rgba.size();
     }
+
+    ImVec2 GlTexture::SizeImVec2() const
+    {
+        return {(float)Size.width, (float)Size.height};
+    }
+
 } // namespace ImmVision

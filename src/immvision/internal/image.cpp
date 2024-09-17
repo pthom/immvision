@@ -465,7 +465,7 @@ namespace ImmVision
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params](const GlTextureCv& glTexture) ->  MouseInformation
+        auto fnShowImage = [&params](const GlTexture& glTexture) ->  MouseInformation
         {
             bool disableDragWindow = params->PanWithMouse;
             cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
@@ -582,7 +582,7 @@ namespace ImmVision
 
             ImGui::BeginGroup();
             // Show image
-            auto mouseInfo = fnShowImage(*cacheImages.GlTexture);
+            auto mouseInfo = fnShowImage(*cacheImages.mGlTexture);
             fnShowResizeWidget(cacheParams);
             // Add Watched Pixel on double click
             if (   params->AddWatchedPixelOnDoubleClick
@@ -614,7 +614,7 @@ namespace ImmVision
             ImGui::EndGroup();
 
             // Show Options
-            fnOptionGui(cacheParams, cacheImages.ImageRgbaCache);
+            fnOptionGui(cacheParams, cacheImages.mImageRgbaCache);
 
             return mouseInfo;
         };
@@ -795,7 +795,7 @@ namespace ImmVision
     cv::Mat GetCachedRgbaImage(const std::string& label)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
-        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).ImageRgbaCache;
+        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
         return r;
     }
 

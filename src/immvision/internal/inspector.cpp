@@ -98,11 +98,11 @@ namespace ImmVision
                 if (ImGui::Selectable(id_selectable.c_str(), is_selected, 0, itemSize))
                     s_Inspector_CurrentIndex = i;
 
-                float imageRatio = cacheImage.GlTexture->mImageSize.x / cacheImage.GlTexture->mImageSize.y;
+                float imageRatio = cacheImage.mGlTexture->SizeImVec2().x / cacheImage.mGlTexture->SizeImVec2().y;
                 ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
                 ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
 
-                ImGui::GetWindowDrawList()->AddImage(cacheImage.GlTexture->mImTextureId, image_tl, image_br);
+                ImGui::GetWindowDrawList()->AddImage(cacheImage.mGlTexture->TextureId, image_tl, image_br);
 
                 ImGui::PopID();
             }
