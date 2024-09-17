@@ -386,7 +386,7 @@ namespace ImmVision
             return ((depth == CV_16F) || (depth == CV_32F) || (depth == CV_64F));
         };
 
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrder)
         {
 
             cv::Mat mat = inputMat;
@@ -440,9 +440,9 @@ namespace ImmVision
             }
             else if (nbChannels == 3)
             {
-                if (mat.depth() == CV_8U && isBgrOrBgra)
+                if (mat.depth() == CV_8U && isBgrOrder)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                else if (mat.depth() == CV_8U && !isBgrOrder)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_RGB2RGBA);
                 else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {
@@ -456,9 +456,9 @@ namespace ImmVision
             }
             else if (nbChannels == 4)
             {
-                if (mat.depth() == CV_8U && isBgrOrBgra)
+                if (mat.depth() == CV_8U && isBgrOrder)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_BGRA2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                else if (mat.depth() == CV_8U && !isBgrOrder)
                     mat_rgba = mat;
                 else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {

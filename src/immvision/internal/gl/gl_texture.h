@@ -29,14 +29,12 @@ namespace ImmVision
         ImTextureID mImTextureId;
     };
 
-
     struct GlTextureCv : public GlTexture
     {
         GlTextureCv() = default;
-        GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra);
+        GlTextureCv(const cv::Mat& mat, bool isBgrOrder);
         ~GlTextureCv() override = default;
 
-        void BlitMat(const cv::Mat& mat, bool isBgrOrBgra);
+        void BlitMat(const cv::Mat& mat, bool isBgrOrder);
     };
-
 } // namespace ImmVision

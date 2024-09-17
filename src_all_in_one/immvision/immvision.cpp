@@ -4496,8 +4496,6 @@ namespace ImmVision
         bool DrawButton(const ImVec2& size = ImVec2(0, 0), const ImVec2& uv0 = ImVec2(0, 0),  const ImVec2& uv1 = ImVec2(1,1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0,0,0,0), const ImVec4& tint_col = ImVec4(1,1,1,1)) const;
         void Draw_DisableDragWindow(const ImVec2& size, bool disableDragWindow) const;
 
-        void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height);
-
         // members
         ImVec2 mImageSize;
         ImTextureID mImTextureId;
@@ -4507,12 +4505,11 @@ namespace ImmVision
     struct GlTextureCv : public GlTexture
     {
         GlTextureCv() = default;
-        GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra);
+        GlTextureCv(const cv::Mat& mat, bool isBgrOrder);
         ~GlTextureCv() override = default;
 
-        void BlitMat(const cv::Mat& mat, bool isBgrOrBgra);
+        void BlitMat(const cv::Mat& mat, bool isBgrOrder);
     };
-
 } // namespace ImmVision
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -5251,7 +5248,7 @@ namespace ImmVision
         Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba,
                                               const Image_RGBA &overlay_rgba,
                                               double alpha);
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra);
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrder);
 
     }  // namespace CvDrawingUtils
 }  // namespace ImmVision
@@ -5711,7 +5708,7 @@ namespace ImmVision
             return ((depth == CV_16F) || (depth == CV_32F) || (depth == CV_64F));
         };
 
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrBgra)
+        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrder)
         {
 
             cv::Mat mat = inputMat;
@@ -5765,9 +5762,9 @@ namespace ImmVision
             }
             else if (nbChannels == 3)
             {
-                if (mat.depth() == CV_8U && isBgrOrBgra)
+                if (mat.depth() == CV_8U && isBgrOrder)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                else if (mat.depth() == CV_8U && !isBgrOrder)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_RGB2RGBA);
                 else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {
@@ -5781,9 +5778,9 @@ namespace ImmVision
             }
             else if (nbChannels == 4)
             {
-                if (mat.depth() == CV_8U && isBgrOrBgra)
+                if (mat.depth() == CV_8U && isBgrOrder)
                     cv::cvtColor(mat, mat_rgba, cv::COLOR_BGRA2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrBgra)
+                else if (mat.depth() == CV_8U && !isBgrOrder)
                     mat_rgba = mat;
                 else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
                 {
@@ -7242,27 +7239,22 @@ namespace ImmVision
         ImGui::GetWindowDrawList()->AddImage(mImTextureId, imageTl, imageBr);
     }
 
-    void GlTexture::Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height)
-    {
-        ImmVision_GlProvider::Blit_RGBA_Buffer(image_data, image_width, image_height, this->mImTextureId);
-        mImageSize = ImVec2((float)image_width, (float) image_height);
-    }
-
     //
     // ImageTextureCv
     //
-    GlTextureCv::GlTextureCv(const cv::Mat& mat, bool isBgrOrBgra) : GlTextureCv()
+    GlTextureCv::GlTextureCv(const cv::Mat& mat, bool isBgrOrder) : GlTextureCv()
     {
-        BlitMat(mat, isBgrOrBgra);
+        BlitMat(mat, isBgrOrder);
     }
 
-    void GlTextureCv::BlitMat(const cv::Mat& mat, bool isBgrOrBgra)
+    void GlTextureCv::BlitMat(const cv::Mat& mat, bool isBgrOrder)
     {
         if (mat.empty())
             return;
-        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat, isBgrOrBgra);
+        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat, isBgrOrder);
 
-        Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows);
+        ImmVision_GlProvider::Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows, mImTextureId);
+        this->mImageSize = ImVec2((float)mat_rgba.cols, (float) mat_rgba.rows);
     }
 } // namespace ImmVision
 
