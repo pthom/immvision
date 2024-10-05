@@ -44,8 +44,6 @@ namespace ImmVision
                 return true;
             if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
                 return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
             return false;
         }
 
@@ -66,8 +64,6 @@ namespace ImmVision
             if (v1.SelectedChannel != v2.SelectedChannel)
                 return true;
             if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
                 return true;
             if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
                 return true;

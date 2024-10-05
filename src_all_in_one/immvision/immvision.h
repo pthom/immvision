@@ -30,6 +30,14 @@ namespace ImmVision
         FromVisibleROI
     };
 
+    // Set the color order for displayed images.
+    // You **must** call once at the start of your program:
+    //     ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
+    //     immvision.use_rgb_color_order() or immvision.use_bgr_color_order() (Python)
+    // (Breaking change - October 2024)
+    void UseRgbColorOrder();
+    void UseBgrColorOrder();
+
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
@@ -65,7 +73,6 @@ namespace ImmVision
         // then ColormapScaleMin/Max are ignored, and the scaling is done according to the image stats.
         // ColormapScaleFromStats.ActiveOnFullImage is true by default
         ColormapScaleFromStatsData ColormapScaleFromStats = ColormapScaleFromStatsData();
-
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
         std::string internal_ColormapHovered = "";
@@ -146,9 +153,6 @@ namespace ImmVision
         bool CanResize = true;
         // Does the widget keep an aspect ratio equal to the image when resized
         bool ResizeKeepAspectRatio = true;
-
-        // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
-        bool IsColorOrderBGR = true;
 
         //
         // Image display options
@@ -293,7 +297,8 @@ namespace ImmVision
     //     In that case, it also becomes possible to zoom & pan, add watched pixel by double-clicking, etc.
     //
     // :param isBgrOrBgra:
-    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV)
+    //.    Breaking change, oct 2024: the default is BGR for C++, RGB for Python!
     //
     // :return:
     //      The mouse position in `mat` original image coordinates, as double values.
@@ -311,8 +316,7 @@ namespace ImmVision
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
-        bool showOptionsButton = false,
-        bool isBgrOrBgra = true
+        bool showOptionsButton = false
         );
 
     // ImageDisplayResizable: display the image, with no user interaction (by default)
@@ -324,8 +328,7 @@ namespace ImmVision
         ImVec2* size = nullptr,
         bool refreshImage = false,
         bool resizable = true,
-        bool showOptionsButton = false,
-        bool isBgrOrBgra = true
+        bool showOptionsButton = false
     );
 
 
@@ -373,8 +376,7 @@ namespace ImmVision
         const std::string& zoomKey = "",
         const std::string& colormapKey = "",
         const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
+        double zoomRatio = -1.
     );
 
     IMMVISION_API void Inspector_Show();
@@ -403,7 +405,8 @@ namespace ImmVision
         // Create an empty texture
         GlTexture();
         // Create a texture from an image (cv::Mat in C++, numpy array in Python)
-        GlTexture(const cv::Mat& image, bool isColorOrderBGR);
+        // isColorOrderBGR: if true, the image is assumed to be in BGR order (OpenCV default)
+        GlTexture(const cv::Mat& image, bool isColorOrderBGR = false);
         // The destructor will delete the texture from the GPU
         ~GlTexture();
 
@@ -420,7 +423,7 @@ namespace ImmVision
         //
 
         // Update the texture from a new image (cv::Mat in C++, numpy array in Python).
-        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR);
+        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR = false);
         // Returns the size as ImVec2
         ImVec2 SizeImVec2() const;
 

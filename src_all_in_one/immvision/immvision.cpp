@@ -35,6 +35,14 @@ namespace ImmVision
         FromVisibleROI
     };
 
+    // Set the color order for displayed images.
+    // You **must** call once at the start of your program:
+    //     ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
+    //     immvision.use_rgb_color_order() or immvision.use_bgr_color_order() (Python)
+    // (Breaking change - October 2024)
+    void UseRgbColorOrder();
+    void UseBgrColorOrder();
+
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
@@ -70,7 +78,6 @@ namespace ImmVision
         // then ColormapScaleMin/Max are ignored, and the scaling is done according to the image stats.
         // ColormapScaleFromStats.ActiveOnFullImage is true by default
         ColormapScaleFromStatsData ColormapScaleFromStats = ColormapScaleFromStatsData();
-
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
         std::string internal_ColormapHovered = "";
@@ -151,9 +158,6 @@ namespace ImmVision
         bool CanResize = true;
         // Does the widget keep an aspect ratio equal to the image when resized
         bool ResizeKeepAspectRatio = true;
-
-        // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
-        bool IsColorOrderBGR = true;
 
         //
         // Image display options
@@ -298,7 +302,8 @@ namespace ImmVision
     //     In that case, it also becomes possible to zoom & pan, add watched pixel by double-clicking, etc.
     //
     // :param isBgrOrBgra:
-    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV)
+    //.    Breaking change, oct 2024: the default is BGR for C++, RGB for Python!
     //
     // :return:
     //      The mouse position in `mat` original image coordinates, as double values.
@@ -316,8 +321,7 @@ namespace ImmVision
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
-        bool showOptionsButton = false,
-        bool isBgrOrBgra = true
+        bool showOptionsButton = false
         );
 
     // ImageDisplayResizable: display the image, with no user interaction (by default)
@@ -329,8 +333,7 @@ namespace ImmVision
         ImVec2* size = nullptr,
         bool refreshImage = false,
         bool resizable = true,
-        bool showOptionsButton = false,
-        bool isBgrOrBgra = true
+        bool showOptionsButton = false
     );
 
 
@@ -4489,7 +4492,8 @@ namespace ImmVision
         // Create an empty texture
         GlTexture();
         // Create a texture from an image (cv::Mat in C++, numpy array in Python)
-        GlTexture(const cv::Mat& image, bool isColorOrderBGR);
+        // isColorOrderBGR: if true, the image is assumed to be in BGR order (OpenCV default)
+        GlTexture(const cv::Mat& image, bool isColorOrderBGR = false);
         // The destructor will delete the texture from the GPU
         ~GlTexture();
 
@@ -4506,7 +4510,7 @@ namespace ImmVision
         //
 
         // Update the texture from a new image (cv::Mat in C++, numpy array in Python).
-        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR);
+        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR = false);
         // Returns the size as ImVec2
         ImVec2 SizeImVec2() const;
 
@@ -5956,18 +5960,28 @@ namespace ImmVision
     {
         std::string _MatTypeName(const cv::Mat& m)
         {
-            std::map<int, std::string> depthNames
-                {
-                    { CV_8U, "CV_8U" },
-                    { CV_8S, "CV_8S" },
-                    { CV_16U, "CV_16U" },
-                    { CV_16S, "CV_16S" },
-                    { CV_32S, "CV_32S"},
-                    { CV_32F, "CV_32F"},
-                    { CV_64F, "CV_64F"},
-                    { CV_16F, "CV_16F"}
-                };
-            return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
+            int depth = m.depth();
+            if (depth == CV_8U)
+                return "uint8";
+            else if (depth == CV_8S)
+                return "int8";
+            else if (depth == CV_16U)
+                return "uint16";
+            else if (depth == CV_16S)
+                return "int16";
+            else if (depth == CV_32S)
+                return "int32";
+            else if (depth == CV_32F)
+                return "float32";
+            else if (depth == CV_64F)
+                return "float64";
+            else if (depth == CV_16F)
+                return "float16";
+            else
+            {
+                printf("Unhandled depth: %d\n", depth);
+                return "???";
+            }
         }
 
         std::string _MatInfo(const cv::Mat &m)
@@ -6382,6 +6396,8 @@ namespace ImmVision
 
 namespace ImmVision
 {
+    bool Priv_IsColorOrderBgr();
+
     namespace ImageDrawing
     {
         static float _ImmDrawingFontScaleRatio()
@@ -6589,7 +6605,8 @@ namespace ImmVision
                 {
                     fnSelectChannel();
                     fnAlphaCheckerboard();
-                    finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
+                    bool is_color_order_bgr = Priv_IsColorOrderBgr();
+                    finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, is_color_order_bgr);
                 }
                 in_out_rgba_image_cache = finalImage;
                 assert(finalImage.type() == CV_8UC4);
@@ -9455,8 +9472,7 @@ namespace ImmVision
         const std::string& zoomKey = "",
         const std::string& colormapKey = "",
         const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
+        double zoomRatio = -1.
     );
 
     IMMVISION_API void Inspector_Show();
@@ -9478,6 +9494,30 @@ namespace ImmVision
     // With Image and ImageDisplay we can rely on the ID stack,
     // since calls to Image & ImageDisplay will have a reproducible id stack
     static bool sDoUseIdStack = true;
+
+
+    static std::optional<bool> sUseBgrOrder = std::nullopt;
+    void UseRgbColorOrder() { sUseBgrOrder = false; }
+    void UseBgrColorOrder() { sUseBgrOrder = true; }
+    bool Priv_IsColorOrderBgr()
+    {
+        const char* errorMessage = R"(
+Error in ImmVision
+==================
+You must set the image color order before displaying images. At the start of your program, call:
+    ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
+or
+    immvision.use_rgb_color_order() or immvision.use_bgr_color_order() (Python)
+
+This is a required setup step. (Breaking change - October 2024)
+)";
+        if (!sUseBgrOrder.has_value())
+        {
+            fprintf(stderr, "%s", errorMessage);
+            throw std::runtime_error(errorMessage);
+        }
+        return sUseBgrOrder.value();
+    }
 
     void ClearTextureCache()
     {
@@ -9615,12 +9655,12 @@ namespace ImmVision
                 cv::Mat imageAsSaved = image;  // image with possible RGB2BGR conversion
                 if (image.type() == CV_8UC3)
                 {
-                    if (!params->IsColorOrderBGR)
+                    if (!Priv_IsColorOrderBgr())
                         cv::cvtColor(image, imageAsSaved, cv::COLOR_RGB2BGR);
                 }
                 if (image.type() == CV_8UC4)
                 {
-                    if (!params->IsColorOrderBGR)
+                    if (!Priv_IsColorOrderBgr())
                         cv::cvtColor(image, imageAsSaved, cv::COLOR_RGBA2BGRA);
                 }
                 return imageAsSaved;
@@ -9702,16 +9742,6 @@ namespace ImmVision
 
         auto fnImageDisplayOptions_Gui = [&params, &image]()
         {
-            if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
-            {
-                ImGui::Text("Color Order");
-                ImGui::SameLine();
-                int v = params->IsColorOrderBGR ? 0 : 1;
-                ImGui::RadioButton("RGB", &v, 1);
-                ImGui::SameLine();
-                ImGui::RadioButton("BGR", &v, 0);
-                params->IsColorOrderBGR = (v == 0);
-            }
             ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
             if (image.type() == CV_8UC4)
                 ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
@@ -10131,8 +10161,8 @@ namespace ImmVision
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize,
         bool refreshImage,
-        bool showOptionsButton,
-        bool isBgrOrBgra)
+        bool showOptionsButton
+        )
     {
         ImGuiID id = ImGui::GetID(label_id.c_str());
         static std::map<ImGuiID, ImageParams> s_Params;
@@ -10147,7 +10177,6 @@ namespace ImmVision
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
-            params.IsColorOrderBGR = isBgrOrBgra;
 
             cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
             params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
@@ -10166,8 +10195,7 @@ namespace ImmVision
         ImVec2* size,
         bool refreshImage,
         bool resizable,
-        bool showOptionsButton,
-        bool isBgrOrBgra
+        bool showOptionsButton
     )
     {
         if (size == nullptr)
@@ -10193,7 +10221,6 @@ namespace ImmVision
             params.ImageDisplaySize = imageDisplaySize;
             params.CanResize = resizable;
             params.RefreshImage = refreshImage;
-            params.IsColorOrderBGR = isBgrOrBgra;
 
             cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
             params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
@@ -10300,8 +10327,6 @@ namespace ImmVision
                 return true;
             if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
                 return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
-                return true;
             return false;
         }
 
@@ -10322,8 +10347,6 @@ namespace ImmVision
             if (v1.SelectedChannel != v2.SelectedChannel)
                 return true;
             if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
-                return true;
-            if (v1.IsColorOrderBGR != v2.IsColorOrderBGR)
                 return true;
             if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
                 return true;
@@ -10654,7 +10677,6 @@ namespace nlohmann
                 {"ColormapKey", params.ColormapKey},
                 {"PanWithMouse", params.PanWithMouse},
                 {"ZoomWithMouseWheel", params.ZoomWithMouseWheel},
-                {"IsColorOrderBGR", params.IsColorOrderBGR},
                 {"SelectedChannel", params.SelectedChannel},
                 {"ShowSchoolPaperBackground", params.ShowSchoolPaperBackground},
                 {"ShowAlphaChannelCheckerboard", params.ShowAlphaChannelCheckerboard},
@@ -10682,7 +10704,6 @@ namespace nlohmann
             j.at("ColormapKey").get_to(params.ColormapKey);
             j.at("PanWithMouse").get_to(params.PanWithMouse);
             j.at("ZoomWithMouseWheel").get_to(params.ZoomWithMouseWheel);
-            j.at("IsColorOrderBGR").get_to(params.IsColorOrderBGR);
             j.at("SelectedChannel").get_to(params.SelectedChannel);
             j.at("ShowSchoolPaperBackground").get_to(params.ShowSchoolPaperBackground);
             j.at("ShowAlphaChannelCheckerboard").get_to(params.ShowAlphaChannelCheckerboard);
@@ -10738,6 +10759,8 @@ namespace ImmVision
 
 namespace ImmVision
 {
+    bool Priv_IsColorOrderBgr();
+
     namespace ImageWidgets
     {
         void GlTexture_Draw_DisableDragWindow(const GlTexture& texture, const ImVec2 &size, bool disableDragWindow)
@@ -10790,12 +10813,14 @@ namespace ImmVision
             bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
             auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
             auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
-                return params.IsColorOrderBGR ?
+                bool isColorOrderBgr = Priv_IsColorOrderBgr();
+                return isColorOrderBgr ?
                        ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
                                               :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
             };
             auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
-                return params.IsColorOrderBGR ?
+                bool isColorOrderBgr = Priv_IsColorOrderBgr();
+                return isColorOrderBgr ?
                        ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
                                               :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
             };
@@ -11610,12 +11635,10 @@ namespace ImmVision
         const std::string& zoomKey,
         const std::string& colormapKey,
         const cv::Point2d & zoomCenter,
-        double zoomRatio,
-        bool isColorOrderBGR
+        double zoomRatio
     )
     {
         ImageParams params;
-        params.IsColorOrderBGR = isColorOrderBGR;
         params.ZoomKey = zoomKey;
         params.ColormapKey = colormapKey;
         params.ShowOptionsPanel = true;
@@ -11920,7 +11943,7 @@ namespace ImmVision
         r += "}";
         return r;
     }
-    
+
     std::string ToString(const ImageParams& v)
     {
 
@@ -11940,7 +11963,6 @@ namespace ImmVision
         inner = inner + "ColormapKey: " + ToString(v.ColormapKey) + "\n";
         inner = inner + "PanWithMouse: " + ToString(v.PanWithMouse) + "\n";
         inner = inner + "ZoomWithMouseWheel: " + ToString(v.ZoomWithMouseWheel) + "\n";
-        inner = inner + "IsColorOrderBGR: " + ToString(v.IsColorOrderBGR) + "\n";
         inner = inner + "SelectedChannel: " + ToString(v.SelectedChannel) + "\n";
         inner = inner + "ShowSchoolPaperBackground: " + ToString(v.ShowSchoolPaperBackground) + "\n";
         inner = inner + "ShowAlphaChannelCheckerboard: " + ToString(v.ShowAlphaChannelCheckerboard) + "\n";

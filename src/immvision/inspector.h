@@ -1,6 +1,7 @@
 #pragma once
 #include <opencv2/core.hpp>
 #include <string>
+#include "immvision/image.h"
 
 // IMMVISION_API is a marker for public API functions. IMMVISION_STRUCT_API is a marker for public API structs (in comment lines)
 // Usage of ImmVision as a shared library is not recommended. No guaranty of ABI stability is provided
@@ -16,8 +17,7 @@ namespace ImmVision
         const std::string& zoomKey = "",
         const std::string& colormapKey = "",
         const cv::Point2d & zoomCenter = cv::Point2d(),
-        double zoomRatio = -1.,
-        bool isColorOrderBGR = true
+        double zoomRatio = -1.
     );
 
     IMMVISION_API void Inspector_Show();

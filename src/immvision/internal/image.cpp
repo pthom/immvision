@@ -18,6 +18,7 @@
 
 #include <map>
 #include <vector>
+#include <optional>
 #include <iostream>
 
 #ifndef IMMVISION_VERSION
@@ -29,6 +30,30 @@ namespace ImmVision
     // With Image and ImageDisplay we can rely on the ID stack,
     // since calls to Image & ImageDisplay will have a reproducible id stack
     static bool sDoUseIdStack = true;
+
+
+    static std::optional<bool> sUseBgrOrder = std::nullopt;
+    void UseRgbColorOrder() { sUseBgrOrder = false; }
+    void UseBgrColorOrder() { sUseBgrOrder = true; }
+    bool Priv_IsColorOrderBgr()
+    {
+        const char* errorMessage = R"(
+Error in ImmVision
+==================
+You must set the image color order before displaying images. At the start of your program, call:
+    ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
+or
+    immvision.use_rgb_color_order() or immvision.use_bgr_color_order() (Python)
+
+This is a required setup step. (Breaking change - October 2024)
+)";
+        if (!sUseBgrOrder.has_value())
+        {
+            fprintf(stderr, "%s", errorMessage);
+            throw std::runtime_error(errorMessage);
+        }
+        return sUseBgrOrder.value();
+    }
 
     void ClearTextureCache()
     {
@@ -166,12 +191,12 @@ namespace ImmVision
                 cv::Mat imageAsSaved = image;  // image with possible RGB2BGR conversion
                 if (image.type() == CV_8UC3)
                 {
-                    if (!params->IsColorOrderBGR)
+                    if (!Priv_IsColorOrderBgr())
                         cv::cvtColor(image, imageAsSaved, cv::COLOR_RGB2BGR);
                 }
                 if (image.type() == CV_8UC4)
                 {
-                    if (!params->IsColorOrderBGR)
+                    if (!Priv_IsColorOrderBgr())
                         cv::cvtColor(image, imageAsSaved, cv::COLOR_RGBA2BGRA);
                 }
                 return imageAsSaved;
@@ -253,16 +278,6 @@ namespace ImmVision
 
         auto fnImageDisplayOptions_Gui = [&params, &image]()
         {
-            if (image.type() == CV_8UC3 || image.type() == CV_8UC4)
-            {
-                ImGui::Text("Color Order");
-                ImGui::SameLine();
-                int v = params->IsColorOrderBGR ? 0 : 1;
-                ImGui::RadioButton("RGB", &v, 1);
-                ImGui::SameLine();
-                ImGui::RadioButton("BGR", &v, 0);
-                params->IsColorOrderBGR = (v == 0);
-            }
             ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
             if (image.type() == CV_8UC4)
                 ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
@@ -682,8 +697,8 @@ namespace ImmVision
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize,
         bool refreshImage,
-        bool showOptionsButton,
-        bool isBgrOrBgra)
+        bool showOptionsButton
+        )
     {
         ImGuiID id = ImGui::GetID(label_id.c_str());
         static std::map<ImGuiID, ImageParams> s_Params;
@@ -698,7 +713,6 @@ namespace ImmVision
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
-            params.IsColorOrderBGR = isBgrOrBgra;
 
             cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
             params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
@@ -717,8 +731,7 @@ namespace ImmVision
         ImVec2* size,
         bool refreshImage,
         bool resizable,
-        bool showOptionsButton,
-        bool isBgrOrBgra
+        bool showOptionsButton
     )
     {
         if (size == nullptr)
@@ -744,7 +757,6 @@ namespace ImmVision
             params.ImageDisplaySize = imageDisplaySize;
             params.CanResize = resizable;
             params.RefreshImage = refreshImage;
-            params.IsColorOrderBGR = isBgrOrBgra;
 
             cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
             params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);

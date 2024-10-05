@@ -107,7 +107,6 @@ namespace nlohmann
                 {"ColormapKey", params.ColormapKey},
                 {"PanWithMouse", params.PanWithMouse},
                 {"ZoomWithMouseWheel", params.ZoomWithMouseWheel},
-                {"IsColorOrderBGR", params.IsColorOrderBGR},
                 {"SelectedChannel", params.SelectedChannel},
                 {"ShowSchoolPaperBackground", params.ShowSchoolPaperBackground},
                 {"ShowAlphaChannelCheckerboard", params.ShowAlphaChannelCheckerboard},
@@ -135,7 +134,6 @@ namespace nlohmann
             j.at("ColormapKey").get_to(params.ColormapKey);
             j.at("PanWithMouse").get_to(params.PanWithMouse);
             j.at("ZoomWithMouseWheel").get_to(params.ZoomWithMouseWheel);
-            j.at("IsColorOrderBGR").get_to(params.IsColorOrderBGR);
             j.at("SelectedChannel").get_to(params.SelectedChannel);
             j.at("ShowSchoolPaperBackground").get_to(params.ShowSchoolPaperBackground);
             j.at("ShowAlphaChannelCheckerboard").get_to(params.ShowAlphaChannelCheckerboard);

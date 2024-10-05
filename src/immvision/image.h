@@ -22,6 +22,14 @@ namespace ImmVision
         FromVisibleROI
     };
 
+    // Set the color order for displayed images.
+    // You **must** call once at the start of your program:
+    //     ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
+    //     immvision.use_rgb_color_order() or immvision.use_bgr_color_order() (Python)
+    // (Breaking change - October 2024)
+    void UseRgbColorOrder();
+    void UseBgrColorOrder();
+
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
@@ -57,7 +65,6 @@ namespace ImmVision
         // then ColormapScaleMin/Max are ignored, and the scaling is done according to the image stats.
         // ColormapScaleFromStats.ActiveOnFullImage is true by default
         ColormapScaleFromStatsData ColormapScaleFromStats = ColormapScaleFromStatsData();
-
 
         // Internal value: stores the name of the Colormap that is hovered by the mouse
         std::string internal_ColormapHovered = "";
@@ -138,9 +145,6 @@ namespace ImmVision
         bool CanResize = true;
         // Does the widget keep an aspect ratio equal to the image when resized
         bool ResizeKeepAspectRatio = true;
-
-        // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
-        bool IsColorOrderBGR = true;
 
         //
         // Image display options
@@ -285,7 +289,8 @@ namespace ImmVision
     //     In that case, it also becomes possible to zoom & pan, add watched pixel by double-clicking, etc.
     //
     // :param isBgrOrBgra:
-    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV)
+    //.    Breaking change, oct 2024: the default is BGR for C++, RGB for Python!
     //
     // :return:
     //      The mouse position in `mat` original image coordinates, as double values.
@@ -303,8 +308,7 @@ namespace ImmVision
         const cv::Mat& mat,
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
-        bool showOptionsButton = false,
-        bool isBgrOrBgra = true
+        bool showOptionsButton = false
         );
 
     // ImageDisplayResizable: display the image, with no user interaction (by default)
@@ -316,8 +320,7 @@ namespace ImmVision
         ImVec2* size = nullptr,
         bool refreshImage = false,
         bool resizable = true,
-        bool showOptionsButton = false,
-        bool isBgrOrBgra = true
+        bool showOptionsButton = false
     );
 
 

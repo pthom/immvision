@@ -11,6 +11,8 @@
 
 namespace ImmVision
 {
+    bool Priv_IsColorOrderBgr();
+
     namespace ImageDrawing
     {
         static float _ImmDrawingFontScaleRatio()
@@ -218,7 +220,8 @@ namespace ImmVision
                 {
                     fnSelectChannel();
                     fnAlphaCheckerboard();
-                    finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, params.IsColorOrderBGR);
+                    bool is_color_order_bgr = Priv_IsColorOrderBgr();
+                    finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, is_color_order_bgr);
                 }
                 in_out_rgba_image_cache = finalImage;
                 assert(finalImage.type() == CV_8UC4);

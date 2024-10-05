@@ -15,7 +15,8 @@ namespace ImmVision
         // Create an empty texture
         GlTexture();
         // Create a texture from an image (cv::Mat in C++, numpy array in Python)
-        GlTexture(const cv::Mat& image, bool isColorOrderBGR);
+        // isColorOrderBGR: if true, the image is assumed to be in BGR order (OpenCV default)
+        GlTexture(const cv::Mat& image, bool isColorOrderBGR = false);
         // The destructor will delete the texture from the GPU
         ~GlTexture();
 
@@ -32,7 +33,7 @@ namespace ImmVision
         //
 
         // Update the texture from a new image (cv::Mat in C++, numpy array in Python).
-        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR);
+        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR = false);
         // Returns the size as ImVec2
         ImVec2 SizeImVec2() const;
 

@@ -17,15 +17,17 @@ void AddIncomingImages()
         if (imagePayload)
         {
             HelloImGui::Log(HelloImGui::LogLevel::Info, "Received image payload");
-
+            if (imagePayload->isColorOrderBGR)
+                ImmVision::UseBgrColorOrder();
+            else
+                ImmVision::UseRgbColorOrder();
             ImmVision::Inspector_AddImage(
                 imagePayload->Image,
                 imagePayload->Legend,
                 imagePayload->ZoomKey,
                 imagePayload->ColorAdjustmentsKey,
                 imagePayload->ZoomCenter,
-                imagePayload->ZoomRatio,
-                imagePayload->isColorOrderBGR
+                imagePayload->ZoomRatio
             );
             foundNewImages = true;
         }
