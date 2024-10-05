@@ -89,8 +89,8 @@ macro(immvision_download_emscripten_precompiled_opencv_4_9_0)
         FetchContent_Declare(
             opencv_package_emscripten
             DOWNLOAD_EXTRACT_TIMESTAMP ON
-            URL https://github.com/pthom/imgui_bundle/releases/download/v1.3.0/opencv_4.9_pthread_emscripten_install.tgz
-            URL_MD5 fd8df379812422e169d0397a0e4d5bb7
+            URL https://github.com/pthom/imgui_bundle/releases/download/v1.5.2/opencv_4.9_pthread_fpic_emscripten_minimalist_install.tgz
+            URL_MD5 3b970fa37bca8ac3dc977a7a6c33b9b7
         )
     else()
         FetchContent_Declare(
