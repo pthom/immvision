@@ -73,7 +73,20 @@ namespace ImmVision
         r += "}";
         return r;
     }
-    
+
+    std::string ToStringColorOrder(ColorOrderId colorOrder)
+    {
+        if (colorOrder == ColorOrderId::BGR)
+            return "BGR";
+        else if (colorOrder == ColorOrderId::RGB)
+            return "RGB";
+        else
+        {
+            ColorOrderId bgrOrRgb = ColorOrderBgrOrRgb(colorOrder);
+            return ToStringColorOrder(bgrOrRgb) + " (default)";
+        }
+    }
+
     std::string ToString(const ImageParams& v)
     {
 
@@ -93,7 +106,7 @@ namespace ImmVision
         inner = inner + "ColormapKey: " + ToString(v.ColormapKey) + "\n";
         inner = inner + "PanWithMouse: " + ToString(v.PanWithMouse) + "\n";
         inner = inner + "ZoomWithMouseWheel: " + ToString(v.ZoomWithMouseWheel) + "\n";
-        inner = inner + "IsColorOrderBGR: " + ToString(v.IsColorOrderBGR) + "\n";
+        inner = inner + "IsColorOrderBGR: " + ToStringColorOrder(v.ColorOrder) + "\n";
         inner = inner + "SelectedChannel: " + ToString(v.SelectedChannel) + "\n";
         inner = inner + "ShowSchoolPaperBackground: " + ToString(v.ShowSchoolPaperBackground) + "\n";
         inner = inner + "ShowAlphaChannelCheckerboard: " + ToString(v.ShowAlphaChannelCheckerboard) + "\n";

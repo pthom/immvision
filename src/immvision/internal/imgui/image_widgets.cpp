@@ -5,6 +5,8 @@
 
 namespace ImmVision
 {
+    bool IsColorOrderBgr(ColorOrderId colorOrder);
+
     namespace ImageWidgets
     {
         void GlTexture_Draw_DisableDragWindow(const GlTexture& texture, const ImVec2 &size, bool disableDragWindow)
@@ -57,12 +59,14 @@ namespace ImmVision
             bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
             auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
             auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
-                return params.IsColorOrderBGR ?
+                bool isColorOrderBgr = IsColorOrderBgr(params.ColorOrder);
+                return isColorOrderBgr ?
                        ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
                                               :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
             };
             auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
-                return params.IsColorOrderBGR ?
+                bool isColorOrderBgr = IsColorOrderBgr(params.ColorOrder);
+                return isColorOrderBgr ?
                        ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
                                               :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
             };

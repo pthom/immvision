@@ -30,6 +30,34 @@ namespace ImmVision
     // since calls to Image & ImageDisplay will have a reproducible id stack
     static bool sDoUseIdStack = true;
 
+    // Handle default color order
+    static ColorOrderId sDefaultColorOrder = ColorOrderId::BGR;  // Will be set to RGB upon the first loading of the python module!
+    ColorOrderId DefaultColorOrder()
+    {
+        return sDefaultColorOrder;
+    }
+    void SetDefaultColorOrder(ColorOrderId colorOrder)
+    {
+        if (colorOrder == ColorOrderId::Default)
+            throw std::runtime_error("SetDefaultColorOrder: colorOrder shall be BGR or RGB");
+        sDefaultColorOrder = colorOrder;
+    }
+    ColorOrderId ColorOrderBgrOrRgb(ColorOrderId colorOrder)
+    {
+        if (colorOrder == ColorOrderId::Default)
+            return DefaultColorOrder();
+        else
+            return colorOrder;
+    }
+    bool IsColorOrderBgr(ColorOrderId colorOrder)
+    {
+        if (colorOrder == ColorOrderId::Default)
+            return DefaultColorOrder() == ColorOrderId::BGR;
+        else
+            return colorOrder == ColorOrderId::BGR;
+    }
+
+
     void ClearTextureCache()
     {
         ImageCache::gImageTextureCache.ClearImagesCache();
@@ -166,12 +194,12 @@ namespace ImmVision
                 cv::Mat imageAsSaved = image;  // image with possible RGB2BGR conversion
                 if (image.type() == CV_8UC3)
                 {
-                    if (!params->IsColorOrderBGR)
+                    if (!IsColorOrderBgr(params->ColorOrder))
                         cv::cvtColor(image, imageAsSaved, cv::COLOR_RGB2BGR);
                 }
                 if (image.type() == CV_8UC4)
                 {
-                    if (!params->IsColorOrderBGR)
+                    if (!IsColorOrderBgr(params->ColorOrder))
                         cv::cvtColor(image, imageAsSaved, cv::COLOR_RGBA2BGRA);
                 }
                 return imageAsSaved;
@@ -257,11 +285,17 @@ namespace ImmVision
             {
                 ImGui::Text("Color Order");
                 ImGui::SameLine();
-                int v = params->IsColorOrderBGR ? 0 : 1;
-                ImGui::RadioButton("RGB", &v, 1);
+                int v = IsColorOrderBgr(params->ColorOrder) ? 0 : 1;
+                bool changed = false;
+                if (ImGui::RadioButton("RGB", &v, 1))
+                    changed = true;
                 ImGui::SameLine();
-                ImGui::RadioButton("BGR", &v, 0);
-                params->IsColorOrderBGR = (v == 0);
+                if (ImGui::RadioButton("BGR", &v, 0))
+                    changed = true;
+                if (changed)
+                {
+                    params->ColorOrder = (v == 0) ? ColorOrderId::BGR : ColorOrderId::RGB;
+                }
             }
             ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
             if (image.type() == CV_8UC4)
@@ -683,7 +717,8 @@ namespace ImmVision
         const cv::Size& imageDisplaySize,
         bool refreshImage,
         bool showOptionsButton,
-        bool isBgrOrBgra)
+        ColorOrderId colorOrder
+        )
     {
         ImGuiID id = ImGui::GetID(label_id.c_str());
         static std::map<ImGuiID, ImageParams> s_Params;
@@ -698,7 +733,7 @@ namespace ImmVision
             params.ShowOptionsButton = showOptionsButton;
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
-            params.IsColorOrderBGR = isBgrOrBgra;
+            params.ColorOrder = colorOrder;
 
             cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
             params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
@@ -718,7 +753,7 @@ namespace ImmVision
         bool refreshImage,
         bool resizable,
         bool showOptionsButton,
-        bool isBgrOrBgra
+        ColorOrderId colorOrder
     )
     {
         if (size == nullptr)
@@ -744,7 +779,7 @@ namespace ImmVision
             params.ImageDisplaySize = imageDisplaySize;
             params.CanResize = resizable;
             params.RefreshImage = refreshImage;
-            params.IsColorOrderBGR = isBgrOrBgra;
+            params.ColorOrder = colorOrder;
 
             cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
             params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);

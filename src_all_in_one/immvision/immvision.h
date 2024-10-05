@@ -30,6 +30,26 @@ namespace ImmVision
         FromVisibleROI
     };
 
+    //
+    // Handle default color order
+    // --------------------------
+    // - in C++, the default color order is BGR (a la OpenCV)
+    // - in python, the default color order is RGB
+    enum class ColorOrderId
+    {
+        RGB,
+        BGR,
+        Default // RGB for Python, BGR for C++
+        // For legacy reasons, the C++ default color order is BGR (a la OpenCV)
+    };
+    // Returns the default color order (RGB for Python, BGR for C++)
+    ColorOrderId DefaultColorOrder();
+    // Returns RGB or BGR (will use the default color order if not specified)
+    ColorOrderId ColorOrderBgrOrRgb(ColorOrderId colorOrder);
+    // Sets the default color order
+    void SetDefaultColorOrder(ColorOrderId colorOrder);
+
+
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
@@ -147,8 +167,11 @@ namespace ImmVision
         // Does the widget keep an aspect ratio equal to the image when resized
         bool ResizeKeepAspectRatio = true;
 
-        // Color Order: RGB or RGBA versus BGR or BGRA (Note: by default OpenCV uses BGR and BGRA)
-        bool IsColorOrderBGR = true;
+        // Color Order:
+        // - in C++, the default color order is BGR (a la OpenCV)
+        // - in python, the default color order is RGB (**breaking change, Oct 2024**)
+        // - the field IsColorOrderBGR was removed, in favor of ColorOrder
+        ColorOrderId ColorOrder = ColorOrderId::Default;
 
         //
         // Image display options
@@ -293,7 +316,8 @@ namespace ImmVision
     //     In that case, it also becomes possible to zoom & pan, add watched pixel by double-clicking, etc.
     //
     // :param isBgrOrBgra:
-    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV, by default)
+    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV)
+    //.    Breaking change, oct 2024: the default is BGR for C++, RGB for Python!
     //
     // :return:
     //      The mouse position in `mat` original image coordinates, as double values.
@@ -312,7 +336,7 @@ namespace ImmVision
         const cv::Size& imageDisplaySize = cv::Size(),
         bool refreshImage = false,
         bool showOptionsButton = false,
-        bool isBgrOrBgra = true
+        ColorOrderId colorOrder = ColorOrderId::Default
         );
 
     // ImageDisplayResizable: display the image, with no user interaction (by default)
@@ -325,7 +349,7 @@ namespace ImmVision
         bool refreshImage = false,
         bool resizable = true,
         bool showOptionsButton = false,
-        bool isBgrOrBgra = true
+        ColorOrderId colorOrder = ColorOrderId::Default
     );
 
 
@@ -374,7 +398,7 @@ namespace ImmVision
         const std::string& colormapKey = "",
         const cv::Point2d & zoomCenter = cv::Point2d(),
         double zoomRatio = -1.,
-        bool isColorOrderBGR = true
+        ColorOrderId colorOrder = ColorOrderId::Default
     );
 
     IMMVISION_API void Inspector_Show();

@@ -39,11 +39,11 @@ namespace ImmVision
         const std::string& colormapKey,
         const cv::Point2d & zoomCenter,
         double zoomRatio,
-        bool isColorOrderBGR
+        ColorOrderId colorOrder
     )
     {
         ImageParams params;
-        params.IsColorOrderBGR = isColorOrderBGR;
+        params.ColorOrder = colorOrder;
         params.ZoomKey = zoomKey;
         params.ColormapKey = colormapKey;
         params.ShowOptionsPanel = true;
