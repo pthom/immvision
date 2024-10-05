@@ -728,6 +728,8 @@ namespace ImmVision
             s_Params[id] = params;
         }
 
+        if (s_Params.find(id) == s_Params.end())
+            printf("ARGGH: s_Params.find(id) == s_Params.end()\n");
         ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
@@ -773,6 +775,9 @@ namespace ImmVision
         }
 
         cv::Size imageDisplaySize = cv::Size((int)size->x, (int)size->y);
+
+        if (s_Params.find(id) == s_Params.end())
+            printf("ARGGH2: s_Params.find(id) == s_Params.end()\n");
         ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;

@@ -23,6 +23,8 @@ namespace ImmVision
                     { CV_64F, "CV_64F"},
                     { CV_16F, "CV_16F"}
                 };
+            if (depthNames.find(m.depth()) == depthNames.end())
+                printf("_MatTypeName Unhandled depth: %d\n", m.depth());
             return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
         }
 

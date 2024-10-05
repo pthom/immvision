@@ -36,12 +36,16 @@ namespace ImmVision
 
         Value& get(const Key& k)
         {
+            if (not contains(k))
+                printf("ARGH: insertion_order_map::get() key not found\n");
             assert(contains(k));
             return _map.at(k);
         }
 
         const Value& get(const Key& k) const
         {
+            if (not contains(k))
+                printf("ARGH: const insertion_order_map::get() key not found\n");
             assert(contains(k));
             return _map.at(k);
         }

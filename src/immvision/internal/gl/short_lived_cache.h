@@ -27,6 +27,11 @@ namespace ImmVision
                 // which periodically removes elements that were unused during a given period (5 seconds)
                 // You can temporarily disable this feature by adding a return statement at the very beginning of
                 // ShortLivedCache::ClearOldEntries()
+                if (mDict.find(k) == mDict.end())
+                {
+                    printf("ARG... Key not found in cache: %d\n", (int)k);
+                    assert(false);
+                }
                 assert(mDict.find(k) != mDict.end());
                 return mDict.at(k);
             }

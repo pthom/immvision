@@ -423,12 +423,16 @@ namespace ImmVision
 
         Value& get(const Key& k)
         {
+            if (not contains(k))
+                printf("ARGH: insertion_order_map::get() key not found\n");
             assert(contains(k));
             return _map.at(k);
         }
 
         const Value& get(const Key& k) const
         {
+            if (not contains(k))
+                printf("ARGH: const insertion_order_map::get() key not found\n");
             assert(contains(k));
             return _map.at(k);
         }
@@ -5991,6 +5995,8 @@ namespace ImmVision
                     { CV_64F, "CV_64F"},
                     { CV_16F, "CV_16F"}
                 };
+            if (depthNames.find(m.depth()) == depthNames.end())
+                printf("_MatTypeName Unhandled depth: %d\n", m.depth());
             return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
         }
 
@@ -7314,6 +7320,11 @@ namespace ImmVision
                 // which periodically removes elements that were unused during a given period (5 seconds)
                 // You can temporarily disable this feature by adding a return statement at the very beginning of
                 // ShortLivedCache::ClearOldEntries()
+                if (mDict.find(k) == mDict.end())
+                {
+                    printf("ARG... Key not found in cache: %d\n", (int)k);
+                    assert(false);
+                }
                 assert(mDict.find(k) != mDict.end());
                 return mDict.at(k);
             }
@@ -10204,6 +10215,8 @@ namespace ImmVision
             s_Params[id] = params;
         }
 
+        if (s_Params.find(id) == s_Params.end())
+            printf("ARGGH: s_Params.find(id) == s_Params.end()\n");
         ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
@@ -10249,6 +10262,9 @@ namespace ImmVision
         }
 
         cv::Size imageDisplaySize = cv::Size((int)size->x, (int)size->y);
+
+        if (s_Params.find(id) == s_Params.end())
+            printf("ARGGH2: s_Params.find(id) == s_Params.end()\n");
         ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
@@ -10622,8 +10638,8 @@ namespace nlohmann
         }
 
         static void from_json(const json& j, cv::Size& size) {
-            j.at("width").get_to(size.width);
-            j.at("height").get_to(size.height);
+//            j.at("width").get_to(size.width);
+//            j.at("height").get_to(size.height);
         }
     };
 
@@ -10635,8 +10651,8 @@ namespace nlohmann
         }
 
         static void from_json(const json& j, cv::Point& point) {
-            j.at("x").get_to(point.x);
-            j.at("y").get_to(point.y);
+//            j.at("x").get_to(point.x);
+//            j.at("y").get_to(point.y);
         }
     };
 
@@ -10673,10 +10689,10 @@ namespace nlohmann
         }
 
         static void from_json(const json& j, ImmVision::ColormapScaleFromStatsData& data) {
-            j.at("ColorMapStatsType").get_to(data.ColorMapStatsType);
-            j.at("NbSigmas").get_to(data.NbSigmas);
-            j.at("UseStatsMin").get_to(data.UseStatsMin);
-            j.at("UseStatsMax").get_to(data.UseStatsMax);
+//            j.at("ColorMapStatsType").get_to(data.ColorMapStatsType);
+//            j.at("NbSigmas").get_to(data.NbSigmas);
+//            j.at("UseStatsMin").get_to(data.UseStatsMin);
+//            j.at("UseStatsMax").get_to(data.UseStatsMax);
         }
     };
 
@@ -10694,11 +10710,11 @@ namespace nlohmann
         }
 
         static void from_json(const json& j, ImmVision::ColormapSettingsData& data) {
-            j.at("Colormap").get_to(data.Colormap);
-            j.at("ColormapScaleMin").get_to(data.ColormapScaleMin);
-            j.at("ColormapScaleMax").get_to(data.ColormapScaleMax);
-            j.at("ColormapScaleFromStats").get_to(data.ColormapScaleFromStats);
-            j.at("internal_ColormapHovered").get_to(data.internal_ColormapHovered);
+//            j.at("Colormap").get_to(data.Colormap);
+//            j.at("ColormapScaleMin").get_to(data.ColormapScaleMin);
+//            j.at("ColormapScaleMax").get_to(data.ColormapScaleMax);
+//            j.at("ColormapScaleFromStats").get_to(data.ColormapScaleFromStats);
+//            j.at("internal_ColormapHovered").get_to(data.internal_ColormapHovered);
         }
     };
 
@@ -10736,29 +10752,29 @@ namespace nlohmann
 
         static void from_json(const json& j, ImmVision::ImageParams& params)
         {
-            j.at("RefreshImage").get_to(params.RefreshImage);
-            j.at("ImageDisplaySize").get_to(params.ImageDisplaySize);
-            j.at("ZoomPanMatrix").get_to(params.ZoomPanMatrix);
-            j.at("ZoomKey").get_to(params.ZoomKey);
-            j.at("ColormapSettings").get_to(params.ColormapSettings);
-            j.at("ColormapKey").get_to(params.ColormapKey);
-            j.at("PanWithMouse").get_to(params.PanWithMouse);
-            j.at("ZoomWithMouseWheel").get_to(params.ZoomWithMouseWheel);
-            j.at("ColorOrder").get_to(params.ColorOrder);
-            j.at("SelectedChannel").get_to(params.SelectedChannel);
-            j.at("ShowSchoolPaperBackground").get_to(params.ShowSchoolPaperBackground);
-            j.at("ShowAlphaChannelCheckerboard").get_to(params.ShowAlphaChannelCheckerboard);
-            j.at("ShowGrid").get_to(params.ShowGrid);
-            j.at("DrawValuesOnZoomedPixels").get_to(params.DrawValuesOnZoomedPixels);
-            j.at("ShowImageInfo").get_to(params.ShowImageInfo);
-            j.at("ShowPixelInfo").get_to(params.ShowPixelInfo);
-            j.at("ShowZoomButtons").get_to(params.ShowZoomButtons);
-            j.at("ShowOptionsPanel").get_to(params.ShowOptionsPanel);
-            j.at("ShowOptionsInTooltip").get_to(params.ShowOptionsInTooltip);
-            j.at("ShowOptionsButton").get_to(params.ShowOptionsButton);
-            j.at("WatchedPixels").get_to(params.WatchedPixels);
-            j.at("AddWatchedPixelOnDoubleClick").get_to(params.AddWatchedPixelOnDoubleClick);
-            j.at("HighlightWatchedPixels").get_to(params.HighlightWatchedPixels);
+//            j.at("RefreshImage").get_to(params.RefreshImage);
+//            j.at("ImageDisplaySize").get_to(params.ImageDisplaySize);
+//            j.at("ZoomPanMatrix").get_to(params.ZoomPanMatrix);
+//            j.at("ZoomKey").get_to(params.ZoomKey);
+//            j.at("ColormapSettings").get_to(params.ColormapSettings);
+//            j.at("ColormapKey").get_to(params.ColormapKey);
+//            j.at("PanWithMouse").get_to(params.PanWithMouse);
+//            j.at("ZoomWithMouseWheel").get_to(params.ZoomWithMouseWheel);
+//            j.at("ColorOrder").get_to(params.ColorOrder);
+//            j.at("SelectedChannel").get_to(params.SelectedChannel);
+//            j.at("ShowSchoolPaperBackground").get_to(params.ShowSchoolPaperBackground);
+//            j.at("ShowAlphaChannelCheckerboard").get_to(params.ShowAlphaChannelCheckerboard);
+//            j.at("ShowGrid").get_to(params.ShowGrid);
+//            j.at("DrawValuesOnZoomedPixels").get_to(params.DrawValuesOnZoomedPixels);
+//            j.at("ShowImageInfo").get_to(params.ShowImageInfo);
+//            j.at("ShowPixelInfo").get_to(params.ShowPixelInfo);
+//            j.at("ShowZoomButtons").get_to(params.ShowZoomButtons);
+//            j.at("ShowOptionsPanel").get_to(params.ShowOptionsPanel);
+//            j.at("ShowOptionsInTooltip").get_to(params.ShowOptionsInTooltip);
+//            j.at("ShowOptionsButton").get_to(params.ShowOptionsButton);
+//            j.at("WatchedPixels").get_to(params.WatchedPixels);
+//            j.at("AddWatchedPixelOnDoubleClick").get_to(params.AddWatchedPixelOnDoubleClick);
+//            j.at("HighlightWatchedPixels").get_to(params.HighlightWatchedPixels);
         }
 
     };
