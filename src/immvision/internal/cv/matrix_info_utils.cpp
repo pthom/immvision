@@ -12,18 +12,28 @@ namespace ImmVision
     {
         std::string _MatTypeName(const cv::Mat& m)
         {
-            std::map<int, std::string> depthNames
-                {
-                    { CV_8U, "CV_8U" },
-                    { CV_8S, "CV_8S" },
-                    { CV_16U, "CV_16U" },
-                    { CV_16S, "CV_16S" },
-                    { CV_32S, "CV_32S"},
-                    { CV_32F, "CV_32F"},
-                    { CV_64F, "CV_64F"},
-                    { CV_16F, "CV_16F"}
-                };
-            return depthNames.at(m.depth()) + "C" + std::to_string(m.channels());
+            int depth = m.depth();
+            if (depth == CV_8U)
+                return "uint8";
+            else if (depth == CV_8S)
+                return "int8";
+            else if (depth == CV_16U)
+                return "uint16";
+            else if (depth == CV_16S)
+                return "int16";
+            else if (depth == CV_32S)
+                return "int32";
+            else if (depth == CV_32F)
+                return "float32";
+            else if (depth == CV_64F)
+                return "float64";
+            else if (depth == CV_16F)
+                return "float16";
+            else
+            {
+                printf("Unhandled depth: %d\n", depth);
+                return "???";
+            }
         }
 
         std::string _MatInfo(const cv::Mat &m)
