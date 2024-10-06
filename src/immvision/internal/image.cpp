@@ -54,6 +54,15 @@ This is a required setup step. (Breaking change - October 2024)
         }
         return sUseBgrOrder.value();
     }
+    bool IsUsingRgbColorOrder()
+    {
+        return !Priv_IsColorOrderBgr();
+    }
+    bool IsUsingBgrColorOrder()
+    {
+        return Priv_IsColorOrderBgr();
+    }
+
 
     void ClearTextureCache()
     {

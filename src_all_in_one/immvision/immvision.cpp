@@ -28,13 +28,6 @@
 
 namespace ImmVision
 {
-    // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
-    enum class ColorMapStatsTypeId
-    {
-        FromFullImage,
-        FromVisibleROI
-    };
-
     // Set the color order for displayed images.
     // You **must** call once at the start of your program:
     //     ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
@@ -42,6 +35,18 @@ namespace ImmVision
     // (Breaking change - October 2024)
     void UseRgbColorOrder();
     void UseBgrColorOrder();
+
+    // Returns true if we are using RGB color order
+    bool IsUsingRgbColorOrder();
+    // Returns true if we are using BGR color order
+    bool IsUsingBgrColorOrder();
+
+    // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
+    enum class ColorMapStatsTypeId
+    {
+        FromFullImage,
+        FromVisibleROI
+    };
 
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
@@ -6396,8 +6401,6 @@ namespace ImmVision
 
 namespace ImmVision
 {
-    bool Priv_IsColorOrderBgr();
-
     namespace ImageDrawing
     {
         static float _ImmDrawingFontScaleRatio()
@@ -6605,7 +6608,7 @@ namespace ImmVision
                 {
                     fnSelectChannel();
                     fnAlphaCheckerboard();
-                    bool is_color_order_bgr = Priv_IsColorOrderBgr();
+                    bool is_color_order_bgr = IsUsingBgrColorOrder();
                     finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, is_color_order_bgr);
                 }
                 in_out_rgba_image_cache = finalImage;
@@ -9518,6 +9521,15 @@ This is a required setup step. (Breaking change - October 2024)
         }
         return sUseBgrOrder.value();
     }
+    bool IsUsingRgbColorOrder()
+    {
+        return !Priv_IsColorOrderBgr();
+    }
+    bool IsUsingBgrColorOrder()
+    {
+        return Priv_IsColorOrderBgr();
+    }
+
 
     void ClearTextureCache()
     {
@@ -10759,8 +10771,6 @@ namespace ImmVision
 
 namespace ImmVision
 {
-    bool Priv_IsColorOrderBgr();
-
     namespace ImageWidgets
     {
         void GlTexture_Draw_DisableDragWindow(const GlTexture& texture, const ImVec2 &size, bool disableDragWindow)
@@ -10813,13 +10823,13 @@ namespace ImmVision
             bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
             auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
             auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
-                bool isColorOrderBgr = Priv_IsColorOrderBgr();
+                bool isColorOrderBgr = IsUsingBgrColorOrder();
                 return isColorOrderBgr ?
                        ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
                                               :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
             };
             auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
-                bool isColorOrderBgr = Priv_IsColorOrderBgr();
+                bool isColorOrderBgr = IsUsingBgrColorOrder();
                 return isColorOrderBgr ?
                        ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
                                               :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));

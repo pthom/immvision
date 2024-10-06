@@ -15,13 +15,6 @@
 
 namespace ImmVision
 {
-    // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
-    enum class ColorMapStatsTypeId
-    {
-        FromFullImage,
-        FromVisibleROI
-    };
-
     // Set the color order for displayed images.
     // You **must** call once at the start of your program:
     //     ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
@@ -29,6 +22,18 @@ namespace ImmVision
     // (Breaking change - October 2024)
     void UseRgbColorOrder();
     void UseBgrColorOrder();
+
+    // Returns true if we are using RGB color order
+    bool IsUsingRgbColorOrder();
+    // Returns true if we are using BGR color order
+    bool IsUsingBgrColorOrder();
+
+    // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
+    enum class ColorMapStatsTypeId
+    {
+        FromFullImage,
+        FromVisibleROI
+    };
 
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
