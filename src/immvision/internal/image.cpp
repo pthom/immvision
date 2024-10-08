@@ -17,6 +17,7 @@
 #include "imgui_internal.h"
 
 #include <map>
+#include <stack>
 #include <vector>
 #include <optional>
 #include <iostream>
@@ -27,15 +28,46 @@
 
 namespace ImmVision
 {
-    // With Image and ImageDisplay we can rely on the ID stack,
-    // since calls to Image & ImageDisplay will have a reproducible id stack
-    static bool sDoUseIdStack = true;
+    // ================================ Color Order stuff ================================
+
+    enum class PrivColorOrder
+    {
+        RGB,
+        BGR
+    };
+
+    std::stack<PrivColorOrder> sColorOrderStack;
+
+    void PushColorOrderRgb()
+    {
+        sColorOrderStack.push(PrivColorOrder::RGB);
+    }
+    void PushColorOrderBgr()
+    {
+        sColorOrderStack.push(PrivColorOrder::BGR);
+    }
+    void PopColorOrder()
+    {
+        if (sColorOrderStack.empty())
+        {
+            const char* errorMessage = R"(
+Error in ImmVision
+==================
+PopColorOrder() called too many times. The color order stack is empty.
+
+Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a PopColorOrder() call.
+)";
+            fprintf(stderr, "%s", errorMessage);
+            throw std::runtime_error(errorMessage);
+        }
+        sColorOrderStack.pop();
+    }
 
 
-    static std::optional<bool> sUseBgrOrder = std::nullopt;
-    void UseRgbColorOrder() { sUseBgrOrder = false; }
-    void UseBgrColorOrder() { sUseBgrOrder = true; }
-    bool Priv_IsColorOrderBgr()
+    void UseRgbColorOrder() { PushColorOrderRgb(); }
+    void UseBgrColorOrder() { PushColorOrderBgr(); }
+
+    static bool Priv_IsColorOrderBgr()
     {
         const char* errorMessage = R"(
 Error in ImmVision
@@ -47,12 +79,12 @@ or
 
 This is a required setup step. (Breaking change - October 2024)
 )";
-        if (!sUseBgrOrder.has_value())
+        if (sColorOrderStack.empty())
         {
             fprintf(stderr, "%s", errorMessage);
             throw std::runtime_error(errorMessage);
         }
-        return sUseBgrOrder.value();
+        return sColorOrderStack.top() == PrivColorOrder::BGR;
     }
     bool IsUsingRgbColorOrder()
     {
@@ -62,6 +94,17 @@ This is a required setup step. (Breaking change - October 2024)
     {
         return Priv_IsColorOrderBgr();
     }
+    bool IsColorOrderUndefined()
+    {
+        return sColorOrderStack.empty();
+    }
+
+
+    // ================================ Rest ================================
+
+    // With Image and ImageDisplay we can rely on the ID stack,
+    // since calls to Image & ImageDisplay will have a reproducible id stack
+    static bool sDoUseIdStack = true;
 
 
     void ClearTextureCache()

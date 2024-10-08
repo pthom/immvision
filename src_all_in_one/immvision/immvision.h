@@ -35,6 +35,13 @@ namespace ImmVision
     bool IsUsingRgbColorOrder();
     // Returns true if we are using BGR color order
     bool IsUsingBgrColorOrder();
+    // Returns true if the color order is undefined (i.e. UseRgbColorOrder or UseBgrColorOrder was not called)
+    bool IsColorOrderUndefined();
+
+    // Temporary change of color order (useful for displaying a single image with a different color order)
+    void PushColorOrderRgb();
+    void PushColorOrderBgr();
+    void PopColorOrder();
 
     // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
     enum class ColorMapStatsTypeId
