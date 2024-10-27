@@ -470,7 +470,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (!params->ZoomWithMouseWheel)
                 return;
-            ImGui::SetItemUsingMouseWheel();
+            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY); // i.e. old ImGui::SetItemUsingMouseWheel();
 
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
