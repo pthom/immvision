@@ -173,7 +173,6 @@ namespace ImmVision
             // the orientation of the vertical arrow and horizontal axes, we take the easy route:
             // first resize the image and then place it at the correct location in the final image.
 
-
             // first, compute the resized image size by using the transformation matrix.
             cv::Point2d tl = ZoomPanTransform::Apply(m, cv::Point2d(0., 0.));
             cv::Point2d br = ZoomPanTransform::Apply(m, cv::Point2d((double)src.cols, (double)src.rows));
@@ -181,7 +180,12 @@ namespace ImmVision
 
             // then, resize the image
             cv::Mat resized;
-            cv::resize(src, resized, resizedSize, 0, 0, cv::INTER_AREA);
+            if (resizedSize.area() == 0)
+            {
+                resized = cv::Mat::zeros(1, 1, src.type());
+            }
+            else
+                cv::resize(src, resized, resizedSize, 0, 0, cv::INTER_AREA);
 
             // then, place the resized image at the correct location in the final image.
             cv::Matx23d translation = cv::Matx23d::eye();

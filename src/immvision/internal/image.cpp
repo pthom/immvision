@@ -475,8 +475,21 @@ This is a required setup step. (Breaking change - October 2024)
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
                 double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.;
-                params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
                 ImGui::GetIO().MouseWheel = 0.f;
+
+                double currentZoom = params->ZoomPanMatrix(0, 0);
+                bool isZoomIn = zoomRatio > 0.;
+
+                bool refuseZoom;
+                {
+                    if (isZoomIn)
+                        refuseZoom = currentZoom > 5000.;
+                    else
+                        refuseZoom = currentZoom < 0.005;
+                }
+                if (refuseZoom)
+                    return;
+                params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
             }
         };
         auto fnShowZoomButtons = [&params, &image]()

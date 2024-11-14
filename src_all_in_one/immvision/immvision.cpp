@@ -6322,7 +6322,6 @@ namespace ImmVision
             // the orientation of the vertical arrow and horizontal axes, we take the easy route:
             // first resize the image and then place it at the correct location in the final image.
 
-
             // first, compute the resized image size by using the transformation matrix.
             cv::Point2d tl = ZoomPanTransform::Apply(m, cv::Point2d(0., 0.));
             cv::Point2d br = ZoomPanTransform::Apply(m, cv::Point2d((double)src.cols, (double)src.rows));
@@ -6330,7 +6329,12 @@ namespace ImmVision
 
             // then, resize the image
             cv::Mat resized;
-            cv::resize(src, resized, resizedSize, 0, 0, cv::INTER_AREA);
+            if (resizedSize.area() == 0)
+            {
+                resized = cv::Mat::zeros(1, 1, src.type());
+            }
+            else
+                cv::resize(src, resized, resizedSize, 0, 0, cv::INTER_AREA);
 
             // then, place the resized image at the correct location in the final image.
             cv::Matx23d translation = cv::Matx23d::eye();
@@ -9949,8 +9953,21 @@ This is a required setup step. (Breaking change - October 2024)
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
                 double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.;
-                params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
                 ImGui::GetIO().MouseWheel = 0.f;
+
+                double currentZoom = params->ZoomPanMatrix(0, 0);
+                bool isZoomIn = zoomRatio > 0.;
+
+                bool refuseZoom;
+                {
+                    if (isZoomIn)
+                        refuseZoom = currentZoom > 5000.;
+                    else
+                        refuseZoom = currentZoom < 0.005;
+                }
+                if (refuseZoom)
+                    return;
+                params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
             }
         };
         auto fnShowZoomButtons = [&params, &image]()
