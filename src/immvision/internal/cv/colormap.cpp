@@ -12,6 +12,8 @@
 #include <opencv2/core.hpp>
 #include <array>
 #include <optional>
+#include <math.h>
+#include <stdio.h>
 
 namespace ImmVision
 {
@@ -252,10 +254,10 @@ namespace ImmVision
                 return _ApplyColormap<float>(m, settings);
             else if (m.depth() == CV_64F)
                 return _ApplyColormap<double>(m, settings);
-#ifdef CV_16F
-            else if (m.depth() == CV_16F)
-                return _ApplyColormap<cv::float16_t>(m, settings);
-#endif
+// #ifdef CV_16F
+//             else if (m.depth() == CV_16F)
+//                 return _ApplyColormap<cv::float16_t>(m, settings);
+// #endif
             else
             {
                 assert(false);

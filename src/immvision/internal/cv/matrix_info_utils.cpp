@@ -79,10 +79,10 @@ namespace ImmVision
                 return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
             else if (depth == CV_16S)
                 return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
-#if CV_MAJOR_VERSION >= 4
-                else if (depth == CV_16F)
-                return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
-#endif
+// #if CV_MAJOR_VERSION >= 4
+//                 else if (depth == CV_16F)
+//                 return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
+// #endif
             else if (depth == CV_32S)
                 return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
             else if (depth == CV_32F)

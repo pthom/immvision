@@ -4845,10 +4845,10 @@ namespace ImmVision
                 return _ApplyColormap<float>(m, settings);
             else if (m.depth() == CV_64F)
                 return _ApplyColormap<double>(m, settings);
-#ifdef CV_16F
-            else if (m.depth() == CV_16F)
-                return _ApplyColormap<cv::float16_t>(m, settings);
-#endif
+// #ifdef CV_16F
+//             else if (m.depth() == CV_16F)
+//                 return _ApplyColormap<cv::float16_t>(m, settings);
+// #endif
             else
             {
                 assert(false);
@@ -6039,10 +6039,10 @@ namespace ImmVision
                 return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
             else if (depth == CV_16S)
                 return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
-#if CV_MAJOR_VERSION >= 4
-                else if (depth == CV_16F)
-                return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
-#endif
+// #if CV_MAJOR_VERSION >= 4
+//                 else if (depth == CV_16F)
+//                 return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
+// #endif
             else if (depth == CV_32S)
                 return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
             else if (depth == CV_32F)
