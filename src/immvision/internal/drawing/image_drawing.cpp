@@ -106,7 +106,11 @@ namespace ImmVision
                         cv::Scalar white(255, 255, 255, 255);
                         cv::Scalar black(0, 0, 0, 255);
                         cv::Vec4b backgroundColor(0, 0, 0, 0);
-                        if ( cv::Rect(cv::Point(), drawingImage.size()).contains({(int)position.x, (int)position.y}))
+#if (CV_VERSION_MAJOR >= 5) || (CV_VERSION_MAJOR == 4 && CV_VERSION_MAJOR >= 11)
+                        if (cv::Rect(cv::Point(), drawingImage.size()).contains({position.x, position.y}))
+#else
+                        if (cv::Rect(cv::Point(), drawingImage.size()).contains({(int)position.x, (int)position.y}))
+#fi
                             backgroundColor = drawingImage.at<cv::Vec4b>((int)position.y, (int)position.x);
                         double luminance = backgroundColor[2] * 0.2126 + backgroundColor[1] * 0.7152 + backgroundColor[0] * 0.0722;
                         if (luminance > 170.)
