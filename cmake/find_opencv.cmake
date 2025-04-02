@@ -167,7 +167,7 @@ macro(immvision_fetch_opencv_from_source)
     FetchContent_Declare(
         OpenCV_Fetch
         GIT_REPOSITORY ${immvision_opencv_git_repo}
-        GIT_TAG 4.6.0
+        GIT_TAG 4.11.0
         # GIT_REMOTE_UPDATE_STRATEGY REBASE
     )
     # It is not possible to build opencv completely via FetchContent_MakeAvailable,
