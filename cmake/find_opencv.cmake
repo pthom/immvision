@@ -85,7 +85,14 @@ macro(immvision_download_emscripten_precompiled_opencv_4_9_0)
     include(FetchContent)
     Set(FETCHCONTENT_QUIET FALSE)
     option(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD "" OFF)
-    if(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD)
+    if (IMGUI_BUNDLE_BUILD_PYODIDE)
+        FetchContent_Declare(
+            opencv_package_emscripten
+            DOWNLOAD_EXTRACT_TIMESTAMP ON
+            URL https://github.com/pthom/imgui_bundle/releases/download/v1.6.2/opencv_4.11_wasmexcept_pthread_fpic_emscripten_minimalist_install.tgz
+            URL_MD5 c3ff4526ec6638a786f21438f5e1b1cb
+        )
+    elseif(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD)
         FetchContent_Declare(
             opencv_package_emscripten
             DOWNLOAD_EXTRACT_TIMESTAMP ON
@@ -167,7 +174,7 @@ macro(immvision_fetch_opencv_from_source)
     FetchContent_Declare(
         OpenCV_Fetch
         GIT_REPOSITORY ${immvision_opencv_git_repo}
-        GIT_TAG 4.11.0
+        GIT_TAG 4.6.0
         # GIT_REMOTE_UPDATE_STRATEGY REBASE
     )
     # It is not possible to build opencv completely via FetchContent_MakeAvailable,
