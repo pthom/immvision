@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-         platform: [windows-2019, macos-latest, ubuntu-latest]
+         platform: [windows-latest, macos-latest, ubuntu-latest]
          # platform: [ubuntu-latest]
 
     steps:
