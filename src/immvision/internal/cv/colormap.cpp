@@ -422,7 +422,7 @@ namespace ImmVision
         void DrawColorTabsSubtitles(const std::string &title, float availableGuiWidth)
         {
             ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-            ImVec4 backColor = ImGui::GetStyleColorVec4(ImGuiCol_TabActive);
+            ImVec4 backColor = ImGui::GetStyleColorVec4(ImGuiCol_TabSelected);
             backColor.w = 0.3f;
 
             // background rect

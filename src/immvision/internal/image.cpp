@@ -509,7 +509,7 @@ This is a required setup step. (Breaking change - October 2024)
                     cv::Point2d zoomCenter = params->WatchedPixels.empty() ?
                                 viewportCenter_originalImage
                             :   cv::Point2d(params->WatchedPixels.back());
-                    ImGui::PushButtonRepeat(true);
+                    ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
                     if (Icons::IconButton(Icons::IconType::ZoomPlus))
                         zoomMatrix = zoomMatrix * ZoomPanTransform::ComputeZoomMatrix(zoomCenter, 1.1);
 
@@ -518,7 +518,7 @@ This is a required setup step. (Breaking change - October 2024)
                     if (Icons::IconButton(Icons::IconType::ZoomMinus))
                         zoomMatrix = zoomMatrix * ZoomPanTransform::ComputeZoomMatrix(zoomCenter, 1. / 1.1);
 
-                    ImGui::PopButtonRepeat();
+                    ImGui::PopItemFlag();
                 }
                 ImGui::SameLine();
                 // Scale1 & Full View Zoom  buttons
