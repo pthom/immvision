@@ -588,6 +588,7 @@ This is a required setup step. (Breaking change - October 2024)
                 ImGui::SetCursorScreenPos(tl);
                 ImGui::InvisibleButton("##resize", zone.GetSize());
                 ImGui::SetCursorScreenPos(cursorPos);
+                ImGui::Dummy(ImVec2(0.f, 0.f));
             }
 
             bool isMouseHoveringWidget = ImGui::IsMouseHoveringRect(zone.Min, zone.Max);
