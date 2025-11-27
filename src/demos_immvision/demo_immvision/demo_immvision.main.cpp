@@ -149,5 +149,6 @@ void gui()
 #include "hello_imgui/hello_imgui.h"
 int main()
 {
+    ImmVision::UseBgrColorOrder();
     HelloImGui::Run(gui, "Image processing example", false, false, {1000, 800});
 };

@@ -6,6 +6,10 @@
 
 
 #include <filesystem>
+
+#include "../../immvision/image.h"
+#include "../../immvision/internal/cv/colormap.h"
+
 std::string ResourcesDir()
 {
     std::filesystem::path this_file(__FILE__);
@@ -52,6 +56,7 @@ void gui()
 
 int main(int , char *[])
 {
+    ImmVision::UseBgrColorOrder();
     HelloImGui::Run(gui);
     return 0;
 }
