@@ -24,8 +24,8 @@ namespace ImmVision_GlProvider
         if ((glGenTexturesAddress == 0) || (glDeleteTexturesAddress == 0))
         {
 #if defined(IMMVISION_USE_GLAD)
-            fprintf(stderr, "OpenGL Loader was not initialized yet! Trying to initialize it with current OpenGL settings...\n"
-                            "This may fail. If it does, please make sure to call OpenGL functions after the app is initialized.\n");
+            // fprintf(stderr, "OpenGL Loader was not initialized yet! Trying to initialize it with current OpenGL settings...\n"
+            //                 "This may fail. If it does, please make sure to call OpenGL functions after the app is initialized.\n");
             gladLoadGL();
             glGenTexturesAddress = (size_t)glGenTextures;
             glDeleteTexturesAddress = (size_t)glDeleteTextures;
