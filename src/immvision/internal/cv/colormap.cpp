@@ -278,6 +278,8 @@ namespace ImmVision
         ImageStats FillImageStats(const cv::Mat& m)
         {
             assert(m.channels() == 1);
+            if (m.empty())
+                return {0.0, 0.0, 0.0, 0.0};
             ImageStats r;
             cv::minMaxLoc(m, &r.min, &r.max);
             cv::Scalar mean, deviation;
