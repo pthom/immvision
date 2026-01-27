@@ -9,28 +9,11 @@
 #   and opencv-contrib-python-headless) is the pip package providing opencv:
 #   when installed it comes with a dll, or an .so file (cv2.abi3.so)
 #
-# - when building wheels for macos and linux, the env variable
-#  IMGUIBUNDLE_OPENCV_FETCH_SOURCE is set before running pip.
-#  This way, a static minimal version of opencv will be linked into _imgui_bundle.so.
+# - when building wheels for macos and linux, and when fetching OpenCV from source,
+#  a static minimal version of opencv will be linked into _imgui_bundle.so.
 #  Thus there is no risk of doubly defined functions:
 #     imgui_bundle will search into the linked functions inside _imgui_bundle.so,
 #     and opencv-python and co will search inside cv2.abi3.so.
-#
-# - when building wheels for windows, the env variable
-#   IMGUIBUNDLE_OPENCV_WIN_USE_OFFICIAL_PREBUILT_460 is set before running pip.
-#   This way, an official release from OpenCV 4.6.0 for windows will be downloaded.
-#   It includes an "opencv_world.dll" (a dll that groups all the code for all OpenCV modules).
-#   This dll is deployed into imgui_bundle package (under windows)
-#   No warning about doubly defined function was (yet?) observed, although a static link
-#   might be needed in the future.
-#   "Funny" note on how to set this env var under windows: choose your poison
-#     * with PowerShell
-#	      Set-Item -Path 'Env:IMGUIBUNDLE_OPENCV_WIN_USE_OFFICIAL_PREBUILT_460' -Value 'ON'
-#     * With bash:
-#	      export IMGUIBUNDLE_OPENCV_WIN_USE_OFFICIAL_PREBUILT_460=ON
-#      * With dos:
-#         set IMGUIBUNDLE_OPENCV_WIN_USE_OFFICIAL_PREBUILT_460=ON
-# 
 ###############################################################################
 
 
