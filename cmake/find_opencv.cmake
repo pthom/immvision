@@ -4,6 +4,10 @@
 # For an overview of how OpenCV is obtained for each platform, see:
 #   docs/book/devel_docs/build_opencv_immvision.md (in imgui_bundle)
 
+# Capture this directory at include-time (not inside a macro, where
+# CMAKE_CURRENT_LIST_DIR would resolve to the *caller's* directory).
+set(_find_opencv_dir "${CMAKE_CURRENT_LIST_DIR}")
+
 ###############################################################################
 # Note about pip and wheel builds:
 #
@@ -99,178 +103,55 @@ endmacro()
 
 
 macro(immvision_fetch_opencv_from_source)
-    # Will fetch, build and install a very-minimalist OpenCV
-    # It is so minimalist that it is only usable within the python bindings!!!
-    # It will contain only opencv_core (core), opencv_imgcodecs (load/save), and opencv_imgproc (affine transforms, etc)
-    # Mainly used for wheel builds.
-    # Build opencv with only opencv_core, opencv_imgproc and opencv_imgcodecs
-    # Note: these flags are duplicated in ci/build_opencv_for_ci.sh
-    # See docs/book/devel_docs/build_opencv_immvision.md for the full picture.
-    set(opencv_cmake_args
-        -DCMAKE_BUILD_TYPE=Release
-        -DINSTALL_CREATE_DISTRIB=ON
-        -DBUILD_SHARED_LIBS=OFF
+    # Fetch, build and install a very-minimalist OpenCV via ci/build_opencv.sh
+    # (one script used by both CMake and CI — see docs/book/devel_docs/build_opencv_immvision.md)
+    set(opencv_install_dir "${CMAKE_BINARY_DIR}/_deps/opencv_fetch-install")
 
-        -DBUILD_opencv_apps=OFF
-        -DBUILD_TESTS=OFF
-        -DBUILD_PERF_TESTS=OFF
+    # Locate the build script (same directory as this cmake file)
+    set(_build_opencv_script "${_find_opencv_dir}/build_opencv.sh")
 
-        -DWITH_OPENJPEG=OFF
-        -DWITH_JASPER=OFF
-        -DWITH_1394=OFF
-        -DWITH_AVFOUNDATION=OFF
-        -DWITH_CAP_IOS=OFF
-        -DWITH_VTK=OFF
-        -DWITH_CUDA=OFF
-        -DWITH_CUFFT=OFF
-        -DWITH_CUBLAS=OFF
-        -DWITH_EIGEN=OFF
-        -DWITH_FFMPEG=OFF
-        -DWITH_GSTREAMER=OFF
-        -DWITH_GTK=OFF
-        -DWITH_GTK_2_X=OFF
-        -DWITH_HALIDE=OFF
-        -DWITH_VULKAN=OFF
-        -DWITH_OPENEXR=OFF
-        -DWITH_ADE=OFF
-
-        -DWITH_AVIF=OFF
-        -DWITH_AOM=OFF
-        -DWITH_VMAF=OFF
-        -DWITH_TIFF=OFF
-        -DWITH_WEBP=OFF
-        -DWITH_PROTOBUF=OFF
-
-        # force OpenCV to build its internal JPEG/PNG
-        -DWITH_JPEG=ON
-        -DBUILD_JPEG=ON
-        -DWITH_PNG=ON
-        -DBUILD_PNG=ON
-
-        -DBUILD_opencv_python2=OFF
-        -DBUILD_opencv_python3=OFF
-        -DBUILD_opencv_features2d=OFF
-        -DBUILD_opencv_calib3d=OFF
-        -DBUILD_opencv_dnn=OFF
-        -DBUILD_opencv_flann=OFF
-        -DBUILD_opencv_gapi=OFF
-        -DBUILD_opencv_highgui=OFF
-        -DBUILD_opencv_java=OFF
-        -DBUILD_opencv_js=OFF
-        -DBUILD_opencv_ml=OFF
-        -DBUILD_opencv_objc=OFF
-        -DBUILD_opencv_objdetect=OFF
-        -DBUILD_opencv_photo=OFF
-        -DBUILD_opencv_python=OFF
-        -DBUILD_opencv_stiching=OFF
-        -DBUILD_opencv_video=OFF
-        -DBUILD_opencv_videoio=OFF
-        -DBUILD_opencv_js=OFF
-    )
-
+    # Build script args
+    set(_script_args "")
     if (IMMVISION_FETCH_OPENCV_FULL)
-        # less minimal build
-        set(opencv_cmake_args -DCMAKE_BUILD_TYPE=Release -DBUILD_opencv_apps=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF)
+        list(APPEND _script_args "--full")
     endif()
 
-    # Pass current compilation flags to OpenCV compilation
-    # For example, when compiling x86_64 on a Mac M1 (arm64), we have the following variable set
-    #    CMAKE_HOST_SYSTEM_PROCESSOR=x86_64  # Host compiler architecture
-    #    CMAKE_SYSTEM_PROCESSOR=x86_64       # Target architecture (but not always)
-    #    CMAKE_OSX_DEPLOYMENT_TARGET=10.16   # MacOS specific
-    #    CMAKE_OSX_ARCHITECTURES=x86_64      # This is the target architecture (Mac Only)
-    set(compile_arch_flags_to_pass
-        CMAKE_HOST_SYSTEM_PROCESSOR
-        CMAKE_SYSTEM_PROCESSOR
-        CMAKE_OSX_DEPLOYMENT_TARGET
-        CMAKE_OSX_ARCHITECTURES
-        )
-
+    # Forward architecture flags (needed for macOS cross-compilation)
     # Note: we cannot compile universal2 wheels at this time, because CMake confuses itself
     # The incoming CMAKE_OSX_ARCHITECTURES is "x86_64;arm64"
     # However, it is difficult to pass it as is to the cmake args for OpenCV,
     # since CMake happily splits it in two...
-
-    foreach(compile_arch_flag ${compile_arch_flags_to_pass})
-        if (DEFINED ${compile_arch_flag})
-            if (NOT ${compile_arch_flag} STREQUAL "")
-                list(APPEND opencv_cmake_args -D${compile_arch_flag}=${${compile_arch_flag}})
-                # message(WARNING "list(APPEND opencv_cmake_args -D${compile_arch_flag}=${${compile_arch_flag}})")
-            endif()
+    foreach(flag CMAKE_HOST_SYSTEM_PROCESSOR CMAKE_SYSTEM_PROCESSOR CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_ARCHITECTURES)
+        if (DEFINED ${flag} AND NOT "${${flag}}" STREQUAL "")
+            list(APPEND _script_args "-D${flag}=${${flag}}")
         endif()
     endforeach()
 
+    # Forward IMMVISION_OPENCV_GIT_REPO cmake variable to environment (script reads env)
+    if(DEFINED IMMVISION_OPENCV_GIT_REPO AND NOT DEFINED ENV{IMMVISION_OPENCV_GIT_REPO})
+        set(ENV{IMMVISION_OPENCV_GIT_REPO} "${IMMVISION_OPENCV_GIT_REPO}")
+    endif()
+
     message("
     -----------------------------------------------------------------------
-    immvision_fetch_opencv_from_source: opencv_cmake_args=
-        ${opencv_cmake_args}
+    immvision_fetch_opencv_from_source:
+        script=${_build_opencv_script}
+        install_dir=${opencv_install_dir}
+        extra_args=${_script_args}
     -----------------------------------------------------------------------
     ")
 
-    include(FetchContent)
-    Set(FETCHCONTENT_QUIET FALSE)
-
-    # Make it possible to use another opencv repo: to speedup transfer times, you can use a local git server
-    set(immvision_opencv_git_repo https://github.com/opencv/opencv.git)
-    if(DEFINED ENV{IMMVISION_OPENCV_GIT_REPO})
-        set(immvision_opencv_git_repo $ENV{IMMVISION_OPENCV_GIT_REPO})
-    elseif(DEFINED IMMVISION_OPENCV_GIT_REPO)
-        set(immvision_opencv_git_repo ${IMMVISION_OPENCV_GIT_REPO})
-    endif()
-
-    FetchContent_Declare(
-        OpenCV_Fetch
-        GIT_REPOSITORY ${immvision_opencv_git_repo}
-        GIT_TAG 4.11.0
-        # GIT_REMOTE_UPDATE_STRATEGY REBASE
-    )
-    # It is not possible to build opencv completely via FetchContent_MakeAvailable,
-    # since the opencv include folder is populated only at opencv install!
-    FetchContent_Populate(OpenCV_Fetch)
-
-    # Neither FetchContent, nor ExternalProject permit to install OpenCV before the generation step.
-    # So we have to build and install OpenCV manually
-    # (Note: it is likely that cmake arch options may need to be transferred to this sub-build)
-    set(opencv_src_dir "${CMAKE_BINARY_DIR}/_deps/opencv_fetch-src")
-    set(opencv_build_dir "${CMAKE_BINARY_DIR}/_deps/opencv_fetch-build")
-    set(opencv_install_dir "${CMAKE_BINARY_DIR}/_deps/opencv_fetch-install")
-
-    # cmake
     execute_process(
-        COMMAND ${CMAKE_COMMAND} ${opencv_src_dir} -DCMAKE_INSTALL_PREFIX=${opencv_install_dir} ${opencv_cmake_args}
-        WORKING_DIRECTORY ${opencv_build_dir}
+        COMMAND bash "${_build_opencv_script}" "${opencv_install_dir}" ${_script_args}
         RESULT_VARIABLE result
     )
-    if (NOT ${result} EQUAL "0")
-        message(FATAL_ERROR "my_checked_execute_process_check failed during cmake")
-    endif()
-    # build (use all available cores)
-    include(ProcessorCount)
-    ProcessorCount(NPROC)
-    if(NOT NPROC OR NPROC EQUAL 0)
-        set(NPROC 4)
-    endif()
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} --build . --config Release -j ${NPROC}
-        WORKING_DIRECTORY ${opencv_build_dir}
-        RESULT_VARIABLE result
-    )
-    if (NOT ${result} EQUAL "0")
-        message(FATAL_ERROR "my_checked_execute_process_check failed during build")
-    endif()
-    # install
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} --install .
-        WORKING_DIRECTORY ${opencv_build_dir}
-        RESULT_VARIABLE result
-    )
-    if (NOT ${result} EQUAL "0")
-        message(FATAL_ERROR "my_checked_execute_process_check failed during install")
+    if (NOT result EQUAL 0)
+        message(FATAL_ERROR "build_opencv.sh failed")
     endif()
 
+    # Point find_package to the install
     if (WIN32)
         set(OpenCV_DIR ${opencv_install_dir})
-        # Under windows, OpenCV will not use the static lib unless we set this variable
         set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
     else()
         if (IS_DIRECTORY ${opencv_install_dir}/lib/cmake/opencv4)
@@ -281,24 +162,8 @@ macro(immvision_fetch_opencv_from_source)
     endif()
     if (NOT EXISTS ${OpenCV_DIR}/OpenCVConfig.cmake)
         message(FATAL_ERROR "
-        immvision_fetch_opencv_from_source: can't find OpenCvConfig.cmake
+        immvision_fetch_opencv_from_source: can't find OpenCVConfig.cmake
         ")
-    endif()
-
-
-    # Since we build a minimalist version of OpenCV,
-    # find_package(OpenCV) may fail because these files do not exist
-    # We create dummy versions, since we do not use them
-    file(WRITE ${opencv_install_dir}/lib/opencv4/3rdparty/liblibprotobuf.a "dummy")
-    file(WRITE ${opencv_install_dir}/lib/opencv4/3rdparty/libquirc.a "dummy")
-    file(WRITE ${opencv_install_dir}/lib/opencv4/3rdparty/libade.a "dummy")
-    file(WRITE ${opencv_install_dir}/lib64/opencv4/3rdparty/liblibprotobuf.a "dummy")
-    file(WRITE ${opencv_install_dir}/lib64/opencv4/3rdparty/libquirc.a "dummy")
-    file(WRITE ${opencv_install_dir}/lib64/opencv4/3rdparty/libade.a "dummy")
-    if (WIN32)
-        file(WRITE ${opencv_install_dir}/x64/vc17/staticlib/libprotobuf.lib "dummy")
-        file(WRITE ${opencv_install_dir}/x64/vc17/staticlib/quirc.lib "dummy")
-        file(WRITE ${opencv_install_dir}/x64/vc17/staticlib/ade.lib "dummy")
     endif()
 endmacro()
 
