@@ -94,9 +94,9 @@ else
         -DBUILD_JPEG=ON
         -DWITH_PNG=ON
         -DBUILD_PNG=ON
-        -DWITH_SIMD=OFF  # Disabled on all platforms: avoids cross-compilation SIMD mismatch
-                         # on Windows (ARM64 host → x64 target). Perf impact is negligible
-                         # for this minimalist OpenCV (image loading only).
+        -DWITH_SIMD=OFF      # Avoids cross-compilation SIMD mismatch (e.g. ARM64 host → x64 target)
+        -DWITH_KLEIDICV=OFF  # KleidiCV is an ARM NEON HAL new in OpenCV 4.13; fails on x86_64 cross-builds
+        -DWITH_IPP=OFF       # Not needed for minimalist build
 
         -DBUILD_opencv_python2=OFF
         -DBUILD_opencv_python3=OFF
