@@ -67,6 +67,7 @@ else
     OPENCV_CMAKE_ARGS=(
         -DINSTALL_CREATE_DISTRIB=ON
         -DBUILD_SHARED_LIBS=OFF
+        -DBUILD_WITH_STATIC_CRT=OFF  # Use /MD (dynamic CRT) — required for Python extensions on Windows
         -DBUILD_opencv_apps=OFF
         -DBUILD_TESTS=OFF
         -DBUILD_PERF_TESTS=OFF
