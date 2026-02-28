@@ -304,6 +304,11 @@ endmacro()
 
 
 macro(immvision_find_opencv)
+    # Forward OpenCV_STATIC from environment (used by CI pre-built static OpenCV on Windows)
+    if(DEFINED ENV{OpenCV_STATIC})
+        set(OpenCV_STATIC "$ENV{OpenCV_STATIC}" CACHE BOOL "" FORCE)
+    endif()
+
     if (EMSCRIPTEN AND IMMVISION_FETCH_OPENCV)
         find_package(OpenCV QUIET)
         if (NOT OpenCV_FOUND)
