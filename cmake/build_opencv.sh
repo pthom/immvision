@@ -30,7 +30,7 @@ if [ "${1:-}" = "--full" ]; then
 fi
 EXTRA_CMAKE_ARGS=("$@")
 
-OPENCV_VERSION="4.11.0"
+OPENCV_VERSION="4.13.0"
 WORK_DIR=$(mktemp -d)
 SRC_DIR="$WORK_DIR/opencv-$OPENCV_VERSION"
 BUILD_DIR="$WORK_DIR/opencv_build"
@@ -46,12 +46,6 @@ fi
 
 mkdir -p "$BUILD_DIR"
 
-# Platform defaults
-PLATFORM_CMAKE_ARGS=()
-if [[ "$(uname -o 2>/dev/null)" == "Msys" ]] || [[ "$OSTYPE" == msys* ]]; then
-    PLATFORM_CMAKE_ARGS=(-G "Visual Studio 17 2022" -A x64)
-fi
-
 # Parallel jobs
 NPROC=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
@@ -65,7 +59,6 @@ if [ "$FULL_BUILD" = true ]; then
 else
     # Minimalist static OpenCV: only core, imgcodecs, imgproc.
     OPENCV_CMAKE_ARGS=(
-        -DINSTALL_CREATE_DISTRIB=ON
         -DBUILD_SHARED_LIBS=OFF
         -DBUILD_WITH_STATIC_CRT=OFF  # Use /MD (dynamic CRT) — required for Python extensions on Windows
         -DBUILD_opencv_apps=OFF
@@ -101,6 +94,9 @@ else
         -DBUILD_JPEG=ON
         -DWITH_PNG=ON
         -DBUILD_PNG=ON
+        -DWITH_SIMD=OFF  # Disabled on all platforms: avoids cross-compilation SIMD mismatch
+                         # on Windows (ARM64 host → x64 target). Perf impact is negligible
+                         # for this minimalist OpenCV (image loading only).
 
         -DBUILD_opencv_python2=OFF
         -DBUILD_opencv_python3=OFF
@@ -123,9 +119,9 @@ else
     )
 fi
 
-# Configure
+# Configure — no hardcoded generator or architecture; cmake auto-detects the compiler,
+# and the caller passes architecture flags (e.g. -A x64) via EXTRA_CMAKE_ARGS.
 cmake -S "$SRC_DIR" -B "$BUILD_DIR" \
-    "${PLATFORM_CMAKE_ARGS[@]}" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
     -DCMAKE_INSTALL_LIBDIR=lib \
@@ -136,19 +132,13 @@ cmake -S "$SRC_DIR" -B "$BUILD_DIR" \
 cmake --build "$BUILD_DIR" --config Release -j "$NPROC"
 cmake --install "$BUILD_DIR" --config Release
 
-# Create dummy 3rdparty files (OpenCVConfig.cmake references modules we didn't build)
+# Create dummy 3rdparty files (OpenCVConfig.cmake may reference modules we didn't build)
 for dir in lib/opencv4/3rdparty lib64/opencv4/3rdparty; do
     mkdir -p "$INSTALL_DIR/$dir"
-    for f in liblibprotobuf.a libquirc.a libade.a; do
+    for f in liblibprotobuf.a libquirc.a libade.a libprotobuf.lib quirc.lib ade.lib; do
         echo "dummy" > "$INSTALL_DIR/$dir/$f"
     done
 done
-if [[ "$(uname -o 2>/dev/null)" == "Msys" ]] || [[ "$OSTYPE" == msys* ]]; then
-    mkdir -p "$INSTALL_DIR/x64/vc17/staticlib"
-    for f in libprotobuf.lib quirc.lib ade.lib; do
-        echo "dummy" > "$INSTALL_DIR/x64/vc17/staticlib/$f"
-    done
-fi
 
 # Cleanup
 rm -rf "$WORK_DIR"

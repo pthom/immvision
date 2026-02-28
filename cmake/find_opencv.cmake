@@ -24,11 +24,9 @@ set(_find_opencv_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 
 macro(immvision_download_opencv_official_package_win)
-    # Download a precompiled version of opencv4.6.0
-    # This is the official release from OpenCV for windows, under the form of a "opencv_world.dll"
-    # The zip package we download is just a transcription of the exe provided by OpenCV, with the advantage that
-    # it does not require any user click.
-    # Mainly used for wheel builds, but can be used by windows users for their pip build from source
+    # Download a precompiled OpenCV 4.10.0 x64 package (opencv_world.dll).
+    # Used as a fallback for local Windows x64 `pip install` when no system OpenCV is found.
+    # On ARM64, this is skipped (see immvision_find_opencv).
     message("FIND OPENCV use immvision_download_opencv_official_package_win")
 
     include(FetchContent)
@@ -64,12 +62,6 @@ macro(immvision_download_emscripten_precompiled_opencv_4_9_0)
     # (see imgui_bundle/devel_docs/devdoc_parts/emscripten_build.adoc for info on how it was built)
     message("Download a precompiled version of opencv4.9.0 for emscripten")
     check_emscripten_emcc_version()
-
-    # Check that we are using emcc version 3.1.57 or higher
-    execute_process(
-        COMMAND emcc --version
-        OUTPUT_VARIABLE emcc_version
-    )
 
     include(FetchContent)
     Set(FETCHCONTENT_QUIET FALSE)
@@ -116,12 +108,27 @@ macro(immvision_fetch_opencv_from_source)
         list(APPEND _script_args "--full")
     endif()
 
-    # Forward architecture flags (needed for macOS cross-compilation)
-    # Note: we cannot compile universal2 wheels at this time, because CMake confuses itself
-    # The incoming CMAKE_OSX_ARCHITECTURES is "x86_64;arm64"
-    # However, it is difficult to pass it as is to the cmake args for OpenCV,
-    # since CMake happily splits it in two...
-    foreach(flag CMAKE_HOST_SYSTEM_PROCESSOR CMAKE_SYSTEM_PROCESSOR CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_ARCHITECTURES)
+    # Forward architecture flags to the OpenCV build.
+    if (WIN32)
+        # On Windows, forward the VS platform (e.g. -A x64) so the inner cmake
+        # targets the same architecture as the parent. Without this, the VS generator
+        # defaults to the host arch (ARM64 on ARM64 machines).
+        # Note: we do NOT try to override CMAKE_SYSTEM_PROCESSOR — CMake's project()
+        # resets it from the host regardless of -D overrides. The SIMD mismatch
+        # (ARM64 host detected, x64 compiler used) is handled by -DWITH_SIMD=OFF
+        # in build_opencv.sh instead.
+        if (CMAKE_VS_PLATFORM_NAME)
+            list(APPEND _script_args "-A" "${CMAKE_VS_PLATFORM_NAME}")
+        endif()
+    else()
+        # On Unix, forward processor flags (needed for macOS cross-compilation).
+        foreach(flag CMAKE_HOST_SYSTEM_PROCESSOR CMAKE_SYSTEM_PROCESSOR)
+            if (DEFINED ${flag} AND NOT "${${flag}}" STREQUAL "")
+                list(APPEND _script_args "-D${flag}=${${flag}}")
+            endif()
+        endforeach()
+    endif()
+    foreach(flag CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_ARCHITECTURES)
         if (DEFINED ${flag} AND NOT "${${flag}}" STREQUAL "")
             list(APPEND _script_args "-D${flag}=${${flag}}")
         endif()
@@ -141,28 +148,33 @@ macro(immvision_fetch_opencv_from_source)
     -----------------------------------------------------------------------
     ")
 
-    execute_process(
-        COMMAND bash "${_build_opencv_script}" "${opencv_install_dir}" ${_script_args}
-        RESULT_VARIABLE result
-    )
-    if (NOT result EQUAL 0)
-        message(FATAL_ERROR "build_opencv.sh failed")
+    # Use _immvision_bash if set by caller (Windows bash detection), else plain "bash"
+    if(NOT _immvision_bash)
+        set(_immvision_bash bash)
     endif()
 
-    # Point find_package to the install
-    if (WIN32)
-        set(OpenCV_DIR ${opencv_install_dir})
-        set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
+    execute_process(
+        COMMAND "${_immvision_bash}" "${_build_opencv_script}" "${opencv_install_dir}" ${_script_args}
+        RESULT_VARIABLE result
+        COMMAND_ECHO STDOUT
+    )
+    if (NOT result EQUAL 0)
+        message(FATAL_ERROR "build_opencv.sh failed (exit code ${result})")
     else()
-        if (IS_DIRECTORY ${opencv_install_dir}/lib/cmake/opencv4)
-            set(OpenCV_DIR ${opencv_install_dir}/lib/cmake/opencv4)
-        elseif(IS_DIRECTORY ${opencv_install_dir}/lib64/cmake/opencv4)
-            set(OpenCV_DIR ${opencv_install_dir}/lib64/cmake/opencv4)
-        endif()
+        message(STATUS "build_opencv.sh succeeded")
     endif()
-    if (NOT EXISTS ${OpenCV_DIR}/OpenCVConfig.cmake)
+
+    # Point find_package to the freshly built OpenCV.
+    # The install layout varies by platform and OpenCV config, so search for it.
+    set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
+    file(GLOB_RECURSE _opencv_configs "${opencv_install_dir}/OpenCVConfig.cmake")
+    if (_opencv_configs)
+        list(GET _opencv_configs 0 _opencv_config)
+        get_filename_component(OpenCV_DIR "${_opencv_config}" DIRECTORY)
+        message(STATUS "Found OpenCVConfig.cmake at ${OpenCV_DIR}")
+    else()
         message(FATAL_ERROR "
-        immvision_fetch_opencv_from_source: can't find OpenCVConfig.cmake
+        immvision_fetch_opencv_from_source: can't find OpenCVConfig.cmake under ${opencv_install_dir}
         ")
     endif()
 endmacro()
@@ -186,8 +198,38 @@ macro(immvision_find_opencv)
                 set(fetch_opencv ON)
             endif()
             if(WIN32 AND fetch_opencv)
-                immvision_download_opencv_official_package_win() # will download prebuilt package
-                # oldie_immvision_forward_opencv_env_variables()
+                # On ARM64, skip the precompiled x64 package — go straight to source build.
+                # The precompiled package is x64-only and its deep directory tree triggers
+                # Windows MAX_PATH cleanup failures in scikit-build-core.
+                set(_skip_precompiled OFF)
+                if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
+                    set(_skip_precompiled ON)
+                endif()
+                if(NOT _skip_precompiled)
+                    immvision_download_opencv_official_package_win() # will download prebuilt package
+                    find_package(OpenCV QUIET)
+                endif()
+                if(NOT OpenCV_FOUND)
+                    # Precompiled package incompatible or skipped, try source build.
+                    # Find bash: on Windows, Git/bin/bash.exe isn't on PATH by default,
+                    # but git.exe (in Git/cmd/) is. Derive bash location from git.
+                    find_program(_bash_exe bash)
+                    if(NOT _bash_exe)
+                        find_program(_git_exe git)
+                        if(_git_exe)
+                            get_filename_component(_git_dir "${_git_exe}" DIRECTORY)
+                            get_filename_component(_git_root "${_git_dir}" DIRECTORY)
+                            find_program(_bash_exe bash HINTS "${_git_root}/bin")
+                        endif()
+                    endif()
+                    if(_bash_exe)
+                        message("Building OpenCV from source (bash=${_bash_exe})...")
+                        set(_immvision_bash "${_bash_exe}")
+                        immvision_fetch_opencv_from_source()
+                    else()
+                        message("Cannot build OpenCV from source: bash not found.")
+                    endif()
+                endif()
             elseif(fetch_opencv)
                 immvision_fetch_opencv_from_source()  # Will fetch, build and install OpenCV if IMMVISION_FETCH_OPENCV
             endif()
@@ -240,26 +282,4 @@ macro(immvision_find_opencv)
     endif()
 endmacro()
 
-
-macro(oldie_immvision_forward_opencv_env_variables)
-    # Forward environment variable to standard variables that are used by OpenCVConfig.cmake
-    # This is useful when building the pip package for which only env variables are available
-    # (this is deprecated, but may prove useful when building for windows Arm64)
-    if(DEFINED ENV{OpenCV_DIR})
-        set(OpenCV_DIR "$ENV{OpenCV_DIR}")
-        message("immvision_forward_opencv_env_variables: Forwarding env OpenCV_DIR=${OpenCV_DIR}")
-    endif()
-
-    if(DEFINED ENV{OpenCV_STATIC})
-        set(OpenCV_STATIC "$ENV{OpenCV_STATIC}")
-        message("immvision_forward_opencv_env_variables: Forwarding env OpenCV_STATIC=${OpenCV_STATIC}")
-    endif()
-
-    # I know I know, one should not hack CMAKE_GENERATOR_PLATFORM when not doing cross platform builds
-    # But when you want to build for windows ARM64, this is the only option given by OpenCVConfig.cmake...
-    if(DEFINED ENV{CMAKE_GENERATOR_PLATFORM})
-        set(CMAKE_GENERATOR_PLATFORM "$ENV{CMAKE_GENERATOR_PLATFORM}")
-        message("immvision_forward_opencv_env_variables: Forwarding env CMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}")
-    endif()
-endmacro()
 
