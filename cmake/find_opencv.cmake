@@ -1,6 +1,8 @@
 ###############################################################################
 # Get OpenCV package
 ###############################################################################
+# For an overview of how OpenCV is obtained for each platform, see:
+#   docs/book/devel_docs/build_opencv_immvision.md (in imgui_bundle)
 
 ###############################################################################
 # Note about pip and wheel builds:
@@ -102,6 +104,8 @@ macro(immvision_fetch_opencv_from_source)
     # It will contain only opencv_core (core), opencv_imgcodecs (load/save), and opencv_imgproc (affine transforms, etc)
     # Mainly used for wheel builds.
     # Build opencv with only opencv_core, opencv_imgproc and opencv_imgcodecs
+    # Note: these flags are duplicated in ci/build_opencv_for_ci.sh
+    # See docs/book/devel_docs/build_opencv_immvision.md for the full picture.
     set(opencv_cmake_args
         -DCMAKE_BUILD_TYPE=Release
         -DINSTALL_CREATE_DISTRIB=ON
@@ -118,7 +122,7 @@ macro(immvision_fetch_opencv_from_source)
         -DWITH_CAP_IOS=OFF
         -DWITH_VTK=OFF
         -DWITH_CUDA=OFF
-        -DWITH_CUFFT=FALSE
+        -DWITH_CUFFT=OFF
         -DWITH_CUBLAS=OFF
         -DWITH_EIGEN=OFF
         -DWITH_FFMPEG=OFF
@@ -240,9 +244,14 @@ macro(immvision_fetch_opencv_from_source)
     if (NOT ${result} EQUAL "0")
         message(FATAL_ERROR "my_checked_execute_process_check failed during cmake")
     endif()
-    # build
+    # build (use all available cores)
+    include(ProcessorCount)
+    ProcessorCount(NPROC)
+    if(NOT NPROC OR NPROC EQUAL 0)
+        set(NPROC 4)
+    endif()
     execute_process(
-        COMMAND ${CMAKE_COMMAND} --build . --config Release  -j 3
+        COMMAND ${CMAKE_COMMAND} --build . --config Release -j ${NPROC}
         WORKING_DIRECTORY ${opencv_build_dir}
         RESULT_VARIABLE result
     )
