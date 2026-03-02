@@ -99,83 +99,92 @@ macro(immvision_fetch_opencv_from_source)
     # (one script used by both CMake and CI — see docs/book/devel_docs/build_opencv_immvision.md)
     set(opencv_install_dir "${CMAKE_BINARY_DIR}/_deps/opencv_fetch-install")
 
-    # Locate the build script (same directory as this cmake file)
-    set(_build_opencv_script "${_find_opencv_dir}/build_opencv.sh")
-
-    # Build script args
-    set(_script_args "")
-    if (IMMVISION_FETCH_OPENCV_FULL)
-        list(APPEND _script_args "--full")
-    endif()
-
-    # Forward architecture flags to the OpenCV build.
-    if (WIN32)
-        # On Windows, forward the VS platform (e.g. -A x64) so the inner cmake
-        # targets the same architecture as the parent. Without this, the VS generator
-        # defaults to the host arch (ARM64 on ARM64 machines).
-        # Note: we do NOT try to override CMAKE_SYSTEM_PROCESSOR — CMake's project()
-        # resets it from the host regardless of -D overrides. The SIMD mismatch
-        # (ARM64 host detected, x64 compiler used) is handled by -DWITH_SIMD=OFF
-        # in build_opencv.sh instead.
-        if (CMAKE_VS_PLATFORM_NAME)
-            list(APPEND _script_args "-A" "${CMAKE_VS_PLATFORM_NAME}")
-        endif()
+    # Skip if already built (OpenCVConfig.cmake exists in install dir)
+    file(GLOB_RECURSE _existing_opencv_config "${opencv_install_dir}/OpenCVConfig.cmake")
+    if (_existing_opencv_config)
+        list(GET _existing_opencv_config 0 _opencv_config)
+        get_filename_component(OpenCV_DIR "${_opencv_config}" DIRECTORY)
+        message(STATUS "OpenCV already built — reusing ${OpenCV_DIR}")
+        set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
     else()
-        # On Unix, forward processor flags (needed for macOS cross-compilation).
-        foreach(flag CMAKE_HOST_SYSTEM_PROCESSOR CMAKE_SYSTEM_PROCESSOR)
+        # Locate the build script (same directory as this cmake file)
+        set(_build_opencv_script "${_find_opencv_dir}/build_opencv.sh")
+
+        # Build script args
+        set(_script_args "")
+        if (IMMVISION_FETCH_OPENCV_FULL)
+            list(APPEND _script_args "--full")
+        endif()
+
+        # Forward architecture flags to the OpenCV build.
+        if (WIN32)
+            # On Windows, forward the VS platform (e.g. -A x64) so the inner cmake
+            # targets the same architecture as the parent. Without this, the VS generator
+            # defaults to the host arch (ARM64 on ARM64 machines).
+            # Note: we do NOT try to override CMAKE_SYSTEM_PROCESSOR — CMake's project()
+            # resets it from the host regardless of -D overrides. The SIMD mismatch
+            # (ARM64 host detected, x64 compiler used) is handled by -DWITH_SIMD=OFF
+            # in build_opencv.sh instead.
+            if (CMAKE_VS_PLATFORM_NAME)
+                list(APPEND _script_args "-A" "${CMAKE_VS_PLATFORM_NAME}")
+            endif()
+        else()
+            # On Unix, forward processor flags (needed for macOS cross-compilation).
+            foreach(flag CMAKE_HOST_SYSTEM_PROCESSOR CMAKE_SYSTEM_PROCESSOR)
+                if (DEFINED ${flag} AND NOT "${${flag}}" STREQUAL "")
+                    list(APPEND _script_args "-D${flag}=${${flag}}")
+                endif()
+            endforeach()
+        endif()
+        foreach(flag CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_ARCHITECTURES)
             if (DEFINED ${flag} AND NOT "${${flag}}" STREQUAL "")
                 list(APPEND _script_args "-D${flag}=${${flag}}")
             endif()
         endforeach()
-    endif()
-    foreach(flag CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_ARCHITECTURES)
-        if (DEFINED ${flag} AND NOT "${${flag}}" STREQUAL "")
-            list(APPEND _script_args "-D${flag}=${${flag}}")
+
+        # Forward IMMVISION_OPENCV_GIT_REPO cmake variable to environment (script reads env)
+        if(DEFINED IMMVISION_OPENCV_GIT_REPO AND NOT DEFINED ENV{IMMVISION_OPENCV_GIT_REPO})
+            set(ENV{IMMVISION_OPENCV_GIT_REPO} "${IMMVISION_OPENCV_GIT_REPO}")
         endif()
-    endforeach()
 
-    # Forward IMMVISION_OPENCV_GIT_REPO cmake variable to environment (script reads env)
-    if(DEFINED IMMVISION_OPENCV_GIT_REPO AND NOT DEFINED ENV{IMMVISION_OPENCV_GIT_REPO})
-        set(ENV{IMMVISION_OPENCV_GIT_REPO} "${IMMVISION_OPENCV_GIT_REPO}")
-    endif()
-
-    message("
-    -----------------------------------------------------------------------
-    immvision_fetch_opencv_from_source:
-        script=${_build_opencv_script}
-        install_dir=${opencv_install_dir}
-        extra_args=${_script_args}
-    -----------------------------------------------------------------------
-    ")
-
-    # Use _immvision_bash if set by caller (Windows bash detection), else plain "bash"
-    if(NOT _immvision_bash)
-        set(_immvision_bash bash)
-    endif()
-
-    execute_process(
-        COMMAND "${_immvision_bash}" "${_build_opencv_script}" "${opencv_install_dir}" ${_script_args}
-        RESULT_VARIABLE result
-        COMMAND_ECHO STDOUT
-    )
-    if (NOT result EQUAL 0)
-        message(FATAL_ERROR "build_opencv.sh failed (exit code ${result})")
-    else()
-        message(STATUS "build_opencv.sh succeeded")
-    endif()
-
-    # Point find_package to the freshly built OpenCV.
-    # The install layout varies by platform and OpenCV config, so search for it.
-    set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
-    file(GLOB_RECURSE _opencv_configs "${opencv_install_dir}/OpenCVConfig.cmake")
-    if (_opencv_configs)
-        list(GET _opencv_configs 0 _opencv_config)
-        get_filename_component(OpenCV_DIR "${_opencv_config}" DIRECTORY)
-        message(STATUS "Found OpenCVConfig.cmake at ${OpenCV_DIR}")
-    else()
-        message(FATAL_ERROR "
-        immvision_fetch_opencv_from_source: can't find OpenCVConfig.cmake under ${opencv_install_dir}
+        message("
+        -----------------------------------------------------------------------
+        immvision_fetch_opencv_from_source:
+            script=${_build_opencv_script}
+            install_dir=${opencv_install_dir}
+            extra_args=${_script_args}
+        -----------------------------------------------------------------------
         ")
+
+        # Use _immvision_bash if set by caller (Windows bash detection), else plain "bash"
+        if(NOT _immvision_bash)
+            set(_immvision_bash bash)
+        endif()
+
+        execute_process(
+            COMMAND "${_immvision_bash}" "${_build_opencv_script}" "${opencv_install_dir}" ${_script_args}
+            RESULT_VARIABLE result
+            COMMAND_ECHO STDOUT
+        )
+        if (NOT result EQUAL 0)
+            message(FATAL_ERROR "build_opencv.sh failed (exit code ${result})")
+        else()
+            message(STATUS "build_opencv.sh succeeded")
+        endif()
+
+        # Point find_package to the freshly built OpenCV.
+        # The install layout varies by platform and OpenCV config, so search for it.
+        set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
+        file(GLOB_RECURSE _opencv_configs "${opencv_install_dir}/OpenCVConfig.cmake")
+        if (_opencv_configs)
+            list(GET _opencv_configs 0 _opencv_config)
+            get_filename_component(OpenCV_DIR "${_opencv_config}" DIRECTORY)
+            message(STATUS "Found OpenCVConfig.cmake at ${OpenCV_DIR}")
+        else()
+            message(FATAL_ERROR "
+            immvision_fetch_opencv_from_source: can't find OpenCVConfig.cmake under ${opencv_install_dir}
+            ")
+        endif()
     endif()
 endmacro()
 
