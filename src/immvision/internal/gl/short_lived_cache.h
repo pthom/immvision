@@ -122,7 +122,6 @@ namespace ImmVision
 
             void ClearOldEntries()
             {
-                return;
                 double now = TimerSeconds();
                 std::vector<Key> oldEntries;
                 for (const auto& key: Keys())
