@@ -9,12 +9,15 @@ ImmVision (a.k.a Immediate Vision) is an image debugger and viewer.
 [Video tutorial on Youtube](https://www.youtube.com/watch?v=ztVBk2FN6_8)
 
 
-immvision includes an advanced image debugger which you can easily plug into your C++ projects in order to be able to visually debug images inside your image processing algorithms, during execution or even *after* execution (post-mortem).
+immvision includes an advanced image debugger which you can easily plug into your C++ or Python projects in order to be able to visually debug images inside your image processing algorithms, during execution or even *after* execution (post-mortem).
 
-This requires **no dependency** apart from OpenCV, and you do **not** need to link your program to immvision (you will just need to copy 4 cpp files in your project).
+- **C++ client**: requires only OpenCV, no need to link to immvision (just copy 4 cpp files into your project)
+- **Python client**: requires only numpy (no OpenCV, no compilation needed)
+- **Python viewer**: a pure Python viewer is also available, using [imgui_bundle](https://github.com/pthom/imgui_bundle)
 
-Let's consider an example: 
-in  the following program, the image is modified in several steps, and each call to `ImmVision::ImmDebug` will add another debugged image to the debugger.
+Let's consider an example where an image is modified in several steps, and each call to `ImmDebug` sends the intermediate result to the debugger.
+
+**C++ example:**
 
 ```cpp
 #include "immdebug/immdebug.h"
@@ -44,7 +47,32 @@ void ExampleImageProcessingWithDebug()
     cv::Sobel(floatImage, sobel, CV_64F, 1, 1);
     ImmVision::ImmDebug(sobel, "sobel");
 }
+```
 
+**Python example:**
+
+```python
+import cv2
+import numpy as np
+from immdebug import immdebug
+
+image = cv2.imread("house.jpg")
+immdebug(image, "original")
+
+roi = image[600:1000, 800:1200]
+immdebug(roi, "roi")
+
+gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+immdebug(gray, "gray")
+
+blurred = cv2.blur(gray, (5, 5))
+immdebug(blurred, "blur")
+
+float_image = blurred.astype(np.float64) / 255.0
+immdebug(float_image, "floatImage")
+
+sobel = cv2.Sobel(float_image, cv2.CV_64F, 1, 1)
+immdebug(sobel, "sobel")
 ```
 
 
@@ -54,23 +82,31 @@ immdebug is an external application, which will receive the images in real time 
 
 ### How to install the debugger into your program:
 
-#### Step 1: compile immdebug_viewer
+#### Step 1: run immdebug_viewer
 
+**Option A: Python viewer** (requires [imgui_bundle](https://github.com/pthom/imgui_bundle)):
+
+```bash
+pip install imgui_bundle glfw
+python src/immdebug_viewer/immdebug_viewer.py
 ```
+
+**Option B: compile the C++ viewer**:
+
+```bash
 git clone https://github.com/pthom/immvision.git
-mkdir build
-cd build
+mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
 ```
 
-Optionally, copy bin/immdebug_viewer somewhere in you PATH.
+Optionally, copy bin/immdebug_viewer somewhere in your PATH.
 
-#### Step 2: add immdebug to you project
+#### Step 2: add immdebug to your project
 
-Simply drop the content of [src/immdebug](src/immdebug) somewhere into your project.
+**C++:** Simply drop the content of [src/immdebug](src/immdebug) somewhere into your project.
 
-The API you will use is extremely simple:
+The C++ API is extremely simple:
 
 ```cpp
 namespace ImmVision
@@ -90,12 +126,22 @@ namespace ImmVision
 }
 ```
 
-Step 3: Add some calls to `ImmVision::ImmDebug` in your program
+**Python:** A pure Python client is also available in [src/immdebug/immdebug.py](src/immdebug/immdebug.py). It only requires numpy (no OpenCV, no compilation needed).
+
+```python
+import numpy as np
+from immdebug import immdebug
+
+image = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+immdebug(image, "my image")
+```
+
+#### Step 3: Add some calls to `ImmDebug` in your program
 
 
-`ImmVision::ImmDebug` is non-blocking on the client side (all it does is to save a file in the temporary directory).
+`ImmDebug` is non-blocking on the client side (all it does is to save a file in the temporary directory).
 
-You can then run `immdebug_viewer` by calling `ImmVision::LaunchImmDebugViewer` (if you copied it into your PATH), otherwise you can launch it manually.
+You can then run `immdebug_viewer` by calling `ImmVision::LaunchImmDebugViewer` (C++, if you copied it into your PATH), otherwise you can launch it manually.
 
 immdebug_viewer will display all the images that are sent to it via ImmDebug.
 
