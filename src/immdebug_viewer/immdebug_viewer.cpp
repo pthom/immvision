@@ -42,8 +42,7 @@ void AddIncomingImages()
 void Gui(ImmVision::SingleInstanceApp& singleInstanceApp)
 {
     ImmVision::Inspector_Show();
-    HelloImGui::LogGui(ImVec2(0.f, 300.f));
-
+    // HelloImGui::LogGui();
 
     // check for new images to show (every 10 frames, to reduce disk usage)
     static int idx = 0;
