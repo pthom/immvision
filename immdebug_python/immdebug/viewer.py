@@ -1,7 +1,7 @@
 """Pure Python immdebug viewer using imgui_bundle.
 
 Usage:
-    python immdebug_viewer.py
+    python -m immdebug.viewer
 
 Polls the temp directory for images sent by immdebug (C++ or Python client)
 and displays them using immvision's inspector.
@@ -15,11 +15,9 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
-import glfw  # pip install glfw
-from imgui_bundle import imgui, hello_imgui, immvision, glfw_utils
 
 
-# OpenCV depth constants → numpy dtype
+# OpenCV depth constants -> numpy dtype
 _CV_DEPTH_TO_DTYPE = {
     0: np.dtype("uint8"),
     1: np.dtype("int8"),
@@ -106,6 +104,8 @@ def _remove_old_images(max_age_seconds: float = 3600.0) -> None:
 
 
 def _read_one_payload() -> Optional[_ImagePayload]:
+    from imgui_bundle import hello_imgui
+
     folder = _immdebug_folder()
     if not folder.exists():
         return None
@@ -193,10 +193,15 @@ class _SingleInstanceApp:
 # --- Main viewer ---
 
 def _focus_window() -> None:
+    import glfw
+    from imgui_bundle import glfw_utils
     glfw.focus_window(glfw_utils.glfw_window_hello_imgui())
 
 
 def main() -> None:
+    import glfw
+    from imgui_bundle import imgui, hello_imgui, immvision
+
     single_instance = _SingleInstanceApp("immdebug_viewer")
 
     if not single_instance.run_single_instance():
@@ -250,6 +255,8 @@ def main() -> None:
     params.app_window_params.restore_previous_geometry = True
     params.app_window_params.window_title = "ImmVision - immdebug viewer"
     params.callbacks.show_gui = gui
+    params.ini_folder_type = hello_imgui.IniFolderType.app_user_config_folder
+    params.ini_filename = "immdebug_viewer.ini"
 
     glfw.init()
     try:

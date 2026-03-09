@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "immdebug"
+version = "0.1.0"
+description = "Send images to the immdebug viewer for visual debugging — from any Python process"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "Pascal Thomet", email = "pthomet@gmail.com" },
+]
+keywords = ["image", "debugging", "computer-vision", "imgui", "immvision"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Software Development :: Debuggers",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "numpy",
+    "imgui-bundle",
+    "glfw",
+]
+
+[project.scripts]
+immdebug-viewer = "immdebug.viewer:main"
+
+[project.urls]
+Homepage = "https://github.com/pthom/immvision"
+Repository = "https://github.com/pthom/immvision"
+Issues = "https://github.com/pthom/immvision/issues"

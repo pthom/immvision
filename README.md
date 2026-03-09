@@ -82,16 +82,33 @@ immdebug is an external application, which will receive the images in real time 
 
 ### How to install the debugger into your program:
 
-#### Step 1: run immdebug_viewer
+### How to use immdebug from Python
 
-**Option A: Python viewer** (requires [imgui_bundle](https://github.com/pthom/imgui_bundle)):
+Install the `immdebug` package from PyPI:
 
 ```bash
-pip install imgui_bundle glfw
-python src/immdebug_viewer/immdebug_viewer.py
+pip install immdebug
 ```
 
-**Option B: compile the C++ viewer**:
+**Start the viewer:**
+
+```bash
+immdebug-viewer
+# or: python -m immdebug
+```
+
+**Send images from your code:**
+
+```python
+from immdebug import immdebug
+immdebug(my_image, "step 1")
+```
+
+See the [immdebug Python package](immdebug_python/) for full documentation.
+
+### How to use immdebug from C++
+
+#### Step 1: compile immdebug_viewer
 
 ```bash
 git clone https://github.com/pthom/immvision.git
@@ -104,9 +121,9 @@ Optionally, copy bin/immdebug_viewer somewhere in your PATH.
 
 #### Step 2: add immdebug to your project
 
-**C++:** Simply drop the content of [src/immdebug](src/immdebug) somewhere into your project.
+Simply drop the content of [src/immdebug](src/immdebug) into your project.
 
-The C++ API is extremely simple:
+The API is extremely simple:
 
 ```cpp
 namespace ImmVision
@@ -122,34 +139,22 @@ namespace ImmVision
     );
 
     void LaunchImmDebugViewer();
-
 }
-```
-
-**Python:** A pure Python client is also available in [src/immdebug/immdebug.py](src/immdebug/immdebug.py). It only requires numpy (no OpenCV, no compilation needed).
-
-```python
-import numpy as np
-from immdebug import immdebug
-
-image = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-immdebug(image, "my image")
 ```
 
 #### Step 3: Add some calls to `ImmDebug` in your program
 
-
 `ImmDebug` is non-blocking on the client side (all it does is to save a file in the temporary directory).
 
-You can then run `immdebug_viewer` by calling `ImmVision::LaunchImmDebugViewer` (C++, if you copied it into your PATH), otherwise you can launch it manually.
+You can then run `immdebug_viewer` by calling `ImmVision::LaunchImmDebugViewer` (if you copied it into your PATH), otherwise you can launch it manually.
 
-immdebug_viewer will display all the images that are sent to it via ImmDebug.
+### Features
 
-Features:
-
-- Atomic application: if you re-launch `immdebug_viewer`, the global instance will come to the top. It will also come to the top as soon as you call ImmDebug.
-- Debug images post-mortem: the images are written inside `%temp_directory%/ImmDebug"`. You can launch immdebug_viewer later, they will still be available.
-- Auto clean of the temp folder: images are cleaned automatically after 1 hour.
+- **Non-blocking**: `immdebug` just writes a file and returns immediately
+- **Cross-language**: C++ and Python clients use the same binary format, both work with either viewer
+- **Single instance**: re-launching `immdebug_viewer` brings the existing instance to the top
+- **Post-mortem**: images are written to `<temp_directory>/ImmDebug/` — launch the viewer later, they're still there
+- **Auto cleanup**: images are cleaned automatically after 1 hour
 
 
 ## Image Viewer

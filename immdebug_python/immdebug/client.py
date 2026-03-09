@@ -7,8 +7,8 @@ Usage:
     image = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
     immdebug(image, "my image")
 
-The immdebug_viewer app (built from immvision C++) must be running separately.
-It polls a temp directory for incoming image payloads.
+The immdebug_viewer must be running separately. It polls a temp directory
+for incoming image payloads.
 """
 
 import os
