@@ -25,9 +25,4 @@ namespace ImmVision
         ImmDebug_Internal::SaveImagePayload(imagePayload);
     }
 
-    void LaunchImmDebugViewer()
-    {
-
-    }
-
 }

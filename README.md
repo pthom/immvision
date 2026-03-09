@@ -137,8 +137,6 @@ namespace ImmVision
         const std::string& colorAdjustmentsKey = "",
         bool isColorOrderBGR = true
     );
-
-    void LaunchImmDebugViewer();
 }
 ```
 
@@ -146,7 +144,6 @@ namespace ImmVision
 
 `ImmDebug` is non-blocking on the client side (all it does is to save a file in the temporary directory).
 
-You can then run `immdebug_viewer` by calling `ImmVision::LaunchImmDebugViewer` (if you copied it into your PATH), otherwise you can launch it manually.
 
 ### Features
 

@@ -15,6 +15,4 @@ namespace ImmVision
         bool isColorOrderBGR = true
     );
 
-    void LaunchImmDebugViewer();
-
 }
