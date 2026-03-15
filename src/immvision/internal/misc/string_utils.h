@@ -1,5 +1,6 @@
 #pragma once
 #include <opencv2/core.hpp>
+#include "immvision/immvision_types.h"
 #include <string>
 
 namespace ImmVision
@@ -30,6 +31,20 @@ namespace ImmVision
             return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
         }
 
+        // Overloads for ImmVision types (must be before the vector template so they're found)
+        inline std::string ToString(const Point& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        inline std::string ToString(const Point2d& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        inline std::string ToString(const Size& v)
+        {
+            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
+        }
+
         template<typename _Tp>
         std::string ToString(const std::vector<_Tp>& v)
         {
@@ -50,6 +65,25 @@ namespace ImmVision
                 for (int j = 0; j < _cols; ++j)
                     lineValues.push_back(m(i, j));
 
+                std::string lineString = ToString(lineValues);
+                if (i != 0)
+                    lineString = std::string("   ") + lineString;
+                lines.push_back(lineString);
+            }
+            std::string r = "\n  [";
+            r += JoinStrings(lines, ",\n");
+            r += "]";
+            return r;
+        }
+
+        inline std::string ToString(const Matrix33d& m)
+        {
+            std::vector<std::string> lines;
+            for (int i = 0; i < 3; ++i)
+            {
+                std::vector<double> lineValues;
+                for (int j = 0; j < 3; ++j)
+                    lineValues.push_back(m.m[i][j]);
                 std::string lineString = ToString(lineValues);
                 if (i != 0)
                     lineString = std::string("   ") + lineString;

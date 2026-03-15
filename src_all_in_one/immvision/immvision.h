@@ -5,12 +5,200 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision_types.h included by src/immvision/immvision.h                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <cstddef>   // size_t
+#include <cstdint>   // uint8_t
+#include <memory>    // shared_ptr
+#include <vector>
+
+#ifdef IMMVISION_HAS_OPENCV
+#include <opencv2/core.hpp>
+#endif
+
+// IMMVISION_API is a marker for public API functions.
+#ifndef IMMVISION_API
+#define IMMVISION_API
+#endif
+
+
+namespace ImmVision
+{
+    //
+    // ImmVision types
+    // ===============
+    //
+    // ImmVision uses its own lightweight types for images, points, sizes, and matrices.
+    // These types do not depend on OpenCV.
+    //
+    // C++ users:
+    //     If OpenCV is available (IMMVISION_HAS_OPENCV is defined), all types provide
+    //     implicit conversions to/from their OpenCV equivalents:
+    //         ImageBuffer <-> cv::Mat        (zero-copy via ImageBuffer(cv::Mat) and to_cv_mat())
+    //         Point       <-> cv::Point      (implicit both ways)
+    //         Point2d     <-> cv::Point2d    (implicit both ways)
+    //         Size        <-> cv::Size       (implicit both ways)
+    //         Matrix33d   <-> cv::Matx33d    (implicit both ways)
+    //     This means you can pass cv::Mat, cv::Point, etc. directly to ImmVision functions.
+    //
+    // Python users:
+    //     These types are mapped transparently to native Python types:
+    //         ImageBuffer <-> numpy.ndarray
+    //         Point       <-> Tuple[int, int]
+    //         Point2d     <-> Tuple[float, float]
+    //         Size        <-> Tuple[int, int]
+    //         Matrix33d   <-> List[List[float]]  (3x3)
+    //     You never need to create these types explicitly in Python.
+    //
+
+    enum class ImageDepth
+    {
+        uint8,
+        int8,
+        uint16,
+        int16,
+        int32,
+        float32,
+        float64
+    };
+
+    // Returns the size in bytes of a single element of the given depth
+    IMMVISION_API size_t ImageDepthSize(ImageDepth depth);
+
+
+    // 2D integer point. Converts implicitly to/from cv::Point when OpenCV is available.
+    // Python: mapped to Tuple[int, int].
+    struct Point
+    {
+        int x = 0, y = 0;
+        Point() = default;
+        Point(int x_, int y_) : x(x_), y(y_) {}
+        bool operator==(const Point& o) const { return x == o.x && y == o.y; }
+        bool operator!=(const Point& o) const { return !(*this == o); }
+        #ifdef IMMVISION_HAS_OPENCV
+        Point(const cv::Point& p) : x(p.x), y(p.y) {}
+        operator cv::Point() const { return {x, y}; }
+        #endif
+    };
+
+
+    // 2D double-precision point. Converts implicitly to/from cv::Point2d when OpenCV is available.
+    // Python: mapped to Tuple[float, float].
+    struct Point2d
+    {
+        double x = 0., y = 0.;
+        Point2d() = default;
+        Point2d(double x_, double y_) : x(x_), y(y_) {}
+        bool operator==(const Point2d& o) const { return x == o.x && y == o.y; }
+        bool operator!=(const Point2d& o) const { return !(*this == o); }
+        #ifdef IMMVISION_HAS_OPENCV
+        Point2d(const cv::Point2d& p) : x(p.x), y(p.y) {}
+        operator cv::Point2d() const { return {x, y}; }
+        #endif
+    };
+
+
+    // 2D integer size. Converts implicitly to/from cv::Size when OpenCV is available.
+    // Python: mapped to Tuple[int, int].
+    struct Size
+    {
+        int width = 0, height = 0;
+        Size() = default;
+        Size(int w, int h) : width(w), height(h) {}
+        bool empty() const { return width == 0 && height == 0; }
+        int area() const { return width * height; }
+        bool operator==(const Size& o) const { return width == o.width && height == o.height; }
+        bool operator!=(const Size& o) const { return !(*this == o); }
+        #ifdef IMMVISION_HAS_OPENCV
+        Size(const cv::Size& s) : width(s.width), height(s.height) {}
+        operator cv::Size() const { return {width, height}; }
+        #endif
+    };
+
+
+    // 3x3 double-precision matrix, used for zoom/pan affine transforms.
+    // Converts implicitly to/from cv::Matx33d when OpenCV is available.
+    // Python: mapped to List[List[float]] (3x3), also accepts numpy 3x3 arrays.
+    struct Matrix33d
+    {
+        double m[3][3];
+
+        // Default constructor: identity matrix
+        IMMVISION_API Matrix33d();
+        IMMVISION_API static Matrix33d eye();
+        IMMVISION_API Matrix33d inv() const;
+        IMMVISION_API Matrix33d operator*(const Matrix33d& rhs) const;
+
+        double& operator()(int r, int c) { return m[r][c]; }
+        const double& operator()(int r, int c) const { return m[r][c]; }
+
+        bool operator==(const Matrix33d& o) const;
+        bool operator!=(const Matrix33d& o) const { return !(*this == o); }
+
+        #ifdef IMMVISION_HAS_OPENCV
+        IMMVISION_API Matrix33d(const cv::Matx33d& mat);
+        IMMVISION_API operator cv::Matx33d() const;
+        #endif
+    };
+
+
+    // Lightweight image container. Holds a pointer to pixel data with metadata (width, height,
+    // channels, depth, stride). Does not depend on OpenCV.
+    //
+    // C++ users:
+    //     If OpenCV is available, you can pass cv::Mat directly to any ImmVision function
+    //     that accepts an ImageBuffer — the implicit constructor ImageBuffer(const cv::Mat&)
+    //     wraps the data with zero copy. Use to_cv_mat() to get a zero-copy cv::Mat view back,
+    //     or to_cv_mat_clone() for a deep copy that outlives the ImageBuffer.
+    //
+    // Python users:
+    //     ImageBuffer is mapped transparently to numpy.ndarray. You simply pass numpy arrays
+    //     to ImmVision functions and receive numpy arrays back. No manual conversion is needed.
+    struct ImageBuffer
+    {
+        void* data = nullptr;
+        int width = 0, height = 0, channels = 0;
+        ImageDepth depth = ImageDepth::uint8;
+        size_t step = 0;  // bytes per row (stride)
+
+        // Type-erased ownership: keeps the underlying memory alive.
+        // Can hold a cv::Mat (refcount), a Python object (ndarray), or owned memory.
+        std::shared_ptr<void> _ref_keeper;
+
+        ImageBuffer() = default;
+
+        // Basic queries
+        bool empty() const { return data == nullptr || width == 0 || height == 0; }
+        // Bytes per single-channel element
+        IMMVISION_API size_t elemSize() const;
+        // Bytes per pixel (all channels)
+        size_t elemSizeTotal() const { return elemSize() * channels; }
+
+        // Owning allocation
+        IMMVISION_API static ImageBuffer Zeros(int w, int h, int ch, ImageDepth d);
+        IMMVISION_API ImageBuffer clone() const;
+
+        #ifdef IMMVISION_HAS_OPENCV
+        // Zero-copy wrap: keeps cv::Mat refcount alive via _ref_keeper
+        IMMVISION_API ImageBuffer(const cv::Mat& mat);
+        // Zero-copy view: valid while this ImageBuffer lives
+        IMMVISION_API cv::Mat to_cv_mat() const;
+        // Deep copy: safe even after ImageBuffer is destroyed
+        IMMVISION_API cv::Mat to_cv_mat_clone() const;
+        #endif
+    };
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision.h continued                                                    //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/image.h included by src/immvision/immvision.h                            //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "imgui.h"
-#include <opencv2/core.hpp>
-#include <vector>
 #include <string>
 
 
@@ -99,11 +287,11 @@ namespace ImmVision
 
         // Mouse position in the original image/matrix
         // This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
-        cv::Point2d MousePosition = cv::Point2d(-1., -1.);
+        Point2d MousePosition = Point2d(-1., -1.);
         // Mouse position in the displayed portion of the image (the original image can be zoomed,
         // and only show a subset if it may be shown).
         // This position is given with integer coordinates, and will be (-1, -1) if the mouse is not hovering the image
-        cv::Point MousePosition_Displayed = cv::Point(-1, -1);
+        Point MousePosition_Displayed = Point(-1, -1);
 
         //
         // Note: you can query ImGui::IsMouseDown(mouse_button) (c++) or imgui.is_mouse_down(mouse_button) (Python)
@@ -136,14 +324,14 @@ namespace ImmVision
         // Size of the displayed image (can be different from the matrix size)
         // If you specify only the width or height (e.g (300, 0), then the other dimension
         // will be calculated automatically, respecting the original image w/h ratio.
-        cv::Size ImageDisplaySize = cv::Size();
+        Size ImageDisplaySize = Size();
 
         //
         // Zoom and Pan (represented by an affine transform matrix, of size 3x3)
         //
 
         // ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
-        cv::Matx33d ZoomPanMatrix = cv::Matx33d::eye();
+        Matrix33d ZoomPanMatrix = Matrix33d::eye();
         // If displaying several images, those with the same ZoomKey will zoom and pan together
         std::string ZoomKey = "";
 
@@ -200,7 +388,7 @@ namespace ImmVision
         // Watched Pixels
         //
         // List of Watched Pixel coordinates
-        std::vector<cv::Point> WatchedPixels = std::vector<cv::Point>();
+        std::vector<Point> WatchedPixels = std::vector<Point>();
         // Shall we add a watched pixel on double click
         bool AddWatchedPixelOnDoubleClick = true;
         // Shall the watched pixels be drawn on the image
@@ -223,20 +411,20 @@ namespace ImmVision
 
 
     // Create a zoom/pan matrix centered around a given point of interest
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix(
-                        const cv::Point2d & zoomCenter,
+    IMMVISION_API Matrix33d MakeZoomPanMatrix(
+                        const Point2d & zoomCenter,
                         double zoomRatio,
-                        const cv::Size displayedImageSize
+                        const Size displayedImageSize
     );
 
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_ScaleOne(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize
+    IMMVISION_API Matrix33d MakeZoomPanMatrix_ScaleOne(
+        Size imageSize,
+        const Size displayedImageSize
     );
 
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_FullView(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize
+    IMMVISION_API Matrix33d MakeZoomPanMatrix_FullView(
+        Size imageSize,
+        const Size displayedImageSize
     );
 
 
@@ -259,8 +447,10 @@ namespace ImmVision
     //                  (the part after "##" will not be displayed but will be part of the id)
     //        - To display an empty legend, use "##_some_unique_id"
     //
-    // :param mat
-    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    // :param image
+    //     The image to display. All dense image types are supported (uint8, int16, float32, etc.).
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     //
     // :param params
     //     Complete options (as modifiable inputs), and outputs (mouse position, watched pixels, etc)
@@ -274,7 +464,7 @@ namespace ImmVision
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    IMMVISION_API void Image(const std::string& label, const cv::Mat& mat, ImageParams* params);
+    IMMVISION_API void Image(const std::string& label, const ImageBuffer& image, ImageParams* params);
 
 
     // ImageDisplay: Only, display the image, with no user interaction (by default)
@@ -292,29 +482,27 @@ namespace ImmVision
     //        - if your legend is displayed (i.e. it does not start with "##"),
     //          then the total size of the widget will be larger than the imageDisplaySize.
     //
-    // :param mat:
-    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    // :param image:
+    //     The image to display. All dense image types are supported.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     //
     // :param imageDisplaySize:
-    //     Size of the displayed image (can be different from the mat size)
+    //     Size of the displayed image (can be different from the image size)
     //     If you specify only the width or height (e.g (300, 0), then the other dimension
     //     will be calculated automatically, respecting the original image w/h ratio.
     //
     // :param refreshImage:
-    //     images textures are cached. Set to true if your image matrix/buffer has changed
+    //     images textures are cached. Set to true if your image has changed
     //     (for example, for live video images)
     //
     // :param showOptionsButton:
     //     If true, show an option button that opens the option panel.
     //     In that case, it also becomes possible to zoom & pan, add watched pixel by double-clicking, etc.
     //
-    // :param isBgrOrBgra:
-    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV)
-    //.    Breaking change, oct 2024: the default is BGR for C++, RGB for Python!
-    //
     // :return:
-    //      The mouse position in `mat` original image coordinates, as double values.
-    //      (i.e. it does not matter if imageDisplaySize is different from mat.size())
+    //      The mouse position in the original image coordinates, as double values.
+    //      (i.e. it does not matter if imageDisplaySize is different from the image size)
     //      It will return (-1., -1.) if the mouse is not hovering the image.
     //
     //      Note: use ImGui::IsMouseDown(mouse_button) (C++) or imgui.is_mouse_down(mouse_button) (Python)
@@ -323,10 +511,10 @@ namespace ImmVision
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
-    IMMVISION_API cv::Point2d ImageDisplay(
+    IMMVISION_API Point2d ImageDisplay(
         const std::string& label_id,
-        const cv::Mat& mat,
-        const cv::Size& imageDisplaySize = cv::Size(),
+        const ImageBuffer& image,
+        const Size& imageDisplaySize = Size(),
         bool refreshImage = false,
         bool showOptionsButton = false
         );
@@ -334,9 +522,14 @@ namespace ImmVision
     // ImageDisplayResizable: display the image, with no user interaction (by default)
     // The image can be resized by the user (and the new size will be stored in the size parameter, if provided)
     // The label will not be displayed (but it will be used as an id, and must be unique)
-    IMMVISION_API cv::Point2d ImageDisplayResizable(
+    //
+    // :param image:
+    //     The image to display.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
+    IMMVISION_API Point2d ImageDisplayResizable(
         const std::string& label_id,
-        const cv::Mat& mat,
+        const ImageBuffer& image,
         ImVec2* size = nullptr,
         bool refreshImage = false,
         bool resizable = true,
@@ -358,7 +551,7 @@ namespace ImmVision
     // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
     // Note: this image must be currently displayed. This function will return the transformed image
     // (i.e with ColorMap, Zoom, etc.)
-    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label);
+    IMMVISION_API ImageBuffer GetCachedRgbaImage(const std::string& label);
 
     // Return immvision version info
     IMMVISION_API std::string VersionInfo();
@@ -382,12 +575,19 @@ namespace ImmVision
 
 namespace ImmVision
 {
+    // Add an image to the inspector. Call this from anywhere (e.g. at different steps
+    // of an image processing pipeline). Later, call Inspector_Show() to display all collected images.
+    //
+    // :param image:
+    //     The image to add.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     IMMVISION_API void Inspector_AddImage(
-        const cv::Mat& image,
+        const ImageBuffer& image,
         const std::string& legend,
         const std::string& zoomKey = "",
         const std::string& colormapKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
+        const Point2d & zoomCenter = Point2d(),
         double zoomRatio = -1.
     );
 
@@ -396,6 +596,7 @@ namespace ImmVision
     IMMVISION_API void Inspector_ClearImages();
 
 } // namespace ImmVision
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/immvision.h continued                                                    //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -407,7 +608,7 @@ namespace ImmVision
 
 namespace ImmVision
 {
-    // GlTexture contains an OpenGL texture which can be created or updated from a cv::Mat (C++), or numpy array (Python)
+    // GlTexture contains an OpenGL texture which can be created or updated from an ImageBuffer (C++), or numpy array (Python)
     struct GlTexture
     {
         //
@@ -416,13 +617,13 @@ namespace ImmVision
 
         // Create an empty texture
         GlTexture();
-        // Create a texture from an image (cv::Mat in C++, numpy array in Python)
+        // Create a texture from an image (ImageBuffer in C++, numpy array in Python)
         // isColorOrderBGR: if true, the image is assumed to be in BGR order (OpenCV default)
-        GlTexture(const cv::Mat& image, bool isColorOrderBGR = false);
+        GlTexture(const ImageBuffer& image, bool isColorOrderBGR = false);
         // The destructor will delete the texture from the GPU
         ~GlTexture();
 
-        // GlTextureCv is non copiable (since it holds a reference to a texture stored on the GPU),
+        // GlTexture is non copiable (since it holds a reference to a texture stored on the GPU),
         // but it is movable.
         GlTexture(const GlTexture& ) = delete;
         GlTexture& operator=(const GlTexture& ) = delete;
@@ -434,8 +635,8 @@ namespace ImmVision
         // Methods
         //
 
-        // Update the texture from a new image (cv::Mat in C++, numpy array in Python).
-        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR = false);
+        // Update the texture from a new image (ImageBuffer in C++, numpy array in Python).
+        void UpdateFromImage(const ImageBuffer& image, bool isColorOrderBGR = false);
         // Returns the size as ImVec2
         ImVec2 SizeImVec2() const;
 
@@ -447,6 +648,6 @@ namespace ImmVision
         // OpenGL texture ID on the GPU
         ImTextureID TextureId;
         // Image size in pixels
-        cv::Size Size;
+        Size ImageSize;
     };
 } // namespace ImmVision

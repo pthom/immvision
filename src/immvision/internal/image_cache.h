@@ -23,7 +23,7 @@ namespace ImmVision
                 bool   IsMouseDragging = false;
                 bool   WasZoomJustUpdatedByLink = false;
                 bool   IsResizing = false;
-                cv::Size PreviousImageSize;
+                Size PreviousImageSize;
                 struct ImageParams  PreviousParams;
             };
             struct CachedImageAndTexture

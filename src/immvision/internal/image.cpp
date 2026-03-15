@@ -121,8 +121,9 @@ This is a required setup step. (Breaking change - October 2024)
         return r;
     }
 
-    void Image(const std::string& label, const cv::Mat& image, ImageParams* params)
+    void Image(const std::string& label, const ImageBuffer& image_buf, ImageParams* params)
     {
+        cv::Mat image = image_buf.to_cv_mat();
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params).
         //
@@ -445,7 +446,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (cacheParams.IsResizing)
                 return;
-            ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
+            cv::Matx33d zoomMatrix = cv::Matx33d(params->ZoomPanMatrix);
 
             int mouseDragButton = 0;
             bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && ImGui::IsItemHovered();
@@ -465,6 +466,7 @@ This is a required setup step. (Breaking change - October 2024)
                     zoomMatrix(0, 0));
                 cacheParams.LastDragDelta = dragDelta;
             }
+            params->ZoomPanMatrix = Matrix33d(zoomMatrix);
         };
         auto fnHandleMouseWheel = [&params](const cv::Point2d& mouseLocation)
         {
@@ -496,7 +498,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (params->ShowZoomButtons)
             {
-                ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
+                cv::Matx33d zoomMatrix = cv::Matx33d(params->ZoomPanMatrix);
 
                 cv::Point2d viewportCenter_originalImage = ZoomPanTransform::Apply(
                     zoomMatrix.inv(),
@@ -508,7 +510,7 @@ This is a required setup step. (Breaking change - October 2024)
                 {
                     cv::Point2d zoomCenter = params->WatchedPixels.empty() ?
                                 viewportCenter_originalImage
-                            :   cv::Point2d(params->WatchedPixels.back());
+                            :   cv::Point2d(cv::Point(params->WatchedPixels.back()));
                     ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
                     if (Icons::IconButton(Icons::IconType::ZoomPlus))
                         zoomMatrix = zoomMatrix * ZoomPanTransform::ComputeZoomMatrix(zoomCenter, 1.1);
@@ -523,8 +525,8 @@ This is a required setup step. (Breaking change - October 2024)
                 ImGui::SameLine();
                 // Scale1 & Full View Zoom  buttons
                 {
-                    auto scaleOneZoomInfo = ZoomPanTransform::MakeScaleOne(image.size(), params->ImageDisplaySize);
-                    auto fullViewZoomInfo = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
+                    auto scaleOneZoomInfo = ZoomPanTransform::MakeScaleOne(image.size(), cv::Size(params->ImageDisplaySize));
+                    auto fullViewZoomInfo = ZoomPanTransform::MakeFullView(image.size(), cv::Size(params->ImageDisplaySize));
                     if (Icons::IconButton(
                         Icons::IconType::ZoomScaleOne,
                         ZoomPanTransform::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
@@ -539,6 +541,7 @@ This is a required setup step. (Breaking change - October 2024)
                         )
                         zoomMatrix = fullViewZoomInfo;
                 }
+                params->ZoomPanMatrix = Matrix33d(zoomMatrix);
             }
 
         };
@@ -556,8 +559,8 @@ This is a required setup step. (Breaking change - October 2024)
             if (ImGui::IsItemHovered())
             {
                 mouseInfo.IsMouseHovering = true;
-                mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
-                mouseInfo.MousePosition_Displayed = mouseLocation;
+                mouseInfo.MousePosition = Point2d(ZoomPanTransform::Apply(cv::Matx33d(params->ZoomPanMatrix).inv(), mouseLocation));
+                mouseInfo.MousePosition_Displayed = Point(cv::Point(mouseLocation));
             }
             return mouseInfo;
         };
@@ -758,14 +761,15 @@ This is a required setup step. (Breaking change - October 2024)
     }
 
 
-    cv::Point2d ImageDisplay(
+    Point2d ImageDisplay(
         const std::string& label_id,
-        const cv::Mat& mat,
-        const cv::Size& imageDisplaySize,
+        const ImageBuffer& mat_buf,
+        const Size& imageDisplaySize,
         bool refreshImage,
         bool showOptionsButton
         )
     {
+        cv::Mat mat = mat_buf.to_cv_mat();
         ImGuiID id = ImGui::GetID(label_id.c_str());
         static std::map<ImGuiID, ImageParams> s_Params;
         if (s_Params.find(id) == s_Params.end())
@@ -780,26 +784,27 @@ This is a required setup step. (Breaking change - October 2024)
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
 
-            cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
-            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
+            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, Size(mat.cols, mat.rows));
+            params.ZoomPanMatrix = Matrix33d(ZoomPanTransform::MakeFullView(mat.size(), cv::Size(displayedSize)));
         }
 
-        Image(label_id, mat, &params);
+        Image(label_id, mat_buf, &params);
         return params.MouseInfo.MousePosition;
     }
 
 
     static std::map<ImGuiID, ImVec2> s_ImageDisplayResizable_Sizes;
 
-    IMMVISION_API cv::Point2d ImageDisplayResizable(
+    IMMVISION_API Point2d ImageDisplayResizable(
         const std::string& label_id,
-        const cv::Mat& mat,
+        const ImageBuffer& mat_buf,
         ImVec2* size,
         bool refreshImage,
         bool resizable,
         bool showOptionsButton
     )
     {
+        cv::Mat mat = mat_buf.to_cv_mat();
         if (size == nullptr)
         {
             ImGuiID id = ImGui::GetID(label_id.c_str());
@@ -816,7 +821,7 @@ This is a required setup step. (Breaking change - October 2024)
             s_Params[id] = params;
         }
 
-        cv::Size imageDisplaySize = cv::Size((int)size->x, (int)size->y);
+        Size imageDisplaySize = Size((int)size->x, (int)size->y);
         ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
@@ -824,11 +829,11 @@ This is a required setup step. (Breaking change - October 2024)
             params.CanResize = resizable;
             params.RefreshImage = refreshImage;
 
-            cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
-            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
+            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, Size(mat.cols, mat.rows));
+            params.ZoomPanMatrix = Matrix33d(ZoomPanTransform::MakeFullView(mat.size(), cv::Size(displayedSize)));
         }
         std::string hiddenLabel = std::string("##") + label_id;
-        Image(hiddenLabel, mat, &params);
+        Image(hiddenLabel, mat_buf, &params);
 
         *size = ImVec2((float)params.ImageDisplaySize.width, (float)params.ImageDisplaySize.height);
         return params.MouseInfo.MousePosition;
@@ -870,11 +875,11 @@ This is a required setup step. (Breaking change - October 2024)
     }
 
 
-    cv::Mat GetCachedRgbaImage(const std::string& label)
+    ImageBuffer GetCachedRgbaImage(const std::string& label)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
         cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
-        return r;
+        return ImageBuffer(r);
     }
 
     ImageParams::~ImageParams()

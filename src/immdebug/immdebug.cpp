@@ -4,9 +4,9 @@
 namespace ImmVision
 {
     void ImmDebug(
-        const cv::Mat & image,
+        const ImageBuffer & image,
         const std::string & legend,
-        const cv::Point2d & zoomCenter,
+        const Point2d & zoomCenter,
         double zoomRatio,
         const std::string& zoomKey,
         const std::string& colorAdjustmentsKey,
@@ -14,9 +14,9 @@ namespace ImmVision
     )
     {
         ImmDebug_Internal::ImagePayload imagePayload {
-            image,
+            image.to_cv_mat(),
             legend,
-            zoomCenter,
+            cv::Point2d(zoomCenter),
             zoomRatio,
             zoomKey,
             colorAdjustmentsKey,

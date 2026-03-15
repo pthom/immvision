@@ -6,3 +6,4 @@ target_include_directories(${target_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 find_package(OpenCV REQUIRED)
 target_link_libraries(${target_name} PUBLIC opencv_core)
+target_compile_definitions(${target_name} PUBLIC IMMVISION_HAS_OPENCV)

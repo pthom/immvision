@@ -33,25 +33,26 @@ namespace ImmVision
 
 
     void Inspector_AddImage(
-        const cv::Mat& image,
+        const ImageBuffer& image_buf,
         const std::string& legend,
         const std::string& zoomKey,
         const std::string& colormapKey,
-        const cv::Point2d & zoomCenter,
+        const Point2d & zoomCenter,
         double zoomRatio
     )
     {
+        cv::Mat image = image_buf.to_cv_mat();
         ImageParams params;
         params.ZoomKey = zoomKey;
         params.ColormapKey = colormapKey;
         params.ShowOptionsPanel = true;
 
         if (gInspectorImageSize.x > 0.f)
-            params.ImageDisplaySize = cv::Size((int)gInspectorImageSize.x, (int)gInspectorImageSize.y);
+            params.ImageDisplaySize = Size((int)gInspectorImageSize.x, (int)gInspectorImageSize.y);
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
         auto id = sInspectorImageTextureCache.GetID(label, sDontUseIdStack);
-        s_Inspector_ImagesAndParams.push_back({id, label, image.clone(), params, zoomCenter, zoomRatio});
+        s_Inspector_ImagesAndParams.push_back({id, label, image.clone(), params, cv::Point2d(zoomCenter), zoomRatio});
 
         // bump cache
         {

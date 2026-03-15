@@ -1,6 +1,411 @@
 // THIS FILE WAS GENERATED AUTOMATICALLY. DO NOT EDIT.
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision_types.cpp                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision_types.h included by src/immvision/immvision_types.cpp          //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <cstddef>   // size_t
+#include <cstdint>   // uint8_t
+#include <memory>    // shared_ptr
+#include <vector>
+
+#ifdef IMMVISION_HAS_OPENCV
+#include <opencv2/core.hpp>
+#endif
+
+// IMMVISION_API is a marker for public API functions.
+#ifndef IMMVISION_API
+#define IMMVISION_API
+#endif
+
+
+namespace ImmVision
+{
+    //
+    // ImmVision types
+    // ===============
+    //
+    // ImmVision uses its own lightweight types for images, points, sizes, and matrices.
+    // These types do not depend on OpenCV.
+    //
+    // C++ users:
+    //     If OpenCV is available (IMMVISION_HAS_OPENCV is defined), all types provide
+    //     implicit conversions to/from their OpenCV equivalents:
+    //         ImageBuffer <-> cv::Mat        (zero-copy via ImageBuffer(cv::Mat) and to_cv_mat())
+    //         Point       <-> cv::Point      (implicit both ways)
+    //         Point2d     <-> cv::Point2d    (implicit both ways)
+    //         Size        <-> cv::Size       (implicit both ways)
+    //         Matrix33d   <-> cv::Matx33d    (implicit both ways)
+    //     This means you can pass cv::Mat, cv::Point, etc. directly to ImmVision functions.
+    //
+    // Python users:
+    //     These types are mapped transparently to native Python types:
+    //         ImageBuffer <-> numpy.ndarray
+    //         Point       <-> Tuple[int, int]
+    //         Point2d     <-> Tuple[float, float]
+    //         Size        <-> Tuple[int, int]
+    //         Matrix33d   <-> List[List[float]]  (3x3)
+    //     You never need to create these types explicitly in Python.
+    //
+
+    enum class ImageDepth
+    {
+        uint8,
+        int8,
+        uint16,
+        int16,
+        int32,
+        float32,
+        float64
+    };
+
+    // Returns the size in bytes of a single element of the given depth
+    IMMVISION_API size_t ImageDepthSize(ImageDepth depth);
+
+
+    // 2D integer point. Converts implicitly to/from cv::Point when OpenCV is available.
+    // Python: mapped to Tuple[int, int].
+    struct Point
+    {
+        int x = 0, y = 0;
+        Point() = default;
+        Point(int x_, int y_) : x(x_), y(y_) {}
+        bool operator==(const Point& o) const { return x == o.x && y == o.y; }
+        bool operator!=(const Point& o) const { return !(*this == o); }
+        #ifdef IMMVISION_HAS_OPENCV
+        Point(const cv::Point& p) : x(p.x), y(p.y) {}
+        operator cv::Point() const { return {x, y}; }
+        #endif
+    };
+
+
+    // 2D double-precision point. Converts implicitly to/from cv::Point2d when OpenCV is available.
+    // Python: mapped to Tuple[float, float].
+    struct Point2d
+    {
+        double x = 0., y = 0.;
+        Point2d() = default;
+        Point2d(double x_, double y_) : x(x_), y(y_) {}
+        bool operator==(const Point2d& o) const { return x == o.x && y == o.y; }
+        bool operator!=(const Point2d& o) const { return !(*this == o); }
+        #ifdef IMMVISION_HAS_OPENCV
+        Point2d(const cv::Point2d& p) : x(p.x), y(p.y) {}
+        operator cv::Point2d() const { return {x, y}; }
+        #endif
+    };
+
+
+    // 2D integer size. Converts implicitly to/from cv::Size when OpenCV is available.
+    // Python: mapped to Tuple[int, int].
+    struct Size
+    {
+        int width = 0, height = 0;
+        Size() = default;
+        Size(int w, int h) : width(w), height(h) {}
+        bool empty() const { return width == 0 && height == 0; }
+        int area() const { return width * height; }
+        bool operator==(const Size& o) const { return width == o.width && height == o.height; }
+        bool operator!=(const Size& o) const { return !(*this == o); }
+        #ifdef IMMVISION_HAS_OPENCV
+        Size(const cv::Size& s) : width(s.width), height(s.height) {}
+        operator cv::Size() const { return {width, height}; }
+        #endif
+    };
+
+
+    // 3x3 double-precision matrix, used for zoom/pan affine transforms.
+    // Converts implicitly to/from cv::Matx33d when OpenCV is available.
+    // Python: mapped to List[List[float]] (3x3), also accepts numpy 3x3 arrays.
+    struct Matrix33d
+    {
+        double m[3][3];
+
+        // Default constructor: identity matrix
+        IMMVISION_API Matrix33d();
+        IMMVISION_API static Matrix33d eye();
+        IMMVISION_API Matrix33d inv() const;
+        IMMVISION_API Matrix33d operator*(const Matrix33d& rhs) const;
+
+        double& operator()(int r, int c) { return m[r][c]; }
+        const double& operator()(int r, int c) const { return m[r][c]; }
+
+        bool operator==(const Matrix33d& o) const;
+        bool operator!=(const Matrix33d& o) const { return !(*this == o); }
+
+        #ifdef IMMVISION_HAS_OPENCV
+        IMMVISION_API Matrix33d(const cv::Matx33d& mat);
+        IMMVISION_API operator cv::Matx33d() const;
+        #endif
+    };
+
+
+    // Lightweight image container. Holds a pointer to pixel data with metadata (width, height,
+    // channels, depth, stride). Does not depend on OpenCV.
+    //
+    // C++ users:
+    //     If OpenCV is available, you can pass cv::Mat directly to any ImmVision function
+    //     that accepts an ImageBuffer — the implicit constructor ImageBuffer(const cv::Mat&)
+    //     wraps the data with zero copy. Use to_cv_mat() to get a zero-copy cv::Mat view back,
+    //     or to_cv_mat_clone() for a deep copy that outlives the ImageBuffer.
+    //
+    // Python users:
+    //     ImageBuffer is mapped transparently to numpy.ndarray. You simply pass numpy arrays
+    //     to ImmVision functions and receive numpy arrays back. No manual conversion is needed.
+    struct ImageBuffer
+    {
+        void* data = nullptr;
+        int width = 0, height = 0, channels = 0;
+        ImageDepth depth = ImageDepth::uint8;
+        size_t step = 0;  // bytes per row (stride)
+
+        // Type-erased ownership: keeps the underlying memory alive.
+        // Can hold a cv::Mat (refcount), a Python object (ndarray), or owned memory.
+        std::shared_ptr<void> _ref_keeper;
+
+        ImageBuffer() = default;
+
+        // Basic queries
+        bool empty() const { return data == nullptr || width == 0 || height == 0; }
+        // Bytes per single-channel element
+        IMMVISION_API size_t elemSize() const;
+        // Bytes per pixel (all channels)
+        size_t elemSizeTotal() const { return elemSize() * channels; }
+
+        // Owning allocation
+        IMMVISION_API static ImageBuffer Zeros(int w, int h, int ch, ImageDepth d);
+        IMMVISION_API ImageBuffer clone() const;
+
+        #ifdef IMMVISION_HAS_OPENCV
+        // Zero-copy wrap: keeps cv::Mat refcount alive via _ref_keeper
+        IMMVISION_API ImageBuffer(const cv::Mat& mat);
+        // Zero-copy view: valid while this ImageBuffer lives
+        IMMVISION_API cv::Mat to_cv_mat() const;
+        // Deep copy: safe even after ImageBuffer is destroyed
+        IMMVISION_API cv::Mat to_cv_mat_clone() const;
+        #endif
+    };
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/immvision_types.cpp continued                                            //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <cstring>   // memcpy
+#include <stdexcept>
+#include <cmath>     // fabs
+
+namespace ImmVision
+{
+    // =========================================================================
+    // ImageDepth helpers
+    // =========================================================================
+
+    size_t ImageDepthSize(ImageDepth depth)
+    {
+        switch (depth)
+        {
+            case ImageDepth::uint8:   return 1;
+            case ImageDepth::int8:    return 1;
+            case ImageDepth::uint16:  return 2;
+            case ImageDepth::int16:   return 2;
+            case ImageDepth::int32:   return 4;
+            case ImageDepth::float32: return 4;
+            case ImageDepth::float64: return 8;
+        }
+        throw std::runtime_error("ImageDepthSize: unknown depth");
+    }
+
+#ifdef IMMVISION_HAS_OPENCV
+    static ImageDepth cv_depth_to_image_depth(int cv_depth)
+    {
+        switch (cv_depth)
+        {
+            case CV_8U:  return ImageDepth::uint8;
+            case CV_8S:  return ImageDepth::int8;
+            case CV_16U: return ImageDepth::uint16;
+            case CV_16S: return ImageDepth::int16;
+            case CV_32S: return ImageDepth::int32;
+            case CV_32F: return ImageDepth::float32;
+            case CV_64F: return ImageDepth::float64;
+            default:
+                throw std::runtime_error("cv_depth_to_image_depth: unsupported cv depth");
+        }
+    }
+
+    static int image_depth_to_cv_depth(ImageDepth depth)
+    {
+        switch (depth)
+        {
+            case ImageDepth::uint8:   return CV_8U;
+            case ImageDepth::int8:    return CV_8S;
+            case ImageDepth::uint16:  return CV_16U;
+            case ImageDepth::int16:   return CV_16S;
+            case ImageDepth::int32:   return CV_32S;
+            case ImageDepth::float32: return CV_32F;
+            case ImageDepth::float64: return CV_64F;
+        }
+        throw std::runtime_error("image_depth_to_cv_depth: unknown depth");
+    }
+#endif
+
+    // =========================================================================
+    // Matrix33d
+    // =========================================================================
+
+    Matrix33d::Matrix33d()
+    {
+        for (int r = 0; r < 3; r++)
+            for (int c = 0; c < 3; c++)
+                m[r][c] = (r == c) ? 1.0 : 0.0;
+    }
+
+    Matrix33d Matrix33d::eye()
+    {
+        return Matrix33d();  // default ctor is identity
+    }
+
+    Matrix33d Matrix33d::inv() const
+    {
+        // 3x3 matrix inverse using Cramer's rule
+        const auto& a = m;
+        double det =
+            a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1]) -
+            a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0]) +
+            a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
+
+        if (std::fabs(det) < 1e-15)
+            throw std::runtime_error("Matrix33d::inv: singular matrix");
+
+        double inv_det = 1.0 / det;
+        Matrix33d r;
+        r.m[0][0] =  (a[1][1] * a[2][2] - a[1][2] * a[2][1]) * inv_det;
+        r.m[0][1] = -(a[0][1] * a[2][2] - a[0][2] * a[2][1]) * inv_det;
+        r.m[0][2] =  (a[0][1] * a[1][2] - a[0][2] * a[1][1]) * inv_det;
+        r.m[1][0] = -(a[1][0] * a[2][2] - a[1][2] * a[2][0]) * inv_det;
+        r.m[1][1] =  (a[0][0] * a[2][2] - a[0][2] * a[2][0]) * inv_det;
+        r.m[1][2] = -(a[0][0] * a[1][2] - a[0][2] * a[1][0]) * inv_det;
+        r.m[2][0] =  (a[1][0] * a[2][1] - a[1][1] * a[2][0]) * inv_det;
+        r.m[2][1] = -(a[0][0] * a[2][1] - a[0][1] * a[2][0]) * inv_det;
+        r.m[2][2] =  (a[0][0] * a[1][1] - a[0][1] * a[1][0]) * inv_det;
+        return r;
+    }
+
+    Matrix33d Matrix33d::operator*(const Matrix33d& rhs) const
+    {
+        Matrix33d r;
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+            {
+                r.m[i][j] = 0.0;
+                for (int k = 0; k < 3; k++)
+                    r.m[i][j] += m[i][k] * rhs.m[k][j];
+            }
+        return r;
+    }
+
+    bool Matrix33d::operator==(const Matrix33d& o) const
+    {
+        for (int r = 0; r < 3; r++)
+            for (int c = 0; c < 3; c++)
+                if (m[r][c] != o.m[r][c])
+                    return false;
+        return true;
+    }
+
+#ifdef IMMVISION_HAS_OPENCV
+    Matrix33d::Matrix33d(const cv::Matx33d& mat)
+    {
+        for (int r = 0; r < 3; r++)
+            for (int c = 0; c < 3; c++)
+                m[r][c] = mat(r, c);
+    }
+
+    Matrix33d::operator cv::Matx33d() const
+    {
+        cv::Matx33d r;
+        for (int r_ = 0; r_ < 3; r_++)
+            for (int c = 0; c < 3; c++)
+                r(r_, c) = m[r_][c];
+        return r;
+    }
+#endif
+
+    // =========================================================================
+    // ImageBuffer
+    // =========================================================================
+
+    size_t ImageBuffer::elemSize() const
+    {
+        return ImageDepthSize(depth);
+    }
+
+    ImageBuffer ImageBuffer::Zeros(int w, int h, int ch, ImageDepth d)
+    {
+        ImageBuffer buf;
+        buf.width = w;
+        buf.height = h;
+        buf.channels = ch;
+        buf.depth = d;
+        buf.step = w * ch * ImageDepthSize(d);
+        auto owned = std::make_shared<std::vector<uint8_t>>(h * buf.step, 0);
+        buf.data = owned->data();
+        buf._ref_keeper = owned;  // shared_ptr<void> holds the vector
+        return buf;
+    }
+
+    ImageBuffer ImageBuffer::clone() const
+    {
+        if (empty())
+            return ImageBuffer();
+        ImageBuffer buf = Zeros(width, height, channels, depth);
+        // Copy row by row (source may have different stride)
+        size_t row_bytes = width * channels * ImageDepthSize(depth);
+        for (int y = 0; y < height; y++)
+        {
+            const uint8_t* src_row = static_cast<const uint8_t*>(data) + y * step;
+            uint8_t* dst_row = static_cast<uint8_t*>(buf.data) + y * buf.step;
+            std::memcpy(dst_row, src_row, row_bytes);
+        }
+        return buf;
+    }
+
+#ifdef IMMVISION_HAS_OPENCV
+    ImageBuffer::ImageBuffer(const cv::Mat& mat)
+    {
+        // Ensure contiguous memory: clone if needed (e.g. ROI sub-matrices)
+        cv::Mat continuous = mat.isContinuous() ? mat : mat.clone();
+        data = continuous.data;
+        width = continuous.cols;
+        height = continuous.rows;
+        channels = continuous.channels();
+        depth = cv_depth_to_image_depth(continuous.depth());
+        step = continuous.step[0];
+        // Keep the cv::Mat header alive — its refcount keeps the pixel data alive
+        auto mat_copy = std::make_shared<cv::Mat>(continuous);
+        _ref_keeper = mat_copy;
+    }
+
+    cv::Mat ImageBuffer::to_cv_mat() const
+    {
+        if (empty())
+            return cv::Mat();
+        int cv_type = CV_MAKETYPE(image_depth_to_cv_depth(depth), channels);
+        return cv::Mat(height, width, cv_type, data, step);
+    }
+
+    cv::Mat ImageBuffer::to_cv_mat_clone() const
+    {
+        return to_cv_mat().clone();
+    }
+#endif
+
+} // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/colormap.cpp                                                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -14,8 +419,6 @@
 //                       src/immvision/image.h included by src/immvision/internal/cv/colormap.h                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <opencv2/core.hpp>
-#include <vector>
 #include <string>
 
 
@@ -104,11 +507,11 @@ namespace ImmVision
 
         // Mouse position in the original image/matrix
         // This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
-        cv::Point2d MousePosition = cv::Point2d(-1., -1.);
+        Point2d MousePosition = Point2d(-1., -1.);
         // Mouse position in the displayed portion of the image (the original image can be zoomed,
         // and only show a subset if it may be shown).
         // This position is given with integer coordinates, and will be (-1, -1) if the mouse is not hovering the image
-        cv::Point MousePosition_Displayed = cv::Point(-1, -1);
+        Point MousePosition_Displayed = Point(-1, -1);
 
         //
         // Note: you can query ImGui::IsMouseDown(mouse_button) (c++) or imgui.is_mouse_down(mouse_button) (Python)
@@ -141,14 +544,14 @@ namespace ImmVision
         // Size of the displayed image (can be different from the matrix size)
         // If you specify only the width or height (e.g (300, 0), then the other dimension
         // will be calculated automatically, respecting the original image w/h ratio.
-        cv::Size ImageDisplaySize = cv::Size();
+        Size ImageDisplaySize = Size();
 
         //
         // Zoom and Pan (represented by an affine transform matrix, of size 3x3)
         //
 
         // ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
-        cv::Matx33d ZoomPanMatrix = cv::Matx33d::eye();
+        Matrix33d ZoomPanMatrix = Matrix33d::eye();
         // If displaying several images, those with the same ZoomKey will zoom and pan together
         std::string ZoomKey = "";
 
@@ -205,7 +608,7 @@ namespace ImmVision
         // Watched Pixels
         //
         // List of Watched Pixel coordinates
-        std::vector<cv::Point> WatchedPixels = std::vector<cv::Point>();
+        std::vector<Point> WatchedPixels = std::vector<Point>();
         // Shall we add a watched pixel on double click
         bool AddWatchedPixelOnDoubleClick = true;
         // Shall the watched pixels be drawn on the image
@@ -228,20 +631,20 @@ namespace ImmVision
 
 
     // Create a zoom/pan matrix centered around a given point of interest
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix(
-                        const cv::Point2d & zoomCenter,
+    IMMVISION_API Matrix33d MakeZoomPanMatrix(
+                        const Point2d & zoomCenter,
                         double zoomRatio,
-                        const cv::Size displayedImageSize
+                        const Size displayedImageSize
     );
 
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_ScaleOne(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize
+    IMMVISION_API Matrix33d MakeZoomPanMatrix_ScaleOne(
+        Size imageSize,
+        const Size displayedImageSize
     );
 
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_FullView(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize
+    IMMVISION_API Matrix33d MakeZoomPanMatrix_FullView(
+        Size imageSize,
+        const Size displayedImageSize
     );
 
 
@@ -264,8 +667,10 @@ namespace ImmVision
     //                  (the part after "##" will not be displayed but will be part of the id)
     //        - To display an empty legend, use "##_some_unique_id"
     //
-    // :param mat
-    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    // :param image
+    //     The image to display. All dense image types are supported (uint8, int16, float32, etc.).
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     //
     // :param params
     //     Complete options (as modifiable inputs), and outputs (mouse position, watched pixels, etc)
@@ -279,7 +684,7 @@ namespace ImmVision
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    IMMVISION_API void Image(const std::string& label, const cv::Mat& mat, ImageParams* params);
+    IMMVISION_API void Image(const std::string& label, const ImageBuffer& image, ImageParams* params);
 
 
     // ImageDisplay: Only, display the image, with no user interaction (by default)
@@ -297,29 +702,27 @@ namespace ImmVision
     //        - if your legend is displayed (i.e. it does not start with "##"),
     //          then the total size of the widget will be larger than the imageDisplaySize.
     //
-    // :param mat:
-    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    // :param image:
+    //     The image to display. All dense image types are supported.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     //
     // :param imageDisplaySize:
-    //     Size of the displayed image (can be different from the mat size)
+    //     Size of the displayed image (can be different from the image size)
     //     If you specify only the width or height (e.g (300, 0), then the other dimension
     //     will be calculated automatically, respecting the original image w/h ratio.
     //
     // :param refreshImage:
-    //     images textures are cached. Set to true if your image matrix/buffer has changed
+    //     images textures are cached. Set to true if your image has changed
     //     (for example, for live video images)
     //
     // :param showOptionsButton:
     //     If true, show an option button that opens the option panel.
     //     In that case, it also becomes possible to zoom & pan, add watched pixel by double-clicking, etc.
     //
-    // :param isBgrOrBgra:
-    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV)
-    //.    Breaking change, oct 2024: the default is BGR for C++, RGB for Python!
-    //
     // :return:
-    //      The mouse position in `mat` original image coordinates, as double values.
-    //      (i.e. it does not matter if imageDisplaySize is different from mat.size())
+    //      The mouse position in the original image coordinates, as double values.
+    //      (i.e. it does not matter if imageDisplaySize is different from the image size)
     //      It will return (-1., -1.) if the mouse is not hovering the image.
     //
     //      Note: use ImGui::IsMouseDown(mouse_button) (C++) or imgui.is_mouse_down(mouse_button) (Python)
@@ -328,10 +731,10 @@ namespace ImmVision
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
-    IMMVISION_API cv::Point2d ImageDisplay(
+    IMMVISION_API Point2d ImageDisplay(
         const std::string& label_id,
-        const cv::Mat& mat,
-        const cv::Size& imageDisplaySize = cv::Size(),
+        const ImageBuffer& image,
+        const Size& imageDisplaySize = Size(),
         bool refreshImage = false,
         bool showOptionsButton = false
         );
@@ -339,9 +742,14 @@ namespace ImmVision
     // ImageDisplayResizable: display the image, with no user interaction (by default)
     // The image can be resized by the user (and the new size will be stored in the size parameter, if provided)
     // The label will not be displayed (but it will be used as an id, and must be unique)
-    IMMVISION_API cv::Point2d ImageDisplayResizable(
+    //
+    // :param image:
+    //     The image to display.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
+    IMMVISION_API Point2d ImageDisplayResizable(
         const std::string& label_id,
-        const cv::Mat& mat,
+        const ImageBuffer& image,
         ImVec2* size = nullptr,
         bool refreshImage = false,
         bool resizable = true,
@@ -363,7 +771,7 @@ namespace ImmVision
     // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
     // Note: this image must be currently displayed. This function will return the transformed image
     // (i.e with ColorMap, Zoom, etc.)
-    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label);
+    IMMVISION_API ImageBuffer GetCachedRgbaImage(const std::string& label);
 
     // Return immvision version info
     IMMVISION_API std::string VersionInfo();
@@ -4494,7 +4902,7 @@ namespace ImmVision
 
 namespace ImmVision
 {
-    // GlTexture contains an OpenGL texture which can be created or updated from a cv::Mat (C++), or numpy array (Python)
+    // GlTexture contains an OpenGL texture which can be created or updated from an ImageBuffer (C++), or numpy array (Python)
     struct GlTexture
     {
         //
@@ -4503,13 +4911,13 @@ namespace ImmVision
 
         // Create an empty texture
         GlTexture();
-        // Create a texture from an image (cv::Mat in C++, numpy array in Python)
+        // Create a texture from an image (ImageBuffer in C++, numpy array in Python)
         // isColorOrderBGR: if true, the image is assumed to be in BGR order (OpenCV default)
-        GlTexture(const cv::Mat& image, bool isColorOrderBGR = false);
+        GlTexture(const ImageBuffer& image, bool isColorOrderBGR = false);
         // The destructor will delete the texture from the GPU
         ~GlTexture();
 
-        // GlTextureCv is non copiable (since it holds a reference to a texture stored on the GPU),
+        // GlTexture is non copiable (since it holds a reference to a texture stored on the GPU),
         // but it is movable.
         GlTexture(const GlTexture& ) = delete;
         GlTexture& operator=(const GlTexture& ) = delete;
@@ -4521,8 +4929,8 @@ namespace ImmVision
         // Methods
         //
 
-        // Update the texture from a new image (cv::Mat in C++, numpy array in Python).
-        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR = false);
+        // Update the texture from a new image (ImageBuffer in C++, numpy array in Python).
+        void UpdateFromImage(const ImageBuffer& image, bool isColorOrderBGR = false);
         // Returns the size as ImVec2
         ImVec2 SizeImVec2() const;
 
@@ -4534,7 +4942,7 @@ namespace ImmVision
         // OpenGL texture ID on the GPU
         ImTextureID TextureId;
         // Image size in pixels
-        cv::Size Size;
+        Size ImageSize;
     };
 } // namespace ImmVision
 
@@ -4574,7 +4982,7 @@ namespace ImGuiImm
 
 
     ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);
-    cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize);
+    ImmVision::Size ComputeDisplayImageSize(ImmVision::Size askedImageSize, ImmVision::Size realImageSize);
 
     void PushDisabled();
     void PopDisabled();
@@ -5340,6 +5748,20 @@ namespace ImmVision
             return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
         }
 
+        // Overloads for ImmVision types (must be before the vector template so they're found)
+        inline std::string ToString(const Point& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        inline std::string ToString(const Point2d& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        inline std::string ToString(const Size& v)
+        {
+            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
+        }
+
         template<typename _Tp>
         std::string ToString(const std::vector<_Tp>& v)
         {
@@ -5371,8 +5793,28 @@ namespace ImmVision
             return r;
         }
 
+        inline std::string ToString(const Matrix33d& m)
+        {
+            std::vector<std::string> lines;
+            for (int i = 0; i < 3; ++i)
+            {
+                std::vector<double> lineValues;
+                for (int j = 0; j < 3; ++j)
+                    lineValues.push_back(m.m[i][j]);
+                std::string lineString = ToString(lineValues);
+                if (i != 0)
+                    lineString = std::string("   ") + lineString;
+                lines.push_back(lineString);
+            }
+            std::string r = "\n  [";
+            r += JoinStrings(lines, ",\n");
+            r += "]";
+            return r;
+        }
+
     } // namespace StringUtils
 } // namespace ImmVision
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/cv_drawing_utils.cpp continued                               //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -6352,23 +6794,23 @@ namespace ImmVision
 
     } // namespace ZoomPanTransform
 
-    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix(const Point2d & zoomCenter, double zoomRatio, const Size displayedImageSize)
     {
-        return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
+        return Matrix33d(ZoomPanTransform::MakeZoomMatrix(cv::Point2d(zoomCenter), zoomRatio, cv::Size(displayedImageSize)));
     }
 
-    cv::Matx33d MakeZoomPanMatrix_ScaleOne(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix_ScaleOne(
+        Size imageSize,
+        const Size displayedImageSize)
     {
-        return ZoomPanTransform::MakeScaleOne(imageSize, displayedImageSize);
+        return Matrix33d(ZoomPanTransform::MakeScaleOne(cv::Size(imageSize), cv::Size(displayedImageSize)));
     }
 
-    cv::Matx33d MakeZoomPanMatrix_FullView(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix_FullView(
+        Size imageSize,
+        const Size displayedImageSize)
     {
-        return ZoomPanTransform::MakeFullView(imageSize, displayedImageSize);
+        return Matrix33d(ZoomPanTransform::MakeFullView(cv::Size(imageSize), cv::Size(displayedImageSize)));
     }
 }
 
@@ -6713,32 +7155,6 @@ namespace ImmVision
         bool HasColormapParam(const ImageParams &params)
         {
             return (!params.ColormapSettings.Colormap.empty() || !params.ColormapSettings.internal_ColormapHovered.empty());
-        }
-
-        cv::Mat _DrawLutGraph(const std::vector<double>& x, const std::vector<double>& y, cv::Size size)
-        {
-            cv::Mat image(size, CV_8UC4);
-            assert(x.size() == y.size());
-            size_t len = x.size();
-
-            auto toPoint = [size](double x, double y) -> cv::Point2d {
-                cv::Point2d r {
-                    1. + x * (double)(size.width - 3),
-                    1. + (1. - y) * (double)(size.height - 3),
-                };
-                return r;
-            };
-
-            image = cv::Scalar(200, 200, 200, 0);
-            // cv::Scalar color(255, 80, 50, 255);
-            cv::Scalar color(0, 255, 255, 255);
-            for (size_t i = 0; i < len - 1; ++i)
-            {
-                double x0 = x[i], y0 = y[i];
-                double x1 = x[i + 1], y1 = y[i + 1];
-                CvDrawingUtils::line(image, toPoint(x0, y0), toPoint(x1, y1), color);
-            }
-            return image;
         }
 
     } // namespace ImageDrawing
@@ -7268,24 +7684,25 @@ namespace ImmVision
         ImmVision_GlProvider::DeleteTexture(TextureId);
     }
 
-    GlTexture::GlTexture(const cv::Mat& image, bool isColorOrderBGR) : GlTexture()
+    GlTexture::GlTexture(const ImageBuffer& image, bool isColorOrderBGR) : GlTexture()
     {
         UpdateFromImage(image, isColorOrderBGR);
     }
 
-    void GlTexture::UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR)
+    void GlTexture::UpdateFromImage(const ImageBuffer& image, bool isColorOrderBGR)
     {
         if (image.empty())
             return;
-        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(image, isColorOrderBGR);
+        cv::Mat mat = image.to_cv_mat();
+        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(mat, isColorOrderBGR);
 
         ImmVision_GlProvider::Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows, TextureId);
-        this->Size = mat_rgba.size();
+        this->ImageSize = Size(mat_rgba.cols, mat_rgba.rows);
     }
 
     ImVec2 GlTexture::SizeImVec2() const
     {
-        return {(float)Size.width, (float)Size.height};
+        return {(float)ImageSize.width, (float)ImageSize.height};
     }
 
 } // namespace ImmVision
@@ -7417,7 +7834,6 @@ namespace ImmVision
 
             void ClearOldEntries()
             {
-                return;
                 double now = TimerSeconds();
                 std::vector<Key> oldEntries;
                 for (const auto& key: Keys())
@@ -9411,7 +9827,7 @@ namespace ImmVision
                 bool   IsMouseDragging = false;
                 bool   WasZoomJustUpdatedByLink = false;
                 bool   IsResizing = false;
-                cv::Size PreviousImageSize;
+                Size PreviousImageSize;
                 struct ImageParams  PreviousParams;
             };
             struct CachedImageAndTexture
@@ -9484,12 +9900,19 @@ namespace ImmVision
 
 namespace ImmVision
 {
+    // Add an image to the inspector. Call this from anywhere (e.g. at different steps
+    // of an image processing pipeline). Later, call Inspector_Show() to display all collected images.
+    //
+    // :param image:
+    //     The image to add.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     IMMVISION_API void Inspector_AddImage(
-        const cv::Mat& image,
+        const ImageBuffer& image,
         const std::string& legend,
         const std::string& zoomKey = "",
         const std::string& colormapKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
+        const Point2d & zoomCenter = Point2d(),
         double zoomRatio = -1.
     );
 
@@ -9498,6 +9921,7 @@ namespace ImmVision
     IMMVISION_API void Inspector_ClearImages();
 
 } // namespace ImmVision
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/image.cpp continued                                             //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -9603,8 +10027,9 @@ This is a required setup step. (Breaking change - October 2024)
         return r;
     }
 
-    void Image(const std::string& label, const cv::Mat& image, ImageParams* params)
+    void Image(const std::string& label, const ImageBuffer& image_buf, ImageParams* params)
     {
+        cv::Mat image = image_buf.to_cv_mat();
         // Note: although this function is long, it is well organized, and it behaves almost like a class
         // with members = (cv::Mat& image, ImageParams* params).
         //
@@ -9927,7 +10352,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (cacheParams.IsResizing)
                 return;
-            ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
+            cv::Matx33d zoomMatrix = cv::Matx33d(params->ZoomPanMatrix);
 
             int mouseDragButton = 0;
             bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && ImGui::IsItemHovered();
@@ -9947,6 +10372,7 @@ This is a required setup step. (Breaking change - October 2024)
                     zoomMatrix(0, 0));
                 cacheParams.LastDragDelta = dragDelta;
             }
+            params->ZoomPanMatrix = Matrix33d(zoomMatrix);
         };
         auto fnHandleMouseWheel = [&params](const cv::Point2d& mouseLocation)
         {
@@ -9978,7 +10404,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (params->ShowZoomButtons)
             {
-                ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
+                cv::Matx33d zoomMatrix = cv::Matx33d(params->ZoomPanMatrix);
 
                 cv::Point2d viewportCenter_originalImage = ZoomPanTransform::Apply(
                     zoomMatrix.inv(),
@@ -9990,7 +10416,7 @@ This is a required setup step. (Breaking change - October 2024)
                 {
                     cv::Point2d zoomCenter = params->WatchedPixels.empty() ?
                                 viewportCenter_originalImage
-                            :   cv::Point2d(params->WatchedPixels.back());
+                            :   cv::Point2d(cv::Point(params->WatchedPixels.back()));
                     ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
                     if (Icons::IconButton(Icons::IconType::ZoomPlus))
                         zoomMatrix = zoomMatrix * ZoomPanTransform::ComputeZoomMatrix(zoomCenter, 1.1);
@@ -10005,8 +10431,8 @@ This is a required setup step. (Breaking change - October 2024)
                 ImGui::SameLine();
                 // Scale1 & Full View Zoom  buttons
                 {
-                    auto scaleOneZoomInfo = ZoomPanTransform::MakeScaleOne(image.size(), params->ImageDisplaySize);
-                    auto fullViewZoomInfo = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
+                    auto scaleOneZoomInfo = ZoomPanTransform::MakeScaleOne(image.size(), cv::Size(params->ImageDisplaySize));
+                    auto fullViewZoomInfo = ZoomPanTransform::MakeFullView(image.size(), cv::Size(params->ImageDisplaySize));
                     if (Icons::IconButton(
                         Icons::IconType::ZoomScaleOne,
                         ZoomPanTransform::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
@@ -10021,6 +10447,7 @@ This is a required setup step. (Breaking change - October 2024)
                         )
                         zoomMatrix = fullViewZoomInfo;
                 }
+                params->ZoomPanMatrix = Matrix33d(zoomMatrix);
             }
 
         };
@@ -10038,8 +10465,8 @@ This is a required setup step. (Breaking change - October 2024)
             if (ImGui::IsItemHovered())
             {
                 mouseInfo.IsMouseHovering = true;
-                mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
-                mouseInfo.MousePosition_Displayed = mouseLocation;
+                mouseInfo.MousePosition = Point2d(ZoomPanTransform::Apply(cv::Matx33d(params->ZoomPanMatrix).inv(), mouseLocation));
+                mouseInfo.MousePosition_Displayed = Point(cv::Point(mouseLocation));
             }
             return mouseInfo;
         };
@@ -10240,14 +10667,15 @@ This is a required setup step. (Breaking change - October 2024)
     }
 
 
-    cv::Point2d ImageDisplay(
+    Point2d ImageDisplay(
         const std::string& label_id,
-        const cv::Mat& mat,
-        const cv::Size& imageDisplaySize,
+        const ImageBuffer& mat_buf,
+        const Size& imageDisplaySize,
         bool refreshImage,
         bool showOptionsButton
         )
     {
+        cv::Mat mat = mat_buf.to_cv_mat();
         ImGuiID id = ImGui::GetID(label_id.c_str());
         static std::map<ImGuiID, ImageParams> s_Params;
         if (s_Params.find(id) == s_Params.end())
@@ -10262,26 +10690,27 @@ This is a required setup step. (Breaking change - October 2024)
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
 
-            cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
-            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
+            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, Size(mat.cols, mat.rows));
+            params.ZoomPanMatrix = Matrix33d(ZoomPanTransform::MakeFullView(mat.size(), cv::Size(displayedSize)));
         }
 
-        Image(label_id, mat, &params);
+        Image(label_id, mat_buf, &params);
         return params.MouseInfo.MousePosition;
     }
 
 
     static std::map<ImGuiID, ImVec2> s_ImageDisplayResizable_Sizes;
 
-    IMMVISION_API cv::Point2d ImageDisplayResizable(
+    IMMVISION_API Point2d ImageDisplayResizable(
         const std::string& label_id,
-        const cv::Mat& mat,
+        const ImageBuffer& mat_buf,
         ImVec2* size,
         bool refreshImage,
         bool resizable,
         bool showOptionsButton
     )
     {
+        cv::Mat mat = mat_buf.to_cv_mat();
         if (size == nullptr)
         {
             ImGuiID id = ImGui::GetID(label_id.c_str());
@@ -10298,7 +10727,7 @@ This is a required setup step. (Breaking change - October 2024)
             s_Params[id] = params;
         }
 
-        cv::Size imageDisplaySize = cv::Size((int)size->x, (int)size->y);
+        Size imageDisplaySize = Size((int)size->x, (int)size->y);
         ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
@@ -10306,11 +10735,11 @@ This is a required setup step. (Breaking change - October 2024)
             params.CanResize = resizable;
             params.RefreshImage = refreshImage;
 
-            cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
-            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
+            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, Size(mat.cols, mat.rows));
+            params.ZoomPanMatrix = Matrix33d(ZoomPanTransform::MakeFullView(mat.size(), cv::Size(displayedSize)));
         }
         std::string hiddenLabel = std::string("##") + label_id;
-        Image(hiddenLabel, mat, &params);
+        Image(hiddenLabel, mat_buf, &params);
 
         *size = ImVec2((float)params.ImageDisplaySize.width, (float)params.ImageDisplaySize.height);
         return params.MouseInfo.MousePosition;
@@ -10352,11 +10781,11 @@ This is a required setup step. (Breaking change - October 2024)
     }
 
 
-    cv::Mat GetCachedRgbaImage(const std::string& label)
+    ImageBuffer GetCachedRgbaImage(const std::string& label)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
         cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
-        return r;
+        return ImageBuffer(r);
     }
 
     ImageParams::~ImageParams()
@@ -10393,8 +10822,8 @@ namespace ImmVision
                 cv::Rect fullRoi(cv::Point2d(), image.size());
                 Colormap::InitStatsOnNewImage(image, fullRoi, &params->ColormapSettings);
             }
-            if (params->ZoomPanMatrix == cv::Matx33d::eye())
-                params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
+            if (params->ZoomPanMatrix == Matrix33d::eye())
+                params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), cv::Size(params->ImageDisplaySize));
         }
 
         bool ShallRefreshRgbaCache(const ImageParams& v1, const ImageParams& v2)
@@ -10422,7 +10851,7 @@ namespace ImmVision
                 return true;
             if (v1.ImageDisplaySize != v2.ImageDisplaySize)
                 return true;
-            if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))
+            if (! ZoomPanTransform::IsEqual(cv::Matx33d(v1.ZoomPanMatrix), cv::Matx33d(v2.ZoomPanMatrix)))
                 return true;
             if (! Colormap::IsEqual(v1.ColormapSettings, v2.ColormapSettings))
                 return true;
@@ -10476,21 +10905,21 @@ namespace ImmVision
 
             // Update current params if needed
             {
-                params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
+                params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, Size(image.cols, image.rows));
 
                 if (isNewEntry)
                     InitializeMissingParams(params, image);
 
                 bool wasDisplaySizeChanged = oldParams.ImageDisplaySize != params->ImageDisplaySize;
                 bool wasImageSizeChanged = ( (cachedParams.PreviousImageSize.area() != 0)
-                                             && (cachedParams.PreviousImageSize != image.size()));
+                                             && (cachedParams.PreviousImageSize != Size(image.cols, image.rows)));
                 bool isDisplaySizeEmpty = (oldParams.ImageDisplaySize.area() == 0);
 
                 bool tryAdaptZoomToNewDisplaySize = wasDisplaySizeChanged && !wasImageSizeChanged && !isDisplaySizeEmpty;
                 if (tryAdaptZoomToNewDisplaySize)
                 {
-                    params->ZoomPanMatrix = ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
-                        oldParams.ZoomPanMatrix, oldParams.ImageDisplaySize, params->ImageDisplaySize);
+                    params->ZoomPanMatrix = Matrix33d(ZoomPanTransform::UpdateZoomMatrix_DisplaySizeChanged(
+                        cv::Matx33d(oldParams.ZoomPanMatrix), cv::Size(oldParams.ImageDisplaySize), cv::Size(params->ImageDisplaySize)));
                 }
             }
 
@@ -10500,7 +10929,7 @@ namespace ImmVision
                 bool fullRefresh =
                     (      userRefresh
                         || isNewEntry
-                        || (cachedImage.mGlTexture->Size.empty())
+                        || (cachedImage.mGlTexture->ImageSize.empty())
                         || ShallRefreshRgbaCache(oldParams, *params));
                 if (fullRefresh)
                 {
@@ -10522,13 +10951,13 @@ namespace ImmVision
                     *params, image, cachedImage.mImageRgbaCache, shallRefreshRgbaCache, cachedImage.mGlTexture.get());
             }
 
-            if (!cachedParams.WasZoomJustUpdatedByLink && !ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
+            if (!cachedParams.WasZoomJustUpdatedByLink && !ZoomPanTransform::IsEqual(cv::Matx33d(oldParams.ZoomPanMatrix), cv::Matx33d(params->ZoomPanMatrix)))
                 UpdateLinkedZooms(id);
             if (! Colormap::IsEqual(oldParams.ColormapSettings, params->ColormapSettings))
                 UpdateLinkedColormapSettings(id);
 
             cachedParams.PreviousParams = *params;
-            cachedParams.PreviousImageSize = image.size();
+            cachedParams.PreviousImageSize = Size(image.cols, image.rows);
             mCacheImages.ClearOldEntries();
 
             return isNewEntry;
@@ -10588,10 +11017,10 @@ namespace ImmVision
             if (zoomKey.empty())
                 return;
 
-            ZoomPanTransform::MatrixType newZoom = currentCache.ParamsPtr->ZoomPanMatrix;
+            cv::Matx33d newZoom = cv::Matx33d(currentCache.ParamsPtr->ZoomPanMatrix);
             double currentZoomRatio = newZoom(0, 0);
 
-            cv::Size displayedImageSize = currentCache.ParamsPtr->ImageDisplaySize;
+            cv::Size displayedImageSize = cv::Size(currentCache.ParamsPtr->ImageDisplaySize);
             cv::Point2d visibleImageCenter_ImageCoords;
             {
                 cv::Point2d visibleCenter_Viewport(
@@ -10608,14 +11037,14 @@ namespace ImmVision
 
                 if ((otherCacheKey != id) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
                 {
-                    cv::Size otherDisplayedImageSize = otherCache.ParamsPtr->ImageDisplaySize;
+                    cv::Size otherDisplayedImageSize = cv::Size(otherCache.ParamsPtr->ImageDisplaySize);
 
                     double sizeRatioOtherImage = (double)otherDisplayedImageSize.width / (double)displayedImageSize.width;
                     double zoomRatioOtherImage = currentZoomRatio * sizeRatioOtherImage;
                     auto zoomMatrixOtherImage = ZoomPanTransform::MakeZoomMatrix(
                         visibleImageCenter_ImageCoords, zoomRatioOtherImage, otherDisplayedImageSize);
-                    otherCache.ParamsPtr->ZoomPanMatrix = zoomMatrixOtherImage;
-                    otherCache.PreviousParams.ZoomPanMatrix = zoomMatrixOtherImage;
+                    otherCache.ParamsPtr->ZoomPanMatrix = Matrix33d(zoomMatrixOtherImage);
+                    otherCache.PreviousParams.ZoomPanMatrix = Matrix33d(zoomMatrixOtherImage);
                     // otherCache.ParamsPtr->RefreshImage = true;
                     otherCache.WasZoomJustUpdatedByLink = true;
                 }
@@ -10660,46 +11089,46 @@ namespace ImmVision
 namespace nlohmann
 {
     template <>
-    struct adl_serializer<cv::Size>
+    struct adl_serializer<ImmVision::Size>
     {
-        static void to_json(json& j, const cv::Size& size) {
+        static void to_json(json& j, const ImmVision::Size& size) {
             j = json{{"width", size.width}, {"height", size.height}};
         }
 
-        static void from_json(const json& j, cv::Size& size) {
+        static void from_json(const json& j, ImmVision::Size& size) {
             j.at("width").get_to(size.width);
             j.at("height").get_to(size.height);
         }
     };
 
     template <>
-    struct adl_serializer<cv::Point>
+    struct adl_serializer<ImmVision::Point>
     {
-        static void to_json(json& j, const cv::Point& point) {
+        static void to_json(json& j, const ImmVision::Point& point) {
             j = json{{"x", point.x}, {"y", point.y}};
         }
 
-        static void from_json(const json& j, cv::Point& point) {
+        static void from_json(const json& j, ImmVision::Point& point) {
             j.at("x").get_to(point.x);
             j.at("y").get_to(point.y);
         }
     };
 
     template <>
-    struct adl_serializer<cv::Matx33d>
+    struct adl_serializer<ImmVision::Matrix33d>
     {
-        static void to_json(json& j, const cv::Matx33d& mat) {
+        static void to_json(json& j, const ImmVision::Matrix33d& mat) {
             for (int row = 0; row < 3; ++row) {
                 for (int col = 0; col < 3; ++col) {
-                    j[std::to_string(row) + std::to_string(col)] = mat(row, col);
+                    j[std::to_string(row) + std::to_string(col)] = mat.m[row][col];
                 }
             }
         }
 
-        static void from_json(const json& j, cv::Matx33d& mat) {
+        static void from_json(const json& j, ImmVision::Matrix33d& mat) {
             for (int row = 0; row < 3; ++row) {
                 for (int col = 0; col < 3; ++col) {
-                    mat(row, col) = j[std::to_string(row) + std::to_string(col)];
+                    mat.m[row][col] = j[std::to_string(row) + std::to_string(col)];
                 }
             }
         }
@@ -11056,10 +11485,10 @@ namespace ImGuiImm
         else
             return askedImageSize;
     }
-    cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize)
+    ImmVision::Size ComputeDisplayImageSize(ImmVision::Size askedImageSize, ImmVision::Size realImageSize)
     {
-        auto toSize = [](ImVec2 v) { return cv::Size((int)((double)v.x + 0.5), (int)((double)v.y + 0.5)); };
-        auto toImVec2 = [](cv::Size v) { return ImVec2((float)v.width, (float)v.height); };
+        auto toSize = [](ImVec2 v) { return ImmVision::Size((int)((double)v.x + 0.5), (int)((double)v.y + 0.5)); };
+        auto toImVec2 = [](ImmVision::Size v) { return ImVec2((float)v.width, (float)v.height); };
         return toSize( ComputeDisplayImageSize(toImVec2(askedImageSize), toImVec2(realImageSize)) );
     }
 
@@ -11711,25 +12140,26 @@ namespace ImmVision
 
 
     void Inspector_AddImage(
-        const cv::Mat& image,
+        const ImageBuffer& image_buf,
         const std::string& legend,
         const std::string& zoomKey,
         const std::string& colormapKey,
-        const cv::Point2d & zoomCenter,
+        const Point2d & zoomCenter,
         double zoomRatio
     )
     {
+        cv::Mat image = image_buf.to_cv_mat();
         ImageParams params;
         params.ZoomKey = zoomKey;
         params.ColormapKey = colormapKey;
         params.ShowOptionsPanel = true;
 
         if (gInspectorImageSize.x > 0.f)
-            params.ImageDisplaySize = cv::Size((int)gInspectorImageSize.x, (int)gInspectorImageSize.y);
+            params.ImageDisplaySize = Size((int)gInspectorImageSize.x, (int)gInspectorImageSize.y);
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
         auto id = sInspectorImageTextureCache.GetID(label, sDontUseIdStack);
-        s_Inspector_ImagesAndParams.push_back({id, label, image.clone(), params, zoomCenter, zoomRatio});
+        s_Inspector_ImagesAndParams.push_back({id, label, image.clone(), params, cv::Point2d(zoomCenter), zoomRatio});
 
         // bump cache
         {

@@ -1,4 +1,5 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
+#include "immvision/immvision_types.h"
 #include "immvision/internal/misc/math_utils.h"
 
 #include <opencv2/imgproc.hpp>
@@ -199,22 +200,22 @@ namespace ImmVision
 
     } // namespace ZoomPanTransform
 
-    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix(const Point2d & zoomCenter, double zoomRatio, const Size displayedImageSize)
     {
-        return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
+        return Matrix33d(ZoomPanTransform::MakeZoomMatrix(cv::Point2d(zoomCenter), zoomRatio, cv::Size(displayedImageSize)));
     }
 
-    cv::Matx33d MakeZoomPanMatrix_ScaleOne(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix_ScaleOne(
+        Size imageSize,
+        const Size displayedImageSize)
     {
-        return ZoomPanTransform::MakeScaleOne(imageSize, displayedImageSize);
+        return Matrix33d(ZoomPanTransform::MakeScaleOne(cv::Size(imageSize), cv::Size(displayedImageSize)));
     }
 
-    cv::Matx33d MakeZoomPanMatrix_FullView(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix_FullView(
+        Size imageSize,
+        const Size displayedImageSize)
     {
-        return ZoomPanTransform::MakeFullView(imageSize, displayedImageSize);
+        return Matrix33d(ZoomPanTransform::MakeFullView(cv::Size(imageSize), cv::Size(displayedImageSize)));
     }
 }

@@ -1,11 +1,11 @@
 #pragma once
 #include "imgui.h"
-#include <opencv2/core.hpp>
+#include "immvision/immvision_types.h"
 
 
 namespace ImmVision
 {
-    // GlTexture contains an OpenGL texture which can be created or updated from a cv::Mat (C++), or numpy array (Python)
+    // GlTexture contains an OpenGL texture which can be created or updated from an ImageBuffer (C++), or numpy array (Python)
     struct GlTexture
     {
         //
@@ -14,13 +14,13 @@ namespace ImmVision
 
         // Create an empty texture
         GlTexture();
-        // Create a texture from an image (cv::Mat in C++, numpy array in Python)
+        // Create a texture from an image (ImageBuffer in C++, numpy array in Python)
         // isColorOrderBGR: if true, the image is assumed to be in BGR order (OpenCV default)
-        GlTexture(const cv::Mat& image, bool isColorOrderBGR = false);
+        GlTexture(const ImageBuffer& image, bool isColorOrderBGR = false);
         // The destructor will delete the texture from the GPU
         ~GlTexture();
 
-        // GlTextureCv is non copiable (since it holds a reference to a texture stored on the GPU),
+        // GlTexture is non copiable (since it holds a reference to a texture stored on the GPU),
         // but it is movable.
         GlTexture(const GlTexture& ) = delete;
         GlTexture& operator=(const GlTexture& ) = delete;
@@ -32,8 +32,8 @@ namespace ImmVision
         // Methods
         //
 
-        // Update the texture from a new image (cv::Mat in C++, numpy array in Python).
-        void UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR = false);
+        // Update the texture from a new image (ImageBuffer in C++, numpy array in Python).
+        void UpdateFromImage(const ImageBuffer& image, bool isColorOrderBGR = false);
         // Returns the size as ImVec2
         ImVec2 SizeImVec2() const;
 
@@ -45,6 +45,6 @@ namespace ImmVision
         // OpenGL texture ID on the GPU
         ImTextureID TextureId;
         // Image size in pixels
-        cv::Size Size;
+        Size ImageSize;
     };
 } // namespace ImmVision

@@ -6,46 +6,46 @@
 namespace nlohmann
 {
     template <>
-    struct adl_serializer<cv::Size>
+    struct adl_serializer<ImmVision::Size>
     {
-        static void to_json(json& j, const cv::Size& size) {
+        static void to_json(json& j, const ImmVision::Size& size) {
             j = json{{"width", size.width}, {"height", size.height}};
         }
 
-        static void from_json(const json& j, cv::Size& size) {
+        static void from_json(const json& j, ImmVision::Size& size) {
             j.at("width").get_to(size.width);
             j.at("height").get_to(size.height);
         }
     };
 
     template <>
-    struct adl_serializer<cv::Point>
+    struct adl_serializer<ImmVision::Point>
     {
-        static void to_json(json& j, const cv::Point& point) {
+        static void to_json(json& j, const ImmVision::Point& point) {
             j = json{{"x", point.x}, {"y", point.y}};
         }
 
-        static void from_json(const json& j, cv::Point& point) {
+        static void from_json(const json& j, ImmVision::Point& point) {
             j.at("x").get_to(point.x);
             j.at("y").get_to(point.y);
         }
     };
 
     template <>
-    struct adl_serializer<cv::Matx33d>
+    struct adl_serializer<ImmVision::Matrix33d>
     {
-        static void to_json(json& j, const cv::Matx33d& mat) {
+        static void to_json(json& j, const ImmVision::Matrix33d& mat) {
             for (int row = 0; row < 3; ++row) {
                 for (int col = 0; col < 3; ++col) {
-                    j[std::to_string(row) + std::to_string(col)] = mat(row, col);
+                    j[std::to_string(row) + std::to_string(col)] = mat.m[row][col];
                 }
             }
         }
 
-        static void from_json(const json& j, cv::Matx33d& mat) {
+        static void from_json(const json& j, ImmVision::Matrix33d& mat) {
             for (int row = 0; row < 3; ++row) {
                 for (int col = 0; col < 3; ++col) {
-                    mat(row, col) = j[std::to_string(row) + std::to_string(col)];
+                    mat.m[row][col] = j[std::to_string(row) + std::to_string(col)];
                 }
             }
         }

@@ -1,5 +1,5 @@
 #pragma once
-#include <opencv2/core.hpp>
+#include "immvision/immvision_types.h"
 #include <string>
 #include "immvision/image.h"
 
@@ -11,12 +11,19 @@
 
 namespace ImmVision
 {
+    // Add an image to the inspector. Call this from anywhere (e.g. at different steps
+    // of an image processing pipeline). Later, call Inspector_Show() to display all collected images.
+    //
+    // :param image:
+    //     The image to add.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     IMMVISION_API void Inspector_AddImage(
-        const cv::Mat& image,
+        const ImageBuffer& image,
         const std::string& legend,
         const std::string& zoomKey = "",
         const std::string& colormapKey = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
+        const Point2d & zoomCenter = Point2d(),
         double zoomRatio = -1.
     );
 

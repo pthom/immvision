@@ -1,7 +1,7 @@
 #pragma once
 
 #include "imgui.h"
-#include <opencv2/core.hpp>
+#include "immvision/immvision_types.h"
 #include <vector>
 #include <string>
 
@@ -91,11 +91,11 @@ namespace ImmVision
 
         // Mouse position in the original image/matrix
         // This position is given with float coordinates, and will be (-1., -1.) if the mouse is not hovering the image
-        cv::Point2d MousePosition = cv::Point2d(-1., -1.);
+        Point2d MousePosition = Point2d(-1., -1.);
         // Mouse position in the displayed portion of the image (the original image can be zoomed,
         // and only show a subset if it may be shown).
         // This position is given with integer coordinates, and will be (-1, -1) if the mouse is not hovering the image
-        cv::Point MousePosition_Displayed = cv::Point(-1, -1);
+        Point MousePosition_Displayed = Point(-1, -1);
 
         //
         // Note: you can query ImGui::IsMouseDown(mouse_button) (c++) or imgui.is_mouse_down(mouse_button) (Python)
@@ -128,14 +128,14 @@ namespace ImmVision
         // Size of the displayed image (can be different from the matrix size)
         // If you specify only the width or height (e.g (300, 0), then the other dimension
         // will be calculated automatically, respecting the original image w/h ratio.
-        cv::Size ImageDisplaySize = cv::Size();
+        Size ImageDisplaySize = Size();
 
         //
         // Zoom and Pan (represented by an affine transform matrix, of size 3x3)
         //
 
         // ZoomPanMatrix can be created using MakeZoomPanMatrix to create a view centered around a given point
-        cv::Matx33d ZoomPanMatrix = cv::Matx33d::eye();
+        Matrix33d ZoomPanMatrix = Matrix33d::eye();
         // If displaying several images, those with the same ZoomKey will zoom and pan together
         std::string ZoomKey = "";
 
@@ -192,7 +192,7 @@ namespace ImmVision
         // Watched Pixels
         //
         // List of Watched Pixel coordinates
-        std::vector<cv::Point> WatchedPixels = std::vector<cv::Point>();
+        std::vector<Point> WatchedPixels = std::vector<Point>();
         // Shall we add a watched pixel on double click
         bool AddWatchedPixelOnDoubleClick = true;
         // Shall the watched pixels be drawn on the image
@@ -215,20 +215,20 @@ namespace ImmVision
 
 
     // Create a zoom/pan matrix centered around a given point of interest
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix(
-                        const cv::Point2d & zoomCenter,
+    IMMVISION_API Matrix33d MakeZoomPanMatrix(
+                        const Point2d & zoomCenter,
                         double zoomRatio,
-                        const cv::Size displayedImageSize
+                        const Size displayedImageSize
     );
 
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_ScaleOne(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize
+    IMMVISION_API Matrix33d MakeZoomPanMatrix_ScaleOne(
+        Size imageSize,
+        const Size displayedImageSize
     );
 
-    IMMVISION_API cv::Matx33d MakeZoomPanMatrix_FullView(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize
+    IMMVISION_API Matrix33d MakeZoomPanMatrix_FullView(
+        Size imageSize,
+        const Size displayedImageSize
     );
 
 
@@ -251,8 +251,10 @@ namespace ImmVision
     //                  (the part after "##" will not be displayed but will be part of the id)
     //        - To display an empty legend, use "##_some_unique_id"
     //
-    // :param mat
-    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    // :param image
+    //     The image to display. All dense image types are supported (uint8, int16, float32, etc.).
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     //
     // :param params
     //     Complete options (as modifiable inputs), and outputs (mouse position, watched pixels, etc)
@@ -266,7 +268,7 @@ namespace ImmVision
     //
     // - This function requires that both imgui and OpenGL were initialized.
     //   (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
-    IMMVISION_API void Image(const std::string& label, const cv::Mat& mat, ImageParams* params);
+    IMMVISION_API void Image(const std::string& label, const ImageBuffer& image, ImageParams* params);
 
 
     // ImageDisplay: Only, display the image, with no user interaction (by default)
@@ -284,29 +286,27 @@ namespace ImmVision
     //        - if your legend is displayed (i.e. it does not start with "##"),
     //          then the total size of the widget will be larger than the imageDisplaySize.
     //
-    // :param mat:
-    //     An image you want to display, under the form of an OpenCV matrix. All types of dense matrices are supported.
+    // :param image:
+    //     The image to display. All dense image types are supported.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
     //
     // :param imageDisplaySize:
-    //     Size of the displayed image (can be different from the mat size)
+    //     Size of the displayed image (can be different from the image size)
     //     If you specify only the width or height (e.g (300, 0), then the other dimension
     //     will be calculated automatically, respecting the original image w/h ratio.
     //
     // :param refreshImage:
-    //     images textures are cached. Set to true if your image matrix/buffer has changed
+    //     images textures are cached. Set to true if your image has changed
     //     (for example, for live video images)
     //
     // :param showOptionsButton:
     //     If true, show an option button that opens the option panel.
     //     In that case, it also becomes possible to zoom & pan, add watched pixel by double-clicking, etc.
     //
-    // :param isBgrOrBgra:
-    //     set to true if the color order of the image is BGR or BGRA (as in OpenCV)
-    //.    Breaking change, oct 2024: the default is BGR for C++, RGB for Python!
-    //
     // :return:
-    //      The mouse position in `mat` original image coordinates, as double values.
-    //      (i.e. it does not matter if imageDisplaySize is different from mat.size())
+    //      The mouse position in the original image coordinates, as double values.
+    //      (i.e. it does not matter if imageDisplaySize is different from the image size)
     //      It will return (-1., -1.) if the mouse is not hovering the image.
     //
     //      Note: use ImGui::IsMouseDown(mouse_button) (C++) or imgui.is_mouse_down(mouse_button) (Python)
@@ -315,10 +315,10 @@ namespace ImmVision
     // Note: this function requires that both imgui and OpenGL were initialized.
     //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
     //
-    IMMVISION_API cv::Point2d ImageDisplay(
+    IMMVISION_API Point2d ImageDisplay(
         const std::string& label_id,
-        const cv::Mat& mat,
-        const cv::Size& imageDisplaySize = cv::Size(),
+        const ImageBuffer& image,
+        const Size& imageDisplaySize = Size(),
         bool refreshImage = false,
         bool showOptionsButton = false
         );
@@ -326,9 +326,14 @@ namespace ImmVision
     // ImageDisplayResizable: display the image, with no user interaction (by default)
     // The image can be resized by the user (and the new size will be stored in the size parameter, if provided)
     // The label will not be displayed (but it will be used as an id, and must be unique)
-    IMMVISION_API cv::Point2d ImageDisplayResizable(
+    //
+    // :param image:
+    //     The image to display.
+    //     C++: accepts ImageBuffer directly, or cv::Mat (implicit conversion, zero-copy).
+    //     Python: pass a numpy.ndarray.
+    IMMVISION_API Point2d ImageDisplayResizable(
         const std::string& label_id,
-        const cv::Mat& mat,
+        const ImageBuffer& image,
         ImVec2* size = nullptr,
         bool refreshImage = false,
         bool resizable = true,
@@ -350,7 +355,7 @@ namespace ImmVision
     // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
     // Note: this image must be currently displayed. This function will return the transformed image
     // (i.e with ColorMap, Zoom, etc.)
-    IMMVISION_API cv::Mat GetCachedRgbaImage(const std::string& label);
+    IMMVISION_API ImageBuffer GetCachedRgbaImage(const std::string& label);
 
     // Return immvision version info
     IMMVISION_API std::string VersionInfo();
