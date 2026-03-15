@@ -74,7 +74,7 @@ namespace ImmVision
             if (depth == CV_8U)
                 return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
             else if (depth == CV_8S)
-                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
+                return GrabValuesFromBuffer<int8_t>(ptr, nb_channels);
             else if (depth == CV_16U)
                 return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
             else if (depth == CV_16S)
