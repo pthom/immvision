@@ -5,8 +5,7 @@
 #include "immvision/internal/cv/matrix_info_utils.h"
 #include "immvision/internal/cv/colormap.h"
 
-#include <opencv2/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
+#include <cstring>  // memcpy
 
 
 namespace ImmVision
@@ -21,17 +20,17 @@ namespace ImmVision
                 return 1.5f;
         }
 
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params)
+        ImageBuffer DrawWatchedPixels(const ImageBuffer& image, const ImageParams& params)
         {
-            cv::Mat r = image.clone();
+            ImageBuffer r = image.clone();
 
-            std::vector<std::pair<size_t, cv::Point2d>> visiblePixels;
+            std::vector<std::pair<size_t, Point2d>> visiblePixels;
             {
                 for (size_t i = 0; i < params.WatchedPixels.size(); ++i)
                 {
-                    cv::Point w = params.WatchedPixels[i];
-                    cv::Point2d p = ZoomPanTransform::Apply(params.ZoomPanMatrix, w);
-                    if (cv::Rect(cv::Point(0, 0), params.ImageDisplaySize).contains(p))
+                    Point w = params.WatchedPixels[i];
+                    Point2d p = ZoomPanTransform::Apply(params.ZoomPanMatrix, Point2d(w));
+                    if (Rect(Point(0, 0), params.ImageDisplaySize).contains(Point((int)p.x, (int)p.y)))
                         visiblePixels.push_back({i, p});
                 }
             }
@@ -42,7 +41,7 @@ namespace ImmVision
                     r,         // img
                     kv.second, // position,
                     std::to_string(kv.first),       // name
-                    cv::Scalar(255, 255, 255, 255), // color
+                    Color4d(255, 255, 255, 255), // color
                     true, // add_cartouche
                     4.,   // size
                     2.5,  // size_hole
@@ -54,38 +53,38 @@ namespace ImmVision
             return r;
         }
 
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageParams& params)
+        void DrawGrid(ImageBuffer& inOutImageRgba, const ImageParams& params)
         {
             double x_spacing = (double) params.ZoomPanMatrix(0, 0);
             double y_spacing = (double) params.ZoomPanMatrix(1, 1);
 
             double x_start, y_start;
             {
-                cv::Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), cv::Point2d(0., 0.));
-                origin_unzoomed = cv::Point2d(std::floor(origin_unzoomed.x) + 0.5, std::floor(origin_unzoomed.y) + 0.5);
-                cv::Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix, origin_unzoomed);
+                Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), Point2d(0., 0.));
+                origin_unzoomed = Point2d(std::floor(origin_unzoomed.x) + 0.5, std::floor(origin_unzoomed.y) + 0.5);
+                Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix, origin_unzoomed);
                 x_start = origin_zoomed.x;
                 y_start = origin_zoomed.y;
             }
-            double x_end = (double)inOutImageRgba.cols - 1.;
-            double y_end = (double)inOutImageRgba.rows - 1.;
+            double x_end = (double)inOutImageRgba.width - 1.;
+            double y_end = (double)inOutImageRgba.height - 1.;
 
-            auto lineColor = cv::Scalar(255, 255, 0, 255);
+            auto lineColor = Color4d(255, 255, 0, 255);
             double alpha = 0.3;
             DrawingUtils::draw_grid(inOutImageRgba, lineColor, alpha, x_spacing, y_spacing, x_start, y_start, x_end, y_end);
         }
 
-        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
+        ImageBuffer DrawValuesOnZoomedPixels(const ImageBuffer& drawingImage, const ImageBuffer& valuesImage,
                                          const ImageParams& params, bool drawPixelCoords)
         {
-            assert(drawingImage.type() == CV_8UC4);
+            assert(drawingImage.depth == ImageDepth::uint8 && drawingImage.channels == 4);
 
-            cv::Mat r = drawingImage;
-            cv::Point tl, br;
+            ImageBuffer r = drawingImage;
+            Point tl, br;
             {
-                cv::Point2d tld = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), cv::Point2d(0., 0.));
-                cv::Point2d brd = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(),
-                                                          cv::Point2d((double)params.ImageDisplaySize.width,
+                Point2d tld = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), Point2d(0., 0.));
+                Point2d brd = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(),
+                                                          Point2d((double)params.ImageDisplaySize.width,
                                                                       (double)params.ImageDisplaySize.height));
                 tl = { (int)std::floor(tld.x), (int)std::floor(tld.y) };
                 br = { (int)std::ceil(brd.x), (int)std::ceil(brd.y) };
@@ -99,16 +98,19 @@ namespace ImmVision
                     if (drawPixelCoords)
                         pixelInfo = std::string("x:") + std::to_string(x) + "\n" + "y:" + std::to_string(y) + "\n" + pixelInfo;
 
-                    cv::Point2d position = ZoomPanTransform::Apply(params.ZoomPanMatrix, cv::Point2d((double)x, (double )y));
+                    Point2d position = ZoomPanTransform::Apply(params.ZoomPanMatrix, Point2d((double)x, (double )y));
 
-                    cv::Scalar textColor;
+                    Color4d textColor;
                     {
-                        cv::Scalar white(255, 255, 255, 255);
-                        cv::Scalar black(0, 0, 0, 255);
-                        cv::Vec4b backgroundColor(0, 0, 0, 0);
-                        if ( cv::Rect(cv::Point(), drawingImage.size()).contains(cv::Point((int)position.x, (int)position.y)))
-                            backgroundColor = drawingImage.at<cv::Vec4b>((int)position.y, (int)position.x);
-                        double luminance = backgroundColor[2] * 0.2126 + backgroundColor[1] * 0.7152 + backgroundColor[0] * 0.0722;
+                        Color4d white(255, 255, 255, 255);
+                        Color4d black(0, 0, 0, 255);
+                        uint8_t bgR = 0, bgG = 0, bgB = 0;
+                        if (Rect(Point(0, 0), drawingImage.size()).contains(Point((int)position.x, (int)position.y)))
+                        {
+                            const uint8_t* bgPixel = drawingImage.ptr<uint8_t>((int)position.y) + (int)position.x * 4;
+                            bgR = bgPixel[0]; bgG = bgPixel[1]; bgB = bgPixel[2];
+                        }
+                        double luminance = bgR * 0.2126 + bgG * 0.7152 + bgB * 0.0722;
                         if (luminance > 170.)
                             textColor = black;
                         else
@@ -130,30 +132,32 @@ namespace ImmVision
         };
 
 
-        cv::Mat MakeSchoolPaperBackground(cv::Size s)
+        ImageBuffer MakeSchoolPaperBackground(Size s)
         {
-            cv::Mat mat(s, CV_8UC4);
+            ImageBuffer mat = ImageBuffer::Zeros(s.width, s.height, 4, ImageDepth::uint8);
 
-            auto paperColor = cv::Scalar(205, 215, 220, 255);
-            auto lineColor = cv::Scalar(199, 196, 184, 255);
-            mat = paperColor;
+            Color4d paperColor(205, 215, 220, 255);
+            Color4d lineColor(199, 196, 184, 255);
+            mat.fill(paperColor);
             int quadSize = 17;
             for (int y = 0; y < s.height; y+= quadSize)
             {
-                auto linePtr = mat.ptr<cv::Vec4b>(y);
+                uint8_t* linePtr = mat.ptr<uint8_t>(y);
                 for (int x = 0; x < s.width; ++x)
                 {
-                    *linePtr = lineColor;
-                    linePtr++;
+                    uint8_t* p = linePtr + x * 4;
+                    p[0] = (uint8_t)lineColor[0]; p[1] = (uint8_t)lineColor[1];
+                    p[2] = (uint8_t)lineColor[2]; p[3] = (uint8_t)lineColor[3];
                 }
             }
             for (int y = 0; y < s.height; y++)
             {
-                auto linePtr = mat.ptr<cv::Vec4b>(y);
+                uint8_t* linePtr = mat.ptr<uint8_t>(y);
                 for (int x = 0; x < s.width; x+=quadSize)
                 {
-                    *linePtr = lineColor;
-                    linePtr += quadSize;
+                    uint8_t* p = linePtr + x * 4;
+                    p[0] = (uint8_t)lineColor[0]; p[1] = (uint8_t)lineColor[1];
+                    p[2] = (uint8_t)lineColor[2]; p[3] = (uint8_t)lineColor[3];
                 }
             }
             return mat;
@@ -161,8 +165,8 @@ namespace ImmVision
 
         void BlitImageTexture(
             const ImageParams& params,
-            const cv::Mat& image,
-            cv::Mat& in_out_rgba_image_cache,
+            const ImageBuffer& image,
+            ImageBuffer& in_out_rgba_image_cache,
             bool shall_refresh_rgba,
             GlTexture* outTexture
         )
@@ -170,7 +174,7 @@ namespace ImmVision
             if (image.empty())
                 return;
 
-            cv::Mat finalImage = image.clone();
+            ImageBuffer finalImage = image.clone();
 
             //
             // Adjustements needed before conversion to rgba
@@ -178,17 +182,17 @@ namespace ImmVision
             auto fnSelectChannel = [&finalImage, params]()
             {
                 // Extract a single channel from a multi-channel image
-                if (finalImage.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels()))
+                if (finalImage.channels > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels))
                 {
                     int ch = params.SelectedChannel;
-                    int nch = finalImage.channels();
-                    cv::Mat singleChannel(finalImage.rows, finalImage.cols, CV_MAKETYPE(finalImage.depth(), 1));
-                    for (int y = 0; y < finalImage.rows; y++)
+                    int nch = finalImage.channels;
+                    ImageBuffer singleChannel = ImageBuffer::Zeros(finalImage.width, finalImage.height, 1, finalImage.depth);
+                    for (int y = 0; y < finalImage.height; y++)
                     {
                         const uint8_t* src = finalImage.ptr<uint8_t>(y);
                         uint8_t* dst = singleChannel.ptr<uint8_t>(y);
-                        int elemSize = (int)finalImage.elemSize1();
-                        for (int x = 0; x < finalImage.cols; x++)
+                        int elemSize = (int)finalImage.elemSize();
+                        for (int x = 0; x < finalImage.width; x++)
                             std::memcpy(dst + x * elemSize, src + (x * nch + ch) * elemSize, elemSize);
                     }
                     finalImage = singleChannel;
@@ -197,20 +201,20 @@ namespace ImmVision
             };
             auto fnAlphaCheckerboard = [&finalImage, params]()
             {
-                if ((finalImage.type() == CV_8UC4) && params.ShowAlphaChannelCheckerboard)
+                if ((finalImage.depth == ImageDepth::uint8 && finalImage.channels == 4) && params.ShowAlphaChannelCheckerboard)
                 {
-                    cv::Mat background = DrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
+                    ImageBuffer background = DrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
                     finalImage = DrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
                 }
             };
-            auto fnMakeBackground = [&params]() -> cv::Mat
+            auto fnMakeBackground = [&params]() -> ImageBuffer
             {
                 if (params.ShowSchoolPaperBackground)
                     return MakeSchoolPaperBackground(params.ImageDisplaySize);
                 else
                 {
-                    cv::Mat m(params.ImageDisplaySize, CV_8UC4);
-                    m = cv::Scalar(0, 0, 0, 255);
+                    ImageBuffer m = ImageBuffer::Zeros(params.ImageDisplaySize.width, params.ImageDisplaySize.height, 4, ImageDepth::uint8);
+                    m.fill(Color4d(0, 0, 0, 255));
                     return m;
                 }
 
@@ -231,12 +235,12 @@ namespace ImmVision
                     finalImage = DrawingUtils::converted_to_rgba_image(finalImage, is_color_order_bgr);
                 }
                 in_out_rgba_image_cache = finalImage;
-                assert(finalImage.type() == CV_8UC4);
+                assert(finalImage.depth == ImageDepth::uint8 && finalImage.channels == 4);
             }
             else
             {
                 finalImage = in_out_rgba_image_cache;
-                assert(finalImage.type() == CV_8UC4);
+                assert(finalImage.depth == ImageDepth::uint8 && finalImage.channels == 4);
                 assert(!finalImage.empty());
             }
 
@@ -249,20 +253,17 @@ namespace ImmVision
             {
                 ZoomPanTransform::WarpInterp warpInterp;
                 if (zoomFactor < 1.0)
-                    // If the zoom factor is less than 1, we scale the image using area interpolation
                     warpInterp = ZoomPanTransform::WarpInterp::Area;
                 else if (zoomFactor < gridMinZoomFactor)
-                    // If the zoom factor is greater than 1 but less than the gridMinZoomFactor, we use bilinear interpolation
                     warpInterp = ZoomPanTransform::WarpInterp::Bilinear;
                 else
-                    // If the zoom factor is greater than the gridMinZoomFactor, we use nearest neighbor interpolation to display exact pixel values
                     warpInterp = ZoomPanTransform::WarpInterp::Nearest;
 
-                cv::Mat backgroundWithImage = fnMakeBackground();
+                ImageBuffer backgroundWithImage = fnMakeBackground();
 
                 ZoomPanTransform::WarpAffineScaleTranslate(
                     finalImage, backgroundWithImage,
-                    cv::Matx33d(params.ZoomPanMatrix),
+                    params.ZoomPanMatrix,
                     warpInterp);
                 finalImage = backgroundWithImage;
             }
@@ -276,7 +277,7 @@ namespace ImmVision
                     DrawGrid(finalImage, params);
 
                 // Draw Pixel Values
-                double drawPixelvaluesMinZoomFactor = (image.depth() == CV_8U) ? 36. : 48.;
+                double drawPixelvaluesMinZoomFactor = (image.depth == ImageDepth::uint8) ? 36. : 48.;
                 if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelvaluesMinZoomFactor)
                 {
                     double drawPixelCoordsMinZoomFactor = 80.;

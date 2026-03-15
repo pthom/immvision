@@ -15,10 +15,10 @@ namespace ImmVision
     {
         ImageCache::KeyType id;
         std::string Label;
-        cv::Mat Image;
+        ImageBuffer Image;
         ImageParams Params;
 
-        cv::Point2d InitialZoomCenter = cv::Point2d();
+        Point2d InitialZoomCenter = Point2d();
         double InitialZoomRatio = 1.;
         bool WasSentToTextureCache = false;
     };
@@ -41,7 +41,7 @@ namespace ImmVision
         double zoomRatio
     )
     {
-        cv::Mat image = image_buf.to_cv_mat();
+        ImageBuffer image = image_buf.clone();
         ImageParams params;
         params.ZoomKey = zoomKey;
         params.ColormapKey = colormapKey;
@@ -52,7 +52,7 @@ namespace ImmVision
 
         std::string label = legend + "##" + std::to_string(s_Inspector_ImagesAndParams.size());
         auto id = sInspectorImageTextureCache.GetID(label, sDontUseIdStack);
-        s_Inspector_ImagesAndParams.push_back({id, label, image.clone(), params, cv::Point2d(zoomCenter), zoomRatio});
+        s_Inspector_ImagesAndParams.push_back({id, label, image, params, zoomCenter, zoomRatio});
 
         // bump cache
         {
@@ -117,7 +117,7 @@ namespace ImmVision
         for (auto& i :s_Inspector_ImagesAndParams)
         {
             // Force image size
-            i.Params.ImageDisplaySize = cv::Size((int)imageSize.x, (int)imageSize.y);
+            i.Params.ImageDisplaySize = Size((int)imageSize.x, (int)imageSize.y);
 
             // Store in texture cache
             if (! i.WasSentToTextureCache)
@@ -233,7 +233,7 @@ namespace ImmVision
             if (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size())
             {
                 auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
-                Image(imageAndParams.Label, imageAndParams.Image, &imageAndParams.Params);
+                ImmVision::Image(imageAndParams.Label, imageAndParams.Image, &imageAndParams.Params);
             }
         }
 

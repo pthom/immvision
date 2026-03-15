@@ -63,11 +63,6 @@ namespace ImmVision
         }
 
 
-        std::string ToString(const cv::Size& size)
-        {
-            return std::string("(") + std::to_string(size.width) + "," + std::to_string(size.height) + ")";
-        }
-
         std::string ToString(const std::string& s)
         {
             return "\"" + s + "\"";

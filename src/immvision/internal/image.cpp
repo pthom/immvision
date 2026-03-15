@@ -1,6 +1,6 @@
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
+#ifdef IMMVISION_HAS_OPENCV
 #include <opencv2/imgcodecs.hpp>
+#endif
 
 #include "immvision/image.h"
 #include "immvision/internal/drawing/internal_icons.h"
@@ -22,7 +22,7 @@
 #include <optional>
 #include <iostream>
 
-// TODO Phase 3: replace cv::imwrite with stb_image_write when OpenCV becomes optional
+// TODO Phase 3b: replace cv::imwrite with stb_image_write when OpenCV becomes optional
 
 #ifndef IMMVISION_VERSION
 #define IMMVISION_VERSION "unknown version"
@@ -123,11 +123,10 @@ This is a required setup step. (Breaking change - October 2024)
         return r;
     }
 
-    void Image(const std::string& label, const ImageBuffer& image_buf, ImageParams* params)
+    void Image(const std::string& label, const ImageBuffer& image, ImageParams* params)
     {
-        cv::Mat image = image_buf.to_cv_mat();
         // Note: although this function is long, it is well organized, and it behaves almost like a class
-        // with members = (cv::Mat& image, ImageParams* params).
+        // with members = (ImageBuffer& image, ImageParams* params).
         //
         // - it begins by defining a set a lambdas that display various widgets
         //   for the different zones of the Gui (those lambdas are named fnXXXX)
@@ -154,9 +153,9 @@ This is a required setup step. (Breaking change - October 2024)
         // Lambdas / Watched Pixels
         //
         bool wasWatchedPixelAdded = false;
-        auto fnWatchedPixels_Add = [&params, &wasWatchedPixelAdded](const cv::Point2d& pixelDouble)
+        auto fnWatchedPixels_Add = [&params, &wasWatchedPixelAdded](const Point2d& pixelDouble)
         {
-            cv::Point pixel((int)(pixelDouble.x + .5), (int)(pixelDouble.y + .5));
+            Point pixel((int)(pixelDouble.x + .5), (int)(pixelDouble.y + .5));
             params->WatchedPixels.push_back(pixel);
 
             wasWatchedPixelAdded = true;
@@ -184,7 +183,7 @@ This is a required setup step. (Breaking change - October 2024)
 
                 for (size_t i = 0; i < params->WatchedPixels.size(); ++i)
                 {
-                    cv::Point watchedPixel = params->WatchedPixels[i];
+                    Point watchedPixel = params->WatchedPixels[i];
                     ImGui::TableNextRow();
 
                     // index
@@ -221,7 +220,7 @@ This is a required setup step. (Breaking change - October 2024)
         //
         auto fnColormap_Gui = [&params, &image](float availableGuiWidth)
         {
-            cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
+            Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
             Colormap::GuiShowColormapSettingsData(
                 image,
                 roi,
@@ -233,42 +232,38 @@ This is a required setup step. (Breaking change - October 2024)
         //
         // Lambdas / Options & Adjustments
         //
-        auto fnSaveImage_Gui = [&image, &params](CachedParams & cacheParams, const cv::Mat& imageWithColormap)
+        auto fnSaveImage_Gui = [&image, &params](CachedParams & cacheParams, const ImageBuffer& imageWithColormap)
         {
-            bool isFloatImage = [&image]() {
-                int type = image.type();
-                int depth = type & CV_MAT_DEPTH_MASK;
-                return depth == CV_32F || depth == CV_64F;
-            }();
+            bool isFloatImage = ImageDepthIsFloat(image.depth);
 
-            // Swap R and B channels in-place for a CV_8UC3 or CV_8UC4 mat
-            auto fnSwapRB = [](const cv::Mat& src) -> cv::Mat {
-                cv::Mat dst = src.clone();
-                int ch = dst.channels();
-                for (int y = 0; y < dst.rows; y++) {
+            // Swap R and B channels in-place for a uint8 3 or 4 channel image
+            auto fnSwapRB = [](const ImageBuffer& src) -> ImageBuffer {
+                ImageBuffer dst = src.clone();
+                int ch = dst.channels;
+                for (int y = 0; y < dst.height; y++) {
                     uint8_t* row = dst.ptr<uint8_t>(y);
-                    for (int x = 0; x < dst.cols; x++)
+                    for (int x = 0; x < dst.width; x++)
                         std::swap(row[x * ch], row[x * ch + 2]);
                 }
                 return dst;
             };
 
-            auto fnGetImageToSave = [&image, &fnSwapRB]() -> cv::Mat
+            auto fnGetImageToSave = [&image, &fnSwapRB]() -> ImageBuffer
             {
                 // Convert to BGR for saving (most image formats expect BGR)
-                if ((image.type() == CV_8UC3 || image.type() == CV_8UC4) && !Priv_IsColorOrderBgr())
+                if ((image.depth == ImageDepth::uint8 && (image.channels == 3 || image.channels == 4)) && !Priv_IsColorOrderBgr())
                     return fnSwapRB(image);
                 return image;
             };
             auto fnGetImageWithColorMapToSave = [&imageWithColormap, &fnSwapRB]() {
                 // imageWithColormap is RGBA, convert to BGR for saving
-                cv::Mat bgra = fnSwapRB(imageWithColormap);
+                ImageBuffer bgra = fnSwapRB(imageWithColormap);
                 // Drop alpha: create BGR from BGRA
-                cv::Mat bgr(bgra.rows, bgra.cols, CV_8UC3);
-                for (int y = 0; y < bgra.rows; y++) {
+                ImageBuffer bgr = ImageBuffer::Zeros(bgra.width, bgra.height, 3, ImageDepth::uint8);
+                for (int y = 0; y < bgra.height; y++) {
                     const uint8_t* src = bgra.ptr<uint8_t>(y);
                     uint8_t* dst = bgr.ptr<uint8_t>(y);
-                    for (int x = 0; x < bgra.cols; x++) {
+                    for (int x = 0; x < bgra.width; x++) {
                         dst[x * 3]     = src[x * 4];
                         dst[x * 3 + 1] = src[x * 4 + 1];
                         dst[x * 3 + 2] = src[x * 4 + 2];
@@ -281,9 +276,9 @@ This is a required setup step. (Breaking change - October 2024)
                 "Saves the raw image\n"
                 "Specify the format via the filename extension (.jpg, .png, .hdr, etc)\n"
                 "\n"
-                "- For CV_8UC3 images, use .jpg, .png, or .bmp\n"
+                "- For uint8 3-channel images, use .jpg, .png, or .bmp\n"
                 "- For 4 channel images, prefer to use .png\n"
-                "- For float images (CV_32FC1, etc.), use .hdr";
+                "- For float images, use .hdr";
 
             std::string tooltipExportColormap =
                 "Export the colormap image as RGB\n"
@@ -291,13 +286,14 @@ This is a required setup step. (Breaking change - October 2024)
 
             bool usePortableFileDialogs = pfd::settings::available();
 
-            auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const cv::Mat& imageToSave)
+#ifdef IMMVISION_HAS_OPENCV
+            auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const ImageBuffer& imageToSave)
             {
                 if (!filename.empty())
                 {
                     try
                     {
-                        cv::imwrite(filename, imageToSave);
+                        cv::imwrite(filename, imageToSave.to_cv_mat());
                     }
                     catch(const cv::Exception& e)
                     {
@@ -309,6 +305,20 @@ This is a required setup step. (Breaking change - October 2024)
                     }
                 }
             };
+#else
+            auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const ImageBuffer& imageToSave)
+            {
+                (void)imageToSave;
+                if (!filename.empty())
+                {
+                    std::string errorMessage = "Image saving requires OpenCV (not available in this build)";
+                    if (usePortableFileDialogs)
+                        pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
+                    else
+                        fprintf(stderr, "%s\n", errorMessage.c_str());
+                }
+            };
+#endif
 
             auto fnAskForFilenameWithPfd = []() -> std::string
             {
@@ -349,13 +359,13 @@ This is a required setup step. (Breaking change - October 2024)
         auto fnImageDisplayOptions_Gui = [&params, &image]()
         {
             ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
-            if (image.type() == CV_8UC4)
+            if (image.depth == ImageDepth::uint8 && image.channels == 4)
                 ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
-            if (image.channels() > 1)
+            if (image.channels > 1)
             {
                 ImGui::Text("Channels: ");
                 ImGui::RadioButton("All", &params->SelectedChannel, -1); ImGui::SameLine();
-                for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
+                for (int channel_id = 0; channel_id < image.channels; ++channel_id)
                 {
                     ImGui::RadioButton(std::to_string(channel_id).c_str(), &params->SelectedChannel, channel_id);
                     ImGui::SameLine();
@@ -395,7 +405,7 @@ This is a required setup step. (Breaking change - October 2024)
 
         auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded,
                                   &fnColormap_Gui, &fnSaveImage_Gui, &fnImageDisplayOptions_Gui, &fnMiscOptions_Gui]
-                                      (CachedParams & cacheParams, const cv::Mat& imageWithColormap)
+                                      (CachedParams & cacheParams, const ImageBuffer& imageWithColormap)
         {
             float optionsWidth = 260.f * FontSizeRatio();
 
@@ -435,7 +445,7 @@ This is a required setup step. (Breaking change - October 2024)
                 params->ShowOptionsPanel = !params->ShowOptionsPanel;
         };
 
-        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams, const cv::Mat& imageWithColormap)
+        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams, const ImageBuffer& imageWithColormap)
         {
             if (params->ShowOptionsInTooltip)
             {
@@ -463,7 +473,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (cacheParams.IsResizing)
                 return;
-            cv::Matx33d zoomMatrix = cv::Matx33d(params->ZoomPanMatrix);
+            Matrix33d zoomMatrix = params->ZoomPanMatrix;
 
             int mouseDragButton = 0;
             bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && ImGui::IsItemHovered();
@@ -479,17 +489,17 @@ This is a required setup step. (Breaking change - October 2024)
                 ImVec2 dragDelta = ImGui::GetMouseDragDelta(mouseDragButton);
                 ImVec2 dragDeltaDelta(dragDelta.x - cacheParams.LastDragDelta.x, dragDelta.y - cacheParams.LastDragDelta.y);
                 zoomMatrix = zoomMatrix * ZoomPanTransform::ComputePanMatrix(
-                    cv::Point2d((double)dragDeltaDelta.x, (double)dragDeltaDelta.y),
+                    Point2d((double)dragDeltaDelta.x, (double)dragDeltaDelta.y),
                     zoomMatrix(0, 0));
                 cacheParams.LastDragDelta = dragDelta;
             }
-            params->ZoomPanMatrix = Matrix33d(zoomMatrix);
+            params->ZoomPanMatrix = zoomMatrix;
         };
-        auto fnHandleMouseWheel = [&params](const cv::Point2d& mouseLocation)
+        auto fnHandleMouseWheel = [&params](const Point2d& mouseLocation)
         {
             if (!params->ZoomWithMouseWheel)
                 return;
-            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY); // i.e. old ImGui::SetItemUsingMouseWheel();
+            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
 
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
@@ -515,19 +525,19 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (params->ShowZoomButtons)
             {
-                cv::Matx33d zoomMatrix = cv::Matx33d(params->ZoomPanMatrix);
+                Matrix33d zoomMatrix = params->ZoomPanMatrix;
 
-                cv::Point2d viewportCenter_originalImage = ZoomPanTransform::Apply(
+                Point2d viewportCenter_originalImage = ZoomPanTransform::Apply(
                     zoomMatrix.inv(),
-                    cv::Point2d (
+                    Point2d(
                         (double)params->ImageDisplaySize.width / 2.,
                         (double)params->ImageDisplaySize.height / 2.)
                 );
 
                 {
-                    cv::Point2d zoomCenter = params->WatchedPixels.empty() ?
+                    Point2d zoomCenter = params->WatchedPixels.empty() ?
                                 viewportCenter_originalImage
-                            :   cv::Point2d(cv::Point(params->WatchedPixels.back()));
+                            :   Point2d(params->WatchedPixels.back());
                     ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
                     if (Icons::IconButton(Icons::IconType::ZoomPlus))
                         zoomMatrix = zoomMatrix * ZoomPanTransform::ComputeZoomMatrix(zoomCenter, 1.1);
@@ -542,8 +552,8 @@ This is a required setup step. (Breaking change - October 2024)
                 ImGui::SameLine();
                 // Scale1 & Full View Zoom  buttons
                 {
-                    auto scaleOneZoomInfo = ZoomPanTransform::MakeScaleOne(image.size(), cv::Size(params->ImageDisplaySize));
-                    auto fullViewZoomInfo = ZoomPanTransform::MakeFullView(image.size(), cv::Size(params->ImageDisplaySize));
+                    auto scaleOneZoomInfo = ZoomPanTransform::MakeScaleOne(image.size(), params->ImageDisplaySize);
+                    auto fullViewZoomInfo = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
                     if (Icons::IconButton(
                         Icons::IconType::ZoomScaleOne,
                         ZoomPanTransform::IsEqual(zoomMatrix, scaleOneZoomInfo)) // disabled flag
@@ -558,7 +568,7 @@ This is a required setup step. (Breaking change - October 2024)
                         )
                         zoomMatrix = fullViewZoomInfo;
                 }
-                params->ZoomPanMatrix = Matrix33d(zoomMatrix);
+                params->ZoomPanMatrix = zoomMatrix;
             }
 
         };
@@ -568,7 +578,7 @@ This is a required setup step. (Breaking change - October 2024)
         auto fnShowImage = [&params](const GlTexture& glTexture) ->  MouseInformation
         {
             bool disableDragWindow = params->PanWithMouse;
-            cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
+            Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
                     glTexture,
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height), disableDragWindow);
 
@@ -576,8 +586,8 @@ This is a required setup step. (Breaking change - October 2024)
             if (ImGui::IsItemHovered())
             {
                 mouseInfo.IsMouseHovering = true;
-                mouseInfo.MousePosition = Point2d(ZoomPanTransform::Apply(cv::Matx33d(params->ZoomPanMatrix).inv(), mouseLocation));
-                mouseInfo.MousePosition_Displayed = Point(cv::Point(mouseLocation));
+                mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
+                mouseInfo.MousePosition_Displayed = Point((int)mouseLocation.x, (int)mouseLocation.y);
             }
             return mouseInfo;
         };
@@ -599,9 +609,6 @@ This is a required setup step. (Breaking change - October 2024)
 
             ImRect zone(tl, br);
 
-            // A hack for imgui bundle / imgui_fig:
-            // An invisible button will stop the node from being dragged when resizing
-            // (do not activate otherwise, this breaks the pan and thus can only be used when pan is disabled)
             if (!params->PanWithMouse)
             {
                 auto cursorPos = ImGui::GetCursorScreenPos();
@@ -640,7 +647,7 @@ This is a required setup step. (Breaking change - October 2024)
                         if (params->ResizeKeepAspectRatio)
                         {
                             float imageDisplayRatio = (float)params->ImageDisplaySize.width / (float)params->ImageDisplaySize.height;
-                            float imageRatio = (float)image.cols / (float)image.rows;
+                            float imageRatio = (float)image.width / (float)image.height;
                             if (imageDisplayRatio > imageRatio)
                                 params->ImageDisplaySize.width = (int)((float)params->ImageDisplaySize.height * imageRatio);
                             else
@@ -660,12 +667,12 @@ This is a required setup step. (Breaking change - October 2024)
         //
         // Lambda / Show pixel info
         //
-        auto fnShowPixelInfo = [&image, &params](const cv::Point2d& mouseLocation)
+        auto fnShowPixelInfo = [&image, &params](const Point2d& mouseLocation)
         {
-            cv::Point mouseLoc =
+            Point mouseLoc =
                 mouseLocation.x >= 0. ?
-                        cv::Point((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5))
-                    :   cv::Point(-1, -1)
+                        Point((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5))
+                    :   Point(-1, -1)
                     ;
             if (mouseLoc.x >= 0)
             {
@@ -760,7 +767,7 @@ This is a required setup step. (Breaking change - October 2024)
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
 
             // Handle Colormap
-            cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
+            Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
             if (isNewImage || params->RefreshImage)
                 Colormap::InitStatsOnNewImage(image, roi, &params->ColormapSettings);
             if (! ZoomPanTransform::IsEqual(cacheParams.PreviousParams.ZoomPanMatrix, params->ZoomPanMatrix))
@@ -780,13 +787,12 @@ This is a required setup step. (Breaking change - October 2024)
 
     Point2d ImageDisplay(
         const std::string& label_id,
-        const ImageBuffer& mat_buf,
+        const ImageBuffer& image,
         const Size& imageDisplaySize,
         bool refreshImage,
         bool showOptionsButton
         )
     {
-        cv::Mat mat = mat_buf.to_cv_mat();
         ImGuiID id = ImGui::GetID(label_id.c_str());
         static std::map<ImGuiID, ImageParams> s_Params;
         if (s_Params.find(id) == s_Params.end())
@@ -801,11 +807,11 @@ This is a required setup step. (Breaking change - October 2024)
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
 
-            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, Size(mat.cols, mat.rows));
-            params.ZoomPanMatrix = Matrix33d(ZoomPanTransform::MakeFullView(mat.size(), cv::Size(displayedSize)));
+            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, image.size());
+            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), displayedSize);
         }
 
-        Image(label_id, mat_buf, &params);
+        Image(label_id, image, &params);
         return params.MouseInfo.MousePosition;
     }
 
@@ -814,14 +820,13 @@ This is a required setup step. (Breaking change - October 2024)
 
     IMMVISION_API Point2d ImageDisplayResizable(
         const std::string& label_id,
-        const ImageBuffer& mat_buf,
+        const ImageBuffer& image,
         ImVec2* size,
         bool refreshImage,
         bool resizable,
         bool showOptionsButton
     )
     {
-        cv::Mat mat = mat_buf.to_cv_mat();
         if (size == nullptr)
         {
             ImGuiID id = ImGui::GetID(label_id.c_str());
@@ -846,11 +851,11 @@ This is a required setup step. (Breaking change - October 2024)
             params.CanResize = resizable;
             params.RefreshImage = refreshImage;
 
-            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, Size(mat.cols, mat.rows));
-            params.ZoomPanMatrix = Matrix33d(ZoomPanTransform::MakeFullView(mat.size(), cv::Size(displayedSize)));
+            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, image.size());
+            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), displayedSize);
         }
         std::string hiddenLabel = std::string("##") + label_id;
-        Image(hiddenLabel, mat_buf, &params);
+        Image(hiddenLabel, image, &params);
 
         *size = ImVec2((float)params.ImageDisplaySize.width, (float)params.ImageDisplaySize.height);
         return params.MouseInfo.MousePosition;
@@ -895,8 +900,7 @@ This is a required setup step. (Breaking change - October 2024)
     ImageBuffer GetCachedRgbaImage(const std::string& label)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
-        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
-        return ImageBuffer(r);
+        return ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
     }
 
     ImageParams::~ImageParams()

@@ -2,6 +2,7 @@
 #include <cstring>   // memcpy
 #include <stdexcept>
 #include <cmath>     // fabs
+#include <algorithm> // clamp
 
 namespace ImmVision
 {
@@ -22,6 +23,26 @@ namespace ImmVision
             case ImageDepth::float64: return 8;
         }
         throw std::runtime_error("ImageDepthSize: unknown depth");
+    }
+
+    std::string ImageDepthName(ImageDepth depth)
+    {
+        switch (depth)
+        {
+            case ImageDepth::uint8:   return "uint8";
+            case ImageDepth::int8:    return "int8";
+            case ImageDepth::uint16:  return "uint16";
+            case ImageDepth::int16:   return "int16";
+            case ImageDepth::int32:   return "int32";
+            case ImageDepth::float32: return "float32";
+            case ImageDepth::float64: return "float64";
+        }
+        return "???";
+    }
+
+    bool ImageDepthIsFloat(ImageDepth depth)
+    {
+        return depth == ImageDepth::float32 || depth == ImageDepth::float64;
     }
 
 #ifdef IMMVISION_HAS_OPENCV
@@ -176,6 +197,48 @@ namespace ImmVision
             std::memcpy(dst_row, src_row, row_bytes);
         }
         return buf;
+    }
+
+    void ImageBuffer::fill(const Color4d& color)
+    {
+        if (empty()) return;
+        size_t es = elemSize();
+        for (int y = 0; y < height; y++)
+        {
+            uint8_t* row = static_cast<uint8_t*>(data) + y * step;
+            for (int x = 0; x < width; x++)
+            {
+                uint8_t* pixel = row + x * channels * es;
+                for (int c = 0; c < channels; c++)
+                {
+                    double val = (c < 4) ? color[c] : 0.0;
+                    switch (depth)
+                    {
+                        case ImageDepth::uint8:
+                            pixel[c] = (uint8_t)std::clamp(val, 0.0, 255.0);
+                            break;
+                        case ImageDepth::int8:
+                            reinterpret_cast<int8_t*>(pixel)[c] = (int8_t)std::clamp(val, -128.0, 127.0);
+                            break;
+                        case ImageDepth::uint16:
+                            reinterpret_cast<uint16_t*>(pixel)[c] = (uint16_t)std::clamp(val, 0.0, 65535.0);
+                            break;
+                        case ImageDepth::int16:
+                            reinterpret_cast<int16_t*>(pixel)[c] = (int16_t)std::clamp(val, -32768.0, 32767.0);
+                            break;
+                        case ImageDepth::int32:
+                            reinterpret_cast<int32_t*>(pixel)[c] = (int32_t)val;
+                            break;
+                        case ImageDepth::float32:
+                            reinterpret_cast<float*>(pixel)[c] = (float)val;
+                            break;
+                        case ImageDepth::float64:
+                            reinterpret_cast<double*>(pixel)[c] = val;
+                            break;
+                    }
+                }
+            }
+        }
     }
 
 #ifdef IMMVISION_HAS_OPENCV

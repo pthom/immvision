@@ -25,11 +25,10 @@ namespace ImmVision
     {
         if (image.empty())
             return;
-        cv::Mat mat = image.to_cv_mat();
-        cv::Mat mat_rgba = DrawingUtils::converted_to_rgba_image(mat, isColorOrderBGR);
+        ImageBuffer mat_rgba = DrawingUtils::converted_to_rgba_image(image, isColorOrderBGR);
 
-        ImmVision_GlProvider::Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows, TextureId);
-        this->ImageSize = Size(mat_rgba.cols, mat_rgba.rows);
+        ImmVision_GlProvider::Blit_RGBA_Buffer(static_cast<unsigned char*>(mat_rgba.data), mat_rgba.width, mat_rgba.height, TextureId);
+        this->ImageSize = Size(mat_rgba.width, mat_rgba.height);
     }
 
     ImVec2 GlTexture::SizeImVec2() const

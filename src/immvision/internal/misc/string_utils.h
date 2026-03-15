@@ -1,7 +1,10 @@
 #pragma once
-#include <opencv2/core.hpp>
 #include "immvision/immvision_types.h"
 #include <string>
+
+#ifdef IMMVISION_HAS_OPENCV
+#include <opencv2/core.hpp>
+#endif
 
 namespace ImmVision
 {
@@ -20,6 +23,7 @@ namespace ImmVision
         std::string ToString(const int& v);
         std::string ToString(bool v);
 
+#ifdef IMMVISION_HAS_OPENCV
         template<typename _Tp>
         std::string ToString(const cv::Point_<_Tp>& v)
         {
@@ -30,6 +34,7 @@ namespace ImmVision
         {
             return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
         }
+#endif
 
         // Overloads for ImmVision types (must be before the vector template so they're found)
         inline std::string ToString(const Point& v)
@@ -55,6 +60,7 @@ namespace ImmVision
             return r;
         }
 
+#ifdef IMMVISION_HAS_OPENCV
         template<typename _Tp, int _rows,int _cols>
         std::string ToString(const cv::Matx<_Tp, _rows, _cols>& m)
         {
@@ -75,6 +81,7 @@ namespace ImmVision
             r += "]";
             return r;
         }
+#endif
 
         inline std::string ToString(const Matrix33d& m)
         {

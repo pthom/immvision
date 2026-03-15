@@ -3,6 +3,9 @@
 #include <cstdint>   // uint8_t
 #include <memory>    // shared_ptr
 #include <vector>
+#include <algorithm> // std::min, std::max
+#include <cstring>   // memcpy
+#include <string>
 
 #ifdef IMMVISION_HAS_OPENCV
 #include <opencv2/core.hpp>
@@ -56,6 +59,10 @@ namespace ImmVision
 
     // Returns the size in bytes of a single element of the given depth
     IMMVISION_API size_t ImageDepthSize(ImageDepth depth);
+    // Returns the name of the depth as a string ("uint8", "float32", etc.)
+    IMMVISION_API std::string ImageDepthName(ImageDepth depth);
+    // Returns true if the depth is a floating-point type (float32 or float64)
+    IMMVISION_API bool ImageDepthIsFloat(ImageDepth depth);
 
 
     // 2D integer point. Converts implicitly to/from cv::Point when OpenCV is available.
@@ -81,8 +88,12 @@ namespace ImmVision
         double x = 0., y = 0.;
         Point2d() = default;
         Point2d(double x_, double y_) : x(x_), y(y_) {}
+        // Conversion from integer Point
+        Point2d(const Point& p) : x((double)p.x), y((double)p.y) {}
         bool operator==(const Point2d& o) const { return x == o.x && y == o.y; }
         bool operator!=(const Point2d& o) const { return !(*this == o); }
+        Point2d operator+(const Point2d& o) const { return {x + o.x, y + o.y}; }
+        Point2d operator-(const Point2d& o) const { return {x - o.x, y - o.y}; }
         #ifdef IMMVISION_HAS_OPENCV
         Point2d(const cv::Point2d& p) : x(p.x), y(p.y) {}
         operator cv::Point2d() const { return {x, y}; }
@@ -108,6 +119,16 @@ namespace ImmVision
     };
 
 
+    // 2D double-precision size. Used for drawing operations (ellipse, rectangle_size).
+    struct Size2d
+    {
+        double width = 0., height = 0.;
+        Size2d() = default;
+        Size2d(double w, double h) : width(w), height(h) {}
+        Size2d(const Size& s) : width((double)s.width), height((double)s.height) {}
+    };
+
+
     // 3x3 double-precision matrix, used for zoom/pan affine transforms.
     // Converts implicitly to/from cv::Matx33d when OpenCV is available.
     // Python: mapped to List[List[float]] (3x3), also accepts numpy 3x3 arrays.
@@ -127,9 +148,54 @@ namespace ImmVision
         bool operator==(const Matrix33d& o) const;
         bool operator!=(const Matrix33d& o) const { return !(*this == o); }
 
+        // Apply this 3x3 matrix to a 2D point (homogeneous multiplication)
+        Point2d apply(const Point2d& p) const
+        {
+            return Point2d(
+                m[0][0] * p.x + m[0][1] * p.y + m[0][2],
+                m[1][0] * p.x + m[1][1] * p.y + m[1][2]);
+        }
+
         #ifdef IMMVISION_HAS_OPENCV
         IMMVISION_API Matrix33d(const cv::Matx33d& mat);
         IMMVISION_API operator cv::Matx33d() const;
+        #endif
+    };
+
+
+    // 4-channel double color value (e.g. RGBA or BGRA).
+    struct Color4d
+    {
+        double v[4] = {0, 0, 0, 255};
+        double& operator[](int i) { return v[i]; }
+        const double& operator[](int i) const { return v[i]; }
+        Color4d() = default;
+        Color4d(double v0, double v1, double v2, double v3) : v{v0, v1, v2, v3} {}
+        #ifdef IMMVISION_HAS_OPENCV
+        Color4d(const cv::Scalar& s) : v{s[0], s[1], s[2], s[3]} {}
+        operator cv::Scalar() const { return {v[0], v[1], v[2], v[3]}; }
+        #endif
+    };
+
+
+    // Integer rectangle (x, y, width, height).
+    struct Rect
+    {
+        int x = 0, y = 0, width = 0, height = 0;
+        Rect() = default;
+        Rect(int x_, int y_, int w, int h) : x(x_), y(y_), width(w), height(h) {}
+        Rect(Point pt, Size sz) : x(pt.x), y(pt.y), width(sz.width), height(sz.height) {}
+        // Construct from two corner points (top-left and bottom-right)
+        Rect(Point pt1, Point pt2)
+            : x(std::min(pt1.x, pt2.x)), y(std::min(pt1.y, pt2.y)),
+              width(std::max(pt1.x, pt2.x) - x), height(std::max(pt1.y, pt2.y) - y) {}
+        bool empty() const { return width <= 0 || height <= 0; }
+        int area() const { return width * height; }
+        bool contains(Point pt) const { return pt.x >= x && pt.x < x + width && pt.y >= y && pt.y < y + height; }
+        Size size() const { return {width, height}; }
+        #ifdef IMMVISION_HAS_OPENCV
+        Rect(const cv::Rect& r) : x(r.x), y(r.y), width(r.width), height(r.height) {}
+        operator cv::Rect() const { return {x, y, width, height}; }
         #endif
     };
 
@@ -165,6 +231,50 @@ namespace ImmVision
         IMMVISION_API size_t elemSize() const;
         // Bytes per pixel (all channels)
         size_t elemSizeTotal() const { return elemSize() * channels; }
+
+        // Convenience accessors (aliases for width/height)
+        int rows() const { return height; }
+        int cols() const { return width; }
+        Size size() const { return {width, height}; }
+
+        // Typed row pointer
+        template<typename T> T* ptr(int y)
+        {
+            return reinterpret_cast<T*>(static_cast<uint8_t*>(data) + y * step);
+        }
+        template<typename T> const T* ptr(int y) const
+        {
+            return reinterpret_cast<const T*>(static_cast<const uint8_t*>(data) + y * step);
+        }
+
+        // Sub-image view (non-owning, shares ref_keeper)
+        ImageBuffer subImage(const Rect& roi) const
+        {
+            ImageBuffer sub;
+            sub.width = roi.width;
+            sub.height = roi.height;
+            sub.channels = channels;
+            sub.depth = depth;
+            sub.step = step;
+            sub.data = static_cast<uint8_t*>(const_cast<void*>(data)) + roi.y * step + roi.x * elemSizeTotal();
+            sub._ref_keeper = _ref_keeper;
+            return sub;
+        }
+
+        // Copy pixel data from this image to dst (must be same size and type)
+        void copyTo(ImageBuffer& dst) const
+        {
+            size_t row_bytes = (size_t)width * channels * ImageDepthSize(depth);
+            for (int y = 0; y < height; y++)
+            {
+                const uint8_t* src_row = static_cast<const uint8_t*>(data) + y * step;
+                uint8_t* dst_row = static_cast<uint8_t*>(dst.data) + y * dst.step;
+                std::memcpy(dst_row, src_row, row_bytes);
+            }
+        }
+
+        // Fill all pixels with a uniform color (for uint8 images)
+        IMMVISION_API void fill(const Color4d& color);
 
         // Owning allocation
         IMMVISION_API static ImageBuffer Zeros(int w, int h, int ch, ImageDepth d);

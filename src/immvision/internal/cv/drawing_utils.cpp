@@ -2,16 +2,10 @@
 #include "immvision/internal/misc/string_utils.h"
 #include "immvision/internal/misc/math_utils.h"
 
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <unordered_map>
 #include <type_traits>  // std::is_same_v
 #include <limits>       // std::numeric_limits
 #include <cmath>        // std::sqrt, std::clamp
-
-#ifndef CV_16F // for old versions of OpenCV
-#define CV_16F 7
-#endif
 
 
 namespace ImmVision
@@ -22,7 +16,7 @@ namespace ImmVision
         static double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
 
 
-        const std::unordered_map<Colors, cv::Scalar> ColorsValues{
+        const std::unordered_map<Colors, Color4d> ColorsValues{
             {Colors::Black,  {0.,   0.,   0.,   255.}},
             {Colors::Red,    {0.,   0.,   255., 255.}},
             {Colors::Green,  {0.,   255., 0.,   255.}},
@@ -33,32 +27,32 @@ namespace ImmVision
             {Colors::Violet, {200., 50.,  200., 255.}},
             {Colors::Orange, {0.,   128., 255., 255.}}};
 
-        cv::Scalar ColorsToScalar(Colors value)
+        Color4d ColorsToScalar(Colors value)
         { return ColorsValues.at(value); }
 
-        cv::Point _ToCvPoint_Shift(const cv::Point2d &pt)
+        Point _ToPoint_Shift(const Point2d &pt)
         {
-            cv::Point pt_tuple;
+            Point pt_tuple;
             pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x) * drawing_shift_pow);
             pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y) * drawing_shift_pow);
             return pt_tuple;
         }
 
-        cv::Point _ToCvPoint_NoShift(const cv::Point2d &pt)
+        Point _ToPoint_NoShift(const Point2d &pt)
         {
-            cv::Point pt_tuple;
+            Point pt_tuple;
             pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x));
             pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y));
             return pt_tuple;
         }
 
-        cv::Size _ToCvSize_WithShift(const cv::Size2d s)
+        Size _ToSize_WithShift(const Size2d s)
         {
             return {MathUtils::RoundInt(static_cast<double>(s.width) * drawing_shift_pow),
                     MathUtils::RoundInt(static_cast<double>(s.height) * drawing_shift_pow)};
         }
 
-        Image_RGB overlay_alpha_image_precise(const cv::Mat &background_rgb_or_rgba, const Image_RGBA &overlay_rgba, double alpha)
+        Image_RGB overlay_alpha_image_precise(const ImageBuffer &background_rgb_or_rgba, const Image_RGBA &overlay_rgba, double alpha)
         {
             /*
             cf minute physics brilliant clip "Computer color is broken" :
@@ -66,20 +60,19 @@ namespace ImmVision
             order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
             results that are nicer than photoshop itself !
             */
-            assert( (background_rgb_or_rgba.type() == CV_8UC3) || (background_rgb_or_rgba.type() == CV_8UC4));
-            assert(overlay_rgba.type() == CV_8UC4);
+            assert( (background_rgb_or_rgba.depth == ImageDepth::uint8 && (background_rgb_or_rgba.channels == 3 || background_rgb_or_rgba.channels == 4)));
+            assert(overlay_rgba.depth == ImageDepth::uint8 && overlay_rgba.channels == 4);
 
-            int bgChannels = background_rgb_or_rgba.channels();
-            int outType = background_rgb_or_rgba.type(); // preserve input type (3 or 4 channels)
-            cv::Mat result(background_rgb_or_rgba.rows, background_rgb_or_rgba.cols, outType);
+            int bgChannels = background_rgb_or_rgba.channels;
+            ImageBuffer result = ImageBuffer::Zeros(background_rgb_or_rgba.width, background_rgb_or_rgba.height, bgChannels, ImageDepth::uint8);
 
-            for (int y = 0; y < result.rows; y++)
+            for (int y = 0; y < result.height; y++)
             {
                 const uint8_t* bg_row = background_rgb_or_rgba.ptr<uint8_t>(y);
                 const uint8_t* ov_row = overlay_rgba.ptr<uint8_t>(y);
                 uint8_t* dst_row = result.ptr<uint8_t>(y);
 
-                for (int x = 0; x < result.cols; x++)
+                for (int x = 0; x < result.width; x++)
                 {
                     // Read overlay RGBA
                     double ov_r = ov_row[x * 4];
@@ -110,31 +103,31 @@ namespace ImmVision
         }
 
 
-        cv::Mat ToFloatMat(const cv::Mat &mat_uchar)
+        ImageBuffer ToFloatMat(const ImageBuffer &mat_uchar)
         {
-            int ch = mat_uchar.channels();
-            cv::Mat mat_float(mat_uchar.rows, mat_uchar.cols, CV_MAKETYPE(CV_32F, ch));
-            for (int y = 0; y < mat_uchar.rows; y++)
+            int ch = mat_uchar.channels;
+            ImageBuffer mat_float = ImageBuffer::Zeros(mat_uchar.width, mat_uchar.height, ch, ImageDepth::float32);
+            for (int y = 0; y < mat_uchar.height; y++)
             {
                 const uint8_t* src = mat_uchar.ptr<uint8_t>(y);
                 float* dst = mat_float.ptr<float>(y);
-                for (int x = 0; x < mat_uchar.cols * ch; x++)
+                for (int x = 0; x < mat_uchar.width * ch; x++)
                     dst[x] = (float)src[x];
             }
             return mat_float;
         }
 
-        std::pair<cv::Mat, cv::Mat> split_alpha_channel(const cv::Mat img_with_alpha)
+        std::pair<ImageBuffer, ImageBuffer> split_alpha_channel(const ImageBuffer img_with_alpha)
         {
-            assert(img_with_alpha.channels() == 4);
-            cv::Mat rgb(img_with_alpha.rows, img_with_alpha.cols, CV_8UC3);
-            cv::Mat alpha(img_with_alpha.rows, img_with_alpha.cols, CV_8UC1);
-            for (int y = 0; y < img_with_alpha.rows; y++)
+            assert(img_with_alpha.channels == 4);
+            ImageBuffer rgb = ImageBuffer::Zeros(img_with_alpha.width, img_with_alpha.height, 3, ImageDepth::uint8);
+            ImageBuffer alpha_ch = ImageBuffer::Zeros(img_with_alpha.width, img_with_alpha.height, 1, ImageDepth::uint8);
+            for (int y = 0; y < img_with_alpha.height; y++)
             {
                 const uint8_t* src = img_with_alpha.ptr<uint8_t>(y);
                 uint8_t* dst_rgb = rgb.ptr<uint8_t>(y);
-                uint8_t* dst_a = alpha.ptr<uint8_t>(y);
-                for (int x = 0; x < img_with_alpha.cols; x++)
+                uint8_t* dst_a = alpha_ch.ptr<uint8_t>(y);
+                for (int x = 0; x < img_with_alpha.width; x++)
                 {
                     dst_rgb[x * 3]     = src[x * 4];
                     dst_rgb[x * 3 + 1] = src[x * 4 + 1];
@@ -142,21 +135,21 @@ namespace ImmVision
                     dst_a[x]           = src[x * 4 + 3];
                 }
             }
-            return {rgb, alpha};
+            return {rgb, alpha_ch};
         }
 
         // Set a pixel in an image with bounds checking
-        inline void _SetPixel(cv::Mat& img, int x, int y, const cv::Scalar& color)
+        inline void _SetPixel(ImageBuffer& img, int x, int y, const Color4d& color)
         {
-            if (x < 0 || x >= img.cols || y < 0 || y >= img.rows) return;
-            int ch = img.channels();
+            if (x < 0 || x >= img.width || y < 0 || y >= img.height) return;
+            int ch = img.channels;
             uint8_t* p = img.ptr<uint8_t>(y) + x * ch;
             for (int c = 0; c < ch && c < 4; c++)
                 p[c] = (uint8_t)std::clamp(color[c], 0.0, 255.0);
         }
 
         // Bresenham line (no anti-aliasing, integer coordinates)
-        void _DrawLineBresenham(cv::Mat& img, int x0, int y0, int x1, int y1, const cv::Scalar& color, int thickness)
+        void _DrawLineBresenham(ImageBuffer& img, int x0, int y0, int x1, int y1, const Color4d& color, int thickness)
         {
             int dx = std::abs(x1 - x0), dy = std::abs(y1 - y0);
             int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
@@ -174,10 +167,10 @@ namespace ImmVision
             }
         }
 
-        void line(cv::Mat &image,
-                  const cv::Point2d &a,
-                  const cv::Point2d &b,
-                  cv::Scalar color,
+        void line(ImageBuffer &image,
+                  const Point2d &a,
+                  const Point2d &b,
+                  Color4d color,
                   int thickness /*= 1*/)
         {
             _DrawLineBresenham(image,
@@ -187,7 +180,7 @@ namespace ImmVision
         }
 
         // Midpoint ellipse (no anti-aliasing)
-        void _DrawEllipse(cv::Mat& img, int cx, int cy, int rx, int ry, const cv::Scalar& color, int thickness)
+        void _DrawEllipse(ImageBuffer& img, int cx, int cy, int rx, int ry, const Color4d& color, int thickness)
         {
             if (rx <= 0 || ry <= 0) return;
             int half_t = thickness / 2;
@@ -219,10 +212,10 @@ namespace ImmVision
             }
         }
 
-        void ellipse(cv::Mat &image,
-                     const cv::Point2d &center,
-                     const cv::Size2d &size,
-                     const cv::Scalar &color,
+        void ellipse(ImageBuffer &image,
+                     const Point2d &center,
+                     const Size2d &size,
+                     const Color4d &color,
                      double angle /*= 0.*/,
                      double start_angle /*=0.*/,
                      double end_angle /*=360.*/,
@@ -235,19 +228,19 @@ namespace ImmVision
                 color, thickness);
         }
 
-        void circle(cv::Mat &image,
-                    const cv::Point2d &center,
+        void circle(ImageBuffer &image,
+                    const Point2d &center,
                     double radius,
-                    cv::Scalar color,
+                    Color4d color,
                     int thickness /*= 1*/)
         {
             ellipse(image, center, {radius, radius}, color, 0., 0., 360., thickness);
         }
 
-        void rectangle(cv::Mat &image,
-                       const cv::Point2d &pt1,
-                       const cv::Point2d &pt2,
-                       const cv::Scalar &color,
+        void rectangle(ImageBuffer &image,
+                       const Point2d &pt1,
+                       const Point2d &pt2,
+                       const Color4d &color,
                        bool fill /*= false*/,
                        int thickness /*= 1*/)
         {
@@ -271,19 +264,19 @@ namespace ImmVision
             }
         }
 
-        cv::Scalar _ContrastColor(const cv::Scalar &color)
+        Color4d _ContrastColor(const Color4d &color)
         {
             return {255. - color[0], 255. - color[1], 255. - color[2], color[3]};
         }
 
-        void rectangle_size(cv::Mat &img,
-                            const cv::Point2d &pt,
-                            const cv::Size2d &size,
-                            const cv::Scalar &color,
+        void rectangle_size(ImageBuffer &img,
+                            const Point2d &pt,
+                            const Size2d &size,
+                            const Color4d &color,
                             bool fill /*= false*/,
                             int thickness /*= 1*/)
         {
-            cv::Point2d pt2(pt.x + size.width, pt.y + size.height);
+            Point2d pt2(pt.x + size.width, pt.y + size.height);
             rectangle(img, pt, pt2, color, fill, thickness);
         }
 
@@ -294,7 +287,7 @@ namespace ImmVision
         // =====================================================================
         // =====================================================================
         // 8x13 bitmap font (classic X11 "fixed" style)
-        // Covers ASCII 32-127. Each glyph is 8 bits wide × 13 rows.
+        // Covers ASCII 32-127. Each glyph is 8 bits wide x 13 rows.
         // =====================================================================
         namespace BitmapFont
         {
@@ -405,14 +398,14 @@ namespace ImmVision
             // clang-format on
 
             // Get glyph width and height for a string (in pixels, before scaling)
-            inline cv::Size getTextSize(const std::string& text)
+            inline Size getTextSize(const std::string& text)
             {
                 return {(int)text.size() * GLYPH_W, GLYPH_H};
             }
 
-            // Draw a string onto a cv::Mat at integer position
-            inline void putText(cv::Mat& img, const std::string& text, cv::Point pos,
-                                const cv::Scalar& color, int scale = 1)
+            // Draw a string onto an ImageBuffer at integer position
+            inline void putText(ImageBuffer& img, const std::string& text, Point pos,
+                                const Color4d& color, int scale = 1)
             {
                 for (size_t ci = 0; ci < text.size(); ci++)
                 {
@@ -439,44 +432,44 @@ namespace ImmVision
 
         double _text_line_height(double fontScale, int /*thickness*/)
         {
-            // fontScale=0.4 (default) → scale=1, height=13px
-            // fontScale=0.8 → scale=2, height=26px
+            // fontScale=0.4 (default) -> scale=1, height=13px
+            // fontScale=0.8 -> scale=2, height=26px
             int scale = std::max(1, MathUtils::RoundInt(fontScale * 2.5));
             return (double)(BitmapFont::GLYPH_H * scale);
         }
 
-        int text_oneline(cv::Mat &img,
-                         const cv::Point2d &position,
+        int text_oneline(ImageBuffer &img,
+                         const Point2d &position,
                          const std::string &text,
-                         const cv::Scalar &color,
+                         const Color4d &color,
                          bool center_around_point /*= false*/,
                          bool add_cartouche /*= false*/,
                          double fontScale /*= 0.4*/,
                          int /*thickness = 1*/)
         {
             int scale = std::max(1, MathUtils::RoundInt(fontScale * 2.5));
-            cv::Size size = BitmapFont::getTextSize(text);
+            Size size = BitmapFont::getTextSize(text);
             size.width *= scale;
             size.height *= scale;
 
             int pad = scale; // 1px padding at each side, scaled
-            cv::Point pos = _ToCvPoint_NoShift(position);
+            Point pos = _ToPoint_NoShift(position);
             if (center_around_point)
                 pos = {pos.x - (size.width + 2 * pad) / 2, pos.y - size.height / 2};
 
             if (add_cartouche)
             {
-                cv::Point cartPos = {pos.x, pos.y};
-                rectangle_size(img, cartPos, cv::Size2d(size.width + 2 * pad, size.height), _ContrastColor(color), true);
+                Point cartPos = {pos.x, pos.y};
+                rectangle_size(img, cartPos, Size2d(size.width + 2 * pad, size.height), _ContrastColor(color), true);
             }
             BitmapFont::putText(img, text, {pos.x + 2 * pad, pos.y}, color, scale);
             return size.height;
         }
 
-        void text(cv::Mat &img,
-                  const cv::Point2d &position,
+        void text(ImageBuffer &img,
+                  const Point2d &position,
                   const std::string &msg,
-                  const cv::Scalar &color,
+                  const Color4d &color,
                   bool center_around_point /*= false*/,
                   bool add_cartouche /*= false*/,
                   double fontScale /*= 0.4*/,
@@ -485,7 +478,7 @@ namespace ImmVision
             auto lines = StringUtils::SplitString(msg, '\n');
 
             double line_height = _text_line_height(fontScale, thickness) + 3.;
-            cv::Point2d linePosition = position;
+            Point2d linePosition = position;
             linePosition.y -= line_height * (double)(lines.size() - 1.) / 2.;
             for (const auto &line: lines)
             {
@@ -495,9 +488,9 @@ namespace ImmVision
             }
         }
 
-        void cross_hole(cv::Mat &img,
-                        const cv::Point2d &position,
-                        const cv::Scalar &color,
+        void cross_hole(ImageBuffer &img,
+                        const Point2d &position,
+                        const Color4d &color,
                         double size /*= 2.*/,
                         double size_hole /*= 2.*/,
                         int thickness /*= 1*/)
@@ -506,29 +499,29 @@ namespace ImmVision
             {
                 for (double ySign: std::vector<double>{-1., 1.})
                 {
-                    cv::Point2d a{position.x + xSign * size_hole, position.y + ySign * size_hole};
-                    cv::Point2d b{position.x + xSign * (size_hole + size),
+                    Point2d a{position.x + xSign * size_hole, position.y + ySign * size_hole};
+                    Point2d b{position.x + xSign * (size_hole + size),
                                   position.y + ySign * (size_hole + size)};
                     line(img, a, b, color, thickness);
                 }
             }
         }
 
-        void draw_ellipse(cv::Mat &img,
-                          const cv::Point2d &center,
-                          const cv::Size2d &size,
-                          const cv::Scalar &color,
+        void draw_ellipse(ImageBuffer &img,
+                          const Point2d &center,
+                          const Size2d &size,
+                          const Color4d &color,
                           int thickness /*= 1*/,
-                          int /*lineType = cv::LINE_8*/,
-                          int /*shift = 0*/)
+                          int /*lineType*/,
+                          int /*shift*/)
         {
             ellipse(img, center, size, color, 0., 0., 360., thickness);
         }
 
-        void draw_named_feature(cv::Mat &img,
-                                const cv::Point2d &position,
+        void draw_named_feature(ImageBuffer &img,
+                                const Point2d &position,
                                 const std::string &name,
-                                const cv::Scalar &color,
+                                const Color4d &color,
                                 bool add_cartouche /*= false*/,
                                 double size /*= 3.*/,
                                 double size_hole /*= 2.*/,
@@ -538,27 +531,31 @@ namespace ImmVision
             if (add_cartouche)
                 for (auto x : std::vector<double>{-1., 1.})
                     for (auto y : std::vector<double>{-1., 1.})
-                        cross_hole(img, position + cv::Point2d(x, y), _ContrastColor(color), size, size_hole, thickness);
+                        cross_hole(img, position + Point2d(x, y), _ContrastColor(color), size, size_hole, thickness);
 
             cross_hole(img, position, color, size, size_hole, thickness);
             double delta_y = size_hole + size + 6.;
-            cv::Point2d text_position = {position.x, position.y - delta_y};
+            Point2d text_position = {position.x, position.y - delta_y};
             text(img, text_position, name, color, true, add_cartouche, font_scale);
         }
 
-        cv::Mat stack_images_vertically(const cv::Mat &img1, const cv::Mat &img2)
+        ImageBuffer stack_images_vertically(const ImageBuffer &img1, const ImageBuffer &img2)
         {
-            cv::Mat img(cv::Size(img1.cols, img1.rows + img2.rows), img1.type());
-            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
-            img2.copyTo(img(cv::Rect(0, img1.rows, img2.cols, img2.rows)));
+            ImageBuffer img = ImageBuffer::Zeros(img1.width, img1.height + img2.height, img1.channels, img1.depth);
+            ImageBuffer top = img.subImage(Rect(0, 0, img1.width, img1.height));
+            img1.copyTo(top);
+            ImageBuffer bottom = img.subImage(Rect(0, img1.height, img2.width, img2.height));
+            img2.copyTo(bottom);
             return img;
         }
 
-        cv::Mat stack_images_horizontally(const cv::Mat &img1, const cv::Mat &img2)
+        ImageBuffer stack_images_horizontally(const ImageBuffer &img1, const ImageBuffer &img2)
         {
-            cv::Mat img(cv::Size(img1.cols + img2.cols, img1.rows), img1.type());
-            img1.copyTo(img(cv::Rect(0, 0, img1.cols, img1.rows)));
-            img2.copyTo(img(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
+            ImageBuffer img = ImageBuffer::Zeros(img1.width + img2.width, img1.height, img1.channels, img1.depth);
+            ImageBuffer left = img.subImage(Rect(0, 0, img1.width, img1.height));
+            img1.copyTo(left);
+            ImageBuffer right = img.subImage(Rect(img1.width, 0, img2.width, img2.height));
+            img2.copyTo(right);
             return img;
         }
 
@@ -590,21 +587,21 @@ namespace ImmVision
                 return 0;
         }
 
-        // Convert any cv::Mat to RGBA uint8, with per-pixel loops (no cv::cvtColor)
+        // Convert any ImageBuffer to RGBA uint8, with per-pixel loops
         // Note: isBgrOrder only applies to uint8 images (OpenCV convention).
         // Float/integer images are always treated as RGB order.
         template<typename T>
-        cv::Mat converted_to_rgba_typed(const cv::Mat& mat, int nbChannels, bool isBgrOrder)
+        ImageBuffer converted_to_rgba_typed(const ImageBuffer& mat, int nbChannels, bool isBgrOrder)
         {
             // BGR swap only applies to uint8 images; non-uint8 depths are always RGB
             bool swapRB = isBgrOrder && std::is_same_v<T, uint8_t>;
 
-            cv::Mat rgba(mat.rows, mat.cols, CV_8UC4);
-            for (int y = 0; y < mat.rows; y++)
+            ImageBuffer rgba = ImageBuffer::Zeros(mat.width, mat.height, 4, ImageDepth::uint8);
+            for (int y = 0; y < mat.height; y++)
             {
                 const T* src = mat.ptr<T>(y);
                 uint8_t* dst = rgba.ptr<uint8_t>(y);
-                for (int x = 0; x < mat.cols; x++)
+                for (int x = 0; x < mat.width; x++)
                 {
                     uint8_t r, g, b, a;
                     if (nbChannels == 1)
@@ -648,33 +645,36 @@ namespace ImmVision
             return rgba;
         }
 
-        Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrder)
+        Image_RGBA converted_to_rgba_image(const ImageBuffer &inputMat, bool isBgrOrder)
         {
-            cv::Mat mat = inputMat.isContinuous() ? inputMat : inputMat.clone();
-            int nbChannels = mat.channels();
+            ImageBuffer mat = inputMat;
+            int nbChannels = mat.channels;
 
-            switch (mat.depth())
+            switch (mat.depth)
             {
-                case CV_8U:  return converted_to_rgba_typed<uint8_t>(mat, nbChannels, isBgrOrder);
-                case CV_8S:  return converted_to_rgba_typed<int8_t>(mat, nbChannels, isBgrOrder);
-                case CV_16U: return converted_to_rgba_typed<uint16_t>(mat, nbChannels, isBgrOrder);
-                case CV_16S: return converted_to_rgba_typed<int16_t>(mat, nbChannels, isBgrOrder);
-                case CV_32S: return converted_to_rgba_typed<int32_t>(mat, nbChannels, isBgrOrder);
-                case CV_32F: return converted_to_rgba_typed<float>(mat, nbChannels, isBgrOrder);
-                case CV_64F: return converted_to_rgba_typed<double>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::uint8:   return converted_to_rgba_typed<uint8_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::int8:    return converted_to_rgba_typed<int8_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::uint16:  return converted_to_rgba_typed<uint16_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::int16:   return converted_to_rgba_typed<int16_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::int32:   return converted_to_rgba_typed<int32_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::float32: return converted_to_rgba_typed<float>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::float64: return converted_to_rgba_typed<double>(mat, nbChannels, isBgrOrder);
                 default:     throw std::runtime_error("converted_to_rgba_image: unsupported depth");
             }
         }
 
-        cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize)
+        ImageBuffer make_alpha_channel_checkerboard_image(const Size& size, int squareSize)
         {
-            cv::Mat r(size, CV_8UC3);
+            ImageBuffer r = ImageBuffer::Zeros(size.width, size.height, 3, ImageDepth::uint8);
             for (int x = 0; x < size.width; x++)
             {
                 for (int y = 0; y < size.height; y++)
                 {
-                    uchar colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
-                    r.at<cv::Vec3b>(y, x) = cv::Vec3b(colorValue, colorValue, colorValue);
+                    uint8_t colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
+                    uint8_t* p = r.ptr<uint8_t>(y) + x * 3;
+                    p[0] = colorValue;
+                    p[1] = colorValue;
+                    p[2] = colorValue;
                 }
             }
             return r;
@@ -682,20 +682,20 @@ namespace ImmVision
 
 
         void draw_transparent_pixel(
-            cv::Mat &img_rgba,
-            const cv::Point2d &position,
-            const cv::Scalar &color,
+            ImageBuffer &img_rgba,
+            const Point2d &position,
+            const Color4d &color,
             double alpha
         )
         {
-            assert(img_rgba.type() == CV_8UC4);
+            assert(img_rgba.depth == ImageDepth::uint8 && img_rgba.channels == 4);
 
-            auto fnLerpScalar = [](cv::Scalar c1, cv::Scalar c2, double k)
+            auto fnLerpColor4d = [](Color4d c1, Color4d c2, double k)
             {
                 auto fnLerp = [](double x1, double x2, double k2) {
                     return x1 + k2 * (x2 - x1);
                 };
-                cv::Scalar r(
+                Color4d r(
                     fnLerp(c1[0], c2[0], k),
                     fnLerp(c1[1], c2[1], k),
                     fnLerp(c1[2], c2[2], k),
@@ -711,50 +711,54 @@ namespace ImmVision
             double ky0 = 1. - (position.y - yFloor);
             double ky1 = 1. - ky0;
 
-            std::vector<std::pair<cv::Point2d, double>> positionAndKs {
-                { cv::Point2d(0., 0.), kx0 * ky0 },
-                { cv::Point2d(1., 0.), kx1 * ky0 },
-                { cv::Point2d(0., 1.), kx0 * ky1 },
-                { cv::Point2d(1., 1.), kx1 * ky1 }
+            std::vector<std::pair<Point2d, double>> positionAndKs {
+                { Point2d(0., 0.), kx0 * ky0 },
+                { Point2d(1., 0.), kx1 * ky0 },
+                { Point2d(0., 1.), kx0 * ky1 },
+                { Point2d(1., 1.), kx1 * ky1 }
             };
 
-            cv::Rect roi(cv::Point(0, 0), img_rgba.size());
+            Rect roi(Point(0, 0), img_rgba.size());
             for (const auto& kv: positionAndKs)
             {
-                cv::Point pos;
+                Point pos;
                 {
-                    cv::Point2d delta = kv.first;
-                    pos = cv::Point((int)(position.x + delta.x), (int)(position.y + delta.y));
+                    Point2d delta = kv.first;
+                    pos = Point((int)(position.x + delta.x), (int)(position.y + delta.y));
                 }
                 double k = kv.second;
 
                 if (!roi.contains(pos))
                     continue;
 
-                cv::Scalar oldColor = img_rgba.at<cv::Vec4b>(pos.y, pos.x);
-                cv::Scalar dstColor = fnLerpScalar(oldColor, color, alpha * k);
-                img_rgba.at<cv::Vec4b>(pos.y, pos.x) = dstColor;
+                uint8_t* pixel = img_rgba.ptr<uint8_t>(pos.y) + pos.x * 4;
+                Color4d oldColor(pixel[0], pixel[1], pixel[2], pixel[3]);
+                Color4d dstColor = fnLerpColor4d(oldColor, color, alpha * k);
+                pixel[0] = (uint8_t)std::clamp(dstColor[0], 0.0, 255.0);
+                pixel[1] = (uint8_t)std::clamp(dstColor[1], 0.0, 255.0);
+                pixel[2] = (uint8_t)std::clamp(dstColor[2], 0.0, 255.0);
+                pixel[3] = (uint8_t)std::clamp(dstColor[3], 0.0, 255.0);
             }
         }
 
 
         void draw_grid(
-            cv::Mat& img_rgba,
-            cv::Scalar lineColor,
+            ImageBuffer& img_rgba,
+            Color4d lineColor,
             double alpha,
             double x_spacing, double y_spacing,
             double x_start, double y_start,
             double x_end, double y_end
             )
         {
-            assert(img_rgba.type() == CV_8UC4);
+            assert(img_rgba.depth == ImageDepth::uint8 && img_rgba.channels == 4);
 
             for (double y = y_start; y < y_end; y+= y_spacing)
                 for (double x = 0.; x < x_end; x+= 1.)
-                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
+                    draw_transparent_pixel(img_rgba, Point2d(x, y), lineColor, alpha);
             for (double x = x_start; x < x_end; x+= x_spacing)
                 for (double y = 0.; y < y_end; y+= 1.)
-                    draw_transparent_pixel(img_rgba, cv::Point2d(x, y), lineColor, alpha);
+                    draw_transparent_pixel(img_rgba, Point2d(x, y), lineColor, alpha);
         }
 
     }  // namespace DrawingUtils

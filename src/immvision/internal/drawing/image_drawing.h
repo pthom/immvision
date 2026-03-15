@@ -1,25 +1,24 @@
 #pragma once
 #include "immvision/image.h"
 #include "immvision/gl_texture.h"
-#include <opencv2/core.hpp>
 
 namespace ImmVision
 {
     namespace ImageDrawing
     {
-        cv::Mat DrawWatchedPixels(const cv::Mat& image, const ImageParams& params);
+        ImageBuffer DrawWatchedPixels(const ImageBuffer& image, const ImageParams& params);
 
-        void DrawGrid(cv::Mat& inOutImageRgba, const ImageParams& params);
+        void DrawGrid(ImageBuffer& inOutImageRgba, const ImageParams& params);
 
-        cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
+        ImageBuffer DrawValuesOnZoomedPixels(const ImageBuffer& drawingImage, const ImageBuffer& valuesImage,
                                          const ImageParams& params, bool drawPixelCoords);
 
-        cv::Mat MakeSchoolPaperBackground(cv::Size s);
+        ImageBuffer MakeSchoolPaperBackground(Size s);
 
         void BlitImageTexture(
             const ImageParams& params,
-            const cv::Mat& image,
-            cv::Mat& in_out_rgba_image_cache,
+            const ImageBuffer& image,
+            ImageBuffer& in_out_rgba_image_cache,
             bool shall_refresh_rgba,
             GlTexture* outTexture
         );

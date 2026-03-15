@@ -30,19 +30,19 @@ namespace ImmVision
             return r;
         }
 
-        cv::Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow)
+        Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow)
         {
             ImVec2 imageTopLeft = ImGui::GetCursorScreenPos();
             GlTexture_Draw_DisableDragWindow(texture, displaySize, disableDragWindow);
             bool isImageHovered = ImGui::IsItemHovered();
             ImVec2 mouse = ImGui::GetMousePos();
             if (isImageHovered)
-                return cv::Point2d((double)(mouse.x - imageTopLeft.x), (double)(mouse.y - imageTopLeft.y));
+                return Point2d((double)(mouse.x - imageTopLeft.x), (double)(mouse.y - imageTopLeft.y));
             else
-                return cv::Point2d(-1., -1.);
+                return Point2d(-1., -1.);
         }
 
-        void ShowImageInfo(const cv::Mat &image, double zoomFactor)
+        void ShowImageInfo(const ImageBuffer &image, double zoomFactor)
         {
             std::string info = MatrixInfoUtils::_MatInfo(image);
             ImGui::Text("%s - Zoom:%.3lf", info.c_str(), zoomFactor);
@@ -50,37 +50,22 @@ namespace ImmVision
 
 
         void ShowPixelColorWidget(
-            const cv::Mat &image,
-            cv::Point pt,
+            const ImageBuffer &image,
+            Point pt,
             const ImageParams& params)
         {
-            bool isInImage = cv::Rect(cv::Point(0, 0), image.size()).contains((pt));
+            bool isInImage = Rect(Point(0, 0), image.size()).contains(pt);
             auto UCharToFloat = [](int v) { return (float)((float) v / 255.f); };
-            auto Vec3bToImVec4 = [&UCharToFloat, &params](cv::Vec3b v) {
-                bool isColorOrderBgr = IsUsingBgrColorOrder();
-                return isColorOrderBgr ?
-                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(255))
-                                              :   ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(255));
-            };
-            auto Vec4bToImVec4 = [&UCharToFloat, &params](cv::Vec4b v) {
-                bool isColorOrderBgr = IsUsingBgrColorOrder();
-                return isColorOrderBgr ?
-                       ImVec4(UCharToFloat(v[2]), UCharToFloat(v[1]), UCharToFloat(v[0]), UCharToFloat(v[3]))
-                                              :    ImVec4(UCharToFloat(v[0]), UCharToFloat(v[1]), UCharToFloat(v[2]), UCharToFloat(v[3]));
-            };
 
             bool done = false;
             std::string id = std::string("##pixelcolor_") + std::to_string(pt.x) + "," + std::to_string(pt.y);
-            if (image.depth() == CV_8U)
+            if (image.depth == ImageDepth::uint8)
             {
                 ImGuiColorEditFlags editFlags =
                     ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_AlphaPreviewHalf
                     | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_Uint8;
                 if (!isInImage)
                 {
-                    // ColorEdit4 introduces a strange line spacing on the next group
-                    // which cannot be simulated with ImGui::Dummy
-                    // => we add a dummy one (hopefully black on a black background)
                     float dummyColor[4]{0.f, 0.f, 0.f, 255.f};
                     ImGui::SetNextItemWidth(1.f);
                     int colorEditFlags =
@@ -90,18 +75,24 @@ namespace ImmVision
                     ImGui::ColorEdit4(id.c_str(), dummyColor, colorEditFlags );
                     done = true;
                 }
-                else if (image.channels() == 3)
+                else if (image.channels == 3)
                 {
-                    cv::Vec3b col = image.at<cv::Vec3b>(pt.y, pt.x);
-                    ImVec4 colorAsImVec = Vec3bToImVec4(col);
+                    const uint8_t* pixel = image.ptr<uint8_t>(pt.y) + pt.x * 3;
+                    bool isColorOrderBgr = IsUsingBgrColorOrder();
+                    ImVec4 colorAsImVec = isColorOrderBgr ?
+                        ImVec4(UCharToFloat(pixel[2]), UCharToFloat(pixel[1]), UCharToFloat(pixel[0]), UCharToFloat(255))
+                        : ImVec4(UCharToFloat(pixel[0]), UCharToFloat(pixel[1]), UCharToFloat(pixel[2]), UCharToFloat(255));
                     ImGui::SetNextItemWidth(150.f * FontSizeRatio());
                     ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
                 }
-                else if (image.channels() == 4)
+                else if (image.channels == 4)
                 {
-                    cv::Vec4b col = image.at<cv::Vec4b>(pt.y, pt.x);
-                    ImVec4 colorAsImVec = Vec4bToImVec4(col);
+                    const uint8_t* pixel = image.ptr<uint8_t>(pt.y) + pt.x * 4;
+                    bool isColorOrderBgr = IsUsingBgrColorOrder();
+                    ImVec4 colorAsImVec = isColorOrderBgr ?
+                        ImVec4(UCharToFloat(pixel[2]), UCharToFloat(pixel[1]), UCharToFloat(pixel[0]), UCharToFloat(pixel[3]))
+                        : ImVec4(UCharToFloat(pixel[0]), UCharToFloat(pixel[1]), UCharToFloat(pixel[2]), UCharToFloat(pixel[3]));
                     ImGui::SetNextItemWidth(200.f * FontSizeRatio());
                     ImGui::ColorEdit4(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
