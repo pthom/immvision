@@ -251,8 +251,18 @@ namespace ImmVision
                 else
                     m = MakeMagnifierImage(iconType);
 
-                cv::Mat resized = m;
-                cv::resize(m, resized, cv::Size(IconSize().width * 2, IconSize().height * 2), 0., 0., cv::INTER_AREA);
+                // Simple nearest-neighbor 2x resize for icons
+                int dstW = IconSize().width * 2, dstH = IconSize().height * 2;
+                cv::Mat resized(dstH, dstW, m.type());
+                for (int y = 0; y < dstH; y++)
+                    for (int x = 0; x < dstW; x++)
+                    {
+                        int sx = x * m.cols / dstW, sy = y * m.rows / dstH;
+                        int ch = m.channels();
+                        const uint8_t* src = m.ptr<uint8_t>(sy) + sx * ch;
+                        uint8_t* dst = resized.ptr<uint8_t>(y) + x * ch;
+                        for (int c = 0; c < ch; c++) dst[c] = src[c];
+                    }
                 auto texture = std::make_unique<GlTexture>(resized, true);
                 sIconsTextureCache[iconType] = std::move(texture);
             }

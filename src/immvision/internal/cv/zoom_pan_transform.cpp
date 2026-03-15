@@ -165,36 +165,133 @@ namespace ImmVision
             return roi;
         }
 
-        // Custom version of cv::warpAffine for small sizes, since cv::warpAffine happily ignores cv::INTER_AREA
-        // cf https://github.com/pthom/immvision/issues/6 and
-        // cf https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/imgwarp.cpp#L2826-L2827
+        // =====================================================================
+        // Custom warp: scale + translate only (no rotation/shear)
+        // Replaces cv::warpAffine and cv::resize for immvision's zoom/pan
+        // =====================================================================
+
+        // Sample a single pixel from src with bilinear interpolation
+        inline void _SampleBilinear(const cv::Mat& src, double sx, double sy, uint8_t* out, int ch)
+        {
+            int x0 = (int)std::floor(sx), y0 = (int)std::floor(sy);
+            int x1 = x0 + 1, y1 = y0 + 1;
+            double fx = sx - x0, fy = sy - y0;
+
+            // Clamp to image bounds
+            x0 = std::clamp(x0, 0, src.cols - 1);
+            x1 = std::clamp(x1, 0, src.cols - 1);
+            y0 = std::clamp(y0, 0, src.rows - 1);
+            y1 = std::clamp(y1, 0, src.rows - 1);
+
+            const uint8_t* p00 = src.ptr<uint8_t>(y0) + x0 * ch;
+            const uint8_t* p10 = src.ptr<uint8_t>(y0) + x1 * ch;
+            const uint8_t* p01 = src.ptr<uint8_t>(y1) + x0 * ch;
+            const uint8_t* p11 = src.ptr<uint8_t>(y1) + x1 * ch;
+
+            double w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy);
+            double w01 = (1 - fx) * fy, w11 = fx * fy;
+
+            for (int c = 0; c < ch; c++)
+                out[c] = (uint8_t)std::clamp(p00[c] * w00 + p10[c] * w10 + p01[c] * w01 + p11[c] * w11, 0.0, 255.0);
+        }
+
+        // Area downscale with proper fractional pixel weighting.
+        // Each destination pixel covers a (scaleInv × scaleInv) region in the source.
+        // Pixels at the edges contribute proportionally to their overlap.
+        inline void _SampleArea(const cv::Mat& src, double sx, double sy, double scaleInv, uint8_t* out, int ch)
+        {
+            double sx0 = sx, sy0 = sy;
+            double sx1 = sx + scaleInv, sy1 = sy + scaleInv;
+
+            // Clamp to source bounds
+            sx0 = std::max(sx0, 0.0);
+            sy0 = std::max(sy0, 0.0);
+            sx1 = std::min(sx1, (double)src.cols);
+            sy1 = std::min(sy1, (double)src.rows);
+
+            int ix0 = (int)std::floor(sx0);
+            int iy0 = (int)std::floor(sy0);
+            int ix1 = std::min((int)std::floor(sx1), src.cols - 1);
+            int iy1 = std::min((int)std::floor(sy1), src.rows - 1);
+
+            double sums[4] = {0, 0, 0, 0};
+            double totalWeight = 0;
+            for (int y = iy0; y <= iy1; y++)
+            {
+                // Vertical weight: fractional overlap of this row with [sy0, sy1]
+                double wy = std::min((double)(y + 1), sy1) - std::max((double)y, sy0);
+                if (wy <= 0) continue;
+
+                const uint8_t* row = src.ptr<uint8_t>(y);
+                for (int x = ix0; x <= ix1; x++)
+                {
+                    // Horizontal weight: fractional overlap of this column with [sx0, sx1]
+                    double wx = std::min((double)(x + 1), sx1) - std::max((double)x, sx0);
+                    if (wx <= 0) continue;
+
+                    double w = wx * wy;
+                    for (int c = 0; c < ch; c++)
+                        sums[c] += row[x * ch + c] * w;
+                    totalWeight += w;
+                }
+            }
+            if (totalWeight > 0)
+                for (int c = 0; c < ch; c++)
+                    out[c] = (uint8_t)std::clamp(sums[c] / totalWeight, 0.0, 255.0);
+            else
+                for (int c = 0; c < ch; c++)
+                    out[c] = 0;
+        }
+
+        // Custom warp affine for scale+translate transforms on uint8 images.
+        // m is a 3x3 homogeneous matrix (forward: src→dst).
+        // dst must be pre-allocated. Pixels outside src bounds are left unchanged (transparent border).
+        void WarpAffineScaleTranslate(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m, WarpInterp interp)
+        {
+            assert(src.depth() == CV_8U);
+            int ch = src.channels();
+            cv::Matx33d mInv = m.inv();
+
+            double scale = m(0, 0); // uniform scale factor
+            double scaleInv = 1.0 / std::max(scale, 1e-10);
+
+            for (int dy = 0; dy < dst.rows; dy++)
+            {
+                uint8_t* dstRow = dst.ptr<uint8_t>(dy);
+                for (int dx = 0; dx < dst.cols; dx++)
+                {
+                    // Map destination pixel to source coordinates
+                    double sx = mInv(0, 0) * dx + mInv(0, 1) * dy + mInv(0, 2);
+                    double sy = mInv(1, 0) * dx + mInv(1, 1) * dy + mInv(1, 2);
+
+                    // Bounds check
+                    if (sx < -0.5 || sx >= src.cols || sy < -0.5 || sy >= src.rows)
+                        continue; // leave dst pixel unchanged (transparent border)
+
+                    uint8_t* out = dstRow + dx * ch;
+                    if (interp == WarpInterp::Nearest)
+                    {
+                        int ix = std::clamp((int)std::round(sx), 0, src.cols - 1);
+                        int iy = std::clamp((int)std::round(sy), 0, src.rows - 1);
+                        const uint8_t* p = src.ptr<uint8_t>(iy) + ix * ch;
+                        for (int c = 0; c < ch; c++)
+                            out[c] = p[c];
+                    }
+                    else if (interp == WarpInterp::Bilinear)
+                    {
+                        _SampleBilinear(src, sx, sy, out, ch);
+                    }
+                    else // Area
+                    {
+                        _SampleArea(src, sx, sy, scaleInv, out, ch);
+                    }
+                }
+            }
+        }
+
         void _WarpAffineInterAreaForSmallSizes(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m)
         {
-            // Since in our case, we are only dealing with transformations that do not modify
-            // the orientation of the vertical arrow and horizontal axes, we take the easy route:
-            // first resize the image and then place it at the correct location in the final image.
-
-            // first, compute the resized image size by using the transformation matrix.
-            cv::Point2d tl = ZoomPanTransform::Apply(m, cv::Point2d(0., 0.));
-            cv::Point2d br = ZoomPanTransform::Apply(m, cv::Point2d((double)src.cols, (double)src.rows));
-            cv::Size resizedSize(MathUtils::RoundInt(br.x - tl.x), MathUtils::RoundInt(br.y - tl.y));
-
-            // then, resize the image
-            cv::Mat resized;
-            if (resizedSize.area() == 0)
-            {
-                resized = cv::Mat::zeros(1, 1, src.type());
-            }
-            else
-                cv::resize(src, resized, resizedSize, 0, 0, cv::INTER_AREA);
-
-            // then, place the resized image at the correct location in the final image.
-            cv::Matx23d translation = cv::Matx23d::eye();
-            translation(0, 2) = tl.x;
-            translation(1, 2) = tl.y;
-
-            // copy resized
-            cv::warpAffine(resized, dst, translation, dst.size(), cv::INTER_NEAREST, cv::BORDER_TRANSPARENT);
+            WarpAffineScaleTranslate(src, dst, m, WarpInterp::Area);
         }
 
 

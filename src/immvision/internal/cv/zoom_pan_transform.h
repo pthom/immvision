@@ -31,9 +31,9 @@ namespace ImmVision
                             cv::Size originalImageSize
                             );
 
-        // Custom version of cv::warpAffine for small sizes, since cv::warpAffine happily ignores cv::INTER_AREA
-        // cf https://github.com/pthom/immvision/issues/6 and
-        // cf https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/imgwarp.cpp#L2826-L2827
+        // Custom warp for scale+translate transforms (replaces cv::warpAffine)
+        enum class WarpInterp { Nearest, Bilinear, Area };
+        void WarpAffineScaleTranslate(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m, WarpInterp interp);
         void _WarpAffineInterAreaForSmallSizes(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m);
 
 } // namespace ZoomPanTransform

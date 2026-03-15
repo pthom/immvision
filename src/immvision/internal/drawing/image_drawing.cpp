@@ -247,41 +247,23 @@ namespace ImmVision
             // Zoom
             //
             {
-                //zoomFactor >= gridMinZoomFactor
-                int warpInterpolationFlags = cv::INTER_NEAREST;
+                ZoomPanTransform::WarpInterp warpInterp;
                 if (zoomFactor < 1.0)
-                    // If the zoom factor is less than 1, we use INTER_AREA to downscale the image
-                    warpInterpolationFlags = cv::INTER_AREA;
+                    // If the zoom factor is less than 1, we scale the image using area interpolation
+                    warpInterp = ZoomPanTransform::WarpInterp::Area;
                 else if (zoomFactor < gridMinZoomFactor)
-                    // If the zoom factor is less than the gridMinZoomFactor, we use INTER_CUBIC to upscale the image
-                    // This is to avoid aliasing when zooming in
-                    warpInterpolationFlags = cv::INTER_CUBIC;
+                    // If the zoom factor is greater than 1 but less than the gridMinZoomFactor, we use bilinear interpolation
+                    warpInterp = ZoomPanTransform::WarpInterp::Bilinear;
                 else
-                    // If the zoom factor is greater than the gridMinZoomFactor, we use INTER_NEAREST to upscale the image
-                    // This is to display exact pixel values when zooming in really close
-                    warpInterpolationFlags = cv::INTER_NEAREST;
+                    // If the zoom factor is greater than the gridMinZoomFactor, we use nearest neighbor interpolation to display exact pixel values
+                    warpInterp = ZoomPanTransform::WarpInterp::Nearest;
 
                 cv::Mat backgroundWithImage = fnMakeBackground();
 
-                // Use custom version of cv::warpAffine for small sizes,
-                // since cv::warpAffine happily ignores cv::INTER_AREA
-                if (zoomFactor < 1.)
-                {
-                    ZoomPanTransform::_WarpAffineInterAreaForSmallSizes(
-                        finalImage,
-                        backgroundWithImage,
-                        params.ZoomPanMatrix);
-                }
-                else
-                {
-                    cv::warpAffine(finalImage, backgroundWithImage,
-                                   ZoomPanTransform::ZoomMatrixToM23(params.ZoomPanMatrix),
-                                   params.ImageDisplaySize,
-                                    warpInterpolationFlags,
-                                   cv::BorderTypes::BORDER_TRANSPARENT,
-                                   cv::Scalar(127, 127, 127, 127)
-                    );
-                }
+                ZoomPanTransform::WarpAffineScaleTranslate(
+                    finalImage, backgroundWithImage,
+                    cv::Matx33d(params.ZoomPanMatrix),
+                    warpInterp);
                 finalImage = backgroundWithImage;
             }
 
