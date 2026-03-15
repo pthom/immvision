@@ -1,6 +1,4 @@
-#ifdef IMMVISION_HAS_OPENCV
-#include <opencv2/imgcodecs.hpp>
-#endif
+#include "immvision/internal/stb/stb_image_write.h"
 
 #include "immvision/image.h"
 #include "immvision/internal/drawing/internal_icons.h"
@@ -22,7 +20,7 @@
 #include <optional>
 #include <iostream>
 
-// TODO Phase 3b: replace cv::imwrite with stb_image_write when OpenCV becomes optional
+// Image saving uses stb_image_write (supports PNG, BMP, JPG, HDR)
 
 #ifndef IMMVISION_VERSION
 #define IMMVISION_VERSION "unknown version"
@@ -250,26 +248,25 @@ This is a required setup step. (Breaking change - October 2024)
 
             auto fnGetImageToSave = [&image, &fnSwapRB]() -> ImageBuffer
             {
-                // Convert to BGR for saving (most image formats expect BGR)
-                if ((image.depth == ImageDepth::uint8 && (image.channels == 3 || image.channels == 4)) && !Priv_IsColorOrderBgr())
+                // stb_image_write expects RGB order; swap if source is BGR
+                if ((image.depth == ImageDepth::uint8 && (image.channels == 3 || image.channels == 4)) && Priv_IsColorOrderBgr())
                     return fnSwapRB(image);
                 return image;
             };
-            auto fnGetImageWithColorMapToSave = [&imageWithColormap, &fnSwapRB]() {
-                // imageWithColormap is RGBA, convert to BGR for saving
-                ImageBuffer bgra = fnSwapRB(imageWithColormap);
-                // Drop alpha: create BGR from BGRA
-                ImageBuffer bgr = ImageBuffer::Zeros(bgra.width, bgra.height, 3, ImageDepth::uint8);
-                for (int y = 0; y < bgra.height; y++) {
-                    const uint8_t* src = bgra.ptr<uint8_t>(y);
-                    uint8_t* dst = bgr.ptr<uint8_t>(y);
-                    for (int x = 0; x < bgra.width; x++) {
+            auto fnGetImageWithColorMapToSave = [&imageWithColormap]() {
+                // imageWithColormap is always RGBA (internal rendering pipeline outputs RGB order)
+                // Drop alpha: create RGB from RGBA
+                ImageBuffer rgb = ImageBuffer::Zeros(imageWithColormap.width, imageWithColormap.height, 3, ImageDepth::uint8);
+                for (int y = 0; y < imageWithColormap.height; y++) {
+                    const uint8_t* src = imageWithColormap.ptr<uint8_t>(y);
+                    uint8_t* dst = rgb.ptr<uint8_t>(y);
+                    for (int x = 0; x < imageWithColormap.width; x++) {
                         dst[x * 3]     = src[x * 4];
                         dst[x * 3 + 1] = src[x * 4 + 1];
                         dst[x * 3 + 2] = src[x * 4 + 2];
                     }
                 }
-                return bgr;
+                return rgb;
             };
 
             std::string tooltipSaveRawImage =
@@ -286,39 +283,71 @@ This is a required setup step. (Breaking change - October 2024)
 
             bool usePortableFileDialogs = pfd::settings::available();
 
-#ifdef IMMVISION_HAS_OPENCV
             auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const ImageBuffer& imageToSave)
             {
-                if (!filename.empty())
-                {
-                    try
-                    {
-                        cv::imwrite(filename, imageToSave.to_cv_mat());
-                    }
-                    catch(const cv::Exception& e)
-                    {
-                        std::string errorMessage = std::string("Could not save image\n") + e.err.c_str();
-                        if (usePortableFileDialogs)
-                            pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
-                        else
-                            fprintf(stderr, "%s", errorMessage.c_str());
-                    }
-                }
-            };
-#else
-            auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const ImageBuffer& imageToSave)
-            {
-                (void)imageToSave;
-                if (!filename.empty())
-                {
-                    std::string errorMessage = "Image saving requires OpenCV (not available in this build)";
+                if (filename.empty() || imageToSave.empty())
+                    return;
+
+                auto fnReportError = [&](const std::string& msg) {
                     if (usePortableFileDialogs)
-                        pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
+                        pfd::message("Error", msg, pfd::choice::ok, pfd::icon::error);
                     else
-                        fprintf(stderr, "%s\n", errorMessage.c_str());
+                        fprintf(stderr, "%s\n", msg.c_str());
+                };
+
+                // Only uint8 images can be saved with stb (except HDR which needs float)
+                if (imageToSave.depth != ImageDepth::uint8 && imageToSave.depth != ImageDepth::float32)
+                {
+                    fnReportError("Cannot save image: only uint8 and float32 images are supported.\n"
+                                  "Use .hdr for float32 images, or .png/.jpg/.bmp for uint8 images.");
+                    return;
                 }
+
+                // Detect format from extension
+                std::string ext;
+                {
+                    auto dot = filename.rfind('.');
+                    if (dot != std::string::npos)
+                    {
+                        ext = filename.substr(dot);
+                        for (auto& c : ext) c = (char)tolower(c);
+                    }
+                }
+
+                int w = imageToSave.width, h = imageToSave.height, ch = imageToSave.channels;
+                int ok = 0;
+                if (ext == ".hdr" && imageToSave.depth == ImageDepth::float32)
+                {
+                    ok = stbi_write_hdr(filename.c_str(), w, h, ch,
+                                        static_cast<const float*>(imageToSave.data));
+                }
+                else if (imageToSave.depth == ImageDepth::uint8)
+                {
+                    const uint8_t* data = static_cast<const uint8_t*>(imageToSave.data);
+                    int stride = (int)imageToSave.step;
+                    if (ext == ".png")
+                        ok = stbi_write_png(filename.c_str(), w, h, ch, data, stride);
+                    else if (ext == ".bmp")
+                        ok = stbi_write_bmp(filename.c_str(), w, h, ch, data);
+                    else if (ext == ".jpg" || ext == ".jpeg")
+                        ok = stbi_write_jpg(filename.c_str(), w, h, ch, data, 95);
+                    else if (ext == ".tga")
+                        ok = stbi_write_tga(filename.c_str(), w, h, ch, data);
+                    else
+                    {
+                        fnReportError("Unsupported format: " + ext + "\nSupported: .png, .bmp, .jpg, .tga, .hdr");
+                        return;
+                    }
+                }
+                else
+                {
+                    fnReportError("Use .hdr extension for float32 images");
+                    return;
+                }
+
+                if (!ok)
+                    fnReportError("Could not save image to: " + filename);
             };
-#endif
 
             auto fnAskForFilenameWithPfd = []() -> std::string
             {
