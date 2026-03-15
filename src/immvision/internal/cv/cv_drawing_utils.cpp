@@ -5,6 +5,9 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <unordered_map>
+#include <type_traits>  // std::is_same_v
+#include <limits>       // std::numeric_limits
+#include <cmath>        // std::sqrt, std::clamp
 
 #ifndef CV_16F // for old versions of OpenCV
 #define CV_16F 7
@@ -15,12 +18,8 @@ namespace ImmVision
 {
     namespace CvDrawingUtils
     {
-        namespace
-        {
-            int drawing_shift = 3;
-            double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
-
-        }  // namespace
+        static int drawing_shift = 3;
+        static double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
 
 
         const std::unordered_map<Colors, cv::Scalar> ColorsValues{
@@ -70,73 +69,44 @@ namespace ImmVision
             assert( (background_rgb_or_rgba.type() == CV_8UC3) || (background_rgb_or_rgba.type() == CV_8UC4));
             assert(overlay_rgba.type() == CV_8UC4);
 
-            cv::Mat background_rgb;
+            int bgChannels = background_rgb_or_rgba.channels();
+            int outType = background_rgb_or_rgba.type(); // preserve input type (3 or 4 channels)
+            cv::Mat result(background_rgb_or_rgba.rows, background_rgb_or_rgba.cols, outType);
+
+            for (int y = 0; y < result.rows; y++)
             {
-                if (background_rgb_or_rgba.channels() == 4)
-                    cv::cvtColor(background_rgb_or_rgba, background_rgb, cv::COLOR_BGRA2BGR);
-                else if (background_rgb_or_rgba.channels() == 3)
-                    background_rgb = background_rgb_or_rgba;
-                else
-                    throw("Only CV_8UC3 or CV_8UC4 background are supported!");
+                const uint8_t* bg_row = background_rgb_or_rgba.ptr<uint8_t>(y);
+                const uint8_t* ov_row = overlay_rgba.ptr<uint8_t>(y);
+                uint8_t* dst_row = result.ptr<uint8_t>(y);
+
+                for (int x = 0; x < result.cols; x++)
+                {
+                    // Read overlay RGBA
+                    double ov_r = ov_row[x * 4];
+                    double ov_g = ov_row[x * 4 + 1];
+                    double ov_b = ov_row[x * 4 + 2];
+                    double ov_a = ov_row[x * 4 + 3] * alpha / 255.0;
+
+                    // Read background RGB (skip alpha if present)
+                    double bg_r = bg_row[x * bgChannels];
+                    double bg_g = bg_row[x * bgChannels + 1];
+                    double bg_b = bg_row[x * bgChannels + 2];
+
+                    // Gamma-correct alpha blending: blend in squared (linear) space, then sqrt
+                    double inv_a = 1.0 - ov_a;
+                    double out_r = std::sqrt(ov_r * ov_r * ov_a + bg_r * bg_r * inv_a);
+                    double out_g = std::sqrt(ov_g * ov_g * ov_a + bg_g * bg_g * inv_a);
+                    double out_b = std::sqrt(ov_b * ov_b * ov_a + bg_b * bg_b * inv_a);
+
+                    dst_row[x * bgChannels]     = (uint8_t)std::clamp(out_r, 0.0, 255.0);
+                    dst_row[x * bgChannels + 1] = (uint8_t)std::clamp(out_g, 0.0, 255.0);
+                    dst_row[x * bgChannels + 2] = (uint8_t)std::clamp(out_b, 0.0, 255.0);
+                    if (bgChannels == 4)
+                        dst_row[x * 4 + 3] = 255; // full opacity for output
+                }
             }
 
-
-            std::vector<cv::Mat> overlay_rgb_channels;
-            cv::split(overlay_rgba, overlay_rgb_channels);
-
-            cv::Mat overlay_alpha_3;
-            {
-                cv::Mat overlay_alpha_int = overlay_rgb_channels[3];
-                cv::Mat overlay_alpha_float;
-                overlay_alpha_int.convertTo(overlay_alpha_float, CV_64F);
-                overlay_alpha_float = overlay_alpha_float * (alpha / 255.);
-
-                std::vector<cv::Mat> v{overlay_alpha_float, overlay_alpha_float, overlay_alpha_float};
-                cv::merge(v, overlay_alpha_3);
-            }
-
-            cv::Mat overlay_rgb_squared;
-            {
-                cv::Mat overlay_rgb_int;
-                std::vector<cv::Mat> v{overlay_rgb_channels[0], overlay_rgb_channels[1], overlay_rgb_channels[2]};
-                cv::merge(v, overlay_rgb_int);
-
-                cv::Mat overlay_rgb_float;
-                overlay_rgb_int.convertTo(overlay_rgb_float, CV_64F);
-                overlay_rgb_squared = overlay_rgb_float.mul(overlay_rgb_float);
-            }
-
-            cv::Mat background_rgb_squared;
-            {
-                cv::Mat background_rgb_float;
-                background_rgb.convertTo(background_rgb_float, CV_64F);
-                background_rgb_squared = background_rgb_float.mul(background_rgb_float);
-            }
-
-            cv::Mat out_rgb_squared;
-            {
-                out_rgb_squared = overlay_rgb_squared.mul(overlay_alpha_3) +
-                                  background_rgb_squared.mul(cv::Scalar(1., 1., 1.) - overlay_alpha_3);
-            }
-
-            cv::Mat out_rgb_float;
-            {
-                cv::sqrt(out_rgb_squared, out_rgb_float);
-            }
-
-            cv::Mat out_rgb;
-            {
-                out_rgb_float.convertTo(out_rgb, CV_8U);
-            }
-
-            if (background_rgb_or_rgba.type() == CV_8UC3)
-                return out_rgb;
-            else // background_rgb_or_rgba.type() == CV_8UC4
-            {
-                cv::Mat out_rgba;
-                cv::cvtColor(out_rgb, out_rgba, cv::COLOR_BGR2BGRA);
-                return out_rgba;
-            }
+            return result;
         }
 
 
@@ -370,107 +340,108 @@ namespace ImmVision
             return img;
         }
 
-        auto is_depth_unsigned_integer = [](int depth) {
-            return ((depth == CV_8U) || (depth == CV_16U));
-        };
-        auto is_depth_signed_integer = [](int depth) {
-            return ((depth == CV_8S) || (depth == CV_16S) || (depth == CV_32S));
-        };
-        auto is_depth_integer = [](int depth) {
-            return is_depth_signed_integer(depth) || is_depth_unsigned_integer(depth);
-        };
-        auto is_depth_integer_not_uchar(int depth) {
-            return is_depth_integer(depth) && (depth != CV_8U);
+        // Convert a value of any depth to uint8 (0-255 range)
+        template<typename T>
+        inline uint8_t to_uint8(T value)
+        {
+            if constexpr (std::is_same_v<T, uint8_t>)
+                return value;
+            else if constexpr (std::is_same_v<T, int8_t>)
+                return (uint8_t)((int)value + 128);
+            else if constexpr (std::is_same_v<T, uint16_t>)
+                return (uint8_t)(value / 257);  // maps 0-65535 -> 0-255
+            else if constexpr (std::is_same_v<T, int16_t>)
+                return (uint8_t)(((int)value + 32768) / 257);
+            else if constexpr (std::is_same_v<T, int32_t>)
+            {
+                // Scale full int32 range to 0-255
+                double v = ((double)value - (double)std::numeric_limits<int32_t>::min())
+                           * 255.0 / ((double)std::numeric_limits<int32_t>::max() - (double)std::numeric_limits<int32_t>::min());
+                return (uint8_t)std::clamp(v, 0.0, 255.0);
+            }
+            else if constexpr (std::is_floating_point_v<T>)
+            {
+                double v = (double)value * 255.0;
+                return (uint8_t)std::clamp(v, 0.0, 255.0);
+            }
+            else
+                return 0;
         }
-        auto is_depth_float = [](int depth) {
-            return ((depth == CV_16F) || (depth == CV_32F) || (depth == CV_64F));
-        };
+
+        // Convert any cv::Mat to RGBA uint8, with per-pixel loops (no cv::cvtColor)
+        // Note: isBgrOrder only applies to uint8 images (OpenCV convention).
+        // Float/integer images are always treated as RGB order.
+        template<typename T>
+        cv::Mat converted_to_rgba_typed(const cv::Mat& mat, int nbChannels, bool isBgrOrder)
+        {
+            // BGR swap only applies to uint8 images; non-uint8 depths are always RGB
+            bool swapRB = isBgrOrder && std::is_same_v<T, uint8_t>;
+
+            cv::Mat rgba(mat.rows, mat.cols, CV_8UC4);
+            for (int y = 0; y < mat.rows; y++)
+            {
+                const T* src = mat.ptr<T>(y);
+                uint8_t* dst = rgba.ptr<uint8_t>(y);
+                for (int x = 0; x < mat.cols; x++)
+                {
+                    uint8_t r, g, b, a;
+                    if (nbChannels == 1)
+                    {
+                        uint8_t v = to_uint8(src[x]);
+                        r = g = b = v;
+                        a = 255;
+                    }
+                    else if (nbChannels == 2)
+                    {
+                        r = to_uint8(src[x * 2]);
+                        g = to_uint8(src[x * 2 + 1]);
+                        b = 0;
+                        a = 255;
+                    }
+                    else if (nbChannels == 3)
+                    {
+                        uint8_t c0 = to_uint8(src[x * 3]);
+                        uint8_t c1 = to_uint8(src[x * 3 + 1]);
+                        uint8_t c2 = to_uint8(src[x * 3 + 2]);
+                        if (swapRB) { r = c2; g = c1; b = c0; }
+                        else        { r = c0; g = c1; b = c2; }
+                        a = 255;
+                    }
+                    else // nbChannels == 4
+                    {
+                        uint8_t c0 = to_uint8(src[x * 4]);
+                        uint8_t c1 = to_uint8(src[x * 4 + 1]);
+                        uint8_t c2 = to_uint8(src[x * 4 + 2]);
+                        uint8_t c3 = to_uint8(src[x * 4 + 3]);
+                        if (swapRB) { r = c2; g = c1; b = c0; }
+                        else        { r = c0; g = c1; b = c2; }
+                        a = c3;
+                    }
+                    dst[x * 4]     = r;
+                    dst[x * 4 + 1] = g;
+                    dst[x * 4 + 2] = b;
+                    dst[x * 4 + 3] = a;
+                }
+            }
+            return rgba;
+        }
 
         Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrder)
         {
-
-            cv::Mat mat = inputMat;
-
-            if (!inputMat.isContinuous())
-                mat = inputMat.clone();
-            if (is_depth_integer_not_uchar(mat.depth()))
-            {
-                cv::Mat m64;
-                inputMat.convertTo(m64, CV_64F);
-                mat = m64;
-            }
-
-
-            cv::Mat mat_rgba;
+            cv::Mat mat = inputMat.isContinuous() ? inputMat : inputMat.clone();
             int nbChannels = mat.channels();
-            if (nbChannels == 1)
+
+            switch (mat.depth())
             {
-                int depth = mat.depth(); (void)depth;
-                if (mat.depth() == CV_8U)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_GRAY2BGRA);
-                else if (is_depth_float(depth))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC1);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_GRAY2BGRA);
-                }
+                case CV_8U:  return converted_to_rgba_typed<uint8_t>(mat, nbChannels, isBgrOrder);
+                case CV_8S:  return converted_to_rgba_typed<int8_t>(mat, nbChannels, isBgrOrder);
+                case CV_16U: return converted_to_rgba_typed<uint16_t>(mat, nbChannels, isBgrOrder);
+                case CV_16S: return converted_to_rgba_typed<int16_t>(mat, nbChannels, isBgrOrder);
+                case CV_32S: return converted_to_rgba_typed<int32_t>(mat, nbChannels, isBgrOrder);
+                case CV_32F: return converted_to_rgba_typed<float>(mat, nbChannels, isBgrOrder);
+                case CV_64F: return converted_to_rgba_typed<double>(mat, nbChannels, isBgrOrder);
+                default:     throw std::runtime_error("converted_to_rgba_image: unsupported depth");
             }
-            else if (nbChannels == 2)
-            {
-                // Add a third channel, with values = 0
-                cv::Mat mat3Channels_lastZero;
-                {
-                    std::vector<cv::Mat> channels;
-                    cv::split(inputMat, channels);
-                    cv::Mat channel3(channels.front().size(), channels.front().type());
-                    channel3 = cv::Scalar(0., 0., 0., 0.);
-                    channels.push_back(channel3);
-                    cv::merge(channels, mat3Channels_lastZero);
-                }
-                if ( mat.depth() == CV_8U)
-                    cv::cvtColor(mat3Channels_lastZero, mat_rgba, cv::COLOR_BGR2BGRA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat3Channels_lastZero * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC3);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_BGR2BGRA);
-                }
-            }
-            else if (nbChannels == 3)
-            {
-                if (mat.depth() == CV_8U && isBgrOrder)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGR2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrder)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_RGB2RGBA);
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC3);
-                    cv::cvtColor(grey_uchar, mat_rgba, cv::COLOR_RGB2RGBA);
-                }
-                else
-                    throw std::runtime_error("unsupported image format");
-            }
-            else if (nbChannels == 4)
-            {
-                if (mat.depth() == CV_8U && isBgrOrder)
-                    cv::cvtColor(mat, mat_rgba, cv::COLOR_BGRA2RGBA);
-                else if (mat.depth() == CV_8U && !isBgrOrder)
-                    mat_rgba = mat;
-                else if ((mat.depth() == CV_16F) || (mat.depth() == CV_32F) || (mat.depth() == CV_64F))
-                {
-                    cv::Mat grey_uchar;
-                    cv::Mat float_times_255 = mat * 255.;
-                    float_times_255.convertTo(grey_uchar, CV_8UC4);
-                    grey_uchar.copyTo(mat_rgba);
-                }
-                else
-                    throw std::runtime_error("unsupported image format");
-            }
-            return mat_rgba;
         }
 
         cv::Mat make_alpha_channel_checkerboard_image(const cv::Size& size, int squareSize)

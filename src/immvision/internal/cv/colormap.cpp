@@ -7,6 +7,8 @@
 #include "immvision/gl_texture.h"
 #include "immvision/imgui_imm.h"
 #include "imgui.h"
+#include <cmath>    // std::sqrt
+#include <limits>   // std::numeric_limits
 #include "imgui_internal.h"
 
 #include <opencv2/core.hpp>
@@ -275,18 +277,54 @@ namespace ImmVision
             double min, max;
         };
 
+        template<typename T>
+        ImageStats FillImageStatsTyped(const cv::Mat& m)
+        {
+            double minVal = std::numeric_limits<double>::max();
+            double maxVal = std::numeric_limits<double>::lowest();
+            double sum = 0.0;
+            double sumSq = 0.0;
+            size_t count = (size_t)m.rows * m.cols;
+
+            for (int y = 0; y < m.rows; y++)
+            {
+                const T* row = m.ptr<T>(y);
+                for (int x = 0; x < m.cols; x++)
+                {
+                    double v = (double)row[x];
+                    if (v < minVal) minVal = v;
+                    if (v > maxVal) maxVal = v;
+                    sum += v;
+                    sumSq += v * v;
+                }
+            }
+
+            ImageStats r;
+            r.min = minVal;
+            r.max = maxVal;
+            r.mean = sum / (double)count;
+            double variance = sumSq / (double)count - r.mean * r.mean;
+            r.stdev = (variance > 0.0) ? std::sqrt(variance) : 0.0;
+            return r;
+        }
+
         ImageStats FillImageStats(const cv::Mat& m)
         {
             assert(m.channels() == 1);
             if (m.empty())
                 return {0.0, 0.0, 0.0, 0.0};
-            ImageStats r;
-            cv::minMaxLoc(m, &r.min, &r.max);
-            cv::Scalar mean, deviation;
-            cv::meanStdDev(m, mean, deviation);
-            r.mean = mean[0];
-            r.stdev = deviation[0];
-            return r;
+
+            switch (m.depth())
+            {
+                case CV_8U:  return FillImageStatsTyped<uint8_t>(m);
+                case CV_8S:  return FillImageStatsTyped<int8_t>(m);
+                case CV_16U: return FillImageStatsTyped<uint16_t>(m);
+                case CV_16S: return FillImageStatsTyped<int16_t>(m);
+                case CV_32S: return FillImageStatsTyped<int32_t>(m);
+                case CV_32F: return FillImageStatsTyped<float>(m);
+                case CV_64F: return FillImageStatsTyped<double>(m);
+                default:     return {0.0, 0.0, 0.0, 0.0};
+            }
         }
 
 
