@@ -1,7 +1,7 @@
 #include "immvision/internal/drawing/image_drawing.h"
 #include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
-#include "immvision/internal/cv/cv_drawing_utils.h"
+#include "immvision/internal/cv/drawing_utils.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
 #include "immvision/internal/cv/colormap.h"
 
@@ -38,7 +38,7 @@ namespace ImmVision
 
             for (const auto& kv : visiblePixels)
             {
-                CvDrawingUtils::draw_named_feature(
+                DrawingUtils::draw_named_feature(
                     r,         // img
                     kv.second, // position,
                     std::to_string(kv.first),       // name
@@ -72,7 +72,7 @@ namespace ImmVision
 
             auto lineColor = cv::Scalar(255, 255, 0, 255);
             double alpha = 0.3;
-            CvDrawingUtils::draw_grid(inOutImageRgba, lineColor, alpha, x_spacing, y_spacing, x_start, y_start, x_end, y_end);
+            DrawingUtils::draw_grid(inOutImageRgba, lineColor, alpha, x_spacing, y_spacing, x_start, y_start, x_end, y_end);
         }
 
         cv::Mat DrawValuesOnZoomedPixels(const cv::Mat& drawingImage, const cv::Mat& valuesImage,
@@ -114,7 +114,7 @@ namespace ImmVision
                         else
                             textColor = white;
                     }
-                    CvDrawingUtils::text(
+                    DrawingUtils::text(
                         r,
                         position,
                         pixelInfo,
@@ -177,12 +177,21 @@ namespace ImmVision
             //
             auto fnSelectChannel = [&finalImage, params]()
             {
-                // Selected channels
+                // Extract a single channel from a multi-channel image
                 if (finalImage.channels() > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels()))
                 {
-                    std::vector<cv::Mat> channels;
-                    cv::split(finalImage, channels);
-                    finalImage = channels[(size_t)params.SelectedChannel];
+                    int ch = params.SelectedChannel;
+                    int nch = finalImage.channels();
+                    cv::Mat singleChannel(finalImage.rows, finalImage.cols, CV_MAKETYPE(finalImage.depth(), 1));
+                    for (int y = 0; y < finalImage.rows; y++)
+                    {
+                        const uint8_t* src = finalImage.ptr<uint8_t>(y);
+                        uint8_t* dst = singleChannel.ptr<uint8_t>(y);
+                        int elemSize = (int)finalImage.elemSize1();
+                        for (int x = 0; x < finalImage.cols; x++)
+                            std::memcpy(dst + x * elemSize, src + (x * nch + ch) * elemSize, elemSize);
+                    }
+                    finalImage = singleChannel;
                 }
 
             };
@@ -190,8 +199,8 @@ namespace ImmVision
             {
                 if ((finalImage.type() == CV_8UC4) && params.ShowAlphaChannelCheckerboard)
                 {
-                    cv::Mat background = CvDrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
-                    finalImage = CvDrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
+                    cv::Mat background = DrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
+                    finalImage = DrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
                 }
             };
             auto fnMakeBackground = [&params]() -> cv::Mat
@@ -219,7 +228,7 @@ namespace ImmVision
                     fnSelectChannel();
                     fnAlphaCheckerboard();
                     bool is_color_order_bgr = IsUsingBgrColorOrder();
-                    finalImage = CvDrawingUtils::converted_to_rgba_image(finalImage, is_color_order_bgr);
+                    finalImage = DrawingUtils::converted_to_rgba_image(finalImage, is_color_order_bgr);
                 }
                 in_out_rgba_image_cache = finalImage;
                 assert(finalImage.type() == CV_8UC4);
@@ -288,7 +297,7 @@ namespace ImmVision
                 double drawPixelvaluesMinZoomFactor = (image.depth() == CV_8U) ? 36. : 48.;
                 if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelvaluesMinZoomFactor)
                 {
-                    double drawPixelCoordsMinZoomFactor = 60.;
+                    double drawPixelCoordsMinZoomFactor = 80.;
                     bool drawPixelCoords = zoomFactor > drawPixelCoordsMinZoomFactor;
                     finalImage = DrawValuesOnZoomedPixels(finalImage, image, params, drawPixelCoords);
                 }

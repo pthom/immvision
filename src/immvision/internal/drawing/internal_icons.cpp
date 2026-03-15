@@ -1,5 +1,5 @@
 #include "immvision/internal/drawing/internal_icons.h"
-#include "immvision/internal/cv/cv_drawing_utils.h"
+#include "immvision/internal/cv/drawing_utils.h"
 #include "immvision/gl_texture.h"
 #include "immvision/image.h"
 #include "immvision/imgui_imm.h"
@@ -49,21 +49,21 @@ namespace ImmVision
                 cv::Point2d decal(radius * 0.1, radius * 0.1);
                 cv::Scalar color_shadow(127, 127, 127, 255);
 
-                CvDrawingUtils::circle(
+                DrawingUtils::circle(
                     m, //image,
                     ScalePoint(center + decal),
                     ScaleDouble(radius), //radius
                     color_shadow,
                     ScaleInt(0.08)
                 );
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(PointFromOther(center, 225., radius * 1.7) + decal),
                     ScalePoint(PointFromOther(center, 225., radius * 1.03) + decal),
                     color_shadow,
                     ScaleInt(0.08)
                 );
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(PointFromOther(center, 225., radius * 2.3) + decal),
                     ScalePoint(PointFromOther(center, 225., radius * 1.5) + decal),
@@ -73,21 +73,21 @@ namespace ImmVision
             }
             // Draw magnifier
             {
-                CvDrawingUtils::circle(
+                DrawingUtils::circle(
                     m, //image,
                     ScalePoint(center),
                     ScaleDouble(radius), //radius
                     color,
                     ScaleInt(0.08)
                 );
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(PointFromOther(center, 225., radius * 1.7)),
                     ScalePoint(PointFromOther(center, 225., radius * 1.03)),
                     color,
                     ScaleInt(0.08)
                 );
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(PointFromOther(center, 225., radius * 2.3)),
                     ScalePoint(PointFromOther(center, 225., radius * 1.5)),
@@ -98,14 +98,14 @@ namespace ImmVision
 
             if (iconType == IconType::ZoomPlus)
             {
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(PointFromOther(center, 0., radius * 0.6)),
                     ScalePoint(PointFromOther(center, 180., radius * 0.6)),
                     color,
                     ScaleInt(0.06)
                 );
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(PointFromOther(center, 90., radius * 0.6)),
                     ScalePoint(PointFromOther(center, 270., radius * 0.6)),
@@ -115,7 +115,7 @@ namespace ImmVision
             }
             if (iconType == IconType::ZoomMinus)
             {
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(PointFromOther(center, 0., radius * 0.6)),
                     ScalePoint(PointFromOther(center, 180., radius * 0.6)),
@@ -129,7 +129,7 @@ namespace ImmVision
                 cv::Point2d b = PointFromOther(center, 90., radius * 0.45);
                 a.x += radius * 0.05;
                 b.x += radius * 0.05;
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(a),
                     ScalePoint(b),
@@ -137,7 +137,7 @@ namespace ImmVision
                     ScaleInt(0.06)
                 );
                 cv::Point2d c(b.x - radius * 0.2, b.y + radius * 0.2);
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(b),
                     ScalePoint(c),
@@ -171,14 +171,14 @@ namespace ImmVision
                     cv::Point2d pt_x(corner.x + moveX, corner.y);
                     cv::Point2d pt_y(corner.x, corner.y + moveY);
                     int thickness = ScaleInt(0.09);
-                    CvDrawingUtils::line(
+                    DrawingUtils::line(
                         m,
                         ScalePoint(corner),
                         ScalePoint(pt_x),
                         color,
                         thickness
                     );
-                    CvDrawingUtils::line(
+                    DrawingUtils::line(
                         m,
                         ScalePoint(corner),
                         ScalePoint(pt_y),
@@ -203,7 +203,7 @@ namespace ImmVision
                 double xBar = (double)bar / ((double)(nbBars) + 0.17) + 0.2;
                 cv::Point2d a(xBar, yMin);
                 cv::Point2d b(xBar, yMax);
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(a),
                     ScalePoint(b),
@@ -215,7 +215,7 @@ namespace ImmVision
                 double yBar = 0.7 - 0.2 * (double)bar;
                 cv::Point2d c(a.x - barWidth / 2., yBar);
                 cv::Point2d d(a.x + barWidth / 2., yBar);
-                CvDrawingUtils::line(
+                DrawingUtils::line(
                     m, //image,
                     ScalePoint(c),
                     ScalePoint(d),

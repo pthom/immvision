@@ -4,7 +4,7 @@
 namespace ImmVision
 {
 
-    namespace CvDrawingUtils
+    namespace DrawingUtils
     {
         enum class Colors
         {
@@ -140,5 +140,5 @@ namespace ImmVision
                                               double alpha);
         Image_RGBA converted_to_rgba_image(const cv::Mat &inputMat, bool isBgrOrder);
 
-    }  // namespace CvDrawingUtils
+    }  // namespace DrawingUtils
 }  // namespace ImmVision
