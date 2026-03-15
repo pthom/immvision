@@ -6489,7 +6489,7 @@ namespace ImmVision
             if (depth == CV_8U)
                 return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
             else if (depth == CV_8S)
-                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
+                return GrabValuesFromBuffer<int8_t>(ptr, nb_channels);
             else if (depth == CV_16U)
                 return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
             else if (depth == CV_16S)
@@ -9937,6 +9937,8 @@ namespace ImmVision
 
 #include <stack>
 
+// TODO Phase 3: replace cv::imwrite with stb_image_write when OpenCV becomes optional
+
 #ifndef IMMVISION_VERSION
 #define IMMVISION_VERSION "unknown version"
 #endif
@@ -10154,25 +10156,40 @@ This is a required setup step. (Breaking change - October 2024)
                 return depth == CV_32F || depth == CV_64F;
             }();
 
-            auto fnGetImageToSave = [&image, &params]() -> cv::Mat
-            {
-                cv::Mat imageAsSaved = image;  // image with possible RGB2BGR conversion
-                if (image.type() == CV_8UC3)
-                {
-                    if (!Priv_IsColorOrderBgr())
-                        cv::cvtColor(image, imageAsSaved, cv::COLOR_RGB2BGR);
+            // Swap R and B channels in-place for a CV_8UC3 or CV_8UC4 mat
+            auto fnSwapRB = [](const cv::Mat& src) -> cv::Mat {
+                cv::Mat dst = src.clone();
+                int ch = dst.channels();
+                for (int y = 0; y < dst.rows; y++) {
+                    uint8_t* row = dst.ptr<uint8_t>(y);
+                    for (int x = 0; x < dst.cols; x++)
+                        std::swap(row[x * ch], row[x * ch + 2]);
                 }
-                if (image.type() == CV_8UC4)
-                {
-                    if (!Priv_IsColorOrderBgr())
-                        cv::cvtColor(image, imageAsSaved, cv::COLOR_RGBA2BGRA);
-                }
-                return imageAsSaved;
+                return dst;
             };
-            auto fnGetImageWithColorMapToSave = [&imageWithColormap]() {
-                cv::Mat colorMapBgr;
-                cv::cvtColor(imageWithColormap, colorMapBgr, cv::COLOR_RGBA2BGR);
-                return colorMapBgr;
+
+            auto fnGetImageToSave = [&image, &fnSwapRB]() -> cv::Mat
+            {
+                // Convert to BGR for saving (most image formats expect BGR)
+                if ((image.type() == CV_8UC3 || image.type() == CV_8UC4) && !Priv_IsColorOrderBgr())
+                    return fnSwapRB(image);
+                return image;
+            };
+            auto fnGetImageWithColorMapToSave = [&imageWithColormap, &fnSwapRB]() {
+                // imageWithColormap is RGBA, convert to BGR for saving
+                cv::Mat bgra = fnSwapRB(imageWithColormap);
+                // Drop alpha: create BGR from BGRA
+                cv::Mat bgr(bgra.rows, bgra.cols, CV_8UC3);
+                for (int y = 0; y < bgra.rows; y++) {
+                    const uint8_t* src = bgra.ptr<uint8_t>(y);
+                    uint8_t* dst = bgr.ptr<uint8_t>(y);
+                    for (int x = 0; x < bgra.cols; x++) {
+                        dst[x * 3]     = src[x * 4];
+                        dst[x * 3 + 1] = src[x * 4 + 1];
+                        dst[x * 3 + 2] = src[x * 4 + 2];
+                    }
+                }
+                return bgr;
             };
 
             std::string tooltipSaveRawImage =
