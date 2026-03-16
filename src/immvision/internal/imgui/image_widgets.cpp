@@ -83,7 +83,7 @@ namespace ImmVision
                     ImVec4 colorAsImVec = isColorOrderBgr ?
                         ImVec4(UCharToFloat(pixel[2]), UCharToFloat(pixel[1]), UCharToFloat(pixel[0]), UCharToFloat(255))
                         : ImVec4(UCharToFloat(pixel[0]), UCharToFloat(pixel[1]), UCharToFloat(pixel[2]), UCharToFloat(255));
-                    ImGui::SetNextItemWidth(150.f * FontSizeRatio());
+                    ImGui::SetNextItemWidth(120.f * FontSizeRatio());
                     ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
                 }
@@ -94,7 +94,7 @@ namespace ImmVision
                     ImVec4 colorAsImVec = isColorOrderBgr ?
                         ImVec4(UCharToFloat(pixel[2]), UCharToFloat(pixel[1]), UCharToFloat(pixel[0]), UCharToFloat(pixel[3]))
                         : ImVec4(UCharToFloat(pixel[0]), UCharToFloat(pixel[1]), UCharToFloat(pixel[2]), UCharToFloat(pixel[3]));
-                    ImGui::SetNextItemWidth(200.f * FontSizeRatio());
+                    ImGui::SetNextItemWidth(150.f * FontSizeRatio());
                     ImGui::ColorEdit4(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
                 }
