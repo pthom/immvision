@@ -1,5 +1,5 @@
 #include "immvision/internal/cv/matrix_info_utils.h"
-
+#include <stdexcept>
 #include <map>
 
 namespace ImmVision
