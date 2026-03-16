@@ -1,6 +1,7 @@
 #include "immvision/internal/cv/drawing_utils.h"
 #include "immvision/internal/misc/string_utils.h"
 #include "immvision/internal/misc/math_utils.h"
+#include "immvision/internal/misc/parallel_for.h"
 
 #include <cassert>
 #include <unordered_map>
@@ -67,7 +68,7 @@ namespace ImmVision
             int bgChannels = background_rgb_or_rgba.channels;
             ImageBuffer result = ImageBuffer::Zeros(background_rgb_or_rgba.width, background_rgb_or_rgba.height, bgChannels, ImageDepth::uint8);
 
-            for (int y = 0; y < result.height; y++)
+            parallel_for(0, result.height, [&](int y)
             {
                 const uint8_t* bg_row = background_rgb_or_rgba.ptr<uint8_t>(y);
                 const uint8_t* ov_row = overlay_rgba.ptr<uint8_t>(y);
@@ -98,7 +99,7 @@ namespace ImmVision
                     if (bgChannels == 4)
                         dst_row[x * 4 + 3] = 255; // full opacity for output
                 }
-            }
+            });
 
             return result;
         }
@@ -598,7 +599,7 @@ namespace ImmVision
             bool swapRB = isBgrOrder && std::is_same_v<T, uint8_t>;
 
             ImageBuffer rgba = ImageBuffer::Zeros(mat.width, mat.height, 4, ImageDepth::uint8);
-            for (int y = 0; y < mat.height; y++)
+            parallel_for(0, mat.height, [&](int y)
             {
                 const T* src = mat.ptr<T>(y);
                 uint8_t* dst = rgba.ptr<uint8_t>(y);
@@ -642,7 +643,7 @@ namespace ImmVision
                     dst[x * 4 + 2] = b;
                     dst[x * 4 + 3] = a;
                 }
-            }
+            });
             return rgba;
         }
 

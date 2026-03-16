@@ -1,5 +1,6 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/misc/math_utils.h"
+#include "immvision/internal/misc/parallel_for.h"
 
 #include <cassert>
 
@@ -242,7 +243,7 @@ namespace ImmVision
             double scale = m(0, 0); // uniform scale factor
             double scaleInv = 1.0 / std::max(scale, 1e-10);
 
-            for (int dy = 0; dy < dst.height; dy++)
+            parallel_for(0, dst.height, [&](int dy)
             {
                 uint8_t* dstRow = dst.ptr<uint8_t>(dy);
                 for (int dx = 0; dx < dst.width; dx++)
@@ -273,7 +274,7 @@ namespace ImmVision
                         _SampleArea(src, sx, sy, scaleInv, out, ch);
                     }
                 }
-            }
+            });
         }
 
         void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m)

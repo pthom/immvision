@@ -5043,6 +5043,66 @@ namespace magic_enum {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/parallel_for.h included by src/immvision/internal/cv/colormap.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <functional>
+#include <thread>
+
+namespace ImmVision
+{
+    // Simple parallel_for: splits [begin, end) across threads, one chunk per thread.
+    // Falls back to sequential on Emscripten or when only 1 thread is available.
+    inline void parallel_for(int begin, int end, const std::function<void(int)>& body)
+    {
+        if (begin >= end)
+            return;
+
+#ifdef __EMSCRIPTEN__
+        int nThreads = 1;
+#else
+        int hw = (int)std::thread::hardware_concurrency();
+        int nThreads = (hw > 2) ? hw - 1 : 1;  // leave one core spare
+#endif
+
+        int count = end - begin;
+        if (nThreads <= 1 || count <= 1)
+        {
+            for (int i = begin; i < end; ++i)
+                body(i);
+            return;
+        }
+
+        if (nThreads > count)
+            nThreads = count;
+
+        std::vector<std::thread> threads(nThreads);
+        int chunkSize = count / nThreads;
+        int remainder = count % nThreads;
+
+        int offset = begin;
+        for (int t = 0; t < nThreads; ++t)
+        {
+            int chunkBegin = offset;
+            int chunkEnd = offset + chunkSize + (t < remainder ? 1 : 0);
+            offset = chunkEnd;
+            threads[t] = std::thread([chunkBegin, chunkEnd, &body]() {
+                for (int i = chunkBegin; i < chunkEnd; ++i)
+                    body(i);
+            });
+        }
+
+        for (auto& t : threads)
+            t.join();
+    }
+
+} // namespace ImmVision
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/cv/colormap.cpp continued                                       //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/misc/math_utils.h included by src/immvision/internal/cv/colormap.cpp//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -5423,7 +5483,7 @@ namespace ImmVision
             };
 
             ImageBuffer rgba = ImageBuffer::Zeros(m.width, m.height, 4, ImageDepth::uint8);
-            for (int y = 0; y < m.height; ++y)
+            parallel_for(0, m.height, [&](int y)
             {
                 uint8_t *dst = rgba.ptr<uint8_t>(y);
                 const _Tp* src = m.ptr<_Tp>(y);
@@ -5437,7 +5497,7 @@ namespace ImmVision
                     dst += 4;
                     ++src;
                 }
-            }
+            });
             return rgba;
         }
 
@@ -6119,7 +6179,7 @@ namespace ImmVision
             int bgChannels = background_rgb_or_rgba.channels;
             ImageBuffer result = ImageBuffer::Zeros(background_rgb_or_rgba.width, background_rgb_or_rgba.height, bgChannels, ImageDepth::uint8);
 
-            for (int y = 0; y < result.height; y++)
+            parallel_for(0, result.height, [&](int y)
             {
                 const uint8_t* bg_row = background_rgb_or_rgba.ptr<uint8_t>(y);
                 const uint8_t* ov_row = overlay_rgba.ptr<uint8_t>(y);
@@ -6150,7 +6210,7 @@ namespace ImmVision
                     if (bgChannels == 4)
                         dst_row[x * 4 + 3] = 255; // full opacity for output
                 }
-            }
+            });
 
             return result;
         }
@@ -6650,7 +6710,7 @@ namespace ImmVision
             bool swapRB = isBgrOrder && std::is_same_v<T, uint8_t>;
 
             ImageBuffer rgba = ImageBuffer::Zeros(mat.width, mat.height, 4, ImageDepth::uint8);
-            for (int y = 0; y < mat.height; y++)
+            parallel_for(0, mat.height, [&](int y)
             {
                 const T* src = mat.ptr<T>(y);
                 uint8_t* dst = rgba.ptr<uint8_t>(y);
@@ -6694,7 +6754,7 @@ namespace ImmVision
                     dst[x * 4 + 2] = b;
                     dst[x * 4 + 3] = a;
                 }
-            }
+            });
             return rgba;
         }
 
@@ -7237,7 +7297,7 @@ namespace ImmVision
             double scale = m(0, 0); // uniform scale factor
             double scaleInv = 1.0 / std::max(scale, 1e-10);
 
-            for (int dy = 0; dy < dst.height; dy++)
+            parallel_for(0, dst.height, [&](int dy)
             {
                 uint8_t* dstRow = dst.ptr<uint8_t>(dy);
                 for (int dx = 0; dx < dst.width; dx++)
@@ -7268,7 +7328,7 @@ namespace ImmVision
                         _SampleArea(src, sx, sy, scaleInv, out, ch);
                     }
                 }
-            }
+            });
         }
 
         void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m)

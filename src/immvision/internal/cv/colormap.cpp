@@ -3,6 +3,7 @@
 
 #include "immvision/internal/misc/tinycolormap.hpp"
 #include "immvision/internal/misc/magic_enum.hpp"
+#include "immvision/internal/misc/parallel_for.h"
 #include "immvision/internal/misc/math_utils.h"
 #include "immvision/gl_texture.h"
 #include "immvision/imgui_imm.h"
@@ -234,7 +235,7 @@ namespace ImmVision
             };
 
             ImageBuffer rgba = ImageBuffer::Zeros(m.width, m.height, 4, ImageDepth::uint8);
-            for (int y = 0; y < m.height; ++y)
+            parallel_for(0, m.height, [&](int y)
             {
                 uint8_t *dst = rgba.ptr<uint8_t>(y);
                 const _Tp* src = m.ptr<_Tp>(y);
@@ -248,7 +249,7 @@ namespace ImmVision
                     dst += 4;
                     ++src;
                 }
-            }
+            });
             return rgba;
         }
 
