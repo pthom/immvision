@@ -8,7 +8,7 @@
 #include <type_traits>  // std::is_same_v
 #include <limits>       // std::numeric_limits
 #include <cmath>        // std::sqrt, std::clamp
-
+#include <stdexcept>    // std::runtime_error
 
 namespace ImmVision
 {

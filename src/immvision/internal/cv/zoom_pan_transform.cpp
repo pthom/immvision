@@ -3,6 +3,7 @@
 #include "immvision/internal/misc/parallel_for.h"
 
 #include <cassert>
+#include <cmath>
 
 namespace ImmVision
 {
