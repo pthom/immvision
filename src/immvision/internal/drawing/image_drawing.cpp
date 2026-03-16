@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cstring>  // memcpy
+#include <cmath>
 
 
 namespace ImmVision
