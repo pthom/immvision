@@ -24,40 +24,40 @@ namespace ImmVision
             return v;
         }
 
-        void WriteMat(std::ostream &os, const cv::Mat &_m)
+        void WriteImageBuffer(std::ostream &os, const ImageBuffer &img)
         {
-            cv::Mat m = _m;
-            if (!_m.isContinuous())
-                m  = _m.clone();
+            WriteValue<int>(os, img.width);
+            WriteValue<int>(os, img.height);
+            WriteValue<int>(os, img.channels);
+            WriteValue<int>(os, static_cast<int>(img.depth));
+            WriteValue<size_t>(os, img.step);
 
-            size_t elem_size = m.elemSize();
-            int elem_type = m.type();
-
-            WriteValue<int>(os, m.cols);
-            WriteValue<int>(os, m.rows);
-            WriteValue<size_t>(os, elem_size);
-            WriteValue<int>(os, elem_type);
-
-            const std::streamsize data_size = (std::streamsize)((int)m.cols * (int)m.rows * (int)elem_size);
-            os.write(reinterpret_cast<const char *>(m.ptr()), data_size);
+            // Write pixel data row by row (source may have non-contiguous stride)
+            size_t row_bytes = (size_t)img.width * img.channels * ImageDepthSize(img.depth);
+            for (int y = 0; y < img.height; y++)
+            {
+                const uint8_t* row = static_cast<const uint8_t*>(img.data) + y * img.step;
+                os.write(reinterpret_cast<const char*>(row), (std::streamsize)row_bytes);
+            }
         }
 
-        cv::Mat ReadMat(std::istream &is)
+        ImageBuffer ReadImageBuffer(std::istream &is)
         {
-            int cols, rows;
-            size_t elem_size;
-            int elem_type;
+            int width = ReadValue<int>(is);
+            int height = ReadValue<int>(is);
+            int channels = ReadValue<int>(is);
+            ImageDepth depth = static_cast<ImageDepth>(ReadValue<int>(is));
+            size_t saved_step = ReadValue<size_t>(is);
+            (void)saved_step;
 
-            cols = ReadValue<int>(is);
-            rows = ReadValue<int>(is);
-            elem_size = ReadValue<size_t>(is);
-            elem_type = ReadValue<int>(is);
-
-            cv::Mat m;
-            m.create(rows, cols, elem_type);
-            std::streamsize data_size = std::streamsize((int)m.cols * (int)m.rows * (int)elem_size);
-            is.read(reinterpret_cast<char *>(m.ptr()), data_size);
-            return m;
+            ImageBuffer img = ImageBuffer::Zeros(width, height, channels, depth);
+            size_t row_bytes = (size_t)width * channels * ImageDepthSize(depth);
+            for (int y = 0; y < height; y++)
+            {
+                uint8_t* row = static_cast<uint8_t*>(img.data) + y * img.step;
+                is.read(reinterpret_cast<char*>(row), (std::streamsize)row_bytes);
+            }
+            return img;
         }
 
         void WriteString(std::ostream &os, const std::string &v)
@@ -80,24 +80,24 @@ namespace ImmVision
         void WriteImagePayload(std::ostream &os, const ImagePayload &v)
         {
             WriteString(os, v.Legend);
-            WriteValue<cv::Point2d>(os, v.ZoomCenter);
+            WriteValue<Point2d>(os, v.ZoomCenter);
             WriteValue<double>(os, v.ZoomRatio);
             WriteString(os, v.ZoomKey);
             WriteString(os, v.ColorAdjustmentsKey);
             WriteValue<bool>(os, v.isColorOrderBGR);
-            WriteMat(os, v.Image);
+            WriteImageBuffer(os, v.Image);
         }
 
         ImagePayload ReadImagePayload(std::istream &is)
         {
             ImagePayload r;
             r.Legend = ReadString(is);
-            r.ZoomCenter = ReadValue<cv::Point2d>(is);
+            r.ZoomCenter = ReadValue<Point2d>(is);
             r.ZoomRatio = ReadValue<double>(is);
             r.ZoomKey = ReadString(is);
             r.ColorAdjustmentsKey = ReadString(is);
             r.isColorOrderBGR = ReadValue<bool>(is);
-            r.Image = ReadMat(is);
+            r.Image = ReadImageBuffer(is);
             return r;
         }
 

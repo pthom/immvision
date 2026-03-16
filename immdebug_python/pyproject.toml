@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "immdebug"
-version = "0.1.0"
+version = "0.2.0"
 description = "Send images to the immdebug viewer for visual debugging — from any Python process"
 readme = "README.md"
 license = "MIT"

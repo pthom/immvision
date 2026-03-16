@@ -1,6 +1,6 @@
 #pragma once
 
-#include <opencv2/core/core.hpp>
+#include "immvision/immvision_types.h"
 #include <string>
 #include <optional>
 
@@ -10,9 +10,9 @@ namespace ImmVision
     {
         struct ImagePayload
         {
-            cv::Mat Image;
+            ImageBuffer Image;
             std::string Legend = "";
-            cv::Point2d ZoomCenter = cv::Point2d();
+            Point2d ZoomCenter = Point2d();
             double ZoomRatio = -1.;
             std::string ZoomKey = "";
             std::string ColorAdjustmentsKey = "";

@@ -22,8 +22,8 @@ from typing import Tuple
 import numpy as np
 
 
-# OpenCV depth constants: cv::Mat::depth()
-_CV_DEPTH = {
+# ImageDepth enum values (must match ImmVision::ImageDepth in C++)
+_DEPTH_FROM_DTYPE = {
     np.dtype("uint8"): 0,
     np.dtype("int8"): 1,
     np.dtype("uint16"): 2,
@@ -70,43 +70,29 @@ def _write_string(buf: bytearray, s: str) -> None:
 
 
 def _write_mat(buf: bytearray, image: np.ndarray) -> None:
+    # Match C++ WriteImageBuffer: width(int), height(int), channels(int), depth(int), step(size_t)
     image = np.ascontiguousarray(image)
-    rows, cols = image.shape[0], image.shape[1]
+    height, width = image.shape[0], image.shape[1]
     channels = 1 if image.ndim == 2 else image.shape[2]
 
-    depth = _CV_DEPTH.get(image.dtype)
+    depth = _DEPTH_FROM_DTYPE.get(image.dtype)
     if depth is None:
-        raise ValueError(f"Unsupported dtype: {image.dtype}. Supported: {list(_CV_DEPTH.keys())}")
+        raise ValueError(f"Unsupported dtype: {image.dtype}. Supported: {list(_DEPTH_FROM_DTYPE.keys())}")
 
-    elem_type = depth + (channels - 1) * 8
-    elem_size = image.dtype.itemsize * channels
-
-    # Match C++ WriteValue<int>, WriteValue<size_t>, WriteValue<int>
-    # "=" = native byte order, no padding; "Q" = uint64 for size_t
-    buf += struct.pack("=iiQi", cols, rows, elem_size, elem_type)
+    step = width * channels * image.dtype.itemsize
+    buf += struct.pack("=iiiiQ", width, height, channels, depth, step)
     buf += image.tobytes()
 
 
-def immdebug(
+def _immdebug_impl(
     image: np.ndarray,
-    legend: str = "",
-    zoom_center: Tuple[float, float] = (0.0, 0.0),
-    zoom_ratio: float = -1.0,
-    zoom_key: str = "",
-    color_adjustments_key: str = "",
-    is_color_order_bgr: bool = True,
+    legend: str,
+    zoom_center: Tuple[float, float],
+    zoom_ratio: float,
+    zoom_key: str,
+    color_adjustments_key: str,
+    is_color_order_bgr: bool,
 ) -> None:
-    """Send an image to the immdebug_viewer application.
-
-    Args:
-        image: numpy array (HxW for grayscale, HxWxC for multi-channel)
-        legend: display name in the viewer
-        zoom_center: initial zoom center (x, y)
-        zoom_ratio: initial zoom ratio (-1 for auto-fit)
-        zoom_key: link zoom across images sharing this key
-        color_adjustments_key: link color adjustments across images sharing this key
-        is_color_order_bgr: True if channels are BGR (OpenCV default), False for RGB
-    """
     _remove_old_images()
 
     buf = bytearray()
@@ -125,3 +111,50 @@ def immdebug(
         f.write(buf)
 
     os.rename(str(writing_path), str(done_path))
+
+
+def immdebug(
+    image: np.ndarray,
+    legend: str = "",
+    zoom_center: Tuple[float, float] = (0.0, 0.0),
+    zoom_ratio: float = -1.0,
+    zoom_key: str = "",
+    color_adjustments_key: str = "",
+) -> None:
+    """Send an image to the immdebug_viewer application.
+
+    Assumes RGB channel order (the default for most image libraries:
+    stb, PIL/Pillow, matplotlib, etc.).
+
+    Args:
+        image: numpy array (HxW for grayscale, HxWxC for multi-channel)
+        legend: display name in the viewer
+        zoom_center: initial zoom center (x, y)
+        zoom_ratio: initial zoom ratio (-1 for auto-fit)
+        zoom_key: link zoom across images sharing this key
+        color_adjustments_key: link color adjustments across images sharing this key
+    """
+    _immdebug_impl(image, legend, zoom_center, zoom_ratio, zoom_key, color_adjustments_key, False)
+
+
+def immdebug_bgr(
+    image: np.ndarray,
+    legend: str = "",
+    zoom_center: Tuple[float, float] = (0.0, 0.0),
+    zoom_ratio: float = -1.0,
+    zoom_key: str = "",
+    color_adjustments_key: str = "",
+) -> None:
+    """Send an image to the immdebug_viewer application.
+
+    Assumes BGR channel order (OpenCV default).
+
+    Args:
+        image: numpy array (HxW for grayscale, HxWxC for multi-channel)
+        legend: display name in the viewer
+        zoom_center: initial zoom center (x, y)
+        zoom_ratio: initial zoom ratio (-1 for auto-fit)
+        zoom_key: link zoom across images sharing this key
+        color_adjustments_key: link color adjustments across images sharing this key
+    """
+    _immdebug_impl(image, legend, zoom_center, zoom_ratio, zoom_key, color_adjustments_key, True)

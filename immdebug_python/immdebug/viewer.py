@@ -17,8 +17,8 @@ from typing import Optional, Tuple
 import numpy as np
 
 
-# OpenCV depth constants -> numpy dtype
-_CV_DEPTH_TO_DTYPE = {
+# ImageDepth enum -> numpy dtype (must match ImmVision::ImageDepth in C++)
+_DEPTH_TO_DTYPE = {
     0: np.dtype("uint8"),
     1: np.dtype("int8"),
     2: np.dtype("uint16"),
@@ -53,19 +53,18 @@ def _read_string(data: bytes, offset: int) -> Tuple[str, int]:
 
 
 def _read_mat(data: bytes, offset: int) -> Tuple[np.ndarray, int]:
-    (cols, rows, elem_size, elem_type), offset = _read_value(data, offset, "=iiQi")
+    # Match C++ ReadImageBuffer: width(int), height(int), channels(int), depth(int), step(size_t)
+    (width, height, channels, depth_int, _step), offset = _read_value(data, offset, "=iiiiQ")
 
-    depth = elem_type % 8
-    channels = (elem_type // 8) + 1
-    dtype = _CV_DEPTH_TO_DTYPE[depth]
-
-    data_size = cols * rows * elem_size
+    dtype = _DEPTH_TO_DTYPE[depth_int]
+    row_bytes = width * channels * dtype.itemsize
+    data_size = row_bytes * height
     pixel_data = data[offset : offset + data_size]
 
     if channels == 1:
-        image = np.frombuffer(pixel_data, dtype=dtype).reshape((rows, cols))
+        image = np.frombuffer(pixel_data, dtype=dtype).reshape((height, width))
     else:
-        image = np.frombuffer(pixel_data, dtype=dtype).reshape((rows, cols, channels))
+        image = np.frombuffer(pixel_data, dtype=dtype).reshape((height, width, channels))
 
     return image.copy(), offset + data_size
 
@@ -218,10 +217,12 @@ def main() -> None:
             if payload is None:
                 break
             hello_imgui.log(hello_imgui.LogLevel.info, f"Received image: {payload.legend}")
-            if payload.is_color_order_bgr:
-                immvision.use_bgr_color_order()
-            else:
-                immvision.use_rgb_color_order()
+            # Convert BGR images to RGB so the viewer always works in RGB mode
+            if payload.is_color_order_bgr and payload.image.ndim == 3 and payload.image.shape[2] in (3, 4):
+                img = payload.image.copy()
+                img[..., 0], img[..., 2] = payload.image[..., 2], payload.image[..., 0]
+                payload.image = img
+            immvision.use_rgb_color_order()
             immvision.inspector_add_image(
                 payload.image,
                 payload.legend,
