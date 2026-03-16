@@ -41,6 +41,9 @@ option(IMMVISION_SERIALIZE_JSON OFF)
 option(IMMVISION_BUILD_DEMOS "Build immvision demos" ${PROJECT_IS_TOP_LEVEL})
 #------------------------------------------------------------------------------
 
+option(IMMVISION_BUILD_TESTS "Build immvision tests" ${PROJECT_IS_TOP_LEVEL})
+
+
 #------------------------------------------------------------------------------
 # IMMVISION_BUILD_VIEWER
 # if ON, build immdebug viewer (this will fetch hello_imgui at configure time)
