@@ -1,6 +1,8 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/misc/math_utils.h"
 
+#include <cassert>
+
 namespace ImmVision
 {
     namespace ZoomPanTransform

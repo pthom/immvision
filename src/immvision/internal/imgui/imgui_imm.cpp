@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include <cassert>
 #include <sstream>
 #include <vector>
 #include <unordered_map>

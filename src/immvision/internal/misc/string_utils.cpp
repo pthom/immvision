@@ -1,6 +1,6 @@
 #include "immvision/internal/misc/string_utils.h"
 
-
+#include <sstream>
 
 
 namespace ImmVision

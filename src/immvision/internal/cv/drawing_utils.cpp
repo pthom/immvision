@@ -2,6 +2,7 @@
 #include "immvision/internal/misc/string_utils.h"
 #include "immvision/internal/misc/math_utils.h"
 
+#include <cassert>
 #include <unordered_map>
 #include <type_traits>  // std::is_same_v
 #include <limits>       // std::numeric_limits

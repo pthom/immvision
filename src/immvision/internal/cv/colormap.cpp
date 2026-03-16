@@ -7,6 +7,7 @@
 #include "immvision/gl_texture.h"
 #include "immvision/imgui_imm.h"
 #include "imgui.h"
+#include <cassert>
 #include <cmath>    // std::sqrt
 #include <limits>   // std::numeric_limits
 #include "imgui_internal.h"

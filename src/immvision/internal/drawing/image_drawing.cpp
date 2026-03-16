@@ -5,6 +5,7 @@
 #include "immvision/internal/cv/matrix_info_utils.h"
 #include "immvision/internal/cv/colormap.h"
 
+#include <cassert>
 #include <cstring>  // memcpy
 
 

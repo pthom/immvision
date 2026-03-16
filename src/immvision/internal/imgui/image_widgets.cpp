@@ -2,6 +2,7 @@
 #include "immvision/internal/cv/matrix_info_utils.h"
 
 #include <map>
+#include <sstream>
 
 namespace ImmVision
 {
