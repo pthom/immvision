@@ -360,5 +360,11 @@ namespace ImmVision
     // Return immvision version info
     IMMVISION_API std::string VersionInfo();
 
+    // Load an image from file (PNG, JPG, BMP, TGA, HDR, etc.) using stb_image.
+    // Returns an empty ImageBuffer if loading fails.
+    // The returned image is always in RGB order (not BGR).
+    // For uint8 images: channels are as stored in file (1, 3, or 4).
+    // For HDR images: returns float32 data.
+    IMMVISION_API ImageBuffer ImRead(const std::string& filename);
 
 } // namespace ImmVision

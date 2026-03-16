@@ -1,4 +1,5 @@
 #include "immvision/internal/stb/stb_image_write.h"
+#include "immvision/internal/stb/stb_image.h"
 
 #include "immvision/image.h"
 #include "immvision/internal/drawing/internal_icons.h"
@@ -937,4 +938,29 @@ This is a required setup step. (Breaking change - October 2024)
         if (ImageCache::gImageTextureCacheAlive)
             ImageCache::gImageTextureCache.OnDeleteImageParams(this);
     }
+
+    ImageBuffer ImRead(const std::string& filename)
+    {
+        int w, h, channels;
+        // Try HDR first
+        if (stbi_is_hdr(filename.c_str()))
+        {
+            float* data = stbi_loadf(filename.c_str(), &w, &h, &channels, 0);
+            if (!data)
+                return ImageBuffer();
+            ImageBuffer buf = ImageBuffer::Zeros(w, h, channels, ImageDepth::float32);
+            std::memcpy(buf.data, data, (size_t)w * h * channels * sizeof(float));
+            stbi_image_free(data);
+            return buf;
+        }
+        // Standard uint8 image
+        unsigned char* data = stbi_load(filename.c_str(), &w, &h, &channels, 0);
+        if (!data)
+            return ImageBuffer();
+        ImageBuffer buf = ImageBuffer::Zeros(w, h, channels, ImageDepth::uint8);
+        std::memcpy(buf.data, data, (size_t)w * h * channels);
+        stbi_image_free(data);
+        return buf;
+    }
+
 } // namespace ImmVision
