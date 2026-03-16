@@ -38,11 +38,7 @@ option(IMMVISION_SERIALIZE_JSON OFF)
 #------------------------------------------------------------------------------
 # IMMVISION_BUILD_DEMOS
 # if ON, build demos (this will fetch hello_imgui at configure time)
-if(PROJECT_IS_TOP_LEVEL)
-    option(IMMVISION_BUILD_DEMOS "Build immvision demos" ON)
-else()
-    option(IMMVISION_BUILD_DEMOS "Build immvision demos" OFF)
-endif()
+option(IMMVISION_BUILD_DEMOS "Build immvision demos" ${PROJECT_IS_TOP_LEVEL})
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
@@ -67,26 +63,33 @@ option(IMMVISION_BUILD_ALL_IN_ONE OFF)
 option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
 #------------------------------------------------------------------------------
 
-#------------------------------------------------------------------------------
-# IMMVISION_OPENCV_CONAN
-# For conan, add binary dir to module search path
-# this way, if you run
-#     conan install ../conanfile_opencv.txt --build=missing
-# in the build dir, you can use OpenCV provided by conan
-option(IMMVISION_OPENCV_CONAN "Use conan to get opencv" ON)
-if (IMMVISION_OPENCV_CONAN)
-    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
-endif()
-#------------------------------------------------------------------------------
 
 ###############################################################################
 # Build process
 ###############################################################################
 set(CMAKE_CXX_STANDARD 17)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/find_opencv.cmake)
-immvision_find_opencv()
-find_package(OpenCV REQUIRED)  # Will try to find OpenCV (if IMMVISION_FETCH_OPENCV, will also download and build it)
+# OpenCV
+# =======
+# Immvision will provide cv::Mat interop if OpenCV is found.
+# - OpenCV is optional
+# - if IMMVISION_FETCH_OPENCV is ON, and OpenCV is not found, we will fetch and build a minimal version of OpenCV in the build directory.
+find_package(OpenCV QUIET)
+if (IMMVISION_FETCH_OPENCV)
+    if (NOT OpenCV_FOUND)
+        message(STATUS "OpenCV not found, fetching minimal OpenCV...")
+        include(cmake/fetch_opencv.cmake)
+        immvision_fetch_opencv()
+    endif()
+endif()
+if (OpenCV_FOUND)
+    set(IMMVISION_HAS_OPENCV ON CACHE BOOL "" FORCE)
+    message(STATUS "OpenCV found (${OpenCV_VERSION}) — cv::Mat interop enabled")
+else()
+    set(IMMVISION_HAS_OPENCV OFF CACHE BOOL "" FORCE)
+    message(STATUS "OpenCV not found — building without cv::Mat interop")
+endif()
+
 
 set(IMMVISION_VERSION ${PROJECT_VERSION})
 add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")

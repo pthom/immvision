@@ -1,2 +1,6 @@
-add_executable(demo_immdebug demo_immdebug.main.cpp)
-target_link_libraries(demo_immdebug PRIVATE immdebug opencv_imgproc opencv_imgcodecs)
+if (IMMVISION_HAS_OPENCV)
+    add_executable(demo_immdebug demo_immdebug.main.cpp)
+    target_link_libraries(demo_immdebug PRIVATE immdebug opencv_imgproc opencv_imgcodecs)
+else()
+    message("OpenCV not found, skipping demo_immdebug (requires OpenCV)")
+endif()

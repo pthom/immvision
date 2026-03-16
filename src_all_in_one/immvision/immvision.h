@@ -255,6 +255,16 @@ namespace ImmVision
             return reinterpret_cast<const T*>(static_cast<const uint8_t*>(data) + y * step);
         }
 
+        // Pointer to the first channel of pixel (x, y)
+        template<typename T> T* pixel_ptr(int y, int x)
+        {
+            return ptr<T>(y) + x * channels;
+        }
+        template<typename T> const T* pixel_ptr(int y, int x) const
+        {
+            return ptr<T>(y) + x * channels;
+        }
+
         // Sub-image view (non-owning, shares ref_keeper)
         ImageBuffer subImage(const Rect& roi) const
         {
@@ -665,6 +675,12 @@ namespace ImmVision
     // Return immvision version info
     IMMVISION_API std::string VersionInfo();
 
+    // Load an image from file (PNG, JPG, BMP, TGA, HDR, etc.) using stb_image.
+    // Returns an empty ImageBuffer if loading fails.
+    // The returned image is always in RGB order (not BGR).
+    // For uint8 images: channels are as stored in file (1, 3, or 4).
+    // For HDR images: returns float32 data.
+    IMMVISION_API ImageBuffer ImRead(const std::string& filename);
 
 } // namespace ImmVision
 
