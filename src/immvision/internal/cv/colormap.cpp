@@ -84,7 +84,7 @@ namespace ImmVision
 
         bool CanColormap(const ImageBuffer &image)
         {
-            return (ImageDepthIsFloat(image.depth) && image.channels == 1);
+            return (image.channels == 1);
         }
 
 

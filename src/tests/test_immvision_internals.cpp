@@ -575,7 +575,10 @@ void test_can_colormap()
     CHECK(Colormap::CanColormap(f64_1ch));
 
     ImageBuffer u8_1ch = ImageBuffer::Zeros(10, 10, 1, ImageDepth::uint8);
-    CHECK(!Colormap::CanColormap(u8_1ch));
+    CHECK(Colormap::CanColormap(u8_1ch));
+
+    ImageBuffer i16_1ch = ImageBuffer::Zeros(10, 10, 1, ImageDepth::int16);
+    CHECK(Colormap::CanColormap(i16_1ch));
 
     ImageBuffer f32_3ch = ImageBuffer::Zeros(10, 10, 3, ImageDepth::float32);
     CHECK(!Colormap::CanColormap(f32_3ch));
