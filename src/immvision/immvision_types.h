@@ -247,6 +247,16 @@ namespace ImmVision
             return reinterpret_cast<const T*>(static_cast<const uint8_t*>(data) + y * step);
         }
 
+        // Pointer to the first channel of pixel (x, y)
+        template<typename T> T* pixel_ptr(int y, int x)
+        {
+            return ptr<T>(y) + x * channels;
+        }
+        template<typename T> const T* pixel_ptr(int y, int x) const
+        {
+            return ptr<T>(y) + x * channels;
+        }
+
         // Sub-image view (non-owning, shares ref_keeper)
         ImageBuffer subImage(const Rect& roi) const
         {
