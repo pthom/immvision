@@ -1,292 +1,151 @@
 #include "immvision/internal/drawing/internal_icons.h"
-#include "immvision/internal/cv/drawing_utils.h"
-#include "immvision/gl_texture.h"
-#include "immvision/image.h"
 #include "immvision/imgui_imm.h"
 #include "imgui_internal.h"
-#include <map>
+#include <cmath>
 
 
 namespace ImmVision
 {
     namespace Icons
     {
-        static Size iconsSizeDraw(200, 200);
-        auto ScalePoint = [](Point2d p) {
-            return Point2d(p.x * (double) iconsSizeDraw.width, p.y * (double) iconsSizeDraw.height);
-        };
-        auto ScaleDouble = [](double v) {
-            return v * (double) iconsSizeDraw.width;
-        };
-        auto ScaleInt = [](double v) {
-            return (int) (v * (double) iconsSizeDraw.width + 0.5);
-        };
-
-        auto PointFromOther = [](Point2d o, double angleDegree, double distance) {
-            double m_pi = 3.14159265358979323846;
-            double angleRadian = -angleDegree / 180. * m_pi;
-            Point2d r(o.x + cos(angleRadian) * distance, o.y + sin(angleRadian) * distance);
-            return r;
-        };
-
-
-        ImageBuffer MakeMagnifierImage(IconType iconType)
+        // Helper: compute a point at (angle, distance) from origin
+        static ImVec2 PointFromOther(ImVec2 o, float angleDegree, float distance)
         {
-            using namespace ImmVision;
-            ImageBuffer m = ImageBuffer::Zeros(iconsSizeDraw.width, iconsSizeDraw.height, 4, ImageDepth::uint8);
+            float angleRadian = -angleDegree / 180.f * 3.14159265f;
+            return ImVec2(o.x + cosf(angleRadian) * distance, o.y + sinf(angleRadian) * distance);
+        }
 
-            // Transparent background
-            m.fill(Color4d(0, 0, 0, 0));
+        static void DrawMagnifier(ImDrawList* dl, ImVec2 tl, float size, IconType iconType)
+        {
+            // The glass is centered in the upper-right area, with the handle pointing to the lower-left
+            float radius = size * 0.24f;
+            // Offset the glass center so the whole icon (glass + handle) is visually centered
+            ImVec2 btnCenter(tl.x + size * 0.5f, tl.y + size * 0.5f);
+            ImVec2 glassCenter(btnCenter.x + size * 0.06f, btnCenter.y - size * 0.06f);
+            ImU32 color = IM_COL32(255, 255, 255, 255);
+            ImU32 shadow = IM_COL32(100, 100, 100, 180);
+            float thick = size * 0.06f;
+            float handleThick = size * 0.1f;
 
-            Color4d color(255, 255, 255, 255);
-            double radius = 0.3;
-            Point2d center(1. - radius * 1.3, radius * 1.2);
-            // Draw shadow
-            {
-                Point2d decal(radius * 0.1, radius * 0.1);
-                Color4d color_shadow(127, 127, 127, 255);
+            // Handle endpoints
+            ImVec2 handleInner = PointFromOther(glassCenter, 225.f, radius * 1.05f);
+            ImVec2 handleOuter = PointFromOther(glassCenter, 225.f, radius * 1.85f);
+            ImVec2 shadowOff(size * 0.02f, size * 0.02f);
 
-                DrawingUtils::circle(
-                    m, //image,
-                    ScalePoint(center + decal),
-                    ScaleDouble(radius), //radius
-                    color_shadow,
-                    ScaleInt(0.08)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 1.7) + decal),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.03) + decal),
-                    color_shadow,
-                    ScaleInt(0.08)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 2.3) + decal),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.5) + decal),
-                    color_shadow,
-                    ScaleInt(0.14)
-                );
-            }
-            // Draw magnifier
-            {
-                DrawingUtils::circle(
-                    m, //image,
-                    ScalePoint(center),
-                    ScaleDouble(radius), //radius
-                    color,
-                    ScaleInt(0.08)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 1.7)),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.03)),
-                    color,
-                    ScaleInt(0.08)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 2.3)),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.5)),
-                    color,
-                    ScaleInt(0.14)
-                );
-            }
+            // Shadow
+            dl->AddCircle(ImVec2(glassCenter.x + shadowOff.x, glassCenter.y + shadowOff.y), radius, shadow, 0, thick);
+            dl->AddLine(ImVec2(handleInner.x + shadowOff.x, handleInner.y + shadowOff.y),
+                        ImVec2(handleOuter.x + shadowOff.x, handleOuter.y + shadowOff.y), shadow, handleThick);
 
+            // Magnifier glass
+            dl->AddCircle(glassCenter, radius, color, 0, thick);
+            // Handle
+            dl->AddLine(handleInner, handleOuter, color, handleThick);
+
+            // Plus/minus/1 inside the glass — centered on glassCenter
+            float symbolLen = radius * 0.5f;
+            float symbolThick = size * 0.05f;
+            ImVec2 symbolCenter = glassCenter;
+            symbolCenter.x -= size * 0.02f;
+            symbolCenter.y -= size * 0.02f;
             if (iconType == IconType::ZoomPlus)
             {
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 90., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 270., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
+                dl->AddLine(ImVec2(symbolCenter.x - symbolLen, symbolCenter.y),
+                            ImVec2(symbolCenter.x + symbolLen, symbolCenter.y), color, symbolThick);
+                dl->AddLine(ImVec2(symbolCenter.x, symbolCenter.y - symbolLen),
+                            ImVec2(symbolCenter.x, symbolCenter.y + symbolLen), color, symbolThick);
             }
-            if (iconType == IconType::ZoomMinus)
+            else if (iconType == IconType::ZoomMinus)
             {
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
+                dl->AddLine(ImVec2(symbolCenter.x - symbolLen, symbolCenter.y),
+                            ImVec2(symbolCenter.x + symbolLen, symbolCenter.y), color, symbolThick);
             }
-            if (iconType == IconType::ZoomScaleOne)
+            else if (iconType == IconType::ZoomScaleOne)
             {
-                Point2d a = PointFromOther(center, -90., radius * 0.45);
-                Point2d b = PointFromOther(center, 90., radius * 0.45);
-                a.x += radius * 0.05;
-                b.x += radius * 0.05;
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(a),
-                    ScalePoint(b),
-                    color,
-                    ScaleInt(0.06)
-                );
-                Point2d c(b.x - radius * 0.2, b.y + radius * 0.2);
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(b),
-                    ScalePoint(c),
-                    color,
-                    ScaleInt(0.06)
-                );
+                // "1" inside the glass — vertical stroke + serif
+                float h = radius * 0.4f;
+                ImVec2 top(symbolCenter.x, symbolCenter.y - h);
+                ImVec2 bot(symbolCenter.x, symbolCenter.y + h);
+                dl->AddLine(top, bot, color, symbolThick);
+                ImVec2 serif(top.x - radius * 0.15f, top.y + radius * 0.15f);
+                dl->AddLine(top, serif, color, symbolThick);
             }
-
-            return m;
         }
 
-
-        ImageBuffer MakeFullViewImage()
+        static void DrawFullView(ImDrawList* dl, ImVec2 tl, float size)
         {
-            ImageBuffer m = ImageBuffer::Zeros(iconsSizeDraw.width, iconsSizeDraw.height, 4, ImageDepth::uint8);
-            m.fill(Color4d(0, 0, 0, 0));
+            size *= 0.95;
 
-            Color4d color(255, 255, 255, 255);
-            double decal = 0.1;
-            double length_x = 0.3, length_y = 0.3;
-            for (int y = 0; y <= 1; ++y)
+            ImU32 color = IM_COL32(255, 255, 255, 255);
+            float margin = size * 0.15f;
+            float armLen = size * 0.25f;
+            float thick = size * 0.07f;
+
+            // Four corner brackets
+            for (int iy = 0; iy <= 1; ++iy)
             {
-                for (int x = 0; x <= 1; ++x)
+                for (int ix = 0; ix <= 1; ++ix)
                 {
-                    Point2d corner;
-
-                    corner.x = (x == 0) ? decal : 1. - decal;
-                    corner.y = (y == 0) ? decal : 1. - decal;
-                    double moveX = (x == 0) ? length_x : -length_x;
-                    double moveY = (y == 0) ? length_y : -length_y;
-                    Point2d pt_x(corner.x + moveX, corner.y);
-                    Point2d pt_y(corner.x, corner.y + moveY);
-                    int thickness = ScaleInt(0.09);
-                    DrawingUtils::line(
-                        m,
-                        ScalePoint(corner),
-                        ScalePoint(pt_x),
-                        color,
-                        thickness
-                    );
-                    DrawingUtils::line(
-                        m,
-                        ScalePoint(corner),
-                        ScalePoint(pt_y),
-                        color,
-                        thickness
-                    );
+                    ImVec2 corner(
+                        ix == 0 ? tl.x + margin : tl.x + size - margin,
+                        iy == 0 ? tl.y + margin : tl.y + size - margin);
+                    float dx = ix == 0 ? armLen : -armLen;
+                    float dy = iy == 0 ? armLen : -armLen;
+                    dl->AddLine(corner, ImVec2(corner.x + dx, corner.y), color, thick);
+                    dl->AddLine(corner, ImVec2(corner.x, corner.y + dy), color, thick);
                 }
             }
-            return m;
         }
 
-        ImageBuffer MakeAdjustLevelsImage()
+        static void DrawAdjustLevels(ImDrawList* dl, ImVec2 tl, float size)
         {
-            ImageBuffer m = ImageBuffer::Zeros(iconsSizeDraw.width, iconsSizeDraw.height, 4, ImageDepth::uint8);
-            m.fill(Color4d(0, 0, 0, 0));
-            Color4d color(255, 255, 255, 255);
+            ImU32 color = IM_COL32(255, 255, 255, 255);
+            float thick = size * 0.08f;
+            float sliderThick = size * 0.15f;
 
-            double yMin = 0.15, yMax = 0.8;
+            tl.x -= size * 0.02f;
+            float yMin = tl.y + size * 0.15f;
+            float yMax = tl.y + size * 0.85f;
             int nbBars = 3;
+            float sliderPositions[] = { 0.70f, 0.50f, 0.30f };
+
             for (int bar = 0; bar < nbBars; ++bar)
             {
-                double xBar = (double)bar / ((double)(nbBars) + 0.17) + 0.2;
-                Point2d a(xBar, yMin);
-                Point2d b(xBar, yMax);
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(a),
-                    ScalePoint(b),
-                    color,
-                    ScaleInt(0.08)
-                );
+                float xBar = tl.x + ((float)bar / ((float)nbBars + 0.17f) + 0.2f) * size;
+                dl->AddLine(ImVec2(xBar, yMin), ImVec2(xBar, yMax), color, thick);
 
-                double barWidth = 0.1;
-                double yBar = 0.7 - 0.2 * (double)bar;
-                Point2d c(a.x - barWidth / 2., yBar);
-                Point2d d(a.x + barWidth / 2., yBar);
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(c),
-                    ScalePoint(d),
-                    color,
-                    ScaleInt(0.16)
-                );
+                float ySlider = tl.y + sliderPositions[bar] * size;
+                float halfW = size * 0.08f;
+                dl->AddLine(ImVec2(xBar - halfW, ySlider), ImVec2(xBar + halfW, ySlider), color, sliderThick);
             }
-
-            return m;
-        }
-
-
-        static std::map<IconType, std::unique_ptr<GlTexture>> sIconsTextureCache;
-
-        Size IconSize()
-        {
-            // Make icons size proportionnal to font size
-            float k = ImGui::GetFontSize() / 14.5f;
-            int size = int(k * 20.f);
-            return {size, size};
-        }
-
-        ImTextureID GetIcon(IconType iconType)
-        {
-            if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
-            {
-                ImageBuffer m;
-                if (iconType == IconType::ZoomFullView)
-                    m = MakeFullViewImage();
-                else if (iconType == IconType::AdjustLevels)
-                    m = MakeAdjustLevelsImage();
-                else
-                    m = MakeMagnifierImage(iconType);
-
-                // Simple nearest-neighbor 2x resize for icons
-                int dstW = IconSize().width * 2, dstH = IconSize().height * 2;
-                ImageBuffer resized = ImageBuffer::Zeros(dstW, dstH, m.channels, m.depth);
-                for (int y = 0; y < dstH; y++)
-                    for (int x = 0; x < dstW; x++)
-                    {
-                        int sx = x * m.width / dstW, sy = y * m.height / dstH;
-                        int ch = m.channels;
-                        const uint8_t* src = m.ptr<uint8_t>(sy) + sx * ch;
-                        uint8_t* dst = resized.ptr<uint8_t>(y) + x * ch;
-                        for (int c = 0; c < ch; c++) dst[c] = src[c];
-                    }
-                auto texture = std::make_unique<GlTexture>(resized, true);
-                sIconsTextureCache[iconType] = std::move(texture);
-            }
-            return sIconsTextureCache[iconType]->TextureId;
         }
 
         bool IconButton(IconType iconType, bool disabled)
         {
             ImGui::PushID((int)iconType);
-            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-            ImU32 backColorEnabled = ImGui::ColorConvertFloat4ToU32(ImVec4 (1.f, 1.f, 1.f, 1.f));
-            ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
-            ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
             if (disabled)
                 ImGuiImm::PushDisabled();
 
-            // Cannot use InvisibleButton, since it does not handle "Repeat"
-            ImVec2 btnSize(ImGui::GetFontSize() * 1.5f, ImGui::GetFontSize() * 1.5f);
-            bool clicked = ImGui::Button("##btn", btnSize);
+            float btnSize = ImGui::GetFontSize() * 1.5f;
+            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+            bool clicked = ImGui::Button("##btn", ImVec2(btnSize, btnSize));
 
-            ImGui::GetWindowDrawList()->AddImage(
-                GetIcon(iconType),
-                cursorPos,
-                {cursorPos.x + (float)IconSize().width, cursorPos.y + (float)IconSize().height},
-                ImVec2(0.f, 0.f),
-                ImVec2(1.f, 1.f),
-                backColor
-                );
+            // Draw icon shapes on top of the button
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            switch (iconType)
+            {
+            case IconType::ZoomPlus:
+            case IconType::ZoomMinus:
+            case IconType::ZoomScaleOne:
+                DrawMagnifier(dl, cursorPos, btnSize, iconType);
+                break;
+            case IconType::ZoomFullView:
+                DrawFullView(dl, cursorPos, btnSize);
+                break;
+            case IconType::AdjustLevels:
+                DrawAdjustLevels(dl, cursorPos, btnSize);
+                break;
+            }
 
             if (disabled)
                 ImGuiImm::PopDisabled();
@@ -294,36 +153,24 @@ namespace ImmVision
             return disabled ? false : clicked;
         }
 
+        void ClearIconsTextureCache()
+        {
+            // No texture cache to clear anymore — icons are drawn via DrawList
+        }
 
         void DevelPlaygroundGui()
         {
-            static ImageBuffer mag = MakeMagnifierImage(IconType::ZoomScaleOne);
-            static ImageBuffer img = MakeAdjustLevelsImage();
-
-            static ImmVision::ImageParams imageParams1;
-            imageParams1.ImageDisplaySize = {400, 400};
-            ImmVision::Image("test", mag, &imageParams1);
-
+            IconButton(IconType::ZoomPlus);
             ImGui::SameLine();
-
-            static ImmVision::ImageParams imageParams2;
-            imageParams2.ImageDisplaySize = {400, 400};
-            ImmVision::Image("test2", img, &imageParams2);
-
-            ImVec2 iconSize(15.f, 15.f);
-            ImGui::ImageButton("ZoomScaleOne", GetIcon(IconType::ZoomScaleOne), iconSize);
-            ImGui::ImageButton("ZoomPlus", GetIcon(IconType::ZoomPlus), iconSize);
-            ImGui::ImageButton("ZoomMinus", GetIcon(IconType::ZoomMinus), iconSize);
-            ImGui::ImageButton("ZoomFullView", GetIcon(IconType::ZoomFullView), iconSize);
-            ImGui::ImageButton("AdjustLevels", GetIcon(IconType::AdjustLevels), iconSize);
+            IconButton(IconType::ZoomMinus);
+            ImGui::SameLine();
+            IconButton(IconType::ZoomScaleOne);
+            ImGui::SameLine();
+            IconButton(IconType::ZoomFullView);
+            ImGui::SameLine();
+            IconButton(IconType::AdjustLevels);
         }
 
-        void ClearIconsTextureCache()
-        {
-            Icons::sIconsTextureCache.clear();
-        }
-
-} // namespace Icons
-
+    } // namespace Icons
 
 } // namespace ImmVision

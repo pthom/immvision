@@ -13,10 +13,11 @@ namespace ImmVision
             ZoomFullView,
             AdjustLevels,
         };
-        ImTextureID GetIcon(IconType iconType);
 
+        // Draw an icon button using DrawList (no textures needed)
         bool IconButton(IconType iconType, bool disabled = false);
 
+        // No-op (kept for API compatibility with gl_provider reset)
         void ClearIconsTextureCache();
 
         void DevelPlaygroundGui();
