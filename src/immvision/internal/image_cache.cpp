@@ -46,34 +46,6 @@ namespace ImmVision
             return false;
         }
 
-        bool ShallRefreshTexture(const ImageParams& v1, const ImageParams& v2)
-        {
-            if (v1.ColormapSettings.Colormap != v2.ColormapSettings.Colormap)
-                return true;
-            if (v1.ColormapSettings.internal_ColormapHovered != v2.ColormapSettings.internal_ColormapHovered)
-                return true;
-            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
-                return true;
-            if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))
-                return true;
-            if (! Colormap::IsEqual(v1.ColormapSettings, v2.ColormapSettings))
-                return true;
-            if (v1.ShowGrid != v2.ShowGrid)
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
-                return true;
-            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
-                return true;
-            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
-                return true;
-            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
-                return true;
-            return false;
-        }
-
-
         //
         // ImageTextureCache impl below
         //

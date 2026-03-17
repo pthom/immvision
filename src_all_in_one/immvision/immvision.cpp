@@ -5875,1032 +5875,6 @@ namespace ImmVision
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/drawing_utils.cpp                                            //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/drawing_utils.h included by src/immvision/internal/cv/drawing_utils.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace ImmVision
-{
-
-    namespace DrawingUtils
-    {
-        enum class Colors
-        {
-            Black,
-            Red,
-            Green,
-            Blue,
-            White,
-            Yellow,
-            Cyan,
-            Violet,
-            Orange
-        };
-
-        Color4d ColorsToScalar(Colors value);
-
-        inline Color4d Black()
-        { return {0, 0, 0, 255}; }
-
-        inline Color4d Red()
-        { return {0, 0, 255, 255}; }
-
-        inline Color4d Green()
-        { return {0, 255, 0, 255}; }
-
-        inline Color4d Blue()
-        { return {255, 0, 0, 255}; }
-
-        inline Color4d White()
-        { return {255, 255, 255, 255}; }
-
-        inline Color4d Yellow()
-        { return {0, 255, 255, 255}; }
-
-        inline Color4d Cyan()
-        { return {255, 255, 0, 255}; }
-
-        inline Color4d Violet()
-        { return {200, 50, 200, 255}; }
-
-        inline Color4d Orange()
-        { return {255, 128, 0, 255}; }
-
-
-        void line(ImageBuffer &image,
-                  const Point2d &a,
-                  const Point2d &b,
-                  Color4d color,
-                  int thickness = 1);
-
-        void ellipse(ImageBuffer &image,
-                     const Point2d &center,
-                     const Size2d &size,
-                     const Color4d &color,
-                     double angle = 0.,
-                     double start_angle = 0.,
-                     double end_angle = 360.,
-                     int thickness = 1);
-
-        void circle(ImageBuffer &image,
-                    const Point2d &center,
-                    double radius,
-                    Color4d color,
-                    int thickness = 1);
-
-        void rectangle(ImageBuffer &image,
-                       const Point2d &pt1,
-                       const Point2d &pt2,
-                       const Color4d &color,
-                       bool fill = false,
-                       int thickness = 1);
-
-
-        void rectangle_size(ImageBuffer &img,
-                            const Point2d &pt,
-                            const Size2d &size,
-                            const Color4d &color,
-                            bool fill = false,
-                            int thickness = 1);
-
-        void text(ImageBuffer &img,
-                  const Point2d &position,
-                  const std::string &msg,
-                  const Color4d &color,
-                  bool center_around_point = false,
-                  bool add_cartouche = false,
-                  double fontScale = 0.4,
-                  int thickness = 1);
-
-        void cross_hole(ImageBuffer &img,
-                        const Point2d &position,
-                        const Color4d &color,
-                        double size = 2.,
-                        double size_hole = 2.,
-                        int thickness = 1);
-
-        void draw_named_feature(ImageBuffer &img,
-                                const Point2d &position,
-                                const std::string &name,
-                                const Color4d &color,
-                                bool add_cartouche = false,
-                                double size = 3.,
-                                double size_hole = 2.,
-                                int thickness = 1,
-                                double font_scale = 0.4);
-
-        void draw_transparent_pixel(
-            ImageBuffer &img_rgba,
-            const Point2d &position,
-            const Color4d &color,
-            double alpha
-        );
-
-        void draw_grid(
-            ImageBuffer& img_rgba,
-            Color4d lineColor,
-            double alpha,
-            double x_spacing, double y_spacing,
-            double x_start, double y_start,
-            double x_end, double y_end
-        );
-
-        ImageBuffer stack_images_vertically(const ImageBuffer &img1, const ImageBuffer &img2);
-        ImageBuffer stack_images_horizontally(const ImageBuffer &img1, const ImageBuffer &img2);
-
-        ImageBuffer make_alpha_channel_checkerboard_image(const Size& size, int squareSize = 30);
-
-        using Image_RGB = ImageBuffer;
-        using Image_RGBA = ImageBuffer;
-
-        Image_RGB overlay_alpha_image_precise(const ImageBuffer &background_rgb_or_rgba,
-                                              const Image_RGBA &overlay_rgba,
-                                              double alpha);
-        Image_RGBA converted_to_rgba_image(const ImageBuffer &inputMat, bool isBgrOrder);
-
-    }  // namespace DrawingUtils
-}  // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/drawing_utils.cpp continued                                  //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/misc/string_utils.h included by src/immvision/internal/cv/drawing_utils.cpp//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#ifdef IMMVISION_HAS_OPENCV
-#endif
-
-namespace ImmVision
-{
-    namespace StringUtils
-    {
-        std::string LowerString(const std::string& s);
-        std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator);
-        std::vector<std::string> SplitString(const std::string& s, const char separator);
-        std::string IndentLine(const std::string& s, int indentSize);
-        std::string IndentLines(const std::string& s, int indentSize);
-
-
-        std::string ToString(const std::string& s);
-        std::string ToString(const double& v);
-        std::string ToString(const float& v);
-        std::string ToString(const int& v);
-        std::string ToString(bool v);
-
-#ifdef IMMVISION_HAS_OPENCV
-        template<typename _Tp>
-        std::string ToString(const cv::Point_<_Tp>& v)
-        {
-            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
-        }
-        template<typename _Tp>
-        std::string ToString(const cv::Size_<_Tp>& v)
-        {
-            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
-        }
-#endif
-
-        // Overloads for ImmVision types (must be before the vector template so they're found)
-        inline std::string ToString(const Point& v)
-        {
-            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
-        }
-        inline std::string ToString(const Point2d& v)
-        {
-            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
-        }
-        inline std::string ToString(const Size& v)
-        {
-            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
-        }
-
-        template<typename _Tp>
-        std::string ToString(const std::vector<_Tp>& v)
-        {
-            std::vector<std::string> strs;
-            for (const auto& x : v)
-                strs.push_back(ToString(x));
-            std::string r = "[" + JoinStrings(strs, ", ") + "]";
-            return r;
-        }
-
-#ifdef IMMVISION_HAS_OPENCV
-        template<typename _Tp, int _rows,int _cols>
-        std::string ToString(const cv::Matx<_Tp, _rows, _cols>& m)
-        {
-            std::vector<std::string> lines;
-            for (int i = 0; i < _rows; ++i)
-            {
-                std::vector<_Tp> lineValues;
-                for (int j = 0; j < _cols; ++j)
-                    lineValues.push_back(m(i, j));
-
-                std::string lineString = ToString(lineValues);
-                if (i != 0)
-                    lineString = std::string("   ") + lineString;
-                lines.push_back(lineString);
-            }
-            std::string r = "\n  [";
-            r += JoinStrings(lines, ",\n");
-            r += "]";
-            return r;
-        }
-#endif
-
-        inline std::string ToString(const Matrix33d& m)
-        {
-            std::vector<std::string> lines;
-            for (int i = 0; i < 3; ++i)
-            {
-                std::vector<double> lineValues;
-                for (int j = 0; j < 3; ++j)
-                    lineValues.push_back(m.m[i][j]);
-                std::string lineString = ToString(lineValues);
-                if (i != 0)
-                    lineString = std::string("   ") + lineString;
-                lines.push_back(lineString);
-            }
-            std::string r = "\n  [";
-            r += JoinStrings(lines, ",\n");
-            r += "]";
-            return r;
-        }
-
-    } // namespace StringUtils
-} // namespace ImmVision
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                       src/immvision/internal/cv/drawing_utils.cpp continued                                  //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#include <type_traits>  // std::is_same_v
-#include <limits>       // std::numeric_limits
-#include <cmath>        // std::sqrt, std::clamp
-#include <stdexcept>    // std::runtime_error
-
-namespace ImmVision
-{
-    namespace DrawingUtils
-    {
-        static int drawing_shift = 3;
-        static double drawing_shift_pow = 8.; // = pow(2., drawing_shift);
-
-
-        const std::unordered_map<Colors, Color4d> ColorsValues{
-            {Colors::Black,  {0.,   0.,   0.,   255.}},
-            {Colors::Red,    {0.,   0.,   255., 255.}},
-            {Colors::Green,  {0.,   255., 0.,   255.}},
-            {Colors::Blue,   {255., 0.,   0.,   255.}},
-            {Colors::White,  {255., 255., 255., 255.}},
-            {Colors::Yellow, {0.,   255., 255., 255.}},
-            {Colors::Cyan,   {0.,   255., 255., 255.}},
-            {Colors::Violet, {200., 50.,  200., 255.}},
-            {Colors::Orange, {0.,   128., 255., 255.}}};
-
-        Color4d ColorsToScalar(Colors value)
-        { return ColorsValues.at(value); }
-
-        Point _ToPoint_Shift(const Point2d &pt)
-        {
-            Point pt_tuple;
-            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x) * drawing_shift_pow);
-            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y) * drawing_shift_pow);
-            return pt_tuple;
-        }
-
-        Point _ToPoint_NoShift(const Point2d &pt)
-        {
-            Point pt_tuple;
-            pt_tuple.x = MathUtils::RoundInt(static_cast<double>(pt.x));
-            pt_tuple.y = MathUtils::RoundInt(static_cast<double>(pt.y));
-            return pt_tuple;
-        }
-
-        Size _ToSize_WithShift(const Size2d s)
-        {
-            return {MathUtils::RoundInt(static_cast<double>(s.width) * drawing_shift_pow),
-                    MathUtils::RoundInt(static_cast<double>(s.height) * drawing_shift_pow)};
-        }
-
-        Image_RGB overlay_alpha_image_precise(const ImageBuffer &background_rgb_or_rgba, const Image_RGBA &overlay_rgba, double alpha)
-        {
-            /*
-            cf minute physics brilliant clip "Computer color is broken" :
-            https://www.youtube.com/watch?v=LKnqECcg6Gw the RGB values are square rooted by the sensor (in
-            order to keep accuracy for lower luminancy), we need to undo this before averaging. This gives
-            results that are nicer than photoshop itself !
-            */
-            assert( (background_rgb_or_rgba.depth == ImageDepth::uint8 && (background_rgb_or_rgba.channels == 3 || background_rgb_or_rgba.channels == 4)));
-            assert(overlay_rgba.depth == ImageDepth::uint8 && overlay_rgba.channels == 4);
-
-            int bgChannels = background_rgb_or_rgba.channels;
-            ImageBuffer result = ImageBuffer::Zeros(background_rgb_or_rgba.width, background_rgb_or_rgba.height, bgChannels, ImageDepth::uint8);
-
-            parallel_for(0, result.height, [&](int y)
-            {
-                const uint8_t* bg_row = background_rgb_or_rgba.ptr<uint8_t>(y);
-                const uint8_t* ov_row = overlay_rgba.ptr<uint8_t>(y);
-                uint8_t* dst_row = result.ptr<uint8_t>(y);
-
-                for (int x = 0; x < result.width; x++)
-                {
-                    // Read overlay RGBA
-                    double ov_r = ov_row[x * 4];
-                    double ov_g = ov_row[x * 4 + 1];
-                    double ov_b = ov_row[x * 4 + 2];
-                    double ov_a = ov_row[x * 4 + 3] * alpha / 255.0;
-
-                    // Read background RGB (skip alpha if present)
-                    double bg_r = bg_row[x * bgChannels];
-                    double bg_g = bg_row[x * bgChannels + 1];
-                    double bg_b = bg_row[x * bgChannels + 2];
-
-                    // Gamma-correct alpha blending: blend in squared (linear) space, then sqrt
-                    double inv_a = 1.0 - ov_a;
-                    double out_r = std::sqrt(ov_r * ov_r * ov_a + bg_r * bg_r * inv_a);
-                    double out_g = std::sqrt(ov_g * ov_g * ov_a + bg_g * bg_g * inv_a);
-                    double out_b = std::sqrt(ov_b * ov_b * ov_a + bg_b * bg_b * inv_a);
-
-                    dst_row[x * bgChannels]     = (uint8_t)std::clamp(out_r, 0.0, 255.0);
-                    dst_row[x * bgChannels + 1] = (uint8_t)std::clamp(out_g, 0.0, 255.0);
-                    dst_row[x * bgChannels + 2] = (uint8_t)std::clamp(out_b, 0.0, 255.0);
-                    if (bgChannels == 4)
-                        dst_row[x * 4 + 3] = 255; // full opacity for output
-                }
-            });
-
-            return result;
-        }
-
-
-        ImageBuffer ToFloatMat(const ImageBuffer &mat_uchar)
-        {
-            int ch = mat_uchar.channels;
-            ImageBuffer mat_float = ImageBuffer::Zeros(mat_uchar.width, mat_uchar.height, ch, ImageDepth::float32);
-            for (int y = 0; y < mat_uchar.height; y++)
-            {
-                const uint8_t* src = mat_uchar.ptr<uint8_t>(y);
-                float* dst = mat_float.ptr<float>(y);
-                for (int x = 0; x < mat_uchar.width * ch; x++)
-                    dst[x] = (float)src[x];
-            }
-            return mat_float;
-        }
-
-        std::pair<ImageBuffer, ImageBuffer> split_alpha_channel(const ImageBuffer img_with_alpha)
-        {
-            assert(img_with_alpha.channels == 4);
-            ImageBuffer rgb = ImageBuffer::Zeros(img_with_alpha.width, img_with_alpha.height, 3, ImageDepth::uint8);
-            ImageBuffer alpha_ch = ImageBuffer::Zeros(img_with_alpha.width, img_with_alpha.height, 1, ImageDepth::uint8);
-            for (int y = 0; y < img_with_alpha.height; y++)
-            {
-                const uint8_t* src = img_with_alpha.ptr<uint8_t>(y);
-                uint8_t* dst_rgb = rgb.ptr<uint8_t>(y);
-                uint8_t* dst_a = alpha_ch.ptr<uint8_t>(y);
-                for (int x = 0; x < img_with_alpha.width; x++)
-                {
-                    dst_rgb[x * 3]     = src[x * 4];
-                    dst_rgb[x * 3 + 1] = src[x * 4 + 1];
-                    dst_rgb[x * 3 + 2] = src[x * 4 + 2];
-                    dst_a[x]           = src[x * 4 + 3];
-                }
-            }
-            return {rgb, alpha_ch};
-        }
-
-        // Set a pixel in an image with bounds checking
-        inline void _SetPixel(ImageBuffer& img, int x, int y, const Color4d& color)
-        {
-            if (x < 0 || x >= img.width || y < 0 || y >= img.height) return;
-            int ch = img.channels;
-            uint8_t* p = img.ptr<uint8_t>(y) + x * ch;
-            for (int c = 0; c < ch && c < 4; c++)
-                p[c] = (uint8_t)std::clamp(color[c], 0.0, 255.0);
-        }
-
-        // Bresenham line (no anti-aliasing, integer coordinates)
-        void _DrawLineBresenham(ImageBuffer& img, int x0, int y0, int x1, int y1, const Color4d& color, int thickness)
-        {
-            int dx = std::abs(x1 - x0), dy = std::abs(y1 - y0);
-            int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
-            int err = dx - dy;
-            int half_t = thickness / 2;
-            while (true)
-            {
-                for (int ty = -half_t; ty <= half_t; ty++)
-                    for (int tx = -half_t; tx <= half_t; tx++)
-                        _SetPixel(img, x0 + tx, y0 + ty, color);
-                if (x0 == x1 && y0 == y1) break;
-                int e2 = 2 * err;
-                if (e2 > -dy) { err -= dy; x0 += sx; }
-                if (e2 <  dx) { err += dx; y0 += sy; }
-            }
-        }
-
-        void line(ImageBuffer &image,
-                  const Point2d &a,
-                  const Point2d &b,
-                  Color4d color,
-                  int thickness /*= 1*/)
-        {
-            _DrawLineBresenham(image,
-                MathUtils::RoundInt(a.x), MathUtils::RoundInt(a.y),
-                MathUtils::RoundInt(b.x), MathUtils::RoundInt(b.y),
-                color, thickness);
-        }
-
-        // Midpoint ellipse (no anti-aliasing)
-        void _DrawEllipse(ImageBuffer& img, int cx, int cy, int rx, int ry, const Color4d& color, int thickness)
-        {
-            if (rx <= 0 || ry <= 0) return;
-            int half_t = thickness / 2;
-            auto plot = [&](int x, int y) {
-                for (int ty = -half_t; ty <= half_t; ty++)
-                    for (int tx = -half_t; tx <= half_t; tx++)
-                        _SetPixel(img, x + tx, y + ty, color);
-            };
-            // Midpoint ellipse algorithm
-            int x = 0, y = ry;
-            long long rx2 = (long long)rx * rx, ry2 = (long long)ry * ry;
-            long long p1 = ry2 - rx2 * ry + rx2 / 4;
-            while (2 * ry2 * x <= 2 * rx2 * y)
-            {
-                plot(cx + x, cy + y); plot(cx - x, cy + y);
-                plot(cx + x, cy - y); plot(cx - x, cy - y);
-                x++;
-                if (p1 < 0) p1 += 2 * ry2 * x + ry2;
-                else { y--; p1 += 2 * ry2 * x - 2 * rx2 * y + ry2; }
-            }
-            long long p2 = ry2 * (x * 2 + 1) * (x * 2 + 1) / 4 + rx2 * ((long long)y - 1) * (y - 1) - rx2 * ry2;
-            while (y >= 0)
-            {
-                plot(cx + x, cy + y); plot(cx - x, cy + y);
-                plot(cx + x, cy - y); plot(cx - x, cy - y);
-                y--;
-                if (p2 > 0) p2 -= 2 * rx2 * y + rx2;
-                else { x++; p2 += 2 * ry2 * x - 2 * rx2 * y + rx2; }
-            }
-        }
-
-        void ellipse(ImageBuffer &image,
-                     const Point2d &center,
-                     const Size2d &size,
-                     const Color4d &color,
-                     double angle /*= 0.*/,
-                     double start_angle /*=0.*/,
-                     double end_angle /*=360.*/,
-                     int thickness /*= 1*/)
-        {
-            (void)angle; (void)start_angle; (void)end_angle; // simplified: always full ellipse
-            _DrawEllipse(image,
-                MathUtils::RoundInt(center.x), MathUtils::RoundInt(center.y),
-                MathUtils::RoundInt(size.width), MathUtils::RoundInt(size.height),
-                color, thickness);
-        }
-
-        void circle(ImageBuffer &image,
-                    const Point2d &center,
-                    double radius,
-                    Color4d color,
-                    int thickness /*= 1*/)
-        {
-            ellipse(image, center, {radius, radius}, color, 0., 0., 360., thickness);
-        }
-
-        void rectangle(ImageBuffer &image,
-                       const Point2d &pt1,
-                       const Point2d &pt2,
-                       const Color4d &color,
-                       bool fill /*= false*/,
-                       int thickness /*= 1*/)
-        {
-            int x0 = MathUtils::RoundInt(pt1.x), y0 = MathUtils::RoundInt(pt1.y);
-            int x1 = MathUtils::RoundInt(pt2.x), y1 = MathUtils::RoundInt(pt2.y);
-            if (x0 > x1) std::swap(x0, x1);
-            if (y0 > y1) std::swap(y0, y1);
-
-            if (fill)
-            {
-                for (int y = y0; y <= y1; y++)
-                    for (int x = x0; x <= x1; x++)
-                        _SetPixel(image, x, y, color);
-            }
-            else
-            {
-                _DrawLineBresenham(image, x0, y0, x1, y0, color, thickness);
-                _DrawLineBresenham(image, x1, y0, x1, y1, color, thickness);
-                _DrawLineBresenham(image, x1, y1, x0, y1, color, thickness);
-                _DrawLineBresenham(image, x0, y1, x0, y0, color, thickness);
-            }
-        }
-
-        Color4d _ContrastColor(const Color4d &color)
-        {
-            return {255. - color[0], 255. - color[1], 255. - color[2], color[3]};
-        }
-
-        void rectangle_size(ImageBuffer &img,
-                            const Point2d &pt,
-                            const Size2d &size,
-                            const Color4d &color,
-                            bool fill /*= false*/,
-                            int thickness /*= 1*/)
-        {
-            Point2d pt2(pt.x + size.width, pt.y + size.height);
-            rectangle(img, pt, pt2, color, fill, thickness);
-        }
-
-        // =====================================================================
-        // Tiny 5x7 bitmap font for pixel value annotations
-        // Covers ASCII 32-127 (digits, letters, punctuation)
-        // Each glyph is stored as 7 bytes (rows), 5 bits per row (MSB = left)
-        // =====================================================================
-        // =====================================================================
-        // 8x13 bitmap font (classic X11 "fixed" style)
-        // Covers ASCII 32-127. Each glyph is 8 bits wide x 13 rows.
-        // =====================================================================
-        namespace BitmapFont
-        {
-            static const int GLYPH_W = 8;
-            static const int GLYPH_H = 13;
-
-            // Font data: 96 glyphs (ASCII 32-127), 13 bytes each
-            // Based on the classic 8x13 fixed-width bitmap font
-            // clang-format off
-            static const uint8_t glyphs[96][13] = {
-                {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // 32 ' '
-                {0x00,0x00,0x18,0x18,0x18,0x18,0x18,0x18,0x00,0x18,0x18,0x00,0x00}, // 33 '!'
-                {0x00,0x00,0x66,0x66,0x66,0x24,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // 34 '"'
-                {0x00,0x00,0x00,0x6C,0xFE,0x6C,0x6C,0x6C,0xFE,0x6C,0x00,0x00,0x00}, // 35 '#'
-                {0x00,0x18,0x18,0x7C,0xC6,0xC0,0x7C,0x06,0xC6,0x7C,0x18,0x18,0x00}, // 36 '$'
-                {0x00,0x00,0x00,0xC2,0xC6,0x0C,0x18,0x30,0x66,0xC6,0x86,0x00,0x00}, // 37 '%'
-                {0x00,0x00,0x38,0x6C,0x6C,0x38,0x76,0xDC,0xCC,0xCC,0x76,0x00,0x00}, // 38 '&'
-                {0x00,0x00,0x18,0x18,0x18,0x30,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // 39 '''
-                {0x00,0x00,0x0C,0x18,0x30,0x30,0x30,0x30,0x30,0x18,0x0C,0x00,0x00}, // 40 '('
-                {0x00,0x00,0x30,0x18,0x0C,0x0C,0x0C,0x0C,0x0C,0x18,0x30,0x00,0x00}, // 41 ')'
-                {0x00,0x00,0x00,0x00,0x66,0x3C,0xFF,0x3C,0x66,0x00,0x00,0x00,0x00}, // 42 '*'
-                {0x00,0x00,0x00,0x00,0x18,0x18,0x7E,0x18,0x18,0x00,0x00,0x00,0x00}, // 43 '+'
-                {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x18,0x18,0x18,0x30,0x00}, // 44 ','
-                {0x00,0x00,0x00,0x00,0x00,0x00,0xFE,0x00,0x00,0x00,0x00,0x00,0x00}, // 45 '-'
-                {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x18,0x18,0x00,0x00}, // 46 '.'
-                {0x00,0x00,0x02,0x06,0x0C,0x18,0x30,0x60,0xC0,0x80,0x00,0x00,0x00}, // 47 '/'
-                {0x00,0x00,0x7C,0xC6,0xCE,0xDE,0xF6,0xE6,0xC6,0xC6,0x7C,0x00,0x00}, // 48 '0'
-                {0x00,0x00,0x18,0x38,0x78,0x18,0x18,0x18,0x18,0x18,0x7E,0x00,0x00}, // 49 '1'
-                {0x00,0x00,0x7C,0xC6,0x06,0x0C,0x18,0x30,0x60,0xC6,0xFE,0x00,0x00}, // 50 '2'
-                {0x00,0x00,0x7C,0xC6,0x06,0x06,0x3C,0x06,0x06,0xC6,0x7C,0x00,0x00}, // 51 '3'
-                {0x00,0x00,0x0C,0x1C,0x3C,0x6C,0xCC,0xFE,0x0C,0x0C,0x1E,0x00,0x00}, // 52 '4'
-                {0x00,0x00,0xFE,0xC0,0xC0,0xFC,0x06,0x06,0x06,0xC6,0x7C,0x00,0x00}, // 53 '5'
-                {0x00,0x00,0x38,0x60,0xC0,0xC0,0xFC,0xC6,0xC6,0xC6,0x7C,0x00,0x00}, // 54 '6'
-                {0x00,0x00,0xFE,0xC6,0x06,0x0C,0x18,0x30,0x30,0x30,0x30,0x00,0x00}, // 55 '7'
-                {0x00,0x00,0x7C,0xC6,0xC6,0xC6,0x7C,0xC6,0xC6,0xC6,0x7C,0x00,0x00}, // 56 '8'
-                {0x00,0x00,0x7C,0xC6,0xC6,0xC6,0x7E,0x06,0x06,0x0C,0x78,0x00,0x00}, // 57 '9'
-                {0x00,0x00,0x00,0x18,0x18,0x00,0x00,0x00,0x18,0x18,0x00,0x00,0x00}, // 58 ':'
-                {0x00,0x00,0x00,0x18,0x18,0x00,0x00,0x00,0x18,0x18,0x30,0x00,0x00}, // 59 ';'
-                {0x00,0x00,0x06,0x0C,0x18,0x30,0x60,0x30,0x18,0x0C,0x06,0x00,0x00}, // 60 '<'
-                {0x00,0x00,0x00,0x00,0x00,0x7E,0x00,0x00,0x7E,0x00,0x00,0x00,0x00}, // 61 '='
-                {0x00,0x00,0x60,0x30,0x18,0x0C,0x06,0x0C,0x18,0x30,0x60,0x00,0x00}, // 62 '>'
-                {0x00,0x00,0x7C,0xC6,0xC6,0x0C,0x18,0x18,0x00,0x18,0x18,0x00,0x00}, // 63 '?'
-                {0x00,0x00,0x7C,0xC6,0xC6,0xDE,0xDE,0xDE,0xDC,0xC0,0x7C,0x00,0x00}, // 64 '@'
-                {0x00,0x00,0x10,0x38,0x6C,0xC6,0xC6,0xFE,0xC6,0xC6,0xC6,0x00,0x00}, // 65 'A'
-                {0x00,0x00,0xFC,0x66,0x66,0x66,0x7C,0x66,0x66,0x66,0xFC,0x00,0x00}, // 66 'B'
-                {0x00,0x00,0x3C,0x66,0xC2,0xC0,0xC0,0xC0,0xC2,0x66,0x3C,0x00,0x00}, // 67 'C'
-                {0x00,0x00,0xF8,0x6C,0x66,0x66,0x66,0x66,0x66,0x6C,0xF8,0x00,0x00}, // 68 'D'
-                {0x00,0x00,0xFE,0x66,0x62,0x68,0x78,0x68,0x62,0x66,0xFE,0x00,0x00}, // 69 'E'
-                {0x00,0x00,0xFE,0x66,0x62,0x68,0x78,0x68,0x60,0x60,0xF0,0x00,0x00}, // 70 'F'
-                {0x00,0x00,0x3C,0x66,0xC2,0xC0,0xC0,0xDE,0xC6,0x66,0x3A,0x00,0x00}, // 71 'G'
-                {0x00,0x00,0xC6,0xC6,0xC6,0xC6,0xFE,0xC6,0xC6,0xC6,0xC6,0x00,0x00}, // 72 'H'
-                {0x00,0x00,0x3C,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x3C,0x00,0x00}, // 73 'I'
-                {0x00,0x00,0x1E,0x0C,0x0C,0x0C,0x0C,0x0C,0xCC,0xCC,0x78,0x00,0x00}, // 74 'J'
-                {0x00,0x00,0xE6,0x66,0x6C,0x6C,0x78,0x6C,0x6C,0x66,0xE6,0x00,0x00}, // 75 'K'
-                {0x00,0x00,0xF0,0x60,0x60,0x60,0x60,0x60,0x62,0x66,0xFE,0x00,0x00}, // 76 'L'
-                {0x00,0x00,0xC6,0xEE,0xFE,0xD6,0xC6,0xC6,0xC6,0xC6,0xC6,0x00,0x00}, // 77 'M'
-                {0x00,0x00,0xC6,0xE6,0xF6,0xFE,0xDE,0xCE,0xC6,0xC6,0xC6,0x00,0x00}, // 78 'N'
-                {0x00,0x00,0x7C,0xC6,0xC6,0xC6,0xC6,0xC6,0xC6,0xC6,0x7C,0x00,0x00}, // 79 'O'
-                {0x00,0x00,0xFC,0x66,0x66,0x66,0x7C,0x60,0x60,0x60,0xF0,0x00,0x00}, // 80 'P'
-                {0x00,0x00,0x7C,0xC6,0xC6,0xC6,0xC6,0xD6,0xDE,0x7C,0x0C,0x0E,0x00}, // 81 'Q'
-                {0x00,0x00,0xFC,0x66,0x66,0x66,0x7C,0x6C,0x66,0x66,0xE6,0x00,0x00}, // 82 'R'
-                {0x00,0x00,0x7C,0xC6,0xC6,0x60,0x38,0x0C,0xC6,0xC6,0x7C,0x00,0x00}, // 83 'S'
-                {0x00,0x00,0x7E,0x7E,0x5A,0x18,0x18,0x18,0x18,0x18,0x3C,0x00,0x00}, // 84 'T'
-                {0x00,0x00,0xC6,0xC6,0xC6,0xC6,0xC6,0xC6,0xC6,0xC6,0x7C,0x00,0x00}, // 85 'U'
-                {0x00,0x00,0xC6,0xC6,0xC6,0xC6,0xC6,0xC6,0x6C,0x38,0x10,0x00,0x00}, // 86 'V'
-                {0x00,0x00,0xC6,0xC6,0xC6,0xC6,0xD6,0xD6,0xFE,0xEE,0xC6,0x00,0x00}, // 87 'W'
-                {0x00,0x00,0xC6,0xC6,0x6C,0x38,0x38,0x6C,0xC6,0xC6,0xC6,0x00,0x00}, // 88 'X'
-                {0x00,0x00,0x66,0x66,0x66,0x66,0x3C,0x18,0x18,0x18,0x3C,0x00,0x00}, // 89 'Y'
-                {0x00,0x00,0xFE,0xC6,0x8C,0x18,0x30,0x60,0xC2,0xC6,0xFE,0x00,0x00}, // 90 'Z'
-                {0x00,0x00,0x3C,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x3C,0x00,0x00}, // 91 '['
-                {0x00,0x00,0x80,0xC0,0x60,0x30,0x18,0x0C,0x06,0x02,0x00,0x00,0x00}, // 92 '\'
-                {0x00,0x00,0x3C,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x3C,0x00,0x00}, // 93 ']'
-                {0x10,0x38,0x6C,0xC6,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // 94 '^'
-                {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFE,0x00}, // 95 '_'
-                {0x00,0x30,0x18,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // 96 '`'
-                {0x00,0x00,0x00,0x00,0x00,0x78,0x0C,0x7C,0xCC,0xCC,0x76,0x00,0x00}, // 97 'a'
-                {0x00,0x00,0xE0,0x60,0x60,0x78,0x6C,0x66,0x66,0x66,0xDC,0x00,0x00}, // 98 'b'
-                {0x00,0x00,0x00,0x00,0x00,0x7C,0xC6,0xC0,0xC0,0xC6,0x7C,0x00,0x00}, // 99 'c'
-                {0x00,0x00,0x1C,0x0C,0x0C,0x3C,0x6C,0xCC,0xCC,0xCC,0x76,0x00,0x00}, // 100 'd'
-                {0x00,0x00,0x00,0x00,0x00,0x7C,0xC6,0xFE,0xC0,0xC6,0x7C,0x00,0x00}, // 101 'e'
-                {0x00,0x00,0x1C,0x36,0x30,0x30,0x7C,0x30,0x30,0x30,0x78,0x00,0x00}, // 102 'f'
-                {0x00,0x00,0x00,0x00,0x00,0x76,0xCC,0xCC,0xCC,0x7C,0x0C,0xCC,0x78}, // 103 'g'
-                {0x00,0x00,0xE0,0x60,0x60,0x6C,0x76,0x66,0x66,0x66,0xE6,0x00,0x00}, // 104 'h'
-                {0x00,0x00,0x18,0x18,0x00,0x38,0x18,0x18,0x18,0x18,0x3C,0x00,0x00}, // 105 'i'
-                {0x00,0x00,0x06,0x06,0x00,0x0E,0x06,0x06,0x06,0x06,0x66,0x66,0x3C}, // 106 'j'
-                {0x00,0x00,0xE0,0x60,0x60,0x66,0x6C,0x78,0x6C,0x66,0xE6,0x00,0x00}, // 107 'k'
-                {0x00,0x00,0x38,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x3C,0x00,0x00}, // 108 'l'
-                {0x00,0x00,0x00,0x00,0x00,0xEC,0xFE,0xD6,0xD6,0xD6,0xD6,0x00,0x00}, // 109 'm'
-                {0x00,0x00,0x00,0x00,0x00,0xDC,0x66,0x66,0x66,0x66,0x66,0x00,0x00}, // 110 'n'
-                {0x00,0x00,0x00,0x00,0x00,0x7C,0xC6,0xC6,0xC6,0xC6,0x7C,0x00,0x00}, // 111 'o'
-                {0x00,0x00,0x00,0x00,0x00,0xDC,0x66,0x66,0x66,0x7C,0x60,0x60,0xF0}, // 112 'p'
-                {0x00,0x00,0x00,0x00,0x00,0x76,0xCC,0xCC,0xCC,0x7C,0x0C,0x0C,0x1E}, // 113 'q'
-                {0x00,0x00,0x00,0x00,0x00,0xDC,0x76,0x60,0x60,0x60,0xF0,0x00,0x00}, // 114 'r'
-                {0x00,0x00,0x00,0x00,0x00,0x7C,0xC6,0x70,0x1C,0xC6,0x7C,0x00,0x00}, // 115 's'
-                {0x00,0x00,0x10,0x30,0x30,0xFC,0x30,0x30,0x30,0x36,0x1C,0x00,0x00}, // 116 't'
-                {0x00,0x00,0x00,0x00,0x00,0xCC,0xCC,0xCC,0xCC,0xCC,0x76,0x00,0x00}, // 117 'u'
-                {0x00,0x00,0x00,0x00,0x00,0xC6,0xC6,0xC6,0x6C,0x38,0x10,0x00,0x00}, // 118 'v'
-                {0x00,0x00,0x00,0x00,0x00,0xC6,0xD6,0xD6,0xFE,0xEE,0xC6,0x00,0x00}, // 119 'w'
-                {0x00,0x00,0x00,0x00,0x00,0xC6,0x6C,0x38,0x6C,0xC6,0xC6,0x00,0x00}, // 120 'x'
-                {0x00,0x00,0x00,0x00,0x00,0xC6,0xC6,0xC6,0xC6,0x7E,0x06,0x0C,0xF8}, // 121 'y'
-                {0x00,0x00,0x00,0x00,0x00,0xFE,0x8C,0x18,0x30,0x62,0xFE,0x00,0x00}, // 122 'z'
-                {0x00,0x00,0x0E,0x18,0x18,0x18,0x70,0x18,0x18,0x18,0x0E,0x00,0x00}, // 123 '{'
-                {0x00,0x00,0x18,0x18,0x18,0x18,0x00,0x18,0x18,0x18,0x18,0x00,0x00}, // 124 '|'
-                {0x00,0x00,0x70,0x18,0x18,0x18,0x0E,0x18,0x18,0x18,0x70,0x00,0x00}, // 125 '}'
-                {0x00,0x00,0x76,0xDC,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // 126 '~'
-                {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // 127 DEL
-            };
-            // clang-format on
-
-            // Get glyph width and height for a string (in pixels, before scaling)
-            inline Size getTextSize(const std::string& text)
-            {
-                return {(int)text.size() * GLYPH_W, GLYPH_H};
-            }
-
-            // Draw a string onto an ImageBuffer at integer position
-            inline void putText(ImageBuffer& img, const std::string& text, Point pos,
-                                const Color4d& color, int scale = 1)
-            {
-                for (size_t ci = 0; ci < text.size(); ci++)
-                {
-                    int c = (unsigned char)text[ci];
-                    if (c < 32 || c > 127) c = '?';
-                    const uint8_t* glyph = glyphs[c - 32];
-                    int gx0 = pos.x + (int)ci * GLYPH_W * scale;
-                    for (int gy = 0; gy < GLYPH_H; gy++)
-                    {
-                        uint8_t row = glyph[gy];
-                        for (int gx = 0; gx < GLYPH_W; gx++)
-                        {
-                            if (row & (0x80 >> gx))
-                            {
-                                for (int sy = 0; sy < scale; sy++)
-                                    for (int sx = 0; sx < scale; sx++)
-                                        _SetPixel(img, gx0 + gx * scale + sx, pos.y + gy * scale + sy, color);
-                            }
-                        }
-                    }
-                }
-            }
-        } // namespace BitmapFont
-
-        double _text_line_height(double fontScale, int /*thickness*/)
-        {
-            // fontScale=0.4 (default) -> scale=1, height=13px
-            // fontScale=0.8 -> scale=2, height=26px
-            int scale = std::max(1, MathUtils::RoundInt(fontScale * 2.5));
-            return (double)(BitmapFont::GLYPH_H * scale);
-        }
-
-        int text_oneline(ImageBuffer &img,
-                         const Point2d &position,
-                         const std::string &text,
-                         const Color4d &color,
-                         bool center_around_point /*= false*/,
-                         bool add_cartouche /*= false*/,
-                         double fontScale /*= 0.4*/,
-                         int /*thickness = 1*/)
-        {
-            int scale = std::max(1, MathUtils::RoundInt(fontScale * 2.5));
-            Size size = BitmapFont::getTextSize(text);
-            size.width *= scale;
-            size.height *= scale;
-
-            int pad = scale; // 1px padding at each side, scaled
-            Point pos = _ToPoint_NoShift(position);
-            if (center_around_point)
-                pos = {pos.x - (size.width + 2 * pad) / 2, pos.y - size.height / 2};
-
-            if (add_cartouche)
-            {
-                Point cartPos = {pos.x, pos.y};
-                rectangle_size(img, cartPos, Size2d(size.width + 2 * pad, size.height), _ContrastColor(color), true);
-            }
-            BitmapFont::putText(img, text, {pos.x + 2 * pad, pos.y}, color, scale);
-            return size.height;
-        }
-
-        void text(ImageBuffer &img,
-                  const Point2d &position,
-                  const std::string &msg,
-                  const Color4d &color,
-                  bool center_around_point /*= false*/,
-                  bool add_cartouche /*= false*/,
-                  double fontScale /*= 0.4*/,
-                  int thickness /*= 1*/)
-        {
-            auto lines = StringUtils::SplitString(msg, '\n');
-
-            double line_height = _text_line_height(fontScale, thickness) + 3.;
-            Point2d linePosition = position;
-            linePosition.y -= line_height * (double)(lines.size() - 1.) / 2.;
-            for (const auto &line: lines)
-            {
-                text_oneline(
-                    img, linePosition, line, color, center_around_point, add_cartouche, fontScale, thickness);
-                linePosition.y += line_height;
-            }
-        }
-
-        void cross_hole(ImageBuffer &img,
-                        const Point2d &position,
-                        const Color4d &color,
-                        double size /*= 2.*/,
-                        double size_hole /*= 2.*/,
-                        int thickness /*= 1*/)
-        {
-            for (double xSign: std::vector<double>{-1., 1.})
-            {
-                for (double ySign: std::vector<double>{-1., 1.})
-                {
-                    Point2d a{position.x + xSign * size_hole, position.y + ySign * size_hole};
-                    Point2d b{position.x + xSign * (size_hole + size),
-                                  position.y + ySign * (size_hole + size)};
-                    line(img, a, b, color, thickness);
-                }
-            }
-        }
-
-        void draw_ellipse(ImageBuffer &img,
-                          const Point2d &center,
-                          const Size2d &size,
-                          const Color4d &color,
-                          int thickness /*= 1*/,
-                          int /*lineType*/,
-                          int /*shift*/)
-        {
-            ellipse(img, center, size, color, 0., 0., 360., thickness);
-        }
-
-        void draw_named_feature(ImageBuffer &img,
-                                const Point2d &position,
-                                const std::string &name,
-                                const Color4d &color,
-                                bool add_cartouche /*= false*/,
-                                double size /*= 3.*/,
-                                double size_hole /*= 2.*/,
-                                int thickness /*= 1*/,
-                                double font_scale /*= 0.4*/)
-        {
-            if (add_cartouche)
-                for (auto x : std::vector<double>{-1., 1.})
-                    for (auto y : std::vector<double>{-1., 1.})
-                        cross_hole(img, position + Point2d(x, y), _ContrastColor(color), size, size_hole, thickness);
-
-            cross_hole(img, position, color, size, size_hole, thickness);
-            double delta_y = size_hole + size + 6.;
-            Point2d text_position = {position.x, position.y - delta_y};
-            text(img, text_position, name, color, true, add_cartouche, font_scale);
-        }
-
-        ImageBuffer stack_images_vertically(const ImageBuffer &img1, const ImageBuffer &img2)
-        {
-            ImageBuffer img = ImageBuffer::Zeros(img1.width, img1.height + img2.height, img1.channels, img1.depth);
-            ImageBuffer top = img.subImage(Rect(0, 0, img1.width, img1.height));
-            img1.copyTo(top);
-            ImageBuffer bottom = img.subImage(Rect(0, img1.height, img2.width, img2.height));
-            img2.copyTo(bottom);
-            return img;
-        }
-
-        ImageBuffer stack_images_horizontally(const ImageBuffer &img1, const ImageBuffer &img2)
-        {
-            ImageBuffer img = ImageBuffer::Zeros(img1.width + img2.width, img1.height, img1.channels, img1.depth);
-            ImageBuffer left = img.subImage(Rect(0, 0, img1.width, img1.height));
-            img1.copyTo(left);
-            ImageBuffer right = img.subImage(Rect(img1.width, 0, img2.width, img2.height));
-            img2.copyTo(right);
-            return img;
-        }
-
-        // Convert a value of any depth to uint8 (0-255 range)
-        template<typename T>
-        inline uint8_t to_uint8(T value)
-        {
-            if constexpr (std::is_same_v<T, uint8_t>)
-                return value;
-            else if constexpr (std::is_same_v<T, int8_t>)
-                return (uint8_t)((int)value + 128);
-            else if constexpr (std::is_same_v<T, uint16_t>)
-                return (uint8_t)(value / 257);  // maps 0-65535 -> 0-255
-            else if constexpr (std::is_same_v<T, int16_t>)
-                return (uint8_t)(((int)value + 32768) / 257);
-            else if constexpr (std::is_same_v<T, int32_t>)
-            {
-                // Scale full int32 range to 0-255
-                double v = ((double)value - (double)std::numeric_limits<int32_t>::min())
-                           * 255.0 / ((double)std::numeric_limits<int32_t>::max() - (double)std::numeric_limits<int32_t>::min());
-                return (uint8_t)std::clamp(v, 0.0, 255.0);
-            }
-            else if constexpr (std::is_floating_point_v<T>)
-            {
-                double v = (double)value * 255.0;
-                return (uint8_t)std::clamp(v, 0.0, 255.0);
-            }
-            else
-                return 0;
-        }
-
-        // Convert any ImageBuffer to RGBA uint8, with per-pixel loops
-        // Note: isBgrOrder only applies to uint8 images (OpenCV convention).
-        // Float/integer images are always treated as RGB order.
-        template<typename T>
-        ImageBuffer converted_to_rgba_typed(const ImageBuffer& mat, int nbChannels, bool isBgrOrder)
-        {
-            // BGR swap only applies to uint8 images; non-uint8 depths are always RGB
-            bool swapRB = isBgrOrder && std::is_same_v<T, uint8_t>;
-
-            ImageBuffer rgba = ImageBuffer::Zeros(mat.width, mat.height, 4, ImageDepth::uint8);
-            parallel_for(0, mat.height, [&](int y)
-            {
-                const T* src = mat.ptr<T>(y);
-                uint8_t* dst = rgba.ptr<uint8_t>(y);
-                for (int x = 0; x < mat.width; x++)
-                {
-                    uint8_t r, g, b, a;
-                    if (nbChannels == 1)
-                    {
-                        uint8_t v = to_uint8(src[x]);
-                        r = g = b = v;
-                        a = 255;
-                    }
-                    else if (nbChannels == 2)
-                    {
-                        r = to_uint8(src[x * 2]);
-                        g = to_uint8(src[x * 2 + 1]);
-                        b = 0;
-                        a = 255;
-                    }
-                    else if (nbChannels == 3)
-                    {
-                        uint8_t c0 = to_uint8(src[x * 3]);
-                        uint8_t c1 = to_uint8(src[x * 3 + 1]);
-                        uint8_t c2 = to_uint8(src[x * 3 + 2]);
-                        if (swapRB) { r = c2; g = c1; b = c0; }
-                        else        { r = c0; g = c1; b = c2; }
-                        a = 255;
-                    }
-                    else // nbChannels == 4
-                    {
-                        uint8_t c0 = to_uint8(src[x * 4]);
-                        uint8_t c1 = to_uint8(src[x * 4 + 1]);
-                        uint8_t c2 = to_uint8(src[x * 4 + 2]);
-                        uint8_t c3 = to_uint8(src[x * 4 + 3]);
-                        if (swapRB) { r = c2; g = c1; b = c0; }
-                        else        { r = c0; g = c1; b = c2; }
-                        a = c3;
-                    }
-                    dst[x * 4]     = r;
-                    dst[x * 4 + 1] = g;
-                    dst[x * 4 + 2] = b;
-                    dst[x * 4 + 3] = a;
-                }
-            });
-            return rgba;
-        }
-
-        Image_RGBA converted_to_rgba_image(const ImageBuffer &inputMat, bool isBgrOrder)
-        {
-            ImageBuffer mat = inputMat;
-            int nbChannels = mat.channels;
-
-            switch (mat.depth)
-            {
-                case ImageDepth::uint8:   return converted_to_rgba_typed<uint8_t>(mat, nbChannels, isBgrOrder);
-                case ImageDepth::int8:    return converted_to_rgba_typed<int8_t>(mat, nbChannels, isBgrOrder);
-                case ImageDepth::uint16:  return converted_to_rgba_typed<uint16_t>(mat, nbChannels, isBgrOrder);
-                case ImageDepth::int16:   return converted_to_rgba_typed<int16_t>(mat, nbChannels, isBgrOrder);
-                case ImageDepth::int32:   return converted_to_rgba_typed<int32_t>(mat, nbChannels, isBgrOrder);
-                case ImageDepth::float32: return converted_to_rgba_typed<float>(mat, nbChannels, isBgrOrder);
-                case ImageDepth::float64: return converted_to_rgba_typed<double>(mat, nbChannels, isBgrOrder);
-                default:     throw std::runtime_error("converted_to_rgba_image: unsupported depth");
-            }
-        }
-
-        ImageBuffer make_alpha_channel_checkerboard_image(const Size& size, int squareSize)
-        {
-            ImageBuffer r = ImageBuffer::Zeros(size.width, size.height, 3, ImageDepth::uint8);
-            for (int x = 0; x < size.width; x++)
-            {
-                for (int y = 0; y < size.height; y++)
-                {
-                    uint8_t colorValue = ((x / squareSize + y / squareSize) % 2 == 0) ? 102 : 152;
-                    uint8_t* p = r.ptr<uint8_t>(y) + x * 3;
-                    p[0] = colorValue;
-                    p[1] = colorValue;
-                    p[2] = colorValue;
-                }
-            }
-            return r;
-        }
-
-
-        void draw_transparent_pixel(
-            ImageBuffer &img_rgba,
-            const Point2d &position,
-            const Color4d &color,
-            double alpha
-        )
-        {
-            assert(img_rgba.depth == ImageDepth::uint8 && img_rgba.channels == 4);
-
-            auto fnLerpColor4d = [](Color4d c1, Color4d c2, double k)
-            {
-                auto fnLerp = [](double x1, double x2, double k2) {
-                    return x1 + k2 * (x2 - x1);
-                };
-                Color4d r(
-                    fnLerp(c1[0], c2[0], k),
-                    fnLerp(c1[1], c2[1], k),
-                    fnLerp(c1[2], c2[2], k),
-                    fnLerp(c1[3], c2[3], k)
-                );
-                return r;
-            };
-
-            double xFloor = (int)position.x;
-            double kx0 = 1. - (position.x - xFloor);
-            double kx1 = 1. - kx0;
-            double yFloor = (int)position.y;
-            double ky0 = 1. - (position.y - yFloor);
-            double ky1 = 1. - ky0;
-
-            std::vector<std::pair<Point2d, double>> positionAndKs {
-                { Point2d(0., 0.), kx0 * ky0 },
-                { Point2d(1., 0.), kx1 * ky0 },
-                { Point2d(0., 1.), kx0 * ky1 },
-                { Point2d(1., 1.), kx1 * ky1 }
-            };
-
-            Rect roi(Point(0, 0), img_rgba.size());
-            for (const auto& kv: positionAndKs)
-            {
-                Point pos;
-                {
-                    Point2d delta = kv.first;
-                    pos = Point((int)(position.x + delta.x), (int)(position.y + delta.y));
-                }
-                double k = kv.second;
-
-                if (!roi.contains(pos))
-                    continue;
-
-                uint8_t* pixel = img_rgba.ptr<uint8_t>(pos.y) + pos.x * 4;
-                Color4d oldColor(pixel[0], pixel[1], pixel[2], pixel[3]);
-                Color4d dstColor = fnLerpColor4d(oldColor, color, alpha * k);
-                pixel[0] = (uint8_t)std::clamp(dstColor[0], 0.0, 255.0);
-                pixel[1] = (uint8_t)std::clamp(dstColor[1], 0.0, 255.0);
-                pixel[2] = (uint8_t)std::clamp(dstColor[2], 0.0, 255.0);
-                pixel[3] = (uint8_t)std::clamp(dstColor[3], 0.0, 255.0);
-            }
-        }
-
-
-        void draw_grid(
-            ImageBuffer& img_rgba,
-            Color4d lineColor,
-            double alpha,
-            double x_spacing, double y_spacing,
-            double x_start, double y_start,
-            double x_end, double y_end
-            )
-        {
-            assert(img_rgba.depth == ImageDepth::uint8 && img_rgba.channels == 4);
-
-            for (double y = y_start; y < y_end; y+= y_spacing)
-                for (double x = 0.; x < x_end; x+= 1.)
-                    draw_transparent_pixel(img_rgba, Point2d(x, y), lineColor, alpha);
-            for (double x = x_start; x < x_end; x+= x_spacing)
-                for (double y = 0.; y < y_end; y+= 1.)
-                    draw_transparent_pixel(img_rgba, Point2d(x, y), lineColor, alpha);
-        }
-
-    }  // namespace DrawingUtils
-}  // namespace ImmVision
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/matrix_info_utils.cpp                                        //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -7063,10 +6037,21 @@ namespace ImmVision
                             Size originalImageSize
                             );
 
-        // Custom warp for scale+translate transforms (replaces cv::warpAffine)
-        enum class WarpInterp { Nearest, Bilinear, Area };
-        void WarpAffineScaleTranslate(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m, WarpInterp interp);
-        void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m);
+        // Compute UV coordinates and widget placement for GPU-based rendering.
+        // Given the zoom/pan matrix, image size, and display size, computes:
+        //   - uv0, uv1: texture coordinates (clamped to [0,1])
+        //   - widgetOffset: pixel offset within the display area for the image widget
+        //   - widgetSize: size of the image widget in display pixels
+        struct UvFromZoomPanResult
+        {
+            Point2d uv0, uv1;         // Texture coordinates
+            Point2d widgetOffset;      // Offset within display area
+            Size2d  widgetSize;        // Size of the image widget
+        };
+        UvFromZoomPanResult UvFromZoomPan(
+            const MatrixType& zoomPanMatrix,
+            Size imageSize,
+            Size displaySize);
 
 } // namespace ZoomPanTransform
 
@@ -7221,142 +6206,55 @@ namespace ImmVision
                 bri.x = std::clamp(bri.x, 0, originalImageSize.width);
                 bri.y = std::clamp(bri.y, 0, originalImageSize.height);
 
-                //                bri.x += 1;
-//                bri.y += 1;
                 roi = Rect(tli, bri);
             }
             return roi;
         }
 
-        // =====================================================================
-        // Custom warp: scale + translate only (no rotation/shear)
-        // Replaces cv::warpAffine and cv::resize for immvision's zoom/pan
-        // =====================================================================
-
-        // Sample a single pixel from src with bilinear interpolation
-        inline void _SampleBilinear(const ImageBuffer& src, double sx, double sy, uint8_t* out, int ch)
+        UvFromZoomPanResult UvFromZoomPan(
+            const MatrixType& zoomPanMatrix,
+            Size imageSize,
+            Size displaySize)
         {
-            int x0 = (int)std::floor(sx), y0 = (int)std::floor(sy);
-            int x1 = x0 + 1, y1 = y0 + 1;
-            double fx = sx - x0, fy = sy - y0;
+            double scale = zoomPanMatrix(0, 0);
+            double tx    = zoomPanMatrix(0, 2);
+            double ty    = zoomPanMatrix(1, 2);
+            double imgW  = (double)imageSize.width;
+            double imgH  = (double)imageSize.height;
+            double dispW = (double)displaySize.width;
+            double dispH = (double)displaySize.height;
 
-            // Clamp to image bounds
-            x0 = std::clamp(x0, 0, src.width - 1);
-            x1 = std::clamp(x1, 0, src.width - 1);
-            y0 = std::clamp(y0, 0, src.height - 1);
-            y1 = std::clamp(y1, 0, src.height - 1);
+            // Unclamped UVs: what portion of the image is visible in the display area
+            // display_pixel = scale * image_pixel + t
+            // image_pixel = (display_pixel - t) / scale
+            // uv = image_pixel / image_size
+            double uv0x = -tx / (scale * imgW);
+            double uv0y = -ty / (scale * imgH);
+            double uv1x = (dispW - tx) / (scale * imgW);
+            double uv1y = (dispH - ty) / (scale * imgH);
 
-            const uint8_t* p00 = src.ptr<uint8_t>(y0) + x0 * ch;
-            const uint8_t* p10 = src.ptr<uint8_t>(y0) + x1 * ch;
-            const uint8_t* p01 = src.ptr<uint8_t>(y1) + x0 * ch;
-            const uint8_t* p11 = src.ptr<uint8_t>(y1) + x1 * ch;
+            double uvRangeX = uv1x - uv0x;
+            double uvRangeY = uv1y - uv0y;
 
-            double w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy);
-            double w01 = (1 - fx) * fy, w11 = fx * fy;
+            // Clamp UVs to [0,1] and compute widget offset/size
+            double offsetX = 0., offsetY = 0.;
+            double widgetW = dispW, widgetH = dispH;
 
-            for (int c = 0; c < ch; c++)
-                out[c] = (uint8_t)std::clamp(p00[c] * w00 + p10[c] * w10 + p01[c] * w01 + p11[c] * w11, 0.0, 255.0);
+            if (uv0x < 0.) { offsetX = (-uv0x / uvRangeX) * dispW; uv0x = 0.; }
+            if (uv0y < 0.) { offsetY = (-uv0y / uvRangeY) * dispH; uv0y = 0.; }
+            if (uv1x > 1.) { uv1x = 1.; }
+            if (uv1y > 1.) { uv1y = 1.; }
+
+            widgetW = (uv1x - uv0x) / uvRangeX * dispW;
+            widgetH = (uv1y - uv0y) / uvRangeY * dispH;
+
+            UvFromZoomPanResult result;
+            result.uv0 = Point2d(uv0x, uv0y);
+            result.uv1 = Point2d(uv1x, uv1y);
+            result.widgetOffset = Point2d(offsetX, offsetY);
+            result.widgetSize = Size2d(widgetW, widgetH);
+            return result;
         }
-
-        // Area downscale with proper fractional pixel weighting.
-        // Each destination pixel covers a (scaleInv x scaleInv) region in the source.
-        // Pixels at the edges contribute proportionally to their overlap.
-        inline void _SampleArea(const ImageBuffer& src, double sx, double sy, double scaleInv, uint8_t* out, int ch)
-        {
-            double sx0 = sx, sy0 = sy;
-            double sx1 = sx + scaleInv, sy1 = sy + scaleInv;
-
-            // Clamp to source bounds
-            sx0 = std::max(sx0, 0.0);
-            sy0 = std::max(sy0, 0.0);
-            sx1 = std::min(sx1, (double)src.width);
-            sy1 = std::min(sy1, (double)src.height);
-
-            int ix0 = (int)std::floor(sx0);
-            int iy0 = (int)std::floor(sy0);
-            int ix1 = std::min((int)std::floor(sx1), src.width - 1);
-            int iy1 = std::min((int)std::floor(sy1), src.height - 1);
-
-            double sums[4] = {0, 0, 0, 0};
-            double totalWeight = 0;
-            for (int y = iy0; y <= iy1; y++)
-            {
-                // Vertical weight: fractional overlap of this row with [sy0, sy1]
-                double wy = std::min((double)(y + 1), sy1) - std::max((double)y, sy0);
-                if (wy <= 0) continue;
-
-                const uint8_t* row = src.ptr<uint8_t>(y);
-                for (int x = ix0; x <= ix1; x++)
-                {
-                    // Horizontal weight: fractional overlap of this column with [sx0, sx1]
-                    double wx = std::min((double)(x + 1), sx1) - std::max((double)x, sx0);
-                    if (wx <= 0) continue;
-
-                    double w = wx * wy;
-                    for (int c = 0; c < ch; c++)
-                        sums[c] += row[x * ch + c] * w;
-                    totalWeight += w;
-                }
-            }
-            if (totalWeight > 0)
-                for (int c = 0; c < ch; c++)
-                    out[c] = (uint8_t)std::clamp(sums[c] / totalWeight, 0.0, 255.0);
-            else
-                for (int c = 0; c < ch; c++)
-                    out[c] = 0;
-        }
-
-        // Custom warp affine for scale+translate transforms on uint8 images.
-        // m is a 3x3 homogeneous matrix (forward: src->dst).
-        // dst must be pre-allocated. Pixels outside src bounds are left unchanged (transparent border).
-        void WarpAffineScaleTranslate(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m, WarpInterp interp)
-        {
-            assert(src.depth == ImageDepth::uint8);
-            int ch = src.channels;
-            Matrix33d mInv = m.inv();
-
-            double scale = m(0, 0); // uniform scale factor
-            double scaleInv = 1.0 / std::max(scale, 1e-10);
-
-            parallel_for(0, dst.height, [&](int dy)
-            {
-                uint8_t* dstRow = dst.ptr<uint8_t>(dy);
-                for (int dx = 0; dx < dst.width; dx++)
-                {
-                    // Map destination pixel to source coordinates
-                    double sx = mInv(0, 0) * dx + mInv(0, 1) * dy + mInv(0, 2);
-                    double sy = mInv(1, 0) * dx + mInv(1, 1) * dy + mInv(1, 2);
-
-                    // Bounds check
-                    if (sx < -0.5 || sx >= src.width || sy < -0.5 || sy >= src.height)
-                        continue; // leave dst pixel unchanged (transparent border)
-
-                    uint8_t* out = dstRow + dx * ch;
-                    if (interp == WarpInterp::Nearest)
-                    {
-                        int ix = std::clamp((int)std::round(sx), 0, src.width - 1);
-                        int iy = std::clamp((int)std::round(sy), 0, src.height - 1);
-                        const uint8_t* p = src.ptr<uint8_t>(iy) + ix * ch;
-                        for (int c = 0; c < ch; c++)
-                            out[c] = p[c];
-                    }
-                    else if (interp == WarpInterp::Bilinear)
-                    {
-                        _SampleBilinear(src, sx, sy, out, ch);
-                    }
-                    else // Area
-                    {
-                        _SampleArea(src, sx, sy, scaleInv, out, ch);
-                    }
-                }
-            });
-        }
-
-        void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m)
-        {
-            WarpAffineScaleTranslate(src, dst, m, WarpInterp::Area);
-        }
-
 
     } // namespace ZoomPanTransform
 
@@ -7393,16 +6291,9 @@ namespace ImmVision
 {
     namespace ImageDrawing
     {
-        ImageBuffer DrawWatchedPixels(const ImageBuffer& image, const ImageParams& params);
-
-        void DrawGrid(ImageBuffer& inOutImageRgba, const ImageParams& params);
-
-        ImageBuffer DrawValuesOnZoomedPixels(const ImageBuffer& drawingImage, const ImageBuffer& valuesImage,
-                                         const ImageParams& params, bool drawPixelCoords);
-
-        ImageBuffer MakeSchoolPaperBackground(Size s);
-
-        void BlitImageTexture(
+        // RGBA conversion + texture upload only (no warp, no annotations).
+        // Annotations are drawn via DrawList by the caller.
+        void UpdateImageTexture(
             const ImageParams& params,
             const ImageBuffer& image,
             ImageBuffer& in_out_rgba_image_cache,
@@ -7411,6 +6302,19 @@ namespace ImmVision
         );
 
         bool HasColormapParam(const ImageParams& params);
+
+        // Draw backgrounds via DrawList (call before rendering the image)
+        void DrawSchoolPaperBackground(const ImageParams& params, ImVec2 widgetTopLeft);
+        void DrawAlphaCheckerboardBackground(const ImageParams& params, ImVec2 widgetTopLeft);
+
+        // Draw annotations (grid, pixel values, watched pixels) via ImGui DrawList
+        // in screen space, overlaying the image widget.
+        // widgetTopLeft: screen position of the display area top-left.
+        // image: the original image (for reading pixel values).
+        void DrawAnnotationsOverlay(
+            const ImageParams& params,
+            const ImageBuffer& image,
+            ImVec2 widgetTopLeft);
 
     } // namespace ImageDrawing
 
@@ -7421,164 +6325,15 @@ namespace ImmVision
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstring>  // memcpy
+#include <sstream>
+#include <algorithm> // std::count
 
 
 namespace ImmVision
 {
     namespace ImageDrawing
     {
-        static float _ImmDrawingFontScaleRatio()
-        {
-            if (ImGui::GetFontSize() < 20.f)
-                return 1.f;
-            else
-                return 1.5f;
-        }
-
-        ImageBuffer DrawWatchedPixels(const ImageBuffer& image, const ImageParams& params)
-        {
-            ImageBuffer r = image.clone();
-
-            std::vector<std::pair<size_t, Point2d>> visiblePixels;
-            {
-                for (size_t i = 0; i < params.WatchedPixels.size(); ++i)
-                {
-                    Point w = params.WatchedPixels[i];
-                    Point2d p = ZoomPanTransform::Apply(params.ZoomPanMatrix, Point2d(w));
-                    if (Rect(Point(0, 0), params.ImageDisplaySize).contains(Point((int)p.x, (int)p.y)))
-                        visiblePixels.push_back({i, p});
-                }
-            }
-
-            for (const auto& kv : visiblePixels)
-            {
-                DrawingUtils::draw_named_feature(
-                    r,         // img
-                    kv.second, // position,
-                    std::to_string(kv.first),       // name
-                    Color4d(255, 255, 255, 255), // color
-                    true, // add_cartouche
-                    4.,   // size
-                    2.5,  // size_hole
-                    1,    // thickness
-                    0.4 * (double) _ImmDrawingFontScaleRatio() // font size
-                );
-            }
-
-            return r;
-        }
-
-        void DrawGrid(ImageBuffer& inOutImageRgba, const ImageParams& params)
-        {
-            double x_spacing = (double) params.ZoomPanMatrix(0, 0);
-            double y_spacing = (double) params.ZoomPanMatrix(1, 1);
-
-            double x_start, y_start;
-            {
-                Point2d origin_unzoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), Point2d(0., 0.));
-                origin_unzoomed = Point2d(std::floor(origin_unzoomed.x) + 0.5, std::floor(origin_unzoomed.y) + 0.5);
-                Point2d origin_zoomed = ZoomPanTransform::Apply(params.ZoomPanMatrix, origin_unzoomed);
-                x_start = origin_zoomed.x;
-                y_start = origin_zoomed.y;
-            }
-            double x_end = (double)inOutImageRgba.width - 1.;
-            double y_end = (double)inOutImageRgba.height - 1.;
-
-            auto lineColor = Color4d(255, 255, 0, 255);
-            double alpha = 0.3;
-            DrawingUtils::draw_grid(inOutImageRgba, lineColor, alpha, x_spacing, y_spacing, x_start, y_start, x_end, y_end);
-        }
-
-        ImageBuffer DrawValuesOnZoomedPixels(const ImageBuffer& drawingImage, const ImageBuffer& valuesImage,
-                                         const ImageParams& params, bool drawPixelCoords)
-        {
-            assert(drawingImage.depth == ImageDepth::uint8 && drawingImage.channels == 4);
-
-            ImageBuffer r = drawingImage;
-            Point tl, br;
-            {
-                Point2d tld = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), Point2d(0., 0.));
-                Point2d brd = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(),
-                                                          Point2d((double)params.ImageDisplaySize.width,
-                                                                      (double)params.ImageDisplaySize.height));
-                tl = { (int)std::floor(tld.x), (int)std::floor(tld.y) };
-                br = { (int)std::ceil(brd.x), (int)std::ceil(brd.y) };
-            }
-
-            for (int x = tl.x; x <= br.x; x+= 1)
-            {
-                for (int y = tl.y; y <= br.y; y+= 1)
-                {
-                    std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(valuesImage, x, y, '\n', false);
-                    if (drawPixelCoords)
-                        pixelInfo = std::string("x:") + std::to_string(x) + "\n" + "y:" + std::to_string(y) + "\n" + pixelInfo;
-
-                    Point2d position = ZoomPanTransform::Apply(params.ZoomPanMatrix, Point2d((double)x, (double )y));
-
-                    Color4d textColor;
-                    {
-                        Color4d white(255, 255, 255, 255);
-                        Color4d black(0, 0, 0, 255);
-                        uint8_t bgR = 0, bgG = 0, bgB = 0;
-                        if (Rect(Point(0, 0), drawingImage.size()).contains(Point((int)position.x, (int)position.y)))
-                        {
-                            const uint8_t* bgPixel = drawingImage.ptr<uint8_t>((int)position.y) + (int)position.x * 4;
-                            bgR = bgPixel[0]; bgG = bgPixel[1]; bgB = bgPixel[2];
-                        }
-                        double luminance = bgR * 0.2126 + bgG * 0.7152 + bgB * 0.0722;
-                        if (luminance > 170.)
-                            textColor = black;
-                        else
-                            textColor = white;
-                    }
-                    DrawingUtils::text(
-                        r,
-                        position,
-                        pixelInfo,
-                        textColor,
-                        true, // center_around_point
-                        false, // add_cartouche
-                        0.42 * (double) _ImmDrawingFontScaleRatio() ,  //fontScale
-                        1     //int thickness
-                    );
-                }
-            }
-            return r;
-        };
-
-
-        ImageBuffer MakeSchoolPaperBackground(Size s)
-        {
-            ImageBuffer mat = ImageBuffer::Zeros(s.width, s.height, 4, ImageDepth::uint8);
-
-            Color4d paperColor(205, 215, 220, 255);
-            Color4d lineColor(199, 196, 184, 255);
-            mat.fill(paperColor);
-            int quadSize = 17;
-            for (int y = 0; y < s.height; y+= quadSize)
-            {
-                uint8_t* linePtr = mat.ptr<uint8_t>(y);
-                for (int x = 0; x < s.width; ++x)
-                {
-                    uint8_t* p = linePtr + x * 4;
-                    p[0] = (uint8_t)lineColor[0]; p[1] = (uint8_t)lineColor[1];
-                    p[2] = (uint8_t)lineColor[2]; p[3] = (uint8_t)lineColor[3];
-                }
-            }
-            for (int y = 0; y < s.height; y++)
-            {
-                uint8_t* linePtr = mat.ptr<uint8_t>(y);
-                for (int x = 0; x < s.width; x+=quadSize)
-                {
-                    uint8_t* p = linePtr + x * 4;
-                    p[0] = (uint8_t)lineColor[0]; p[1] = (uint8_t)lineColor[1];
-                    p[2] = (uint8_t)lineColor[2]; p[3] = (uint8_t)lineColor[3];
-                }
-            }
-            return mat;
-        }
-
-        void BlitImageTexture(
+        void UpdateImageTexture(
             const ImageParams& params,
             const ImageBuffer& image,
             ImageBuffer& in_out_rgba_image_cache,
@@ -7589,127 +6344,292 @@ namespace ImmVision
             if (image.empty())
                 return;
 
-            ImageBuffer finalImage = image.clone();
-
-            //
-            // Adjustements needed before conversion to rgba
-            //
-            auto fnSelectChannel = [&finalImage, params]()
-            {
-                // Extract a single channel from a multi-channel image
-                if (finalImage.channels > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels))
-                {
-                    int ch = params.SelectedChannel;
-                    int nch = finalImage.channels;
-                    ImageBuffer singleChannel = ImageBuffer::Zeros(finalImage.width, finalImage.height, 1, finalImage.depth);
-                    for (int y = 0; y < finalImage.height; y++)
-                    {
-                        const uint8_t* src = finalImage.ptr<uint8_t>(y);
-                        uint8_t* dst = singleChannel.ptr<uint8_t>(y);
-                        int elemSize = (int)finalImage.elemSize();
-                        for (int x = 0; x < finalImage.width; x++)
-                            std::memcpy(dst + x * elemSize, src + (x * nch + ch) * elemSize, elemSize);
-                    }
-                    finalImage = singleChannel;
-                }
-
-            };
-            auto fnAlphaCheckerboard = [&finalImage, params]()
-            {
-                if ((finalImage.depth == ImageDepth::uint8 && finalImage.channels == 4) && params.ShowAlphaChannelCheckerboard)
-                {
-                    ImageBuffer background = DrawingUtils::make_alpha_channel_checkerboard_image(finalImage.size());
-                    finalImage = DrawingUtils::overlay_alpha_image_precise(background, finalImage, 1.);
-                }
-            };
-            auto fnMakeBackground = [&params]() -> ImageBuffer
-            {
-                if (params.ShowSchoolPaperBackground)
-                    return MakeSchoolPaperBackground(params.ImageDisplaySize);
-                else
-                {
-                    ImageBuffer m = ImageBuffer::Zeros(params.ImageDisplaySize.width, params.ImageDisplaySize.height, 4, ImageDepth::uint8);
-                    m.fill(Color4d(0, 0, 0, 255));
-                    return m;
-                }
-
-            };
-
-            //
-            // Convert to rgba with adjustments if needed
-            //
             if (shall_refresh_rgba)
             {
+                ImageBuffer finalImage = image.clone();
+
                 if (HasColormapParam(params) && Colormap::CanColormap(image))
-                    finalImage = Colormap::ApplyColormap(finalImage, params.ColormapSettings); // returns a rgba image
+                {
+                    finalImage = Colormap::ApplyColormap(finalImage, params.ColormapSettings);
+                    // ApplyColormap returns RGBA; upload directly
+                    in_out_rgba_image_cache = finalImage;
+                    outTexture->UpdateFromImage(finalImage, false);
+                }
                 else
                 {
-                    fnSelectChannel();
-                    fnAlphaCheckerboard();
+                    // Extract a single channel from a multi-channel image
+                    if (finalImage.channels > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels))
+                    {
+                        int ch = params.SelectedChannel;
+                        int nch = finalImage.channels;
+                        ImageBuffer singleChannel = ImageBuffer::Zeros(finalImage.width, finalImage.height, 1, finalImage.depth);
+                        for (int y = 0; y < finalImage.height; y++)
+                        {
+                            const uint8_t* src = finalImage.ptr<uint8_t>(y);
+                            uint8_t* dst = singleChannel.ptr<uint8_t>(y);
+                            int elemSize = (int)finalImage.elemSize();
+                            for (int x = 0; x < finalImage.width; x++)
+                                std::memcpy(dst + x * elemSize, src + (x * nch + ch) * elemSize, elemSize);
+                        }
+                        finalImage = singleChannel;
+                    }
+
+                    // Let UpdateFromImage handle RGBA conversion (including BGR swap)
                     bool is_color_order_bgr = IsUsingBgrColorOrder();
-                    finalImage = DrawingUtils::converted_to_rgba_image(finalImage, is_color_order_bgr);
+                    outTexture->UpdateFromImage(finalImage, is_color_order_bgr);
+                    in_out_rgba_image_cache = finalImage;
                 }
-                in_out_rgba_image_cache = finalImage;
-                assert(finalImage.depth == ImageDepth::uint8 && finalImage.channels == 4);
+                assert(!in_out_rgba_image_cache.empty());
             }
-            else
+        }
+
+        // Convert image pixel coordinates to screen position using the zoom/pan matrix
+        static ImVec2 ImageToScreen(double imgX, double imgY, const Matrix33d& zoomPan, ImVec2 widgetTopLeft)
+        {
+            return ImVec2(
+                widgetTopLeft.x + (float)(zoomPan(0, 0) * imgX + zoomPan(0, 2)),
+                widgetTopLeft.y + (float)(zoomPan(1, 1) * imgY + zoomPan(1, 2))
+            );
+        }
+
+        static void DrawGridOverlay(const ImageParams& params, ImVec2 widgetTopLeft)
+        {
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            ImU32 gridColor = IM_COL32(255, 255, 0, 77); // yellow, ~30% alpha
+
+            // Compute visible range in image coordinates
+            Point2d tld = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), Point2d(0., 0.));
+            Point2d brd = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(),
+                Point2d((double)params.ImageDisplaySize.width, (double)params.ImageDisplaySize.height));
+
+            int firstX = (int)std::floor(tld.x);
+            int lastX  = (int)std::ceil(brd.x);
+            int firstY = (int)std::floor(tld.y);
+            int lastY  = (int)std::ceil(brd.y);
+
+            // Vertical grid lines
+            for (int x = firstX; x <= lastX; ++x)
             {
-                finalImage = in_out_rgba_image_cache;
-                assert(finalImage.depth == ImageDepth::uint8 && finalImage.channels == 4);
-                assert(!finalImage.empty());
+                ImVec2 top = ImageToScreen((double)x, (double)firstY, params.ZoomPanMatrix, widgetTopLeft);
+                ImVec2 bot = ImageToScreen((double)x, (double)lastY, params.ZoomPanMatrix, widgetTopLeft);
+                dl->AddLine(top, bot, gridColor);
             }
-
-            double gridMinZoomFactor = 12.;
-            double zoomFactor = (double)params.ZoomPanMatrix(0, 0);
-
-            //
-            // Zoom
-            //
+            // Horizontal grid lines
+            for (int y = firstY; y <= lastY; ++y)
             {
-                ZoomPanTransform::WarpInterp warpInterp;
-                if (zoomFactor < 1.0)
-                    warpInterp = ZoomPanTransform::WarpInterp::Area;
-                else if (zoomFactor < gridMinZoomFactor)
-                    warpInterp = ZoomPanTransform::WarpInterp::Bilinear;
-                else
-                    warpInterp = ZoomPanTransform::WarpInterp::Nearest;
-
-                ImageBuffer backgroundWithImage = fnMakeBackground();
-
-                ZoomPanTransform::WarpAffineScaleTranslate(
-                    finalImage, backgroundWithImage,
-                    params.ZoomPanMatrix,
-                    warpInterp);
-                finalImage = backgroundWithImage;
+                ImVec2 left  = ImageToScreen((double)firstX, (double)y, params.ZoomPanMatrix, widgetTopLeft);
+                ImVec2 right = ImageToScreen((double)lastX, (double)y, params.ZoomPanMatrix, widgetTopLeft);
+                dl->AddLine(left, right, gridColor);
             }
+        }
 
-            //
-            // Drawings on final image
-            //
+        static void DrawPixelValuesOverlay(const ImageParams& params, const ImageBuffer& image, ImVec2 widgetTopLeft)
+        {
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            double zoomFactor = params.ZoomPanMatrix(0, 0);
+
+            // Compute visible range in image coordinates
+            Point2d tld = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(), Point2d(0., 0.));
+            Point2d brd = ZoomPanTransform::Apply(params.ZoomPanMatrix.inv(),
+                Point2d((double)params.ImageDisplaySize.width, (double)params.ImageDisplaySize.height));
+            int firstX = (int)std::floor(tld.x);
+            int lastX  = (int)std::ceil(brd.x);
+            int firstY = (int)std::floor(tld.y);
+            int lastY  = (int)std::ceil(brd.y);
+
+            bool drawPixelCoords = zoomFactor > 80.;
+
+            // Font size scales with the pixel cell size, capped at the ImGui font size
+            float cellSize = (float)zoomFactor;
+            float fontSize = std::min(cellSize * 0.25f, ImGui::GetFontSize());
+
+            for (int y = firstY; y <= lastY; ++y)
             {
-                // Draw grid
-                if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
-                    DrawGrid(finalImage, params);
-
-                // Draw Pixel Values
-                double drawPixelvaluesMinZoomFactor = (image.depth == ImageDepth::uint8) ? 36. : 48.;
-                if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelvaluesMinZoomFactor)
+                for (int x = firstX; x <= lastX; ++x)
                 {
-                    double drawPixelCoordsMinZoomFactor = 80.;
-                    bool drawPixelCoords = zoomFactor > drawPixelCoordsMinZoomFactor;
-                    finalImage = DrawValuesOnZoomedPixels(finalImage, image, params, drawPixelCoords);
+                    if (x < 0 || y < 0 || x >= image.width || y >= image.height)
+                        continue;
+
+                    std::string pixelInfo = MatrixInfoUtils::MatPixelColorInfo(image, x, y, '\n', false);
+                    if (drawPixelCoords)
+                        pixelInfo = std::string("x:") + std::to_string(x) + "\n" + "y:" + std::to_string(y) + "\n" + pixelInfo;
+
+                    // Position: center of the pixel cell in screen space
+                    ImVec2 cellCenter = ImageToScreen((double)x + 0.5, (double)y + 0.5, params.ZoomPanMatrix, widgetTopLeft);
+
+                    // Smart text color: black on light backgrounds, white on dark
+                    ImU32 textColor;
+                    {
+                        // Approximate luminance from source pixel
+                        double luminance = 128.;
+                        if (image.depth == ImageDepth::uint8 && image.channels >= 1)
+                        {
+                            const uint8_t* p = image.ptr<uint8_t>(y) + x * image.channels;
+                            if (image.channels >= 3)
+                                luminance = p[0] * 0.2126 + p[1] * 0.7152 + p[2] * 0.0722;
+                            else
+                                luminance = p[0];
+                        }
+                        textColor = (luminance > 170.) ? IM_COL32(0, 0, 0, 255) : IM_COL32(255, 255, 255, 255);
+                    }
+
+                    // Draw each line of the pixel info, centered in the cell
+                    std::istringstream stream(pixelInfo);
+                    std::string line;
+                    int lineIdx = 0;
+                    int lineCount = (int)std::count(pixelInfo.begin(), pixelInfo.end(), '\n') + 1;
+                    float lineHeight = fontSize + 1.f;
+                    float totalHeight = lineHeight * lineCount;
+                    float startY = cellCenter.y - totalHeight / 2.f;
+
+                    while (std::getline(stream, line))
+                    {
+                        ImVec2 textSize = ImGui::CalcTextSize(line.c_str());
+                        float scaledWidth = textSize.x * (fontSize / ImGui::GetFontSize());
+                        ImVec2 pos(cellCenter.x - scaledWidth / 2.f, startY + lineIdx * lineHeight);
+                        dl->AddText(ImGui::GetFont(), fontSize, pos, textColor, line.c_str());
+                        lineIdx++;
+                    }
+                }
+            }
+        }
+
+        static void DrawWatchedPixelsOverlay(const ImageParams& params, ImVec2 widgetTopLeft)
+        {
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+
+            for (size_t i = 0; i < params.WatchedPixels.size(); ++i)
+            {
+                Point w = params.WatchedPixels[i];
+                // Center of the watched pixel in screen space
+                ImVec2 center = ImageToScreen((double)w.x + 0.5, (double)w.y + 0.5, params.ZoomPanMatrix, widgetTopLeft);
+
+                // Check if visible in the display area
+                if (center.x < widgetTopLeft.x || center.y < widgetTopLeft.y
+                    || center.x > widgetTopLeft.x + params.ImageDisplaySize.width
+                    || center.y > widgetTopLeft.y + params.ImageDisplaySize.height)
+                    continue;
+
+                // Cross-hole marker with black outline + white fill for visibility on any background
+                float em = ImGui::GetFontSize(); // adapt to DPI
+                float crossSize = em * 0.4f;
+                float holeSize =  em * 0.1f;
+                ImU32 outlineColor = IM_COL32(0, 0, 0, 220);
+                ImU32 fillColor = IM_COL32(255, 255, 255, 255);
+
+                // Four diagonal lines forming a cross with a hole in the center
+                // Each line drawn twice: black outline first, then white on top
+                ImVec2 ends[4][2] = {
+                    { {center.x - crossSize, center.y - crossSize}, {center.x - holeSize, center.y - holeSize} },
+                    { {center.x + holeSize, center.y - holeSize},   {center.x + crossSize, center.y - crossSize} },
+                    { {center.x - crossSize, center.y + crossSize}, {center.x - holeSize, center.y + holeSize} },
+                    { {center.x + holeSize, center.y + holeSize},   {center.x + crossSize, center.y + crossSize} },
+                };
+                for (auto& e : ends)
+                {
+                    dl->AddLine(e[0], e[1], outlineColor, 3.f);
+                    dl->AddLine(e[0], e[1], fillColor, 1.5f);
                 }
 
-                // Draw Watched Pixels
-                if (params.HighlightWatchedPixels && (! params.WatchedPixels.empty()))
-                    finalImage = DrawWatchedPixels(finalImage, params);
-
+                // Label with background, spaced away from the cross
+                std::string label = std::to_string(i);
+                ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
+                float labelGap = crossSize + em * 0.4f;
+                ImVec2 labelPos(center.x + labelGap, center.y - textSize.y / 2.f);
+                ImVec2 bgPad(3.f, 2.f);
+                dl->AddRectFilled(
+                    ImVec2(labelPos.x - bgPad.x, labelPos.y - bgPad.y),
+                    ImVec2(labelPos.x + textSize.x + bgPad.x, labelPos.y + textSize.y + bgPad.y),
+                    IM_COL32(0, 0, 0, 200), 3.f);
+                dl->AddRect(
+                    ImVec2(labelPos.x - bgPad.x, labelPos.y - bgPad.y),
+                    ImVec2(labelPos.x + textSize.x + bgPad.x, labelPos.y + textSize.y + bgPad.y),
+                    IM_COL32(255, 255, 255, 150), 3.f);
+                dl->AddText(labelPos, IM_COL32(255, 255, 255, 255), label.c_str());
             }
+        }
 
-            //
-            // Blit
-            //
-            outTexture->UpdateFromImage(finalImage, false);
+        void DrawAlphaCheckerboardBackground(const ImageParams& params, ImVec2 widgetTopLeft)
+        {
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            float w = (float)params.ImageDisplaySize.width;
+            float h = (float)params.ImageDisplaySize.height;
+            ImVec2 tl = widgetTopLeft;
+
+            // Checkerboard with two gray tones (matching the original 30px squares)
+            ImU32 colorA = IM_COL32(190, 190, 190, 255);
+            ImU32 colorB = IM_COL32(240, 240, 240, 255);
+            float squareSize = 30.f;
+
+            // Fill background with one color, then draw squares of the other
+            dl->AddRectFilled(tl, ImVec2(tl.x + w, tl.y + h), colorA);
+            for (float y = 0; y < h; y += squareSize)
+            {
+                for (float x = 0; x < w; x += squareSize)
+                {
+                    int ix = (int)(x / squareSize);
+                    int iy = (int)(y / squareSize);
+                    if ((ix + iy) % 2 == 0)
+                    {
+                        float x0 = tl.x + x;
+                        float y0 = tl.y + y;
+                        float x1 = std::min(x0 + squareSize, tl.x + w);
+                        float y1 = std::min(y0 + squareSize, tl.y + h);
+                        dl->AddRectFilled(ImVec2(x0, y0), ImVec2(x1, y1), colorB);
+                    }
+                }
+            }
+        }
+
+        void DrawSchoolPaperBackground(const ImageParams& params, ImVec2 widgetTopLeft)
+        {
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            float w = (float)params.ImageDisplaySize.width;
+            float h = (float)params.ImageDisplaySize.height;
+            ImVec2 tl = widgetTopLeft;
+            ImVec2 br(tl.x + w, tl.y + h);
+
+            // Paper background
+            ImU32 paperColor = IM_COL32(205, 215, 220, 255);
+            ImU32 lineColor  = IM_COL32(199, 196, 184, 255);
+            dl->AddRectFilled(tl, br, paperColor);
+
+            // Grid lines every 17 pixels
+            float quadSize = 17.f;
+            for (float y = tl.y; y < br.y; y += quadSize)
+                dl->AddLine(ImVec2(tl.x, y), ImVec2(br.x, y), lineColor);
+            for (float x = tl.x; x < br.x; x += quadSize)
+                dl->AddLine(ImVec2(x, tl.y), ImVec2(x, br.y), lineColor);
+        }
+
+        void DrawAnnotationsOverlay(
+            const ImageParams& params,
+            const ImageBuffer& image,
+            ImVec2 widgetTopLeft)
+        {
+            double zoomFactor = params.ZoomPanMatrix(0, 0);
+            double gridMinZoomFactor = 12.;
+
+            // Clip all annotations to the image display area
+            ImVec2 clipMin = widgetTopLeft;
+            ImVec2 clipMax(widgetTopLeft.x + (float)params.ImageDisplaySize.width,
+                           widgetTopLeft.y + (float)params.ImageDisplaySize.height);
+            ImGui::GetWindowDrawList()->PushClipRect(clipMin, clipMax, true);
+
+            // Draw grid
+            if (params.ShowGrid && zoomFactor >= gridMinZoomFactor)
+                DrawGridOverlay(params, widgetTopLeft);
+
+            // Draw pixel values
+            double drawPixelValuesMinZoomFactor = (image.depth == ImageDepth::uint8) ? 36. : 48.;
+            if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelValuesMinZoomFactor)
+                DrawPixelValuesOverlay(params, image, widgetTopLeft);
+
+            // Draw watched pixel markers
+            if (params.HighlightWatchedPixels && !params.WatchedPixels.empty())
+                DrawWatchedPixelsOverlay(params, widgetTopLeft);
+
+            ImGui::GetWindowDrawList()->PopClipRect();
         }
 
         bool HasColormapParam(const ImageParams &params)
@@ -7742,10 +6662,11 @@ namespace ImmVision
             ZoomFullView,
             AdjustLevels,
         };
-        ImTextureID GetIcon(IconType iconType);
 
+        // Draw an icon button using DrawList (no textures needed)
         bool IconButton(IconType iconType, bool disabled = false);
 
+        // No-op (kept for API compatibility with gl_provider reset)
         void ClearIconsTextureCache();
 
         void DevelPlaygroundGui();
@@ -7762,282 +6683,144 @@ namespace ImmVision
 {
     namespace Icons
     {
-        static Size iconsSizeDraw(200, 200);
-        auto ScalePoint = [](Point2d p) {
-            return Point2d(p.x * (double) iconsSizeDraw.width, p.y * (double) iconsSizeDraw.height);
-        };
-        auto ScaleDouble = [](double v) {
-            return v * (double) iconsSizeDraw.width;
-        };
-        auto ScaleInt = [](double v) {
-            return (int) (v * (double) iconsSizeDraw.width + 0.5);
-        };
-
-        auto PointFromOther = [](Point2d o, double angleDegree, double distance) {
-            double m_pi = 3.14159265358979323846;
-            double angleRadian = -angleDegree / 180. * m_pi;
-            Point2d r(o.x + cos(angleRadian) * distance, o.y + sin(angleRadian) * distance);
-            return r;
-        };
-
-
-        ImageBuffer MakeMagnifierImage(IconType iconType)
+        // Helper: compute a point at (angle, distance) from origin
+        static ImVec2 PointFromOther(ImVec2 o, float angleDegree, float distance)
         {
-            using namespace ImmVision;
-            ImageBuffer m = ImageBuffer::Zeros(iconsSizeDraw.width, iconsSizeDraw.height, 4, ImageDepth::uint8);
+            float angleRadian = -angleDegree / 180.f * 3.14159265f;
+            return ImVec2(o.x + cosf(angleRadian) * distance, o.y + sinf(angleRadian) * distance);
+        }
 
-            // Transparent background
-            m.fill(Color4d(0, 0, 0, 0));
+        static void DrawMagnifier(ImDrawList* dl, ImVec2 tl, float size, IconType iconType)
+        {
+            // The glass is centered in the upper-right area, with the handle pointing to the lower-left
+            float radius = size * 0.24f;
+            // Offset the glass center so the whole icon (glass + handle) is visually centered
+            ImVec2 btnCenter(tl.x + size * 0.5f, tl.y + size * 0.5f);
+            ImVec2 glassCenter(btnCenter.x + size * 0.06f, btnCenter.y - size * 0.06f);
+            ImU32 color = IM_COL32(255, 255, 255, 255);
+            ImU32 shadow = IM_COL32(100, 100, 100, 180);
+            float thick = size * 0.06f;
+            float handleThick = size * 0.1f;
 
-            Color4d color(255, 255, 255, 255);
-            double radius = 0.3;
-            Point2d center(1. - radius * 1.3, radius * 1.2);
-            // Draw shadow
-            {
-                Point2d decal(radius * 0.1, radius * 0.1);
-                Color4d color_shadow(127, 127, 127, 255);
+            // Handle endpoints
+            ImVec2 handleInner = PointFromOther(glassCenter, 225.f, radius * 1.05f);
+            ImVec2 handleOuter = PointFromOther(glassCenter, 225.f, radius * 1.85f);
+            ImVec2 shadowOff(size * 0.02f, size * 0.02f);
 
-                DrawingUtils::circle(
-                    m, //image,
-                    ScalePoint(center + decal),
-                    ScaleDouble(radius), //radius
-                    color_shadow,
-                    ScaleInt(0.08)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 1.7) + decal),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.03) + decal),
-                    color_shadow,
-                    ScaleInt(0.08)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 2.3) + decal),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.5) + decal),
-                    color_shadow,
-                    ScaleInt(0.14)
-                );
-            }
-            // Draw magnifier
-            {
-                DrawingUtils::circle(
-                    m, //image,
-                    ScalePoint(center),
-                    ScaleDouble(radius), //radius
-                    color,
-                    ScaleInt(0.08)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 1.7)),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.03)),
-                    color,
-                    ScaleInt(0.08)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 225., radius * 2.3)),
-                    ScalePoint(PointFromOther(center, 225., radius * 1.5)),
-                    color,
-                    ScaleInt(0.14)
-                );
-            }
+            // Shadow
+            dl->AddCircle(ImVec2(glassCenter.x + shadowOff.x, glassCenter.y + shadowOff.y), radius, shadow, 0, thick);
+            dl->AddLine(ImVec2(handleInner.x + shadowOff.x, handleInner.y + shadowOff.y),
+                        ImVec2(handleOuter.x + shadowOff.x, handleOuter.y + shadowOff.y), shadow, handleThick);
 
+            // Magnifier glass
+            dl->AddCircle(glassCenter, radius, color, 0, thick);
+            // Handle
+            dl->AddLine(handleInner, handleOuter, color, handleThick);
+
+            // Plus/minus/1 inside the glass — centered on glassCenter
+            float symbolLen = radius * 0.5f;
+            float symbolThick = size * 0.05f;
+            ImVec2 symbolCenter = glassCenter;
+            symbolCenter.x -= size * 0.02f;
+            symbolCenter.y -= size * 0.02f;
             if (iconType == IconType::ZoomPlus)
             {
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 90., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 270., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
+                dl->AddLine(ImVec2(symbolCenter.x - symbolLen, symbolCenter.y),
+                            ImVec2(symbolCenter.x + symbolLen, symbolCenter.y), color, symbolThick);
+                dl->AddLine(ImVec2(symbolCenter.x, symbolCenter.y - symbolLen),
+                            ImVec2(symbolCenter.x, symbolCenter.y + symbolLen), color, symbolThick);
             }
-            if (iconType == IconType::ZoomMinus)
+            else if (iconType == IconType::ZoomMinus)
             {
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(PointFromOther(center, 0., radius * 0.6)),
-                    ScalePoint(PointFromOther(center, 180., radius * 0.6)),
-                    color,
-                    ScaleInt(0.06)
-                );
+                dl->AddLine(ImVec2(symbolCenter.x - symbolLen, symbolCenter.y),
+                            ImVec2(symbolCenter.x + symbolLen, symbolCenter.y), color, symbolThick);
             }
-            if (iconType == IconType::ZoomScaleOne)
+            else if (iconType == IconType::ZoomScaleOne)
             {
-                Point2d a = PointFromOther(center, -90., radius * 0.45);
-                Point2d b = PointFromOther(center, 90., radius * 0.45);
-                a.x += radius * 0.05;
-                b.x += radius * 0.05;
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(a),
-                    ScalePoint(b),
-                    color,
-                    ScaleInt(0.06)
-                );
-                Point2d c(b.x - radius * 0.2, b.y + radius * 0.2);
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(b),
-                    ScalePoint(c),
-                    color,
-                    ScaleInt(0.06)
-                );
+                // "1" inside the glass — vertical stroke + serif
+                float h = radius * 0.4f;
+                ImVec2 top(symbolCenter.x, symbolCenter.y - h);
+                ImVec2 bot(symbolCenter.x, symbolCenter.y + h);
+                dl->AddLine(top, bot, color, symbolThick);
+                ImVec2 serif(top.x - radius * 0.15f, top.y + radius * 0.15f);
+                dl->AddLine(top, serif, color, symbolThick);
             }
-
-            return m;
         }
 
-
-        ImageBuffer MakeFullViewImage()
+        static void DrawFullView(ImDrawList* dl, ImVec2 tl, float size)
         {
-            ImageBuffer m = ImageBuffer::Zeros(iconsSizeDraw.width, iconsSizeDraw.height, 4, ImageDepth::uint8);
-            m.fill(Color4d(0, 0, 0, 0));
+            size *= 0.95;
 
-            Color4d color(255, 255, 255, 255);
-            double decal = 0.1;
-            double length_x = 0.3, length_y = 0.3;
-            for (int y = 0; y <= 1; ++y)
+            ImU32 color = IM_COL32(255, 255, 255, 255);
+            float margin = size * 0.15f;
+            float armLen = size * 0.25f;
+            float thick = size * 0.07f;
+
+            // Four corner brackets
+            for (int iy = 0; iy <= 1; ++iy)
             {
-                for (int x = 0; x <= 1; ++x)
+                for (int ix = 0; ix <= 1; ++ix)
                 {
-                    Point2d corner;
-
-                    corner.x = (x == 0) ? decal : 1. - decal;
-                    corner.y = (y == 0) ? decal : 1. - decal;
-                    double moveX = (x == 0) ? length_x : -length_x;
-                    double moveY = (y == 0) ? length_y : -length_y;
-                    Point2d pt_x(corner.x + moveX, corner.y);
-                    Point2d pt_y(corner.x, corner.y + moveY);
-                    int thickness = ScaleInt(0.09);
-                    DrawingUtils::line(
-                        m,
-                        ScalePoint(corner),
-                        ScalePoint(pt_x),
-                        color,
-                        thickness
-                    );
-                    DrawingUtils::line(
-                        m,
-                        ScalePoint(corner),
-                        ScalePoint(pt_y),
-                        color,
-                        thickness
-                    );
+                    ImVec2 corner(
+                        ix == 0 ? tl.x + margin : tl.x + size - margin,
+                        iy == 0 ? tl.y + margin : tl.y + size - margin);
+                    float dx = ix == 0 ? armLen : -armLen;
+                    float dy = iy == 0 ? armLen : -armLen;
+                    dl->AddLine(corner, ImVec2(corner.x + dx, corner.y), color, thick);
+                    dl->AddLine(corner, ImVec2(corner.x, corner.y + dy), color, thick);
                 }
             }
-            return m;
         }
 
-        ImageBuffer MakeAdjustLevelsImage()
+        static void DrawAdjustLevels(ImDrawList* dl, ImVec2 tl, float size)
         {
-            ImageBuffer m = ImageBuffer::Zeros(iconsSizeDraw.width, iconsSizeDraw.height, 4, ImageDepth::uint8);
-            m.fill(Color4d(0, 0, 0, 0));
-            Color4d color(255, 255, 255, 255);
+            ImU32 color = IM_COL32(255, 255, 255, 255);
+            float thick = size * 0.08f;
+            float sliderThick = size * 0.15f;
 
-            double yMin = 0.15, yMax = 0.8;
+            tl.x -= size * 0.02f;
+            float yMin = tl.y + size * 0.15f;
+            float yMax = tl.y + size * 0.85f;
             int nbBars = 3;
+            float sliderPositions[] = { 0.70f, 0.50f, 0.30f };
+
             for (int bar = 0; bar < nbBars; ++bar)
             {
-                double xBar = (double)bar / ((double)(nbBars) + 0.17) + 0.2;
-                Point2d a(xBar, yMin);
-                Point2d b(xBar, yMax);
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(a),
-                    ScalePoint(b),
-                    color,
-                    ScaleInt(0.08)
-                );
+                float xBar = tl.x + ((float)bar / ((float)nbBars + 0.17f) + 0.2f) * size;
+                dl->AddLine(ImVec2(xBar, yMin), ImVec2(xBar, yMax), color, thick);
 
-                double barWidth = 0.1;
-                double yBar = 0.7 - 0.2 * (double)bar;
-                Point2d c(a.x - barWidth / 2., yBar);
-                Point2d d(a.x + barWidth / 2., yBar);
-                DrawingUtils::line(
-                    m, //image,
-                    ScalePoint(c),
-                    ScalePoint(d),
-                    color,
-                    ScaleInt(0.16)
-                );
+                float ySlider = tl.y + sliderPositions[bar] * size;
+                float halfW = size * 0.08f;
+                dl->AddLine(ImVec2(xBar - halfW, ySlider), ImVec2(xBar + halfW, ySlider), color, sliderThick);
             }
-
-            return m;
-        }
-
-
-        static std::map<IconType, std::unique_ptr<GlTexture>> sIconsTextureCache;
-
-        Size IconSize()
-        {
-            // Make icons size proportionnal to font size
-            float k = ImGui::GetFontSize() / 14.5f;
-            int size = int(k * 20.f);
-            return {size, size};
-        }
-
-        ImTextureID GetIcon(IconType iconType)
-        {
-            if (sIconsTextureCache.find(iconType) == sIconsTextureCache.end())
-            {
-                ImageBuffer m;
-                if (iconType == IconType::ZoomFullView)
-                    m = MakeFullViewImage();
-                else if (iconType == IconType::AdjustLevels)
-                    m = MakeAdjustLevelsImage();
-                else
-                    m = MakeMagnifierImage(iconType);
-
-                // Simple nearest-neighbor 2x resize for icons
-                int dstW = IconSize().width * 2, dstH = IconSize().height * 2;
-                ImageBuffer resized = ImageBuffer::Zeros(dstW, dstH, m.channels, m.depth);
-                for (int y = 0; y < dstH; y++)
-                    for (int x = 0; x < dstW; x++)
-                    {
-                        int sx = x * m.width / dstW, sy = y * m.height / dstH;
-                        int ch = m.channels;
-                        const uint8_t* src = m.ptr<uint8_t>(sy) + sx * ch;
-                        uint8_t* dst = resized.ptr<uint8_t>(y) + x * ch;
-                        for (int c = 0; c < ch; c++) dst[c] = src[c];
-                    }
-                auto texture = std::make_unique<GlTexture>(resized, true);
-                sIconsTextureCache[iconType] = std::move(texture);
-            }
-            return sIconsTextureCache[iconType]->TextureId;
         }
 
         bool IconButton(IconType iconType, bool disabled)
         {
             ImGui::PushID((int)iconType);
-            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-            ImU32 backColorEnabled = ImGui::ColorConvertFloat4ToU32(ImVec4 (1.f, 1.f, 1.f, 1.f));
-            ImU32 backColorDisabled = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 0.9f, 0.5f));
-            ImU32 backColor = disabled ? backColorDisabled : backColorEnabled;
             if (disabled)
                 ImGuiImm::PushDisabled();
 
-            // Cannot use InvisibleButton, since it does not handle "Repeat"
-            ImVec2 btnSize(ImGui::GetFontSize() * 1.5f, ImGui::GetFontSize() * 1.5f);
-            bool clicked = ImGui::Button("##btn", btnSize);
+            float btnSize = ImGui::GetFontSize() * 1.5f;
+            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+            bool clicked = ImGui::Button("##btn", ImVec2(btnSize, btnSize));
 
-            ImGui::GetWindowDrawList()->AddImage(
-                GetIcon(iconType),
-                cursorPos,
-                {cursorPos.x + (float)IconSize().width, cursorPos.y + (float)IconSize().height},
-                ImVec2(0.f, 0.f),
-                ImVec2(1.f, 1.f),
-                backColor
-                );
+            // Draw icon shapes on top of the button
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            switch (iconType)
+            {
+            case IconType::ZoomPlus:
+            case IconType::ZoomMinus:
+            case IconType::ZoomScaleOne:
+                DrawMagnifier(dl, cursorPos, btnSize, iconType);
+                break;
+            case IconType::ZoomFullView:
+                DrawFullView(dl, cursorPos, btnSize);
+                break;
+            case IconType::AdjustLevels:
+                DrawAdjustLevels(dl, cursorPos, btnSize);
+                break;
+            }
 
             if (disabled)
                 ImGuiImm::PopDisabled();
@@ -8045,37 +6828,25 @@ namespace ImmVision
             return disabled ? false : clicked;
         }
 
+        void ClearIconsTextureCache()
+        {
+            // No texture cache to clear anymore — icons are drawn via DrawList
+        }
 
         void DevelPlaygroundGui()
         {
-            static ImageBuffer mag = MakeMagnifierImage(IconType::ZoomScaleOne);
-            static ImageBuffer img = MakeAdjustLevelsImage();
-
-            static ImmVision::ImageParams imageParams1;
-            imageParams1.ImageDisplaySize = {400, 400};
-            ImmVision::Image("test", mag, &imageParams1);
-
+            IconButton(IconType::ZoomPlus);
             ImGui::SameLine();
-
-            static ImmVision::ImageParams imageParams2;
-            imageParams2.ImageDisplaySize = {400, 400};
-            ImmVision::Image("test2", img, &imageParams2);
-
-            ImVec2 iconSize(15.f, 15.f);
-            ImGui::ImageButton("ZoomScaleOne", GetIcon(IconType::ZoomScaleOne), iconSize);
-            ImGui::ImageButton("ZoomPlus", GetIcon(IconType::ZoomPlus), iconSize);
-            ImGui::ImageButton("ZoomMinus", GetIcon(IconType::ZoomMinus), iconSize);
-            ImGui::ImageButton("ZoomFullView", GetIcon(IconType::ZoomFullView), iconSize);
-            ImGui::ImageButton("AdjustLevels", GetIcon(IconType::AdjustLevels), iconSize);
+            IconButton(IconType::ZoomMinus);
+            ImGui::SameLine();
+            IconButton(IconType::ZoomScaleOne);
+            ImGui::SameLine();
+            IconButton(IconType::ZoomFullView);
+            ImGui::SameLine();
+            IconButton(IconType::AdjustLevels);
         }
 
-        void ClearIconsTextureCache()
-        {
-            Icons::sIconsTextureCache.clear();
-        }
-
-} // namespace Icons
-
+    } // namespace Icons
 
 } // namespace ImmVision
 
@@ -8097,9 +6868,21 @@ namespace ImmVision_GlProvider
     // InitGlProvider must be called before the OpenGl Loader is reset
     void ResetGlProvider();
 
+    // Upload RGBA pixel data to a texture and generate mipmaps.
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, ImTextureID textureId);
     ImTextureID GenTexture();
     void DeleteTexture(ImTextureID texture_id);
+
+    // GL texture filtering modes (values match OpenGL constants)
+    enum class TextureFilter
+    {
+        Nearest,           // GL_NEAREST — pixel-perfect at high zoom
+        Linear,            // GL_LINEAR — smooth interpolation
+        LinearMipmapLinear // GL_LINEAR_MIPMAP_LINEAR — trilinear, for downsampling
+    };
+
+    // Set the min/mag filtering mode for a texture.
+    void SetTextureFiltering(ImTextureID textureId, TextureFilter minFilter, TextureFilter magFilter);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -8205,23 +6988,16 @@ namespace ImmVision_GlProvider
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, ImTextureID textureId)
     {
-        //static int counter = 0;
-        //++counter;
-        //std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
         GLuint textureIdAsUint = (GLuint)(size_t)textureId;
         glBindTexture(GL_TEXTURE_2D, textureIdAsUint);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-#if defined(__EMSCRIPTEN__) || defined(IMMVISION_USE_GLES2) || defined(IMMVISION_USE_GLES3)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        // glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
-        GLenum gl_color_flag_input = GL_RGBA;
-        GLenum gl_color_flag_output = GL_RGBA;
-        glTexImage2D(GL_TEXTURE_2D, 0, gl_color_flag_input,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                      image_width,
-                     image_height, 0, gl_color_flag_output, GL_UNSIGNED_BYTE, image_data);
+                     image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
@@ -8241,6 +7017,26 @@ namespace ImmVision_GlProvider
         GLuint textureIdAsUint = (GLuint)(size_t)texture_id;
         glDeleteTextures(1, &textureIdAsUint);
     }
+
+    static GLenum ToGlFilter(TextureFilter f)
+    {
+        switch (f)
+        {
+        case TextureFilter::Nearest:           return GL_NEAREST;
+        case TextureFilter::Linear:            return GL_LINEAR;
+        case TextureFilter::LinearMipmapLinear: return GL_LINEAR_MIPMAP_LINEAR;
+        }
+        return GL_LINEAR;
+    }
+
+    void SetTextureFiltering(ImTextureID textureId, TextureFilter minFilter, TextureFilter magFilter)
+    {
+        GLuint textureIdAsUint = (GLuint)(size_t)textureId;
+        glBindTexture(GL_TEXTURE_2D, textureIdAsUint);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, ToGlFilter(minFilter));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, ToGlFilter(magFilter));
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 #endif // #ifndef IMMVISION_BUILDING_PYBIND
@@ -8250,9 +7046,115 @@ namespace ImmVision_GlProvider
 //                       src/immvision/internal/gl/gl_texture.cpp                                               //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>  // std::clamp
 
 namespace ImmVision
 {
+    namespace
+    {
+        // Convert a value of any depth to uint8 (0-255 range)
+        template<typename T>
+        inline uint8_t to_uint8(T value)
+        {
+            if constexpr (std::is_same_v<T, uint8_t>)
+                return value;
+            else if constexpr (std::is_same_v<T, int8_t>)
+                return (uint8_t)((int)value + 128);
+            else if constexpr (std::is_same_v<T, uint16_t>)
+                return (uint8_t)(value / 257);  // maps 0-65535 -> 0-255
+            else if constexpr (std::is_same_v<T, int16_t>)
+                return (uint8_t)(((int)value + 32768) / 257);
+            else if constexpr (std::is_same_v<T, int32_t>)
+            {
+                double v = ((double)value - (double)std::numeric_limits<int32_t>::min())
+                           * 255.0 / ((double)std::numeric_limits<int32_t>::max() - (double)std::numeric_limits<int32_t>::min());
+                return (uint8_t)std::clamp(v, 0.0, 255.0);
+            }
+            else if constexpr (std::is_floating_point_v<T>)
+            {
+                double v = (double)value * 255.0;
+                return (uint8_t)std::clamp(v, 0.0, 255.0);
+            }
+            else
+                return 0;
+        }
+
+        // Convert any ImageBuffer to RGBA uint8, with per-pixel loops.
+        // isBgrOrder only applies to uint8 images (OpenCV convention).
+        template<typename T>
+        ImageBuffer converted_to_rgba_typed(const ImageBuffer& mat, int nbChannels, bool isBgrOrder)
+        {
+            bool swapRB = isBgrOrder && std::is_same_v<T, uint8_t>;
+
+            ImageBuffer rgba = ImageBuffer::Zeros(mat.width, mat.height, 4, ImageDepth::uint8);
+            parallel_for(0, mat.height, [&](int y)
+            {
+                const T* src = mat.ptr<T>(y);
+                uint8_t* dst = rgba.ptr<uint8_t>(y);
+                for (int x = 0; x < mat.width; x++)
+                {
+                    uint8_t r, g, b, a;
+                    if (nbChannels == 1)
+                    {
+                        uint8_t v = to_uint8(src[x]);
+                        r = g = b = v;
+                        a = 255;
+                    }
+                    else if (nbChannels == 2)
+                    {
+                        r = to_uint8(src[x * 2]);
+                        g = to_uint8(src[x * 2 + 1]);
+                        b = 0;
+                        a = 255;
+                    }
+                    else if (nbChannels == 3)
+                    {
+                        uint8_t c0 = to_uint8(src[x * 3]);
+                        uint8_t c1 = to_uint8(src[x * 3 + 1]);
+                        uint8_t c2 = to_uint8(src[x * 3 + 2]);
+                        if (swapRB) { r = c2; g = c1; b = c0; }
+                        else        { r = c0; g = c1; b = c2; }
+                        a = 255;
+                    }
+                    else // nbChannels == 4
+                    {
+                        uint8_t c0 = to_uint8(src[x * 4]);
+                        uint8_t c1 = to_uint8(src[x * 4 + 1]);
+                        uint8_t c2 = to_uint8(src[x * 4 + 2]);
+                        uint8_t c3 = to_uint8(src[x * 4 + 3]);
+                        if (swapRB) { r = c2; g = c1; b = c0; }
+                        else        { r = c0; g = c1; b = c2; }
+                        a = c3;
+                    }
+                    dst[x * 4]     = r;
+                    dst[x * 4 + 1] = g;
+                    dst[x * 4 + 2] = b;
+                    dst[x * 4 + 3] = a;
+                }
+            });
+            return rgba;
+        }
+
+        ImageBuffer converted_to_rgba_image(const ImageBuffer &inputMat, bool isBgrOrder)
+        {
+            ImageBuffer mat = inputMat;
+            int nbChannels = mat.channels;
+
+            switch (mat.depth)
+            {
+                case ImageDepth::uint8:   return converted_to_rgba_typed<uint8_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::int8:    return converted_to_rgba_typed<int8_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::uint16:  return converted_to_rgba_typed<uint16_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::int16:   return converted_to_rgba_typed<int16_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::int32:   return converted_to_rgba_typed<int32_t>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::float32: return converted_to_rgba_typed<float>(mat, nbChannels, isBgrOrder);
+                case ImageDepth::float64: return converted_to_rgba_typed<double>(mat, nbChannels, isBgrOrder);
+                default:     throw std::runtime_error("converted_to_rgba_image: unsupported depth");
+            }
+        }
+    } // anonymous namespace
+
+
     GlTexture::GlTexture()
     {
         ImTextureID textureId_Gl = ImmVision_GlProvider::GenTexture();
@@ -8273,7 +7175,7 @@ namespace ImmVision
     {
         if (image.empty())
             return;
-        ImageBuffer mat_rgba = DrawingUtils::converted_to_rgba_image(image, isColorOrderBGR);
+        ImageBuffer mat_rgba = converted_to_rgba_image(image, isColorOrderBGR);
 
         ImmVision_GlProvider::Blit_RGBA_Buffer(static_cast<unsigned char*>(mat_rgba.data), mat_rgba.width, mat_rgba.height, TextureId);
         this->ImageSize = Size(mat_rgba.width, mat_rgba.height);
@@ -20083,6 +18985,16 @@ namespace ImmVision
     namespace ImageWidgets
     {
         Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow);
+
+        // UV-aware version: displays a texture with UV coordinates for GPU-based pan/zoom.
+        // widgetOffset: pixel offset within the display area for the image.
+        // widgetSize: actual size of the image widget (may be smaller than displaySize when zoomed out).
+        // Returns mouse position in display-pixel coordinates (relative to displaySize top-left), or (-1,-1) if not hovering.
+        Point2d DisplayTexture_TrackMouse_Uv(
+            const GlTexture& texture, ImVec2 displaySize,
+            ImVec2 uv0, ImVec2 uv1,
+            ImVec2 widgetOffset, ImVec2 widgetSize,
+            bool disableDragWindow);
         void ShowImageInfo(const ImageBuffer &image, double zoomFactor);
         void ShowPixelColorWidget(const ImageBuffer &image, Point pt, const ImageParams& params);
 
@@ -20554,8 +19466,10 @@ This is a required setup step. (Breaking change - October 2024)
 
             auto fnAskForFilenameWithPfd = []() -> std::string
             {
+                // pfd is nice enough to remember the last dir even across runs when we do not specify a folder
+                static std::string rememberLastDir = "";
                 pfd::settings::verbose(true);
-                std::string filename = pfd::save_file("Select a file", ".",
+                std::string filename = pfd::save_file("Select a file", rememberLastDir,
                                                       { "Image Files", "*.png *.jpg *.jpeg *.jpg *.bmp *.gif *.hdr *.exr",
                                                         "All Files", "*" }).result();
                 return filename;
@@ -20582,8 +19496,9 @@ This is a required setup step. (Breaking change - October 2024)
             // Save image button
             if (ImGuiImm::ButtonWithTooltip("Save image", tooltipSaveRawImage))
                 fnSaveImage(fnAskForFilename(), fnGetImageToSave());
-            // For float images, give the possibility to save them with the colormap applied
-            if (isFloatImage && ImGuiImm::ButtonWithTooltip("Export colormap image", tooltipExportColormap))
+            // Give the possibility to save the image with the colormap applied
+            bool hasColormap = ImageDrawing::HasColormapParam(*params);
+            if (hasColormap && ImGuiImm::ButtonWithTooltip("Export colormap image", tooltipExportColormap))
                 fnSaveImage(fnAskForFilename(), fnGetImageWithColorMapToSave());
 
         };
@@ -20807,12 +19722,39 @@ This is a required setup step. (Breaking change - October 2024)
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params](const GlTexture& glTexture) ->  MouseInformation
+        auto fnShowImage = [&params, &image](const GlTexture& glTexture) ->  MouseInformation
         {
             bool disableDragWindow = params->PanWithMouse;
-            Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
-                    glTexture,
-                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height), disableDragWindow);
+            ImVec2 displaySize((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height);
+
+            // Compute UV coordinates and widget placement from the zoom/pan matrix
+            auto uvResult = ZoomPanTransform::UvFromZoomPan(
+                params->ZoomPanMatrix,
+                Size(glTexture.ImageSize.width, glTexture.ImageSize.height),
+                params->ImageDisplaySize);
+
+            ImVec2 uv0((float)uvResult.uv0.x, (float)uvResult.uv0.y);
+            ImVec2 uv1((float)uvResult.uv1.x, (float)uvResult.uv1.y);
+            ImVec2 widgetOffset((float)uvResult.widgetOffset.x, (float)uvResult.widgetOffset.y);
+            ImVec2 widgetSize((float)uvResult.widgetSize.width, (float)uvResult.widgetSize.height);
+
+            ImVec2 widgetTopLeft = ImGui::GetCursorScreenPos();
+
+            // Draw background behind the image (before AddImage, so alpha blending works)
+            // Checkerboard only makes sense for images with an alpha channel (4 channels)
+            bool hasAlpha = (image.channels == 4);
+            if (hasAlpha && params->ShowAlphaChannelCheckerboard)
+                ImageDrawing::DrawAlphaCheckerboardBackground(*params, widgetTopLeft);
+            else if (params->ShowSchoolPaperBackground)
+                ImageDrawing::DrawSchoolPaperBackground(*params, widgetTopLeft);
+
+            Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse_Uv(
+                    glTexture, displaySize,
+                    uv0, uv1, widgetOffset, widgetSize,
+                    disableDragWindow);
+
+            // Draw annotations (grid, pixel values, watched pixels) via DrawList
+            ImageDrawing::DrawAnnotationsOverlay(*params, image, widgetTopLeft);
 
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())
@@ -20903,7 +19845,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             Point mouseLoc =
                 mouseLocation.x >= 0. ?
-                        Point((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5))
+                        Point((int)std::floor(mouseLocation.x), (int)std::floor(mouseLocation.y))
                     :   Point(-1, -1)
                     ;
             if (mouseLoc.x >= 0)
@@ -21208,40 +20150,10 @@ namespace ImmVision
                 return true;
             if (v1.SelectedChannel != v2.SelectedChannel)
                 return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
-                return true;
+            // ShowAlphaChannelCheckerboard and ShowSchoolPaperBackground no longer
+            // trigger texture re-upload — they are drawn via DrawList.
             return false;
         }
-
-        bool ShallRefreshTexture(const ImageParams& v1, const ImageParams& v2)
-        {
-            if (v1.ColormapSettings.Colormap != v2.ColormapSettings.Colormap)
-                return true;
-            if (v1.ColormapSettings.internal_ColormapHovered != v2.ColormapSettings.internal_ColormapHovered)
-                return true;
-            if (v1.ImageDisplaySize != v2.ImageDisplaySize)
-                return true;
-            if (! ZoomPanTransform::IsEqual(v1.ZoomPanMatrix, v2.ZoomPanMatrix))
-                return true;
-            if (! Colormap::IsEqual(v1.ColormapSettings, v2.ColormapSettings))
-                return true;
-            if (v1.ShowGrid != v2.ShowGrid)
-                return true;
-            if (v1.SelectedChannel != v2.SelectedChannel)
-                return true;
-            if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
-                return true;
-            if (v1.WatchedPixels.size() != v2.WatchedPixels.size())
-                return true;
-            if (v1.HighlightWatchedPixels != v2.HighlightWatchedPixels)
-                return true;
-            if (v1.DrawValuesOnZoomedPixels != v2.DrawValuesOnZoomedPixels)
-                return true;
-            return false;
-        }
-
 
         //
         // ImageTextureCache impl below
@@ -21295,33 +20207,34 @@ namespace ImmVision
                 }
             }
 
-            bool shallRefreshTexture = false;
-            bool shallRefreshRgbaCache = false;
+            // In the new GPU pipeline, the texture only needs re-upload when the
+            // RGBA content changes (colormap, channel, image data). Zoom/pan, grid,
+            // annotations are handled by UV coordinates and DrawList.
+            bool shallRefreshRgba =
+                    userRefresh
+                    || isNewEntry
+                    || (cachedImage.mGlTexture->ImageSize.empty())
+                    || ShallRefreshRgbaCache(oldParams, *params);
+
+            if (shallRefreshRgba)
             {
-                bool fullRefresh =
-                    (      userRefresh
-                        || isNewEntry
-                        || (cachedImage.mGlTexture->ImageSize.empty())
-                        || ShallRefreshRgbaCache(oldParams, *params));
-                if (fullRefresh)
-                {
-                    shallRefreshTexture = true;
-                    shallRefreshRgbaCache = true;
-                }
-                if (ShallRefreshTexture(oldParams, *params))
-                    shallRefreshTexture = true;
-                if (cachedParams.WasZoomJustUpdatedByLink)
-                {
-                    shallRefreshTexture = true;
-                    cachedParams.WasZoomJustUpdatedByLink = false;
-                }
+                ImageDrawing::UpdateImageTexture(
+                    *params, image, cachedImage.mImageRgbaCache, true, cachedImage.mGlTexture.get());
             }
 
-            if (shallRefreshTexture)
+            // Set texture filtering based on zoom level
             {
-                ImageDrawing::BlitImageTexture(
-                    *params, image, cachedImage.mImageRgbaCache, shallRefreshRgbaCache, cachedImage.mGlTexture.get());
+                double zoom = params->ZoomPanMatrix(0, 0);
+                using TF = ImmVision_GlProvider::TextureFilter;
+                TF minF, magF;
+                if (zoom >= 12.0)      { minF = TF::Nearest; magF = TF::Nearest; }
+                else if (zoom >= 1.0)  { minF = TF::Linear;  magF = TF::Linear;  }
+                else                   { minF = TF::LinearMipmapLinear; magF = TF::Linear; }
+                ImmVision_GlProvider::SetTextureFiltering(cachedImage.mGlTexture->TextureId, minF, magF);
             }
+
+            if (cachedParams.WasZoomJustUpdatedByLink)
+                cachedParams.WasZoomJustUpdatedByLink = false;
 
             if (!cachedParams.WasZoomJustUpdatedByLink && !ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
                 UpdateLinkedZooms(id);
@@ -21641,7 +20554,6 @@ namespace ImmVision
 //                       src/immvision/internal/imgui/image_widgets.cpp                                         //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <sstream>
 
 namespace ImmVision
 {
@@ -21678,6 +20590,36 @@ namespace ImmVision
             ImVec2 mouse = ImGui::GetMousePos();
             if (isImageHovered)
                 return Point2d((double)(mouse.x - imageTopLeft.x), (double)(mouse.y - imageTopLeft.y));
+            else
+                return Point2d(-1., -1.);
+        }
+
+        Point2d DisplayTexture_TrackMouse_Uv(
+            const GlTexture& texture, ImVec2 displaySize,
+            ImVec2 uv0, ImVec2 uv1,
+            ImVec2 widgetOffset, ImVec2 widgetSize,
+            bool disableDragWindow)
+        {
+            ImVec2 areaTopLeft = ImGui::GetCursorScreenPos();
+
+            // Reserve the full display area for consistent layout and mouse interaction
+            std::stringstream id;
+            id << "##" << texture.TextureId;
+            if (disableDragWindow)
+                ImGui::InvisibleButton(id.str().c_str(), displaySize);
+            else
+                ImGui::Dummy(displaySize);
+
+            // Draw the image at the correct offset within the display area
+            ImVec2 imageTl(areaTopLeft.x + widgetOffset.x, areaTopLeft.y + widgetOffset.y);
+            ImVec2 imageBr(imageTl.x + widgetSize.x, imageTl.y + widgetSize.y);
+            ImGui::GetWindowDrawList()->AddImage(texture.TextureId, imageTl, imageBr, uv0, uv1);
+
+            // Return mouse position relative to the display area top-left
+            bool isHovered = ImGui::IsItemHovered();
+            ImVec2 mouse = ImGui::GetMousePos();
+            if (isHovered)
+                return Point2d((double)(mouse.x - areaTopLeft.x), (double)(mouse.y - areaTopLeft.y));
             else
                 return Point2d(-1., -1.);
         }
@@ -22532,56 +21474,125 @@ namespace ImmVision
         }
     }
 
-    void priv_Inspector_ShowImagesListbox(float width)
+    static float s_Inspector_ThumbnailHeight = 60.f;
+
+    // Returns the index of the image to suppress, or -1
+    int priv_Inspector_ShowFilmstrip()
     {
-        ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
         int idxSuppress = -1;
-        if (ImGui::BeginListBox("##ImageList",
-                                ImVec2(width - 10.f, ImGui::GetContentRegionAvail().y)))
+        float thumbH = s_Inspector_ThumbnailHeight;
+
+        // Horizontal scrolling child for the filmstrip
+        float labelFontSize = ImGui::GetFontSize() * 0.75f;
+        float largeScrollbarH = ImGui::GetFontSize() * 1.25f;
+        float contentH = thumbH + labelFontSize + ImGui::GetStyle().ItemSpacing.y * 2.f;
+        float stripH = contentH + largeScrollbarH;
+        // Vertical slider for thumbnail size, to the left of the strip (fixed height)
+        float sliderH = ImGui::GetFontSize() * 5.f;
+        float em = ImGui::GetFontSize();
+        ImGui::VSliderFloat("##thumbsize", ImVec2(em * 2.0f, sliderH), &s_Inspector_ThumbnailHeight, em * 2.f, em * 14.f, "");
+        ImGui::SetItemTooltip("Thumbnail size: %.0f px", s_Inspector_ThumbnailHeight);
+        ImGui::SameLine();
+        // Larger scrollbar for the filmstrip
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, largeScrollbarH);
+        ImGui::BeginChild("##filmstrip", ImVec2(0.f, stripH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground);
+
+        // Forward mouse wheel (vertical and horizontal) to horizontal scroll
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
         {
-            for (size_t i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
+            float wheel = ImGui::GetIO().MouseWheel + ImGui::GetIO().MouseWheelH;
+            if (wheel != 0.f)
+                ImGui::SetScrollX(ImGui::GetScrollX() - wheel * thumbH * 0.5f);
+        }
+
+        for (size_t i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
+        {
+            ImGui::PushID((int)i);
+
+            auto& imageAndParams = s_Inspector_ImagesAndParams[i];
+            const bool is_selected = (s_Inspector_CurrentIndex == i);
+
+            auto id = sInspectorImageTextureCache.GetID(imageAndParams.Label, sDontUseIdStack);
+            auto& cacheImage = sInspectorImageTextureCache.GetCacheImageAndTexture(id);
+
+            // Compute thumbnail width from aspect ratio
+            float imageRatio = cacheImage.mGlTexture->SizeImVec2().x / cacheImage.mGlTexture->SizeImVec2().y;
+            if (imageRatio < 0.1f) imageRatio = 1.f; // safety
+            float thumbW = imageRatio * thumbH;
+
+            // Total item width: thumbnail + label space
+            float labelWidth = ImGui::CalcTextSize(imageAndParams.Label.c_str()).x * (labelFontSize / ImGui::GetFontSize());
+            float itemW = std::max(thumbW, std::min(labelWidth, thumbW * 1.5f));
+
+            // All items on one line
+            if (i > 0)
+                ImGui::SameLine();
+
+            // Draw the thumbnail as a selectable group
+            ImGui::BeginGroup();
             {
-                ImGui::PushID(i * 3424553);
+                ImVec2 thumbTl = ImGui::GetCursorScreenPos();
 
-                auto& imageAndParams = s_Inspector_ImagesAndParams[i];
-
-                const bool is_selected = (s_Inspector_CurrentIndex == i);
-
-                auto id = sInspectorImageTextureCache.GetID(imageAndParams.Label, sDontUseIdStack);
-                auto &cacheImage = sInspectorImageTextureCache.GetCacheImageAndTexture(id);
-
-                ImVec2 itemSize(width - 10.f, ImGui::GetFontSize() * 3.f);
-                float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
-                ImVec2 pos = ImGui::GetCursorScreenPos();
-
-                {
-                    auto col = ImGui::GetStyle().Colors[ImGuiCol_Button];
-                    col.x = 1.;
-                    ImGui::PushStyleColor(ImGuiCol_Button, col);
-                    if (ImGui::SmallButton("x"))
-                        idxSuppress = i;
-                    ImGui::PopStyleColor();
-                    ImGui::SameLine();
-                }
-
-                std::string id_selectable = imageAndParams.Label + "##_" + std::to_string(i);
-                if (ImGui::Selectable(id_selectable.c_str(), is_selected, 0, itemSize))
+                // Selectable background (covers thumb + label)
+                float totalH = thumbH + labelFontSize + 2.f;
+                std::string selId = "##sel_" + std::to_string(i);
+                if (ImGui::Selectable(selId.c_str(), is_selected, 0, ImVec2(itemW, totalH)))
                     s_Inspector_CurrentIndex = i;
 
-                float imageRatio = cacheImage.mGlTexture->SizeImVec2().x / cacheImage.mGlTexture->SizeImVec2().y;
-                ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
-                ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
+                // Draw thumbnail image on top of selectable
+                ImVec2 imgTl(thumbTl.x + (itemW - thumbW) * 0.5f, thumbTl.y);
+                ImVec2 imgBr(imgTl.x + thumbW, imgTl.y + thumbH);
+                ImGui::GetWindowDrawList()->AddImage(cacheImage.mGlTexture->TextureId, imgTl, imgBr);
 
-                ImGui::GetWindowDrawList()->AddImage(cacheImage.mGlTexture->TextureId, image_tl, image_br);
+                // Selected border
+                if (is_selected)
+                    ImGui::GetWindowDrawList()->AddRect(imgTl, imgBr, IM_COL32(100, 150, 255, 255), 0.f, 0, 2.f);
 
-                ImGui::PopID();
+                // Delete button on hover (drawn via DrawList, subtle circle + "x")
+                if (ImGui::IsItemHovered())
+                {
+                    ImDrawList* dl = ImGui::GetWindowDrawList();
+                    float radius = ImGui::GetFontSize() * 0.45f;
+                    ImVec2 center(std::floor(imgBr.x - radius - 3.f) + 0.5f, std::floor(imgTl.y + radius + 3.f) + 0.5f);
+
+                    // Check if mouse is over the delete circle
+                    ImVec2 mouse = ImGui::GetMousePos();
+                    float dx = mouse.x - center.x, dy = mouse.y - center.y;
+                    bool hoveringBtn = (dx * dx + dy * dy) <= radius * radius;
+
+                    // Draw circle background + "x" with transparency
+                    ImU32 bgColor = hoveringBtn ? IM_COL32(200, 60, 60, 200) : IM_COL32(0, 0, 0, 140);
+                    ImU32 xColor = IM_COL32(255, 255, 255, hoveringBtn ? 255 : 200);
+                    dl->AddCircleFilled(center, radius, bgColor);
+                    float cross = radius * 0.45f;
+                    center.x -= 0.5f; center.y -= 0.5f;
+                    dl->AddLine(ImVec2(center.x - cross, center.y - cross), ImVec2(center.x + cross, center.y + cross), xColor, 1.5f);
+                    dl->AddLine(ImVec2(center.x + cross, center.y - cross), ImVec2(center.x - cross, center.y + cross), xColor, 1.5f);
+
+                    if (hoveringBtn && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                        idxSuppress = (int)i;
+                }
+
+                // Label below thumbnail (smaller font, using ImGui::Text for proper clipping)
+                ImGui::SetCursorScreenPos(ImVec2(thumbTl.x, thumbTl.y + thumbH + 1.f));
+                ImGui::PushFont(nullptr, labelFontSize);
+                ImGui::PushItemWidth(itemW);
+                ImGui::TextUnformatted(imageAndParams.Label.c_str());
+                ImGui::PopItemWidth();
+                ImGui::PopFont();
+
             }
-            ImGui::EndListBox();
+            ImGui::EndGroup();
 
-            if (idxSuppress >= 0)
-                s_Inspector_ImagesAndParams.erase(s_Inspector_ImagesAndParams.begin() + (size_t)idxSuppress);
+            ImGui::PopID();
         }
-    };
+
+        ImGui::EndChild();
+        ImGui::PopStyleVar(); // ScrollbarSize
+
+        return idxSuppress;
+    }
 
     void priv_Inspector_CleanImagesParams(const ImVec2& imageSize)
     {
@@ -22622,78 +21633,21 @@ namespace ImmVision
         }
     };
 
-    ImVec2 priv_Inspector_ImageSize(float listWidth, bool showOptionsColumn)
-    {
-        ImVec2 imageSize;
-
-        float emSize = ImGui::GetFontSize();
-        float x_margin = emSize * 2.f;
-        float y_margin = emSize / 3.f;
-        float image_info_height =  ImGui::GetFontSize() * 10.f;
-        if (!s_Inspector_ImagesAndParams.empty())
-        {
-            const auto &params = s_Inspector_ImagesAndParams.front().Params;
-            if (!params.ShowImageInfo)
-                image_info_height -= emSize * 1.5f;
-            if (!params.ShowPixelInfo)
-                image_info_height -= emSize * 1.5f;
-        }
-        float image_options_width = showOptionsColumn ? ImGui::GetFontSize() * 19.f : 0.f;
-        ImVec2 winSize = ImGui::GetWindowSize();
-        imageSize = ImVec2(
-            winSize.x - listWidth - x_margin - image_options_width,
-            winSize.y - y_margin - image_info_height);
-        if (imageSize.x < 1.f)
-            imageSize.x = 1.f;
-        if (imageSize.y < 1.f)
-            imageSize.y = 1.f;
-
-        gInspectorImageSize = imageSize;
-        return imageSize;
-    };
-
-
     void Inspector_Show()
     {
         ImageWidgets::s_CollapsingHeader_CacheState_Sync = true;
 
-        bool showOptionsColumn = true;
-        if (!s_Inspector_ImagesAndParams.empty())
-        {
-            const auto& params = s_Inspector_ImagesAndParams.front().Params;
-            if ( (params.ShowOptionsInTooltip) || (!params.ShowOptionsPanel))
-                showOptionsColumn = false;
-        }
+        //
+        // Filmstrip at the top
+        //
+        int idxSuppress = priv_Inspector_ShowFilmstrip();
+        if (idxSuppress >= 0)
+            s_Inspector_ImagesAndParams.erase(s_Inspector_ImagesAndParams.begin() + (size_t)idxSuppress);
 
-        static float initialListWidth = ImGui::GetFontSize() * 8.5f;
-        static float currentListWidth = initialListWidth;
-
-        ImVec2 imageSize = priv_Inspector_ImageSize(currentListWidth, showOptionsColumn);
-        priv_Inspector_CleanImagesParams(imageSize);
-
-        ImGui::Columns(2);
+        ImGui::Separator();
 
         //
-        // First column: image list
-        //
-        {
-            // Set column width
-            {
-                static int idxFrame = 0;
-                ++idxFrame;
-                if (idxFrame <= 2) // The column width is not set at the first frame
-                    ImGui::SetColumnWidth(0, initialListWidth);
-                ImGui::Text("Image list");
-                currentListWidth = ImGui::GetColumnWidth(0);
-            }
-            // Show image list
-            priv_Inspector_ShowImagesListbox(currentListWidth);
-        }
-
-        ImGui::NextColumn();
-
-        //
-        // Second column : image
+        // Selected image below, using remaining available space
         //
         {
             if (s_Inspector_ImagesAndParams.empty())
@@ -22704,11 +21658,25 @@ namespace ImmVision
             if (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size())
             {
                 auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
+
+                // Compute image display size from available space
+                float emSize = ImGui::GetFontSize();
+                bool showOptionsColumn = imageAndParams.Params.ShowOptionsPanel && !imageAndParams.Params.ShowOptionsInTooltip;
+                float optionsWidth = showOptionsColumn ? emSize * 19.f : 0.f;
+                // Reserve space for zoom buttons, pixel info, color widget, etc.
+                float imageInfoHeight = emSize * 7.f;
+
+                ImVec2 avail = ImGui::GetContentRegionAvail();
+                ImVec2 imageSize(
+                    std::max(1.f, avail.x - optionsWidth - emSize),
+                    std::max(1.f, avail.y - imageInfoHeight));
+                imageAndParams.Params.ImageDisplaySize = Size((int)imageSize.x, (int)imageSize.y);
+                gInspectorImageSize = imageSize;
+
+                priv_Inspector_CleanImagesParams(imageSize);
                 ImmVision::Image(imageAndParams.Label, imageAndParams.Image, &imageAndParams.Params);
             }
         }
-
-        ImGui::Columns(1);
 
         ImageWidgets::s_CollapsingHeader_CacheState_Sync = false;
     }
@@ -22747,6 +21715,116 @@ namespace ImmVision
 //                       src/immvision/internal/misc/immvision_to_string.cpp continued                          //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/string_utils.h included by src/immvision/internal/misc/immvision_to_string.cpp//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef IMMVISION_HAS_OPENCV
+#endif
+
+namespace ImmVision
+{
+    namespace StringUtils
+    {
+        std::string LowerString(const std::string& s);
+        std::string JoinStrings(const std::vector<std::string>&v, const std::string& separator);
+        std::vector<std::string> SplitString(const std::string& s, const char separator);
+        std::string IndentLine(const std::string& s, int indentSize);
+        std::string IndentLines(const std::string& s, int indentSize);
+
+
+        std::string ToString(const std::string& s);
+        std::string ToString(const double& v);
+        std::string ToString(const float& v);
+        std::string ToString(const int& v);
+        std::string ToString(bool v);
+
+#ifdef IMMVISION_HAS_OPENCV
+        template<typename _Tp>
+        std::string ToString(const cv::Point_<_Tp>& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        template<typename _Tp>
+        std::string ToString(const cv::Size_<_Tp>& v)
+        {
+            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
+        }
+#endif
+
+        // Overloads for ImmVision types (must be before the vector template so they're found)
+        inline std::string ToString(const Point& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        inline std::string ToString(const Point2d& v)
+        {
+            return std::string("(") + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+        }
+        inline std::string ToString(const Size& v)
+        {
+            return std::string("(") + std::to_string(v.width) + " x " + std::to_string(v.height) + ")";
+        }
+
+        template<typename _Tp>
+        std::string ToString(const std::vector<_Tp>& v)
+        {
+            std::vector<std::string> strs;
+            for (const auto& x : v)
+                strs.push_back(ToString(x));
+            std::string r = "[" + JoinStrings(strs, ", ") + "]";
+            return r;
+        }
+
+#ifdef IMMVISION_HAS_OPENCV
+        template<typename _Tp, int _rows,int _cols>
+        std::string ToString(const cv::Matx<_Tp, _rows, _cols>& m)
+        {
+            std::vector<std::string> lines;
+            for (int i = 0; i < _rows; ++i)
+            {
+                std::vector<_Tp> lineValues;
+                for (int j = 0; j < _cols; ++j)
+                    lineValues.push_back(m(i, j));
+
+                std::string lineString = ToString(lineValues);
+                if (i != 0)
+                    lineString = std::string("   ") + lineString;
+                lines.push_back(lineString);
+            }
+            std::string r = "\n  [";
+            r += JoinStrings(lines, ",\n");
+            r += "]";
+            return r;
+        }
+#endif
+
+        inline std::string ToString(const Matrix33d& m)
+        {
+            std::vector<std::string> lines;
+            for (int i = 0; i < 3; ++i)
+            {
+                std::vector<double> lineValues;
+                for (int j = 0; j < 3; ++j)
+                    lineValues.push_back(m.m[i][j]);
+                std::string lineString = ToString(lineValues);
+                if (i != 0)
+                    lineString = std::string("   ") + lineString;
+                lines.push_back(lineString);
+            }
+            std::string r = "\n  [";
+            r += JoinStrings(lines, ",\n");
+            r += "]";
+            return r;
+        }
+
+    } // namespace StringUtils
+} // namespace ImmVision
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       src/immvision/internal/misc/immvision_to_string.cpp continued                          //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace ImmVision
 {
     std::string ToString(ColorMapStatsTypeId id)

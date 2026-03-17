@@ -137,14 +137,6 @@ namespace ImmVision
                 if (is_selected)
                     ImGui::GetWindowDrawList()->AddRect(imgTl, imgBr, IM_COL32(100, 150, 255, 255), 0.f, 0, 2.f);
 
-                // Label below thumbnail (smaller font, using ImGui::Text for proper clipping)
-                ImGui::SetCursorScreenPos(ImVec2(thumbTl.x, thumbTl.y + thumbH + 1.f));
-                ImGui::PushFont(nullptr, labelFontSize);
-                ImGui::PushItemWidth(itemW);
-                ImGui::TextUnformatted(imageAndParams.Label.c_str());
-                ImGui::PopItemWidth();
-                ImGui::PopFont();
-
                 // Delete button on hover (drawn via DrawList, subtle circle + "x")
                 if (ImGui::IsItemHovered())
                 {
@@ -169,6 +161,15 @@ namespace ImmVision
                     if (hoveringBtn && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
                         idxSuppress = (int)i;
                 }
+
+                // Label below thumbnail (smaller font, using ImGui::Text for proper clipping)
+                ImGui::SetCursorScreenPos(ImVec2(thumbTl.x, thumbTl.y + thumbH + 1.f));
+                ImGui::PushFont(nullptr, labelFontSize);
+                ImGui::PushItemWidth(itemW);
+                ImGui::TextUnformatted(imageAndParams.Label.c_str());
+                ImGui::PopItemWidth();
+                ImGui::PopFont();
+
             }
             ImGui::EndGroup();
 
