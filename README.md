@@ -141,8 +141,8 @@ See [online demo!](https://traineq.org/ImGuiBundle/emscripten/bin/demo_immvision
 ### C++ API
 
 ```cpp
-IMMVISION_API void Image(const std::string& label, const ImageBuffer& mat, ImageParams* params);
-IMMVISION_API void ImageDisplay(const std::string& label, const ImageBuffer& mat, const ImageParams& params);
+IMMVISION_API void Image(const std::string& label, const ImageBuffer& image, ImageParams* params);
+IMMVISION_API void ImageDisplay(const std::string& label, const ImageBuffer& image, const ImageParams& params);
 
 IMMVISION_API void Inspector_AddImage(const ImageBuffer& image, const std::string& legend, ...);
 IMMVISION_API void Inspector_Show();
@@ -150,13 +150,54 @@ IMMVISION_API void Inspector_Show();
 
 See [Full API](src/immvision/image.h)
 
+### Creating an ImageBuffer
+
+`ImageBuffer` is ImmVision's lightweight image container. No OpenCV required.
+
+**From a raw pointer** (non-owning view — works with any image source):
+
+```cpp
+// stb_image
+int w, h, ch;
+unsigned char* pixels = stbi_load("photo.jpg", &w, &h, &ch, 0);
+ImmVision::Image("photo", ImmVision::ImageBuffer(pixels, w, h, ch), &params);
+stbi_image_free(pixels);
+
+// SDL_Surface
+ImmVision::ImageBuffer(surface->pixels, surface->w, surface->h, 4,
+                        ImmVision::ImageDepth::uint8, surface->pitch);
+
+// Any buffer with known dimensions
+ImmVision::ImageBuffer(my_data, width, height, channels);
+```
+
+**From ImmVision's built-in reader** (uses stb_image, returns RGB):
+
+```cpp
+ImmVision::ImageBuffer image = ImmVision::ImRead("photo.jpg");
+```
+
+**From OpenCV** (zero-copy, requires `IMMVISION_HAS_OPENCV`):
+
+```cpp
+cv::Mat mat = cv::imread("photo.jpg");
+ImmVision::Image("photo", mat, &params);  // implicit conversion
+```
+
+**Owning allocation:**
+
+```cpp
+ImmVision::ImageBuffer image = ImmVision::ImageBuffer::Zeros(640, 480, 3, ImmVision::ImageDepth::uint8);
+```
+
 ### Python (via Dear ImGui Bundle)
 
 ```python
 from imgui_bundle import immvision
 
-immvision.image("My Image", my_mat, params)
-immvision.inspector_add_image(my_mat, "label")
+# Pass numpy arrays directly
+immvision.image("My Image", my_array, params)
+immvision.inspector_add_image(my_array, "label")
 immvision.inspector_show()
 ```
 

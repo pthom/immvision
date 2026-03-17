@@ -225,6 +225,28 @@ namespace ImmVision
 
         ImageBuffer() = default;
 
+        // Non-owning view from a raw pointer.
+        // Wraps existing pixel data without copying or taking ownership.
+        // The caller must ensure the data stays alive while this ImageBuffer is used.
+        // If step is 0, assumes contiguous rows (step = width * channels * element_size).
+        //
+        // Works with any image source: stb_image, SDL_Surface, custom buffers, etc.
+        //
+        // Example with stb_image:
+        //     int w, h, ch;
+        //     unsigned char* pixels = stbi_load("photo.jpg", &w, &h, &ch, 0);
+        //     ImmVision::Image("photo", ImmVision::ImageBuffer(pixels, w, h, ch), &params);
+        //     stbi_image_free(pixels);
+        //
+        // Example with SDL_Surface:
+        //     ImmVision::ImageBuffer(surface->pixels, surface->w, surface->h, 4,
+        //                            ImmVision::ImageDepth::uint8, surface->pitch);
+        ImageBuffer(void* data, int width, int height, int channels,
+                    ImageDepth depth = ImageDepth::uint8, size_t step = 0)
+            : data(data), width(width), height(height), channels(channels), depth(depth),
+              step(step ? step : (size_t)width * channels * ImageDepthSize(depth))
+        {}
+
         // Basic queries
         bool empty() const { return data == nullptr || width == 0 || height == 0; }
         // Bytes per single-channel element
