@@ -61,56 +61,118 @@ namespace ImmVision
         }
     }
 
-    void priv_Inspector_ShowImagesListbox(float width)
+    static float s_Inspector_ThumbnailHeight = 60.f;
+
+    // Returns the index of the image to suppress, or -1
+    int priv_Inspector_ShowFilmstrip()
     {
-        ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
         int idxSuppress = -1;
-        if (ImGui::BeginListBox("##ImageList",
-                                ImVec2(width - 10.f, ImGui::GetContentRegionAvail().y)))
+        float thumbH = s_Inspector_ThumbnailHeight;
+
+        // Horizontal scrolling child for the filmstrip
+        float labelFontSize = ImGui::GetFontSize() * 0.75f;
+        float stripH = thumbH + labelFontSize + ImGui::GetStyle().ItemSpacing.y * 2.f + ImGui::GetStyle().ScrollbarSize;
+
+        // Vertical slider for thumbnail size, to the left of the strip (fixed height)
+        float sliderH = ImGui::GetFontSize() * 5.f;
+        float em = ImGui::GetFontSize();
+        ImGui::VSliderFloat("##thumbsize", ImVec2(em, sliderH), &s_Inspector_ThumbnailHeight, em * 2.f, em * 14.f, "");
+        ImGui::SetItemTooltip("Thumbnail size: %.0f px", s_Inspector_ThumbnailHeight);
+        ImGui::SameLine();
+        ImGui::BeginChild("##filmstrip", ImVec2(0.f, stripH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground);
+
+        // Forward mouse wheel (vertical and horizontal) to horizontal scroll
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
         {
-            for (size_t i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
+            float wheel = ImGui::GetIO().MouseWheel + ImGui::GetIO().MouseWheelH;
+            if (wheel != 0.f)
+                ImGui::SetScrollX(ImGui::GetScrollX() - wheel * thumbH * 0.5f);
+        }
+
+        for (size_t i = 0; i < s_Inspector_ImagesAndParams.size(); ++i)
+        {
+            ImGui::PushID((int)i);
+
+            auto& imageAndParams = s_Inspector_ImagesAndParams[i];
+            const bool is_selected = (s_Inspector_CurrentIndex == i);
+
+            auto id = sInspectorImageTextureCache.GetID(imageAndParams.Label, sDontUseIdStack);
+            auto& cacheImage = sInspectorImageTextureCache.GetCacheImageAndTexture(id);
+
+            // Compute thumbnail width from aspect ratio
+            float imageRatio = cacheImage.mGlTexture->SizeImVec2().x / cacheImage.mGlTexture->SizeImVec2().y;
+            if (imageRatio < 0.1f) imageRatio = 1.f; // safety
+            float thumbW = imageRatio * thumbH;
+
+            // Total item width: thumbnail + label space
+            float labelWidth = ImGui::CalcTextSize(imageAndParams.Label.c_str()).x;
+            float itemW = std::max(thumbW, std::min(labelWidth, thumbW * 1.5f));
+
+            // All items on one line
+            if (i > 0)
+                ImGui::SameLine();
+
+            // Draw the thumbnail as a selectable group
+            ImGui::BeginGroup();
             {
-                ImGui::PushID(i * 3424553);
+                ImVec2 thumbTl = ImGui::GetCursorScreenPos();
 
-                auto& imageAndParams = s_Inspector_ImagesAndParams[i];
-
-                const bool is_selected = (s_Inspector_CurrentIndex == i);
-
-                auto id = sInspectorImageTextureCache.GetID(imageAndParams.Label, sDontUseIdStack);
-                auto &cacheImage = sInspectorImageTextureCache.GetCacheImageAndTexture(id);
-
-                ImVec2 itemSize(width - 10.f, ImGui::GetFontSize() * 3.f);
-                float imageHeight = itemSize.y - ImGui::GetTextLineHeight();
-                ImVec2 pos = ImGui::GetCursorScreenPos();
-
-                {
-                    auto col = ImGui::GetStyle().Colors[ImGuiCol_Button];
-                    col.x = 1.;
-                    ImGui::PushStyleColor(ImGuiCol_Button, col);
-                    if (ImGui::SmallButton("x"))
-                        idxSuppress = i;
-                    ImGui::PopStyleColor();
-                    ImGui::SameLine();
-                }
-
-                std::string id_selectable = imageAndParams.Label + "##_" + std::to_string(i);
-                if (ImGui::Selectable(id_selectable.c_str(), is_selected, 0, itemSize))
+                // Selectable background (covers thumb + label)
+                float totalH = thumbH + labelFontSize + 2.f;
+                std::string selId = "##sel_" + std::to_string(i);
+                if (ImGui::Selectable(selId.c_str(), is_selected, 0, ImVec2(itemW, totalH)))
                     s_Inspector_CurrentIndex = i;
 
-                float imageRatio = cacheImage.mGlTexture->SizeImVec2().x / cacheImage.mGlTexture->SizeImVec2().y;
-                ImVec2 image_tl(pos.x, pos.y + ImGui::GetTextLineHeight());
-                ImVec2 image_br(pos.x + imageRatio * imageHeight, image_tl.y + imageHeight);
+                // Draw thumbnail image on top of selectable
+                ImVec2 imgTl(thumbTl.x + (itemW - thumbW) * 0.5f, thumbTl.y);
+                ImVec2 imgBr(imgTl.x + thumbW, imgTl.y + thumbH);
+                ImGui::GetWindowDrawList()->AddImage(cacheImage.mGlTexture->TextureId, imgTl, imgBr);
 
-                ImGui::GetWindowDrawList()->AddImage(cacheImage.mGlTexture->TextureId, image_tl, image_br);
+                // Selected border
+                if (is_selected)
+                    ImGui::GetWindowDrawList()->AddRect(imgTl, imgBr, IM_COL32(100, 150, 255, 255), 0.f, 0, 2.f);
 
-                ImGui::PopID();
+                // Label below thumbnail (smaller font, clipped to item width)
+                ImVec2 labelPos(thumbTl.x, thumbTl.y + thumbH + 1.f);
+                ImGui::GetWindowDrawList()->PushClipRect(labelPos, ImVec2(labelPos.x + itemW, labelPos.y + labelFontSize));
+                ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), labelFontSize, labelPos, ImGui::GetColorU32(ImGuiCol_Text), imageAndParams.Label.c_str());
+                ImGui::GetWindowDrawList()->PopClipRect();
+
+                // Delete button on hover (drawn via DrawList, subtle circle + "x")
+                if (ImGui::IsItemHovered())
+                {
+                    ImDrawList* dl = ImGui::GetWindowDrawList();
+                    float radius = ImGui::GetFontSize() * 0.45f;
+                    ImVec2 center(std::floor(imgBr.x - radius - 3.f) + 0.5f, std::floor(imgTl.y + radius + 3.f) + 0.5f);
+
+                    // Check if mouse is over the delete circle
+                    ImVec2 mouse = ImGui::GetMousePos();
+                    float dx = mouse.x - center.x, dy = mouse.y - center.y;
+                    bool hoveringBtn = (dx * dx + dy * dy) <= radius * radius;
+
+                    // Draw circle background + "x" with transparency
+                    ImU32 bgColor = hoveringBtn ? IM_COL32(200, 60, 60, 200) : IM_COL32(0, 0, 0, 140);
+                    ImU32 xColor = IM_COL32(255, 255, 255, hoveringBtn ? 255 : 200);
+                    dl->AddCircleFilled(center, radius, bgColor);
+                    float cross = radius * 0.45f;
+                    center.x -= 0.5f; center.y -= 0.5f;
+                    dl->AddLine(ImVec2(center.x - cross, center.y - cross), ImVec2(center.x + cross, center.y + cross), xColor, 1.5f);
+                    dl->AddLine(ImVec2(center.x + cross, center.y - cross), ImVec2(center.x - cross, center.y + cross), xColor, 1.5f);
+
+                    if (hoveringBtn && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                        idxSuppress = (int)i;
+                }
             }
-            ImGui::EndListBox();
+            ImGui::EndGroup();
 
-            if (idxSuppress >= 0)
-                s_Inspector_ImagesAndParams.erase(s_Inspector_ImagesAndParams.begin() + (size_t)idxSuppress);
+            ImGui::PopID();
         }
-    };
+
+        ImGui::EndChild();
+
+        return idxSuppress;
+    }
 
     void priv_Inspector_CleanImagesParams(const ImVec2& imageSize)
     {
@@ -151,78 +213,21 @@ namespace ImmVision
         }
     };
 
-    ImVec2 priv_Inspector_ImageSize(float listWidth, bool showOptionsColumn)
-    {
-        ImVec2 imageSize;
-
-        float emSize = ImGui::GetFontSize();
-        float x_margin = emSize * 2.f;
-        float y_margin = emSize / 3.f;
-        float image_info_height =  ImGui::GetFontSize() * 10.f;
-        if (!s_Inspector_ImagesAndParams.empty())
-        {
-            const auto &params = s_Inspector_ImagesAndParams.front().Params;
-            if (!params.ShowImageInfo)
-                image_info_height -= emSize * 1.5f;
-            if (!params.ShowPixelInfo)
-                image_info_height -= emSize * 1.5f;
-        }
-        float image_options_width = showOptionsColumn ? ImGui::GetFontSize() * 19.f : 0.f;
-        ImVec2 winSize = ImGui::GetWindowSize();
-        imageSize = ImVec2(
-            winSize.x - listWidth - x_margin - image_options_width,
-            winSize.y - y_margin - image_info_height);
-        if (imageSize.x < 1.f)
-            imageSize.x = 1.f;
-        if (imageSize.y < 1.f)
-            imageSize.y = 1.f;
-
-        gInspectorImageSize = imageSize;
-        return imageSize;
-    };
-
-
     void Inspector_Show()
     {
         ImageWidgets::s_CollapsingHeader_CacheState_Sync = true;
 
-        bool showOptionsColumn = true;
-        if (!s_Inspector_ImagesAndParams.empty())
-        {
-            const auto& params = s_Inspector_ImagesAndParams.front().Params;
-            if ( (params.ShowOptionsInTooltip) || (!params.ShowOptionsPanel))
-                showOptionsColumn = false;
-        }
+        //
+        // Filmstrip at the top
+        //
+        int idxSuppress = priv_Inspector_ShowFilmstrip();
+        if (idxSuppress >= 0)
+            s_Inspector_ImagesAndParams.erase(s_Inspector_ImagesAndParams.begin() + (size_t)idxSuppress);
 
-        static float initialListWidth = ImGui::GetFontSize() * 8.5f;
-        static float currentListWidth = initialListWidth;
-
-        ImVec2 imageSize = priv_Inspector_ImageSize(currentListWidth, showOptionsColumn);
-        priv_Inspector_CleanImagesParams(imageSize);
-
-        ImGui::Columns(2);
+        ImGui::Separator();
 
         //
-        // First column: image list
-        //
-        {
-            // Set column width
-            {
-                static int idxFrame = 0;
-                ++idxFrame;
-                if (idxFrame <= 2) // The column width is not set at the first frame
-                    ImGui::SetColumnWidth(0, initialListWidth);
-                ImGui::Text("Image list");
-                currentListWidth = ImGui::GetColumnWidth(0);
-            }
-            // Show image list
-            priv_Inspector_ShowImagesListbox(currentListWidth);
-        }
-
-        ImGui::NextColumn();
-
-        //
-        // Second column : image
+        // Selected image below, using remaining available space
         //
         {
             if (s_Inspector_ImagesAndParams.empty())
@@ -233,11 +238,25 @@ namespace ImmVision
             if (s_Inspector_CurrentIndex < s_Inspector_ImagesAndParams.size())
             {
                 auto& imageAndParams = s_Inspector_ImagesAndParams[s_Inspector_CurrentIndex];
+
+                // Compute image display size from available space
+                float emSize = ImGui::GetFontSize();
+                bool showOptionsColumn = imageAndParams.Params.ShowOptionsPanel && !imageAndParams.Params.ShowOptionsInTooltip;
+                float optionsWidth = showOptionsColumn ? emSize * 19.f : 0.f;
+                // Reserve space for zoom buttons, pixel info, color widget, etc.
+                float imageInfoHeight = emSize * 7.f;
+
+                ImVec2 avail = ImGui::GetContentRegionAvail();
+                ImVec2 imageSize(
+                    std::max(1.f, avail.x - optionsWidth - emSize),
+                    std::max(1.f, avail.y - imageInfoHeight));
+                imageAndParams.Params.ImageDisplaySize = Size((int)imageSize.x, (int)imageSize.y);
+                gInspectorImageSize = imageSize;
+
+                priv_Inspector_CleanImagesParams(imageSize);
                 ImmVision::Image(imageAndParams.Label, imageAndParams.Image, &imageAndParams.Params);
             }
         }
-
-        ImGui::Columns(1);
 
         ImageWidgets::s_CollapsingHeader_CacheState_Sync = false;
     }
