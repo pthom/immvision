@@ -118,7 +118,7 @@ namespace ImmVision
             int firstY = (int)std::floor(tld.y);
             int lastY  = (int)std::ceil(brd.y);
 
-            bool drawPixelCoords = zoomFactor > 80.;
+            bool drawPixelCoords = zoomFactor > 130.;
 
             // Font size scales with the pixel cell size, capped at the ImGui font size
             float cellSize = (float)zoomFactor;
