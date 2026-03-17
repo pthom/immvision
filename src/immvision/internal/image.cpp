@@ -352,8 +352,10 @@ This is a required setup step. (Breaking change - October 2024)
 
             auto fnAskForFilenameWithPfd = []() -> std::string
             {
+                // pfd is nice enough to remember the last dir even across runs when we do not specify a folder
+                static std::string rememberLastDir = "";
                 pfd::settings::verbose(true);
-                std::string filename = pfd::save_file("Select a file", ".",
+                std::string filename = pfd::save_file("Select a file", rememberLastDir,
                                                       { "Image Files", "*.png *.jpg *.jpeg *.jpg *.bmp *.gif *.hdr *.exr",
                                                         "All Files", "*" }).result();
                 return filename;
