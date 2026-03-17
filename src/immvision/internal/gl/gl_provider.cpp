@@ -55,23 +55,16 @@ namespace ImmVision_GlProvider
 
     void Blit_RGBA_Buffer(unsigned char *image_data, int image_width, int image_height, ImTextureID textureId)
     {
-        //static int counter = 0;
-        //++counter;
-        //std::cout << "Blit_RGBA_Buffer counter=" << counter << "\n";
         GLuint textureIdAsUint = (GLuint)(size_t)textureId;
         glBindTexture(GL_TEXTURE_2D, textureIdAsUint);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-#if defined(__EMSCRIPTEN__) || defined(IMMVISION_USE_GLES2) || defined(IMMVISION_USE_GLES3)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        // glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
-        GLenum gl_color_flag_input = GL_RGBA;
-        GLenum gl_color_flag_output = GL_RGBA;
-        glTexImage2D(GL_TEXTURE_2D, 0, gl_color_flag_input,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                      image_width,
-                     image_height, 0, gl_color_flag_output, GL_UNSIGNED_BYTE, image_data);
+                     image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
@@ -90,6 +83,26 @@ namespace ImmVision_GlProvider
         _AssertOpenGlLoaderWorking();
         GLuint textureIdAsUint = (GLuint)(size_t)texture_id;
         glDeleteTextures(1, &textureIdAsUint);
+    }
+
+    static GLenum ToGlFilter(TextureFilter f)
+    {
+        switch (f)
+        {
+        case TextureFilter::Nearest:           return GL_NEAREST;
+        case TextureFilter::Linear:            return GL_LINEAR;
+        case TextureFilter::LinearMipmapLinear: return GL_LINEAR_MIPMAP_LINEAR;
+        }
+        return GL_LINEAR;
+    }
+
+    void SetTextureFiltering(ImTextureID textureId, TextureFilter minFilter, TextureFilter magFilter)
+    {
+        GLuint textureIdAsUint = (GLuint)(size_t)textureId;
+        glBindTexture(GL_TEXTURE_2D, textureIdAsUint);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, ToGlFilter(minFilter));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, ToGlFilter(magFilter));
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 }
 
