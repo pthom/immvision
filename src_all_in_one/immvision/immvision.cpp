@@ -233,6 +233,28 @@ namespace ImmVision
 
         ImageBuffer() = default;
 
+        // Non-owning view from a raw pointer.
+        // Wraps existing pixel data without copying or taking ownership.
+        // The caller must ensure the data stays alive while this ImageBuffer is used.
+        // If step is 0, assumes contiguous rows (step = width * channels * element_size).
+        //
+        // Works with any image source: stb_image, SDL_Surface, custom buffers, etc.
+        //
+        // Example with stb_image:
+        //     int w, h, ch;
+        //     unsigned char* pixels = stbi_load("photo.jpg", &w, &h, &ch, 0);
+        //     ImmVision::Image("photo", ImmVision::ImageBuffer(pixels, w, h, ch), &params);
+        //     stbi_image_free(pixels);
+        //
+        // Example with SDL_Surface:
+        //     ImmVision::ImageBuffer(surface->pixels, surface->w, surface->h, 4,
+        //                            ImmVision::ImageDepth::uint8, surface->pitch);
+        ImageBuffer(void* data, int width, int height, int channels,
+                    ImageDepth depth = ImageDepth::uint8, size_t step = 0)
+            : data(data), width(width), height(height), channels(channels), depth(depth),
+              step(step ? step : (size_t)width * channels * ImageDepthSize(depth))
+        {}
+
         // Basic queries
         bool empty() const { return data == nullptr || width == 0 || height == 0; }
         // Bytes per single-channel element
@@ -6119,7 +6141,7 @@ namespace ImmVision
 #include <type_traits>  // std::is_same_v
 #include <limits>       // std::numeric_limits
 #include <cmath>        // std::sqrt, std::clamp
-
+#include <stdexcept>    // std::runtime_error
 
 namespace ImmVision
 {
@@ -6898,7 +6920,6 @@ namespace ImmVision
     } // namespace MatrixInfoUtils
 
 } // namespace ImmVision
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                       src/immvision/internal/cv/matrix_info_utils.cpp continued                              //
@@ -8097,9 +8118,15 @@ namespace ImmVision_GlProvider
 #elif defined(IMMVISION_USE_GLAD)
     #include <glad/glad.h>
 #elif defined(IMMVISION_USE_GLES3)
-    #if defined(IOS)
-        #include <OpenGLES/ES3/gl.h>
-        #include <OpenGLES/ES3/glext.h>
+    #if defined(__APPLE__)
+        #include <TargetConditionals.h>
+        #if TARGET_OS_IOS || TARGET_OS_SIMULATOR
+            #include <OpenGLES/ES3/gl.h>
+            #include <OpenGLES/ES3/glext.h>
+        #else
+            #include <GLES3/gl3.h>
+            #include <GLES3/gl3ext.h>
+        #endif
     #elif defined(__EMSCRIPTEN__)
         #include <GLES3/gl3.h>
         #include <GLES3/gl2ext.h>
@@ -8108,9 +8135,15 @@ namespace ImmVision_GlProvider
         #include <GLES3/gl3ext.h>
     #endif
 #elif defined(IMMVISION_USE_GLES2)
-    #ifdef IOS
-        #include <OpenGLES/ES2/gl.h>
-        #include <OpenGLES/ES2/glext.h>
+    #if defined(__APPLE__)
+        #include <TargetConditionals.h>
+        #if TARGET_OS_IOS || TARGET_OS_SIMULATOR
+            #include <OpenGLES/ES2/gl.h>
+            #include <OpenGLES/ES2/glext.h>
+        #else
+            #include <GLES2/gl2.h>
+            #include <GLES2/gl2ext.h>
+        #endif
     #else
         #include <GLES2/gl2.h>
         #include <GLES2/gl2ext.h>
@@ -21689,7 +21722,7 @@ namespace ImmVision
                     ImVec4 colorAsImVec = isColorOrderBgr ?
                         ImVec4(UCharToFloat(pixel[2]), UCharToFloat(pixel[1]), UCharToFloat(pixel[0]), UCharToFloat(255))
                         : ImVec4(UCharToFloat(pixel[0]), UCharToFloat(pixel[1]), UCharToFloat(pixel[2]), UCharToFloat(255));
-                    ImGui::SetNextItemWidth(150.f * FontSizeRatio());
+                    ImGui::SetNextItemWidth(120.f * FontSizeRatio());
                     ImGui::ColorEdit3(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
                 }
@@ -21700,7 +21733,7 @@ namespace ImmVision
                     ImVec4 colorAsImVec = isColorOrderBgr ?
                         ImVec4(UCharToFloat(pixel[2]), UCharToFloat(pixel[1]), UCharToFloat(pixel[0]), UCharToFloat(pixel[3]))
                         : ImVec4(UCharToFloat(pixel[0]), UCharToFloat(pixel[1]), UCharToFloat(pixel[2]), UCharToFloat(pixel[3]));
-                    ImGui::SetNextItemWidth(200.f * FontSizeRatio());
+                    ImGui::SetNextItemWidth(150.f * FontSizeRatio());
                     ImGui::ColorEdit4(id.c_str(), (float*)&colorAsImVec, editFlags);
                     done = true;
                 }
