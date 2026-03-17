@@ -228,7 +228,10 @@ namespace ImmVision
             double maxValue = settings.ColormapScaleMax;
             auto fnGetColor = [&](_Tp value) -> Color4u8
             {
-                double k = (value - minValue) / (maxValue - minValue);
+                double range = maxValue - minValue;
+                if (range == 0. || std::isnan(range) || std::isnan(minValue))
+                    return colorLut[0];
+                double k = (value - minValue) / range;
                 k = std::clamp(k, 0., 1.);
                 size_t idx = (size_t)(k * 255.);
                 return colorLut[idx];
