@@ -3,6 +3,7 @@
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/imgui/image_widgets.h"
+#include "immvision/imgui_imm.h"
 
 #include "imgui.h"
 
@@ -71,14 +72,17 @@ namespace ImmVision
 
         // Horizontal scrolling child for the filmstrip
         float labelFontSize = ImGui::GetFontSize() * 0.75f;
-        float stripH = thumbH + labelFontSize + ImGui::GetStyle().ItemSpacing.y * 2.f + ImGui::GetStyle().ScrollbarSize;
-
+        float largeScrollbarH = ImGui::GetFontSize() * 1.25f;
+        float contentH = thumbH + labelFontSize + ImGui::GetStyle().ItemSpacing.y * 2.f;
+        float stripH = contentH + largeScrollbarH;
         // Vertical slider for thumbnail size, to the left of the strip (fixed height)
         float sliderH = ImGui::GetFontSize() * 5.f;
         float em = ImGui::GetFontSize();
-        ImGui::VSliderFloat("##thumbsize", ImVec2(em, sliderH), &s_Inspector_ThumbnailHeight, em * 2.f, em * 14.f, "");
+        ImGui::VSliderFloat("##thumbsize", ImVec2(em * 2.0f, sliderH), &s_Inspector_ThumbnailHeight, em * 2.f, em * 14.f, "");
         ImGui::SetItemTooltip("Thumbnail size: %.0f px", s_Inspector_ThumbnailHeight);
         ImGui::SameLine();
+        // Larger scrollbar for the filmstrip
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, largeScrollbarH);
         ImGui::BeginChild("##filmstrip", ImVec2(0.f, stripH), ImGuiChildFlags_None,
                           ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground);
 
@@ -106,7 +110,7 @@ namespace ImmVision
             float thumbW = imageRatio * thumbH;
 
             // Total item width: thumbnail + label space
-            float labelWidth = ImGui::CalcTextSize(imageAndParams.Label.c_str()).x;
+            float labelWidth = ImGui::CalcTextSize(imageAndParams.Label.c_str()).x * (labelFontSize / ImGui::GetFontSize());
             float itemW = std::max(thumbW, std::min(labelWidth, thumbW * 1.5f));
 
             // All items on one line
@@ -133,11 +137,13 @@ namespace ImmVision
                 if (is_selected)
                     ImGui::GetWindowDrawList()->AddRect(imgTl, imgBr, IM_COL32(100, 150, 255, 255), 0.f, 0, 2.f);
 
-                // Label below thumbnail (smaller font, clipped to item width)
-                ImVec2 labelPos(thumbTl.x, thumbTl.y + thumbH + 1.f);
-                ImGui::GetWindowDrawList()->PushClipRect(labelPos, ImVec2(labelPos.x + itemW, labelPos.y + labelFontSize));
-                ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), labelFontSize, labelPos, ImGui::GetColorU32(ImGuiCol_Text), imageAndParams.Label.c_str());
-                ImGui::GetWindowDrawList()->PopClipRect();
+                // Label below thumbnail (smaller font, using ImGui::Text for proper clipping)
+                ImGui::SetCursorScreenPos(ImVec2(thumbTl.x, thumbTl.y + thumbH + 1.f));
+                ImGui::PushFont(nullptr, labelFontSize);
+                ImGui::PushItemWidth(itemW);
+                ImGui::TextUnformatted(imageAndParams.Label.c_str());
+                ImGui::PopItemWidth();
+                ImGui::PopFont();
 
                 // Delete button on hover (drawn via DrawList, subtle circle + "x")
                 if (ImGui::IsItemHovered())
@@ -170,6 +176,7 @@ namespace ImmVision
         }
 
         ImGui::EndChild();
+        ImGui::PopStyleVar(); // ScrollbarSize
 
         return idxSuppress;
     }
