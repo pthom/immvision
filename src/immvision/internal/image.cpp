@@ -10,6 +10,7 @@
 #include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
+#include "immvision/internal/drawing/image_drawing.h"
 #include "immvision/internal/misc/panic.h"
 #include "immvision/inspector.h"
 #include "imgui.h"
@@ -607,7 +608,7 @@ This is a required setup step. (Breaking change - October 2024)
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params](const GlTexture& glTexture) ->  MouseInformation
+        auto fnShowImage = [&params, &image](const GlTexture& glTexture) ->  MouseInformation
         {
             bool disableDragWindow = params->PanWithMouse;
             ImVec2 displaySize((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height);
@@ -623,10 +624,23 @@ This is a required setup step. (Breaking change - October 2024)
             ImVec2 widgetOffset((float)uvResult.widgetOffset.x, (float)uvResult.widgetOffset.y);
             ImVec2 widgetSize((float)uvResult.widgetSize.width, (float)uvResult.widgetSize.height);
 
+            ImVec2 widgetTopLeft = ImGui::GetCursorScreenPos();
+
+            // Draw background behind the image (before AddImage, so alpha blending works)
+            // Checkerboard only makes sense for images with an alpha channel (4 channels)
+            bool hasAlpha = (image.channels == 4);
+            if (hasAlpha && params->ShowAlphaChannelCheckerboard)
+                ImageDrawing::DrawAlphaCheckerboardBackground(*params, widgetTopLeft);
+            else if (params->ShowSchoolPaperBackground)
+                ImageDrawing::DrawSchoolPaperBackground(*params, widgetTopLeft);
+
             Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse_Uv(
                     glTexture, displaySize,
                     uv0, uv1, widgetOffset, widgetSize,
                     disableDragWindow);
+
+            // Draw annotations (grid, pixel values, watched pixels) via DrawList
+            ImageDrawing::DrawAnnotationsOverlay(*params, image, widgetTopLeft);
 
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())

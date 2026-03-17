@@ -41,10 +41,8 @@ namespace ImmVision
                 return true;
             if (v1.SelectedChannel != v2.SelectedChannel)
                 return true;
-            if (v1.ShowAlphaChannelCheckerboard != v2.ShowAlphaChannelCheckerboard)
-                return true;
-            if (v1.ShowSchoolPaperBackground != v2.ShowSchoolPaperBackground)
-                return true;
+            // ShowAlphaChannelCheckerboard and ShowSchoolPaperBackground no longer
+            // trigger texture re-upload — they are drawn via DrawList.
             return false;
         }
 
