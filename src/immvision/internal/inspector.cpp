@@ -171,12 +171,18 @@ namespace ImmVision
 
                 // Label below thumbnail (smaller font, clipped to thumbnail width)
                 {
+                    // Strip ImGui ID suffix (##...) from the label for display
+                    std::string displayLabel = imageAndParams.Label;
+                    auto hashPos = displayLabel.find("##");
+                    if (hashPos != std::string::npos)
+                        displayLabel = displayLabel.substr(0, hashPos);
+
                     ImVec2 labelPos(thumbTl.x, thumbTl.y + thumbH + 1.f);
                     ImGui::GetWindowDrawList()->PushClipRect(
                         labelPos, ImVec2(labelPos.x + itemW, labelPos.y + labelFontSize + 1.f), true);
                     ImGui::GetWindowDrawList()->AddText(
                         ImGui::GetFont(), labelFontSize, labelPos,
-                        ImGui::GetColorU32(ImGuiCol_Text), imageAndParams.Label.c_str());
+                        ImGui::GetColorU32(ImGuiCol_Text), displayLabel.c_str());
                     ImGui::GetWindowDrawList()->PopClipRect();
                 }
 
