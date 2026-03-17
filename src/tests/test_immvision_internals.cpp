@@ -5,7 +5,7 @@
 //        target_link_libraries(test_immvision_internals immvision)
 
 #include "immvision/immvision_types.h"
-#include "immvision/internal/cv/drawing_utils.h"
+#include "immvision/internal/cv/convert_to_rgba.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
@@ -350,7 +350,7 @@ void test_converted_to_rgba_uint8_3ch()
     row[0] = 10; row[1] = 20; row[2] = 30;   // pixel 0: R=10, G=20, B=30
     row[3] = 40; row[4] = 50; row[5] = 60;   // pixel 1
 
-    ImageBuffer rgba = DrawingUtils::converted_to_rgba_image(img, false /* RGB order */);
+    ImageBuffer rgba = converted_to_rgba_image(img, false /* RGB order */);
     CHECK(rgba.width == 2 && rgba.height == 1 && rgba.channels == 4);
     CHECK(rgba.depth == ImageDepth::uint8);
 
@@ -368,7 +368,7 @@ void test_converted_to_rgba_uint8_3ch_bgr()
     uint8_t* row = img.ptr<uint8_t>(0);
     row[0] = 100; row[1] = 150; row[2] = 200;  // B=100, G=150, R=200
 
-    ImageBuffer rgba = DrawingUtils::converted_to_rgba_image(img, true /* BGR order */);
+    ImageBuffer rgba = converted_to_rgba_image(img, true /* BGR order */);
     const uint8_t* out = rgba.ptr<uint8_t>(0);
     // Should swap R and B: output is RGBA so R=200, G=150, B=100
     CHECK(out[0] == 200 && out[1] == 150 && out[2] == 100 && out[3] == 255);
@@ -383,7 +383,7 @@ void test_converted_to_rgba_uint8_1ch()
     img.ptr<uint8_t>(0)[0] = 128;
     img.ptr<uint8_t>(0)[1] = 255;
 
-    ImageBuffer rgba = DrawingUtils::converted_to_rgba_image(img, false);
+    ImageBuffer rgba = converted_to_rgba_image(img, false);
     const uint8_t* out = rgba.ptr<uint8_t>(0);
     CHECK(out[0] == 128 && out[1] == 128 && out[2] == 128 && out[3] == 255);
     CHECK(out[4] == 255 && out[5] == 255 && out[6] == 255 && out[7] == 255);
@@ -398,7 +398,7 @@ void test_converted_to_rgba_uint8_4ch()
     uint8_t* row = img.ptr<uint8_t>(0);
     row[0] = 10; row[1] = 20; row[2] = 30; row[3] = 128;
 
-    ImageBuffer rgba = DrawingUtils::converted_to_rgba_image(img, false);
+    ImageBuffer rgba = converted_to_rgba_image(img, false);
     const uint8_t* out = rgba.ptr<uint8_t>(0);
     CHECK(out[0] == 10 && out[1] == 20 && out[2] == 30 && out[3] == 128);
 
@@ -413,7 +413,7 @@ void test_converted_to_rgba_float32_1ch()
     img.ptr<float>(0)[1] = 0.5f;
     img.ptr<float>(0)[2] = 1.0f;
 
-    ImageBuffer rgba = DrawingUtils::converted_to_rgba_image(img, false);
+    ImageBuffer rgba = converted_to_rgba_image(img, false);
     const uint8_t* out = rgba.ptr<uint8_t>(0);
     // 0.0 -> 0, 0.5 -> 127 or 128, 1.0 -> 255
     CHECK(out[0] == 0);
@@ -432,7 +432,7 @@ void test_converted_to_rgba_int16_1ch()
     img.ptr<int16_t>(0)[0] = -32768;  // min -> 0
     img.ptr<int16_t>(0)[1] = 32767;   // max -> 255
 
-    ImageBuffer rgba = DrawingUtils::converted_to_rgba_image(img, false);
+    ImageBuffer rgba = converted_to_rgba_image(img, false);
     const uint8_t* out = rgba.ptr<uint8_t>(0);
     CHECK(out[0] == 0);    // min maps to 0
     CHECK(out[4] == 255);  // max maps to 255
@@ -441,125 +441,7 @@ void test_converted_to_rgba_int16_1ch()
 }
 
 
-// =========================================================================
-// WarpAffineScaleTranslate tests
-// =========================================================================
-
-void test_warp_nearest_identity()
-{
-    TEST("WarpAffineScaleTranslate: nearest, identity");
-    ImageBuffer src = ImageBuffer::Zeros(4, 4, 1, ImageDepth::uint8);
-    for (int y = 0; y < 4; y++)
-        for (int x = 0; x < 4; x++)
-            src.ptr<uint8_t>(y)[x] = (uint8_t)(y * 10 + x);
-
-    ImageBuffer dst = ImageBuffer::Zeros(4, 4, 1, ImageDepth::uint8);
-    dst.fill(Color4d(0, 0, 0, 0));
-    Matrix33d identity = Matrix33d::eye();
-    ZoomPanTransform::WarpAffineScaleTranslate(src, dst, identity, ZoomPanTransform::WarpInterp::Nearest);
-
-    for (int y = 0; y < 4; y++)
-        for (int x = 0; x < 4; x++)
-            CHECK(dst.ptr<uint8_t>(y)[x] == src.ptr<uint8_t>(y)[x]);
-
-    PASS();
-}
-
-void test_warp_nearest_scale2x()
-{
-    TEST("WarpAffineScaleTranslate: nearest, 2x scale");
-    // 2x2 source
-    ImageBuffer src = ImageBuffer::Zeros(2, 2, 1, ImageDepth::uint8);
-    src.ptr<uint8_t>(0)[0] = 10;
-    src.ptr<uint8_t>(0)[1] = 20;
-    src.ptr<uint8_t>(1)[0] = 30;
-    src.ptr<uint8_t>(1)[1] = 40;
-
-    // 4x4 destination, scale=2
-    ImageBuffer dst = ImageBuffer::Zeros(4, 4, 1, ImageDepth::uint8);
-    dst.fill(Color4d(0, 0, 0, 0));
-    Matrix33d scale2x = Matrix33d::eye();
-    scale2x(0, 0) = 2.0;
-    scale2x(1, 1) = 2.0;
-    ZoomPanTransform::WarpAffineScaleTranslate(src, dst, scale2x, ZoomPanTransform::WarpInterp::Nearest);
-
-    // With std::round(0.5)=1 (round-half-away-from-zero):
-    //   dst(0,0) -> src(round(0),round(0)) = src(0,0) = 10
-    //   dst(0,1) -> src(round(0.5),round(0)) = src(1,0) = 20
-    //   dst(1,0) -> src(round(0),round(0.5)) = src(0,1) = 30
-    CHECK(dst.ptr<uint8_t>(0)[0] == 10);
-    CHECK(dst.ptr<uint8_t>(0)[1] == 20);   // round(0.5) = 1
-    CHECK(dst.ptr<uint8_t>(0)[2] == 20);
-    CHECK(dst.ptr<uint8_t>(0)[3] == 20);   // round(1.5) = 2 -> clamped to 1
-    CHECK(dst.ptr<uint8_t>(1)[0] == 30);   // round(0.5) = 1 for y
-    CHECK(dst.ptr<uint8_t>(2)[0] == 30);
-    CHECK(dst.ptr<uint8_t>(3)[3] == 40);
-
-    PASS();
-}
-
-void test_warp_bilinear_scale2x()
-{
-    TEST("WarpAffineScaleTranslate: bilinear, 2x scale");
-    ImageBuffer src = ImageBuffer::Zeros(2, 2, 1, ImageDepth::uint8);
-    src.ptr<uint8_t>(0)[0] = 0;
-    src.ptr<uint8_t>(0)[1] = 100;
-    src.ptr<uint8_t>(1)[0] = 100;
-    src.ptr<uint8_t>(1)[1] = 200;
-
-    ImageBuffer dst = ImageBuffer::Zeros(4, 4, 1, ImageDepth::uint8);
-    dst.fill(Color4d(0, 0, 0, 0));
-    Matrix33d scale2x = Matrix33d::eye();
-    scale2x(0, 0) = 2.0;
-    scale2x(1, 1) = 2.0;
-    ZoomPanTransform::WarpAffineScaleTranslate(src, dst, scale2x, ZoomPanTransform::WarpInterp::Bilinear);
-
-    // Corners should match source
-    CHECK(dst.ptr<uint8_t>(0)[0] == 0);
-    CHECK(dst.ptr<uint8_t>(0)[3] == 100);
-    CHECK(dst.ptr<uint8_t>(3)[0] == 100);
-    CHECK(dst.ptr<uint8_t>(3)[3] == 200);
-
-    // Interior should be interpolated — just check it's between neighbors
-    uint8_t mid = dst.ptr<uint8_t>(1)[1];
-    CHECK(mid > 0 && mid < 200);
-
-    PASS();
-}
-
-void test_warp_area_downscale()
-{
-    TEST("WarpAffineScaleTranslate: area, 0.5x downscale");
-    // 4x4 source with known pattern
-    ImageBuffer src = ImageBuffer::Zeros(4, 4, 1, ImageDepth::uint8);
-    // Top-left 2x2 block: all 100
-    src.ptr<uint8_t>(0)[0] = 100; src.ptr<uint8_t>(0)[1] = 100;
-    src.ptr<uint8_t>(1)[0] = 100; src.ptr<uint8_t>(1)[1] = 100;
-    // Top-right 2x2 block: all 200
-    src.ptr<uint8_t>(0)[2] = 200; src.ptr<uint8_t>(0)[3] = 200;
-    src.ptr<uint8_t>(1)[2] = 200; src.ptr<uint8_t>(1)[3] = 200;
-    // Bottom-left: all 50
-    src.ptr<uint8_t>(2)[0] = 50; src.ptr<uint8_t>(2)[1] = 50;
-    src.ptr<uint8_t>(3)[0] = 50; src.ptr<uint8_t>(3)[1] = 50;
-    // Bottom-right: all 0
-    src.ptr<uint8_t>(2)[2] = 0; src.ptr<uint8_t>(2)[3] = 0;
-    src.ptr<uint8_t>(3)[2] = 0; src.ptr<uint8_t>(3)[3] = 0;
-
-    ImageBuffer dst = ImageBuffer::Zeros(2, 2, 1, ImageDepth::uint8);
-    Matrix33d scaleHalf = Matrix33d::eye();
-    scaleHalf(0, 0) = 0.5;
-    scaleHalf(1, 1) = 0.5;
-    ZoomPanTransform::WarpAffineScaleTranslate(src, dst, scaleHalf, ZoomPanTransform::WarpInterp::Area);
-
-    // Each dst pixel should be the average of a 2x2 block in src
-    CHECK(dst.ptr<uint8_t>(0)[0] == 100);
-    CHECK(dst.ptr<uint8_t>(0)[1] == 200);
-    CHECK(dst.ptr<uint8_t>(1)[0] == 50);
-    CHECK(dst.ptr<uint8_t>(1)[1] == 0);
-
-    PASS();
-}
-
+// WarpAffineScaleTranslate tests removed — CPU warp replaced by GPU texture sampling
 
 // =========================================================================
 // Colormap tests
@@ -735,12 +617,6 @@ int main()
     test_converted_to_rgba_uint8_4ch();
     test_converted_to_rgba_float32_1ch();
     test_converted_to_rgba_int16_1ch();
-
-    printf("\n[WarpAffineScaleTranslate]\n");
-    test_warp_nearest_identity();
-    test_warp_nearest_scale2x();
-    test_warp_bilinear_scale2x();
-    test_warp_area_downscale();
 
     printf("\n[Colormap]\n");
     test_can_colormap();
