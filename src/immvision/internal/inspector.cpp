@@ -8,7 +8,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
-
+#include <cmath>
 
 namespace ImmVision
 {
