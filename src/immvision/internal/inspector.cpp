@@ -3,6 +3,7 @@
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/imgui/image_widgets.h"
+#include "immvision/internal/gl/gl_provider.h"
 #include "immvision/imgui_imm.h"
 
 #include "imgui.h"
@@ -128,7 +129,9 @@ namespace ImmVision
                 if (ImGui::Selectable(selId.c_str(), is_selected, 0, ImVec2(itemW, totalH)))
                     s_Inspector_CurrentIndex = i;
 
-                // Draw thumbnail image on top of selectable
+                // Draw thumbnail image on top of selectable (use mipmap filtering for quality)
+                using TF = ImmVision_GlProvider::TextureFilter;
+                ImmVision_GlProvider::SetTextureFiltering(cacheImage.mGlTexture->TextureId, TF::LinearMipmapLinear, TF::Linear);
                 ImVec2 imgTl(thumbTl.x + (itemW - thumbW) * 0.5f, thumbTl.y);
                 ImVec2 imgBr(imgTl.x + thumbW, imgTl.y + thumbH);
                 ImGui::GetWindowDrawList()->AddImage(cacheImage.mGlTexture->TextureId, imgTl, imgBr);
