@@ -15,7 +15,18 @@ namespace ImmVision
 
         ImageBuffer MakeSchoolPaperBackground(Size s);
 
+        // Old pipeline: CPU warp + annotations → fills GlTexture (to be removed)
         void BlitImageTexture(
+            const ImageParams& params,
+            const ImageBuffer& image,
+            ImageBuffer& in_out_rgba_image_cache,
+            bool shall_refresh_rgba,
+            GlTexture* outTexture
+        );
+
+        // New pipeline: RGBA conversion + texture upload only (no warp, no annotations).
+        // Annotations are drawn via DrawList by the caller.
+        void UpdateImageTexture(
             const ImageParams& params,
             const ImageBuffer& image,
             ImageBuffer& in_out_rgba_image_cache,

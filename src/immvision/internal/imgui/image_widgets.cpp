@@ -43,6 +43,36 @@ namespace ImmVision
                 return Point2d(-1., -1.);
         }
 
+        Point2d DisplayTexture_TrackMouse_Uv(
+            const GlTexture& texture, ImVec2 displaySize,
+            ImVec2 uv0, ImVec2 uv1,
+            ImVec2 widgetOffset, ImVec2 widgetSize,
+            bool disableDragWindow)
+        {
+            ImVec2 areaTopLeft = ImGui::GetCursorScreenPos();
+
+            // Reserve the full display area for consistent layout and mouse interaction
+            std::stringstream id;
+            id << "##" << texture.TextureId;
+            if (disableDragWindow)
+                ImGui::InvisibleButton(id.str().c_str(), displaySize);
+            else
+                ImGui::Dummy(displaySize);
+
+            // Draw the image at the correct offset within the display area
+            ImVec2 imageTl(areaTopLeft.x + widgetOffset.x, areaTopLeft.y + widgetOffset.y);
+            ImVec2 imageBr(imageTl.x + widgetSize.x, imageTl.y + widgetSize.y);
+            ImGui::GetWindowDrawList()->AddImage(texture.TextureId, imageTl, imageBr, uv0, uv1);
+
+            // Return mouse position relative to the display area top-left
+            bool isHovered = ImGui::IsItemHovered();
+            ImVec2 mouse = ImGui::GetMousePos();
+            if (isHovered)
+                return Point2d((double)(mouse.x - areaTopLeft.x), (double)(mouse.y - areaTopLeft.y));
+            else
+                return Point2d(-1., -1.);
+        }
+
         void ShowImageInfo(const ImageBuffer &image, double zoomFactor)
         {
             std::string info = MatrixInfoUtils::_MatInfo(image);

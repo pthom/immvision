@@ -608,9 +608,23 @@ This is a required setup step. (Breaking change - October 2024)
         auto fnShowImage = [&params](const GlTexture& glTexture) ->  MouseInformation
         {
             bool disableDragWindow = params->PanWithMouse;
-            Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
-                    glTexture,
-                    ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height), disableDragWindow);
+            ImVec2 displaySize((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height);
+
+            // Compute UV coordinates and widget placement from the zoom/pan matrix
+            auto uvResult = ZoomPanTransform::UvFromZoomPan(
+                params->ZoomPanMatrix,
+                Size(glTexture.ImageSize.width, glTexture.ImageSize.height),
+                params->ImageDisplaySize);
+
+            ImVec2 uv0((float)uvResult.uv0.x, (float)uvResult.uv0.y);
+            ImVec2 uv1((float)uvResult.uv1.x, (float)uvResult.uv1.y);
+            ImVec2 widgetOffset((float)uvResult.widgetOffset.x, (float)uvResult.widgetOffset.y);
+            ImVec2 widgetSize((float)uvResult.widgetSize.width, (float)uvResult.widgetSize.height);
+
+            Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse_Uv(
+                    glTexture, displaySize,
+                    uv0, uv1, widgetOffset, widgetSize,
+                    disableDragWindow);
 
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())

@@ -299,6 +299,55 @@ namespace ImmVision
             outTexture->UpdateFromImage(finalImage, false);
         }
 
+        void UpdateImageTexture(
+            const ImageParams& params,
+            const ImageBuffer& image,
+            ImageBuffer& in_out_rgba_image_cache,
+            bool shall_refresh_rgba,
+            GlTexture* outTexture
+        )
+        {
+            if (image.empty())
+                return;
+
+            if (shall_refresh_rgba)
+            {
+                ImageBuffer finalImage = image.clone();
+
+                if (HasColormapParam(params) && Colormap::CanColormap(image))
+                {
+                    finalImage = Colormap::ApplyColormap(finalImage, params.ColormapSettings);
+                }
+                else
+                {
+                    // Extract a single channel from a multi-channel image
+                    if (finalImage.channels > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels))
+                    {
+                        int ch = params.SelectedChannel;
+                        int nch = finalImage.channels;
+                        ImageBuffer singleChannel = ImageBuffer::Zeros(finalImage.width, finalImage.height, 1, finalImage.depth);
+                        for (int y = 0; y < finalImage.height; y++)
+                        {
+                            const uint8_t* src = finalImage.ptr<uint8_t>(y);
+                            uint8_t* dst = singleChannel.ptr<uint8_t>(y);
+                            int elemSize = (int)finalImage.elemSize();
+                            for (int x = 0; x < finalImage.width; x++)
+                                std::memcpy(dst + x * elemSize, src + (x * nch + ch) * elemSize, elemSize);
+                        }
+                        finalImage = singleChannel;
+                    }
+
+                    bool is_color_order_bgr = IsUsingBgrColorOrder();
+                    finalImage = DrawingUtils::converted_to_rgba_image(finalImage, is_color_order_bgr);
+                }
+                in_out_rgba_image_cache = finalImage;
+                assert(finalImage.depth == ImageDepth::uint8 && finalImage.channels == 4);
+
+                // Upload to GPU texture (with mipmap generation via gl_provider)
+                outTexture->UpdateFromImage(finalImage, false);
+            }
+        }
+
         bool HasColormapParam(const ImageParams &params)
         {
             return (!params.ColormapSettings.Colormap.empty() || !params.ColormapSettings.internal_ColormapHovered.empty());

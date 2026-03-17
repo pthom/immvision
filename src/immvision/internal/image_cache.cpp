@@ -1,6 +1,7 @@
 #include "immvision/internal/image_cache.h"
 #include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
+#include "immvision/internal/gl/gl_provider.h"
 #include "immvision/imgui_imm.h"
 #include "immvision/internal/drawing/image_drawing.h"
 
@@ -127,33 +128,34 @@ namespace ImmVision
                 }
             }
 
-            bool shallRefreshTexture = false;
-            bool shallRefreshRgbaCache = false;
+            // In the new GPU pipeline, the texture only needs re-upload when the
+            // RGBA content changes (colormap, channel, image data). Zoom/pan, grid,
+            // annotations are handled by UV coordinates and DrawList.
+            bool shallRefreshRgba =
+                    userRefresh
+                    || isNewEntry
+                    || (cachedImage.mGlTexture->ImageSize.empty())
+                    || ShallRefreshRgbaCache(oldParams, *params);
+
+            if (shallRefreshRgba)
             {
-                bool fullRefresh =
-                    (      userRefresh
-                        || isNewEntry
-                        || (cachedImage.mGlTexture->ImageSize.empty())
-                        || ShallRefreshRgbaCache(oldParams, *params));
-                if (fullRefresh)
-                {
-                    shallRefreshTexture = true;
-                    shallRefreshRgbaCache = true;
-                }
-                if (ShallRefreshTexture(oldParams, *params))
-                    shallRefreshTexture = true;
-                if (cachedParams.WasZoomJustUpdatedByLink)
-                {
-                    shallRefreshTexture = true;
-                    cachedParams.WasZoomJustUpdatedByLink = false;
-                }
+                ImageDrawing::UpdateImageTexture(
+                    *params, image, cachedImage.mImageRgbaCache, true, cachedImage.mGlTexture.get());
             }
 
-            if (shallRefreshTexture)
+            // Set texture filtering based on zoom level
             {
-                ImageDrawing::BlitImageTexture(
-                    *params, image, cachedImage.mImageRgbaCache, shallRefreshRgbaCache, cachedImage.mGlTexture.get());
+                double zoom = params->ZoomPanMatrix(0, 0);
+                using TF = ImmVision_GlProvider::TextureFilter;
+                TF minF, magF;
+                if (zoom >= 12.0)      { minF = TF::Nearest; magF = TF::Nearest; }
+                else if (zoom >= 1.0)  { minF = TF::Linear;  magF = TF::Linear;  }
+                else                   { minF = TF::LinearMipmapLinear; magF = TF::Linear; }
+                ImmVision_GlProvider::SetTextureFiltering(cachedImage.mGlTexture->TextureId, minF, magF);
             }
+
+            if (cachedParams.WasZoomJustUpdatedByLink)
+                cachedParams.WasZoomJustUpdatedByLink = false;
 
             if (!cachedParams.WasZoomJustUpdatedByLink && !ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
                 UpdateLinkedZooms(id);
