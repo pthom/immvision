@@ -1,6 +1,6 @@
 # ImmVision Changelog
 
-## v1.92.601 (2026-03-17) — OpenCV is now optional
+## v1.92.601 (2026-03-17) — OpenCV is now optional / GPU rendering + DrawList annotations
 
 **Breaking changes:**
 - **OpenCV is no longer required.** ImmVision now works fully without OpenCV. When OpenCV is available, `cv::Mat` can still be passed to any ImmVision function via implicit zero-copy conversion (behind `IMMVISION_HAS_OPENCV`).
@@ -28,6 +28,20 @@
 - Zoom/pan warp reimplemented with custom nearest/bilinear/area interpolation
 - Color conversion, image statistics, alpha blending reimplemented without OpenCV
 - 27 C++ unit tests + 54 Python unit tests, both passing with and without OpenCV
+
+**Rendering pipeline rewritten:**
+- **GPU-based zoom/pan**: Image is uploaded to GPU texture once (with mipmaps), pan/zoom handled via UV coordinates. No more per-frame CPU warp.
+- **Texture filtering**: `GL_NEAREST` (zoom ≥ 12x), `GL_LINEAR` (1x–12x), `GL_LINEAR_MIPMAP_LINEAR` (< 1x, for high-quality downsampling)
+- **DrawList annotations**: Grid lines, pixel values, and watched pixel markers drawn via ImGui DrawList in screen space (instead of onto the image buffer)
+- **DrawList backgrounds**: School paper and alpha checkerboard patterns drawn via DrawList (no longer composited into texture)
+- **DrawList icons**: Zoom/adjust buttons drawn via DrawList (no more icon texture generation)
+- **~900 lines removed**: Bresenham drawing, bitmap font, CPU interpolation code, icon texture cache
+
+**Inspector redesign:**
+- Horizontal filmstrip with scrolling replaces vertical listbox
+- Adjustable thumbnail size via vertical slider
+- Delete button appears on hover (DrawList circle + x)
+
 
 ## v1.0.0 – v1.92.600
 
