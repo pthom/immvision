@@ -5498,7 +5498,10 @@ namespace ImmVision
             double maxValue = settings.ColormapScaleMax;
             auto fnGetColor = [&](_Tp value) -> Color4u8
             {
-                double k = (value - minValue) / (maxValue - minValue);
+                double range = maxValue - minValue;
+                if (range == 0. || std::isnan(range) || std::isnan(minValue))
+                    return colorLut[0];
+                double k = (value - minValue) / range;
                 k = std::clamp(k, 0., 1.);
                 size_t idx = (size_t)(k * 255.);
                 return colorLut[idx];
@@ -6568,7 +6571,7 @@ namespace ImmVision
             int firstY = (int)std::floor(tld.y);
             int lastY  = (int)std::ceil(brd.y);
 
-            bool drawPixelCoords = zoomFactor > 80.;
+            bool drawPixelCoords = zoomFactor > 130.;
 
             // Font size scales with the pixel cell size, capped at the ImGui font size
             float cellSize = (float)zoomFactor;
@@ -21515,15 +21518,16 @@ namespace ImmVision
         // Vertical slider for thumbnail size, to the left of the strip (fixed height)
         float sliderH = ImGui::GetFontSize() * 5.f;
         float em = ImGui::GetFontSize();
-        ImGui::VSliderFloat("##thumbsize", ImVec2(em * 2.0f, sliderH), &s_Inspector_ThumbnailHeight, em * 2.f, em * 14.f, "");
+        ImGui::VSliderFloat("##thumbsize", ImVec2(em * 2.0f, sliderH), &s_Inspector_ThumbnailHeight, em * 3.f, em * 14.f, "");
         ImGui::SetItemTooltip("Thumbnail size: %.0f px", s_Inspector_ThumbnailHeight);
         ImGui::SameLine();
         // Larger scrollbar for the filmstrip
         ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, largeScrollbarH);
+
         ImGui::BeginChild("##filmstrip", ImVec2(0.f, stripH), ImGuiChildFlags_None,
                           ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground);
 
-        // Forward mouse wheel (vertical and horizontal) to horizontal scroll
+        // Forward mouse wheel to horizontal scroll
         if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
         {
             float wheel = ImGui::GetIO().MouseWheel + ImGui::GetIO().MouseWheelH;
@@ -21564,11 +21568,15 @@ namespace ImmVision
                 std::string selId = "##sel_" + std::to_string(i);
                 if (ImGui::Selectable(selId.c_str(), is_selected, 0, ImVec2(itemW, totalH)))
                     s_Inspector_CurrentIndex = i;
+                ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
 
-                // Draw thumbnail image on top of selectable
+                // Draw thumbnail image on top of selectable (use mipmap filtering for quality)
+                using TF = ImmVision_GlProvider::TextureFilter;
+                ImmVision_GlProvider::SetTextureFiltering(cacheImage.mGlTexture->TextureId, TF::LinearMipmapLinear, TF::Linear);
                 ImVec2 imgTl(thumbTl.x + (itemW - thumbW) * 0.5f, thumbTl.y);
                 ImVec2 imgBr(imgTl.x + thumbW, imgTl.y + thumbH);
                 ImGui::GetWindowDrawList()->AddImage(cacheImage.mGlTexture->TextureId, imgTl, imgBr);
+                ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
 
                 // Selected border
                 if (is_selected)
@@ -21599,13 +21607,16 @@ namespace ImmVision
                         idxSuppress = (int)i;
                 }
 
-                // Label below thumbnail (smaller font, using ImGui::Text for proper clipping)
-                ImGui::SetCursorScreenPos(ImVec2(thumbTl.x, thumbTl.y + thumbH + 1.f));
-                ImGui::PushFont(nullptr, labelFontSize);
-                ImGui::PushItemWidth(itemW);
-                ImGui::TextUnformatted(imageAndParams.Label.c_str());
-                ImGui::PopItemWidth();
-                ImGui::PopFont();
+                // Label below thumbnail (smaller font, clipped to thumbnail width)
+                {
+                    ImVec2 labelPos(thumbTl.x, thumbTl.y + thumbH + 1.f);
+                    ImGui::GetWindowDrawList()->PushClipRect(
+                        labelPos, ImVec2(labelPos.x + itemW, labelPos.y + labelFontSize + 1.f), true);
+                    ImGui::GetWindowDrawList()->AddText(
+                        ImGui::GetFont(), labelFontSize, labelPos,
+                        ImGui::GetColorU32(ImGuiCol_Text), imageAndParams.Label.c_str());
+                    ImGui::GetWindowDrawList()->PopClipRect();
+                }
 
             }
             ImGui::EndGroup();
