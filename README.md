@@ -7,6 +7,8 @@ ImmVision (a.k.a Immediate Vision) provides two tools for working with images:
 - **ImmDebug** — a standalone image debugger for any C++ or Python process
 - **ImmVision viewer** — an image viewer/analyzer widget for [ImGui](https://github.com/ocornut/imgui) applications
 
+> **v1.92.601**: OpenCV is now fully optional. ImmVision works standalone with its own `ImageBuffer` type. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 
 ## ImmDebug — Visual Image Debugger
 
@@ -202,3 +204,10 @@ immvision.inspector_show()
 ```
 
 See [Dear ImGui Bundle documentation](https://pthom.github.io/imgui_bundle/) for setup and usage.
+
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full history.

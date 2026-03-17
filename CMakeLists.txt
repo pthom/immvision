@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 project(immvision
-    VERSION 0.8.0
+    VERSION 1.92.601
     DESCRIPTION "immvision: immediate image debugger and insights"
     HOMEPAGE_URL "https://github.com/pthom/immvision/"
     )
