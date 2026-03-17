@@ -284,6 +284,51 @@ namespace ImmVision
         }
 
 
+        UvFromZoomPanResult UvFromZoomPan(
+            const MatrixType& zoomPanMatrix,
+            Size imageSize,
+            Size displaySize)
+        {
+            double scale = zoomPanMatrix(0, 0);
+            double tx    = zoomPanMatrix(0, 2);
+            double ty    = zoomPanMatrix(1, 2);
+            double imgW  = (double)imageSize.width;
+            double imgH  = (double)imageSize.height;
+            double dispW = (double)displaySize.width;
+            double dispH = (double)displaySize.height;
+
+            // Unclamped UVs: what portion of the image is visible in the display area
+            // display_pixel = scale * image_pixel + t
+            // image_pixel = (display_pixel - t) / scale
+            // uv = image_pixel / image_size
+            double uv0x = -tx / (scale * imgW);
+            double uv0y = -ty / (scale * imgH);
+            double uv1x = (dispW - tx) / (scale * imgW);
+            double uv1y = (dispH - ty) / (scale * imgH);
+
+            double uvRangeX = uv1x - uv0x;
+            double uvRangeY = uv1y - uv0y;
+
+            // Clamp UVs to [0,1] and compute widget offset/size
+            double offsetX = 0., offsetY = 0.;
+            double widgetW = dispW, widgetH = dispH;
+
+            if (uv0x < 0.) { offsetX = (-uv0x / uvRangeX) * dispW; uv0x = 0.; }
+            if (uv0y < 0.) { offsetY = (-uv0y / uvRangeY) * dispH; uv0y = 0.; }
+            if (uv1x > 1.) { uv1x = 1.; }
+            if (uv1y > 1.) { uv1y = 1.; }
+
+            widgetW = (uv1x - uv0x) / uvRangeX * dispW;
+            widgetH = (uv1y - uv0y) / uvRangeY * dispH;
+
+            UvFromZoomPanResult result;
+            result.uv0 = Point2d(uv0x, uv0y);
+            result.uv1 = Point2d(uv1x, uv1y);
+            result.widgetOffset = Point2d(offsetX, offsetY);
+            result.widgetSize = Size2d(widgetW, widgetH);
+            return result;
+        }
+
     } // namespace ZoomPanTransform
 
     Matrix33d MakeZoomPanMatrix(const Point2d & zoomCenter, double zoomRatio, const Size displayedImageSize)

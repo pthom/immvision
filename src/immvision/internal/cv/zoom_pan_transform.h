@@ -34,6 +34,22 @@ namespace ImmVision
         void WarpAffineScaleTranslate(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m, WarpInterp interp);
         void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m);
 
+        // Compute UV coordinates and widget placement for GPU-based rendering.
+        // Given the zoom/pan matrix, image size, and display size, computes:
+        //   - uv0, uv1: texture coordinates (clamped to [0,1])
+        //   - widgetOffset: pixel offset within the display area for the image widget
+        //   - widgetSize: size of the image widget in display pixels
+        struct UvFromZoomPanResult
+        {
+            Point2d uv0, uv1;         // Texture coordinates
+            Point2d widgetOffset;      // Offset within display area
+            Size2d  widgetSize;        // Size of the image widget
+        };
+        UvFromZoomPanResult UvFromZoomPan(
+            const MatrixType& zoomPanMatrix,
+            Size imageSize,
+            Size displaySize);
+
 } // namespace ZoomPanTransform
 
     Matrix33d MakeZoomPanMatrix(const Point2d & zoomCenter, double zoomRatio, const Size displayedImageSize);
