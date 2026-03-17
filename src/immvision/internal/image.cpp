@@ -732,7 +732,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             Point mouseLoc =
                 mouseLocation.x >= 0. ?
-                        Point((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5))
+                        Point((int)std::floor(mouseLocation.x), (int)std::floor(mouseLocation.y))
                     :   Point(-1, -1)
                     ;
             if (mouseLoc.x >= 0)
