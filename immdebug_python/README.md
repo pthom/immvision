@@ -41,34 +41,45 @@ This is the same protocol used by the C++ `ImmDebug()` function, so the Python c
 
 ## Use with OpenCV
 
+OpenCV uses BGR channel order. Use `immdebug_bgr` for correct colors:
+
 ```python
 import cv2
-from immdebug import immdebug
+from immdebug import immdebug, immdebug_bgr
 
 image = cv2.imread("photo.jpg")
-immdebug(image, "original")
+immdebug_bgr(image, "original")  # BGR image from OpenCV
 
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-immdebug(gray, "grayscale")
+immdebug(gray, "grayscale")  # single-channel, order doesn't matter
 
 edges = cv2.Canny(gray, 100, 200)
 immdebug(edges, "edges")
 ```
 
-Images default to BGR channel order (OpenCV convention). For RGB images (e.g. from PIL or matplotlib), pass `is_color_order_bgr=False`.
+## Use with PIL, matplotlib, etc.
+
+Most other libraries (PIL/Pillow, matplotlib, stb) use RGB order. Use `immdebug` (the default):
+
+```python
+from PIL import Image
+from immdebug import immdebug
+import numpy as np
+
+image = np.array(Image.open("photo.jpg"))
+immdebug(image, "original")
+```
 
 ## API
 
 ```python
-def immdebug(
-    image: np.ndarray,
-    legend: str = "",
-    zoom_center: tuple[float, float] = (0.0, 0.0),
-    zoom_ratio: float = -1.0,
-    zoom_key: str = "",
-    color_adjustments_key: str = "",
-    is_color_order_bgr: bool = True,
-) -> None:
+def immdebug(image, legend="", zoom_center=(0.0, 0.0), zoom_ratio=-1.0,
+             zoom_key="", color_adjustments_key="") -> None:
+    """Send an RGB image to the viewer."""
+
+def immdebug_bgr(image, legend="", zoom_center=(0.0, 0.0), zoom_ratio=-1.0,
+                 zoom_key="", color_adjustments_key="") -> None:
+    """Send a BGR image (OpenCV) to the viewer."""
 ```
 
 | Parameter | Description |
@@ -79,7 +90,6 @@ def immdebug(
 | `zoom_ratio` | Initial zoom ratio (-1 for auto-fit) |
 | `zoom_key` | Link zoom/pan across images sharing this key |
 | `color_adjustments_key` | Link color adjustments across images sharing this key |
-| `is_color_order_bgr` | True for BGR (OpenCV), False for RGB (PIL, matplotlib) |
 
 ## Features
 

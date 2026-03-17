@@ -40,7 +40,7 @@ macro(immvision_download_opencv_official_package_win)
     FetchContent_MakeAvailable(opencv_official_package_win)
     set(opencv_official_package_win_dir ${CMAKE_BINARY_DIR}/_deps/opencv_official_package_win-src/opencv-4.10.0-windows/build)
     message(WARNING "opencv_official_package_win_dir=${opencv_official_package_win_dir}")
-    set(OpenCV_DIR ${opencv_official_package_win_dir})
+    set(OpenCV_DIR ${opencv_official_package_win_dir} CACHE PATH "" FORCE)
     # set(OpenCV_STATIC ON)
 endmacro()
 
@@ -89,7 +89,7 @@ macro(immvision_download_emscripten_precompiled_opencv_4_9_0)
         )
     endif()
     FetchContent_MakeAvailable(opencv_package_emscripten)
-    set(OpenCV_DIR  ${CMAKE_BINARY_DIR}/_deps/opencv_package_emscripten-src/lib/cmake/opencv4)
+    set(OpenCV_DIR  ${CMAKE_BINARY_DIR}/_deps/opencv_package_emscripten-src/lib/cmake/opencv4  CACHE PATH "" FORCE)
 endmacro()
 
 
@@ -103,7 +103,8 @@ macro(immvision_fetch_opencv_from_source)
     file(GLOB_RECURSE _existing_opencv_config "${opencv_install_dir}/OpenCVConfig.cmake")
     if (_existing_opencv_config)
         list(GET _existing_opencv_config 0 _opencv_config)
-        get_filename_component(OpenCV_DIR "${_opencv_config}" DIRECTORY)
+        get_filename_component(_opencv_dir "${_opencv_config}" DIRECTORY)
+        set(OpenCV_DIR "${_opencv_dir}" CACHE PATH "" FORCE)
         message(STATUS "OpenCV already built — reusing ${OpenCV_DIR}")
         set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
     else()
@@ -178,7 +179,8 @@ macro(immvision_fetch_opencv_from_source)
         file(GLOB_RECURSE _opencv_configs "${opencv_install_dir}/OpenCVConfig.cmake")
         if (_opencv_configs)
             list(GET _opencv_configs 0 _opencv_config)
-            get_filename_component(OpenCV_DIR "${_opencv_config}" DIRECTORY)
+            get_filename_component(_opencv_dir "${_opencv_config}" DIRECTORY)
+            set(OpenCV_DIR "${_opencv_dir}" CACHE PATH "" FORCE)
             message(STATUS "Found OpenCVConfig.cmake at ${OpenCV_DIR}")
         else()
             message(FATAL_ERROR "
@@ -189,7 +191,7 @@ macro(immvision_fetch_opencv_from_source)
 endmacro()
 
 
-macro(immvision_find_opencv)
+macro(immvision_fetch_opencv)
     # Forward OpenCV_STATIC from environment (used by CI pre-built static OpenCV on Windows)
     if(DEFINED ENV{OpenCV_STATIC})
         set(OpenCV_STATIC "$ENV{OpenCV_STATIC}" CACHE BOOL "" FORCE)
@@ -249,12 +251,8 @@ macro(immvision_find_opencv)
     if (NOT OpenCV_FOUND)
         message("
         ----------------------------------------------------------------------------------
-        immvision requires OpenCV
-
-        If you want immvision to be built, install OpenCV before running cmake.
-        Tip: you can run
-            cmake -DIMMVISION_FETCH_OPENCV=ON ..
-        in order to automatically download and build a (very) minimal version of OpenCV.
+        immvision_fetch_opencv failed!
+        Please install OpenCV manually (or set OpenCV_DIR to the OpenCVConfig.cmake directory) and re-run CMake.
         ----------------------------------------------------------------------------------
         ")
     else()

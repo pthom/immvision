@@ -2,15 +2,14 @@
 #include "immvision/gl_texture.h"
 #include "immvision/image.h"
 #include "imgui.h"
-#include <opencv2/core.hpp>
 
 namespace ImmVision
 {
     namespace ImageWidgets
     {
-        cv::Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow);
-        void ShowImageInfo(const cv::Mat &image, double zoomFactor);
-        void ShowPixelColorWidget(const cv::Mat &image, cv::Point pt, const ImageParams& params);
+        Point2d DisplayTexture_TrackMouse(const GlTexture& texture, ImVec2 displaySize, bool disableDragWindow);
+        void ShowImageInfo(const ImageBuffer &image, double zoomFactor);
+        void ShowPixelColorWidget(const ImageBuffer &image, Point pt, const ImageParams& params);
 
         // If true, the collapsing headers will be synced across instances
         extern bool s_CollapsingHeader_CacheState_Sync;

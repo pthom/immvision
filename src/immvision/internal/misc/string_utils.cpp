@@ -1,6 +1,6 @@
 #include "immvision/internal/misc/string_utils.h"
 
-
+#include <sstream>
 
 
 namespace ImmVision
@@ -62,11 +62,6 @@ namespace ImmVision
             return r;
         }
 
-
-        std::string ToString(const cv::Size& size)
-        {
-            return std::string("(") + std::to_string(size.width) + "," + std::to_string(size.height) + ")";
-        }
 
         std::string ToString(const std::string& s)
         {

@@ -18,15 +18,15 @@ namespace ImmVision
             return hashResult;
         }
 
-        void InitializeMissingParams(ImageParams* params, const cv::Mat& image)
+        void InitializeMissingParams(ImageParams* params, const ImageBuffer& image)
         {
             if (Colormap::IsNone(params->ColormapSettings))
                 params->ColormapSettings = Colormap::ComputeInitialColormapSettings(image);
             {
-                cv::Rect fullRoi(cv::Point2d(), image.size());
+                Rect fullRoi(Point(0, 0), image.size());
                 Colormap::InitStatsOnNewImage(image, fullRoi, &params->ColormapSettings);
             }
-            if (params->ZoomPanMatrix == cv::Matx33d::eye())
+            if (params->ZoomPanMatrix == Matrix33d::eye())
                 params->ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), params->ImageDisplaySize);
         }
 
@@ -96,7 +96,7 @@ namespace ImmVision
         }
 
 
-        bool ImageTextureCache::UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh)
+        bool ImageTextureCache::UpdateCache(KeyType id, const ImageBuffer& image, ImageParams* params, bool userRefresh)
         {
             // Update cache entries
             bool isNewEntry = AddEntryIfMissing(id);
@@ -133,7 +133,7 @@ namespace ImmVision
                 bool fullRefresh =
                     (      userRefresh
                         || isNewEntry
-                        || (cachedImage.mGlTexture->Size.empty())
+                        || (cachedImage.mGlTexture->ImageSize.empty())
                         || ShallRefreshRgbaCache(oldParams, *params));
                 if (fullRefresh)
                 {
@@ -221,13 +221,13 @@ namespace ImmVision
             if (zoomKey.empty())
                 return;
 
-            ZoomPanTransform::MatrixType newZoom = currentCache.ParamsPtr->ZoomPanMatrix;
+            Matrix33d newZoom = currentCache.ParamsPtr->ZoomPanMatrix;
             double currentZoomRatio = newZoom(0, 0);
 
-            cv::Size displayedImageSize = currentCache.ParamsPtr->ImageDisplaySize;
-            cv::Point2d visibleImageCenter_ImageCoords;
+            Size displayedImageSize = currentCache.ParamsPtr->ImageDisplaySize;
+            Point2d visibleImageCenter_ImageCoords;
             {
-                cv::Point2d visibleCenter_Viewport(
+                Point2d visibleCenter_Viewport(
                     (double)displayedImageSize.width / 2., (double)displayedImageSize.height / 2.);
                 visibleImageCenter_ImageCoords = ZoomPanTransform::Apply(newZoom.inv(), visibleCenter_Viewport);
             }
@@ -241,7 +241,7 @@ namespace ImmVision
 
                 if ((otherCacheKey != id) && (otherCache.ParamsPtr->ZoomKey == zoomKey))
                 {
-                    cv::Size otherDisplayedImageSize = otherCache.ParamsPtr->ImageDisplaySize;
+                    Size otherDisplayedImageSize = otherCache.ParamsPtr->ImageDisplaySize;
 
                     double sizeRatioOtherImage = (double)otherDisplayedImageSize.width / (double)displayedImageSize.width;
                     double zoomRatioOtherImage = currentZoomRatio * sizeRatioOtherImage;
@@ -249,7 +249,6 @@ namespace ImmVision
                         visibleImageCenter_ImageCoords, zoomRatioOtherImage, otherDisplayedImageSize);
                     otherCache.ParamsPtr->ZoomPanMatrix = zoomMatrixOtherImage;
                     otherCache.PreviousParams.ZoomPanMatrix = zoomMatrixOtherImage;
-                    // otherCache.ParamsPtr->RefreshImage = true;
                     otherCache.WasZoomJustUpdatedByLink = true;
                 }
             }

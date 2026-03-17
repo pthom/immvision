@@ -1,15 +1,15 @@
 #pragma once
-#include <opencv2/core.hpp>
+#include "immvision/immvision_types.h"
 #include <string>
 
 namespace ImmVision
 {
     namespace MatrixInfoUtils
     {
-        std::string _MatTypeName(const cv::Mat& m);
-        std::string _MatInfo(const cv::Mat &m);
-        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y);
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator = ',', bool add_paren = true);
+        std::string _MatTypeName(const ImageBuffer& m);
+        std::string _MatInfo(const ImageBuffer &m);
+        std::vector<double> MatValuesAt(const ImageBuffer& m, int x, int y);
+        std::string MatPixelColorInfo(const ImageBuffer & m, int x, int y, char separator = ',', bool add_paren = true);
 
     } // namespace MatrixInfoUtils
 

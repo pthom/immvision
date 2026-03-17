@@ -1,43 +1,41 @@
 #pragma once
 
-#include <opencv2/core.hpp>
+#include "immvision/immvision_types.h"
 
 namespace ImmVision
 {
     namespace ZoomPanTransform
     {
-        using MatrixType = cv::Matx33d;
+        using MatrixType = Matrix33d;
 
         MatrixType Identity();
 
-        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio);
-        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom);
-        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize);
-        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize);
-        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize);
+        MatrixType ComputeZoomMatrix(const Point2d & zoomCenter, double zoomRatio);
+        MatrixType ComputePanMatrix(const Point2d& dragDelta, double currentZoom);
+        MatrixType MakeScaleOne(Size imageSize, Size viewportSize);
+        MatrixType MakeFullView(Size imageSize, Size viewportSize);
+        Matrix33d MakeZoomMatrix(const Point2d & zoomCenter, double zoomRatio, const Size displayedImageSize);
 
         bool IsEqual(const MatrixType & v1, const MatrixType & v2);
 
-        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p);
-
-        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m);
+        Point2d Apply(const MatrixType& zoomMatrix, const Point2d &p);
 
         MatrixType UpdateZoomMatrix_DisplaySizeChanged(
             const MatrixType& oldZoomMatrix,
-            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize);
+            const Size& oldDisplaySize, const Size& newDisplaySize);
 
-        cv::Rect VisibleRoi(const MatrixType & zoomMatrix,
-                            cv::Size imageDisplaySize,
-                            cv::Size originalImageSize
+        Rect VisibleRoi(const MatrixType & zoomMatrix,
+                            Size imageDisplaySize,
+                            Size originalImageSize
                             );
 
-        // Custom version of cv::warpAffine for small sizes, since cv::warpAffine happily ignores cv::INTER_AREA
-        // cf https://github.com/pthom/immvision/issues/6 and
-        // cf https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/imgwarp.cpp#L2826-L2827
-        void _WarpAffineInterAreaForSmallSizes(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m);
+        // Custom warp for scale+translate transforms (replaces cv::warpAffine)
+        enum class WarpInterp { Nearest, Bilinear, Area };
+        void WarpAffineScaleTranslate(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m, WarpInterp interp);
+        void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m);
 
 } // namespace ZoomPanTransform
 
-    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize);
+    Matrix33d MakeZoomPanMatrix(const Point2d & zoomCenter, double zoomRatio, const Size displayedImageSize);
 
 }

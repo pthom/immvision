@@ -1,6 +1,5 @@
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
+#include "immvision/internal/stb/stb_image_write.h"
+#include "immvision/internal/stb/stb_image.h"
 
 #include "immvision/image.h"
 #include "immvision/internal/drawing/internal_icons.h"
@@ -21,6 +20,8 @@
 #include <vector>
 #include <optional>
 #include <iostream>
+
+// Image saving uses stb_image_write (supports PNG, BMP, JPG, HDR)
 
 #ifndef IMMVISION_VERSION
 #define IMMVISION_VERSION "unknown version"
@@ -121,10 +122,10 @@ This is a required setup step. (Breaking change - October 2024)
         return r;
     }
 
-    void Image(const std::string& label, const cv::Mat& image, ImageParams* params)
+    void Image(const std::string& label, const ImageBuffer& image, ImageParams* params)
     {
         // Note: although this function is long, it is well organized, and it behaves almost like a class
-        // with members = (cv::Mat& image, ImageParams* params).
+        // with members = (ImageBuffer& image, ImageParams* params).
         //
         // - it begins by defining a set a lambdas that display various widgets
         //   for the different zones of the Gui (those lambdas are named fnXXXX)
@@ -151,9 +152,9 @@ This is a required setup step. (Breaking change - October 2024)
         // Lambdas / Watched Pixels
         //
         bool wasWatchedPixelAdded = false;
-        auto fnWatchedPixels_Add = [&params, &wasWatchedPixelAdded](const cv::Point2d& pixelDouble)
+        auto fnWatchedPixels_Add = [&params, &wasWatchedPixelAdded](const Point2d& pixelDouble)
         {
-            cv::Point pixel((int)(pixelDouble.x + .5), (int)(pixelDouble.y + .5));
+            Point pixel((int)(pixelDouble.x + .5), (int)(pixelDouble.y + .5));
             params->WatchedPixels.push_back(pixel);
 
             wasWatchedPixelAdded = true;
@@ -181,7 +182,7 @@ This is a required setup step. (Breaking change - October 2024)
 
                 for (size_t i = 0; i < params->WatchedPixels.size(); ++i)
                 {
-                    cv::Point watchedPixel = params->WatchedPixels[i];
+                    Point watchedPixel = params->WatchedPixels[i];
                     ImGui::TableNextRow();
 
                     // index
@@ -218,7 +219,7 @@ This is a required setup step. (Breaking change - October 2024)
         //
         auto fnColormap_Gui = [&params, &image](float availableGuiWidth)
         {
-            cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
+            Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
             Colormap::GuiShowColormapSettingsData(
                 image,
                 roi,
@@ -230,42 +231,52 @@ This is a required setup step. (Breaking change - October 2024)
         //
         // Lambdas / Options & Adjustments
         //
-        auto fnSaveImage_Gui = [&image, &params](CachedParams & cacheParams, const cv::Mat& imageWithColormap)
+        auto fnSaveImage_Gui = [&image, &params](CachedParams & cacheParams, const ImageBuffer& imageWithColormap)
         {
-            bool isFloatImage = [&image]() {
-                int type = image.type();
-                int depth = type & CV_MAT_DEPTH_MASK;
-                return depth == CV_32F || depth == CV_64F;
-            }();
+            bool isFloatImage = ImageDepthIsFloat(image.depth);
 
-            auto fnGetImageToSave = [&image, &params]() -> cv::Mat
+            // Swap R and B channels in-place for a uint8 3 or 4 channel image
+            auto fnSwapRB = [](const ImageBuffer& src) -> ImageBuffer {
+                ImageBuffer dst = src.clone();
+                int ch = dst.channels;
+                for (int y = 0; y < dst.height; y++) {
+                    uint8_t* row = dst.ptr<uint8_t>(y);
+                    for (int x = 0; x < dst.width; x++)
+                        std::swap(row[x * ch], row[x * ch + 2]);
+                }
+                return dst;
+            };
+
+            auto fnGetImageToSave = [&image, &fnSwapRB]() -> ImageBuffer
             {
-                cv::Mat imageAsSaved = image;  // image with possible RGB2BGR conversion
-                if (image.type() == CV_8UC3)
-                {
-                    if (!Priv_IsColorOrderBgr())
-                        cv::cvtColor(image, imageAsSaved, cv::COLOR_RGB2BGR);
-                }
-                if (image.type() == CV_8UC4)
-                {
-                    if (!Priv_IsColorOrderBgr())
-                        cv::cvtColor(image, imageAsSaved, cv::COLOR_RGBA2BGRA);
-                }
-                return imageAsSaved;
+                // stb_image_write expects RGB order; swap if source is BGR
+                if ((image.depth == ImageDepth::uint8 && (image.channels == 3 || image.channels == 4)) && Priv_IsColorOrderBgr())
+                    return fnSwapRB(image);
+                return image;
             };
             auto fnGetImageWithColorMapToSave = [&imageWithColormap]() {
-                cv::Mat colorMapBgr;
-                cv::cvtColor(imageWithColormap, colorMapBgr, cv::COLOR_RGBA2BGR);
-                return colorMapBgr;
+                // imageWithColormap is always RGBA (internal rendering pipeline outputs RGB order)
+                // Drop alpha: create RGB from RGBA
+                ImageBuffer rgb = ImageBuffer::Zeros(imageWithColormap.width, imageWithColormap.height, 3, ImageDepth::uint8);
+                for (int y = 0; y < imageWithColormap.height; y++) {
+                    const uint8_t* src = imageWithColormap.ptr<uint8_t>(y);
+                    uint8_t* dst = rgb.ptr<uint8_t>(y);
+                    for (int x = 0; x < imageWithColormap.width; x++) {
+                        dst[x * 3]     = src[x * 4];
+                        dst[x * 3 + 1] = src[x * 4 + 1];
+                        dst[x * 3 + 2] = src[x * 4 + 2];
+                    }
+                }
+                return rgb;
             };
 
             std::string tooltipSaveRawImage =
                 "Saves the raw image\n"
                 "Specify the format via the filename extension (.jpg, .png, .hdr, etc)\n"
                 "\n"
-                "- For CV_8UC3 images, use .jpg, .png, or .bmp\n"
+                "- For uint8 3-channel images, use .jpg, .png, or .bmp\n"
                 "- For 4 channel images, prefer to use .png\n"
-                "- For float images (CV_32FC1, etc.), use .hdr";
+                "- For float images, use .hdr";
 
             std::string tooltipExportColormap =
                 "Export the colormap image as RGB\n"
@@ -273,23 +284,70 @@ This is a required setup step. (Breaking change - October 2024)
 
             bool usePortableFileDialogs = pfd::settings::available();
 
-            auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const cv::Mat& imageToSave)
+            auto fnSaveImage = [usePortableFileDialogs](const std::string& filename, const ImageBuffer& imageToSave)
             {
-                if (!filename.empty())
+                if (filename.empty() || imageToSave.empty())
+                    return;
+
+                auto fnReportError = [&](const std::string& msg) {
+                    if (usePortableFileDialogs)
+                        pfd::message("Error", msg, pfd::choice::ok, pfd::icon::error);
+                    else
+                        fprintf(stderr, "%s\n", msg.c_str());
+                };
+
+                // Only uint8 images can be saved with stb (except HDR which needs float)
+                if (imageToSave.depth != ImageDepth::uint8 && imageToSave.depth != ImageDepth::float32)
                 {
-                    try
+                    fnReportError("Cannot save image: only uint8 and float32 images are supported.\n"
+                                  "Use .hdr for float32 images, or .png/.jpg/.bmp for uint8 images.");
+                    return;
+                }
+
+                // Detect format from extension
+                std::string ext;
+                {
+                    auto dot = filename.rfind('.');
+                    if (dot != std::string::npos)
                     {
-                        cv::imwrite(filename, imageToSave);
-                    }
-                    catch(const cv::Exception& e)
-                    {
-                        std::string errorMessage = std::string("Could not save image\n") + e.err.c_str();
-                        if (usePortableFileDialogs)
-                            pfd::message("Error", errorMessage, pfd::choice::ok, pfd::icon::error);
-                        else
-                            fprintf(stderr, "%s", errorMessage.c_str());
+                        ext = filename.substr(dot);
+                        for (auto& c : ext) c = (char)tolower(c);
                     }
                 }
+
+                int w = imageToSave.width, h = imageToSave.height, ch = imageToSave.channels;
+                int ok = 0;
+                if (ext == ".hdr" && imageToSave.depth == ImageDepth::float32)
+                {
+                    ok = stbi_write_hdr(filename.c_str(), w, h, ch,
+                                        static_cast<const float*>(imageToSave.data));
+                }
+                else if (imageToSave.depth == ImageDepth::uint8)
+                {
+                    const uint8_t* data = static_cast<const uint8_t*>(imageToSave.data);
+                    int stride = (int)imageToSave.step;
+                    if (ext == ".png")
+                        ok = stbi_write_png(filename.c_str(), w, h, ch, data, stride);
+                    else if (ext == ".bmp")
+                        ok = stbi_write_bmp(filename.c_str(), w, h, ch, data);
+                    else if (ext == ".jpg" || ext == ".jpeg")
+                        ok = stbi_write_jpg(filename.c_str(), w, h, ch, data, 95);
+                    else if (ext == ".tga")
+                        ok = stbi_write_tga(filename.c_str(), w, h, ch, data);
+                    else
+                    {
+                        fnReportError("Unsupported format: " + ext + "\nSupported: .png, .bmp, .jpg, .tga, .hdr");
+                        return;
+                    }
+                }
+                else
+                {
+                    fnReportError("Use .hdr extension for float32 images");
+                    return;
+                }
+
+                if (!ok)
+                    fnReportError("Could not save image to: " + filename);
             };
 
             auto fnAskForFilenameWithPfd = []() -> std::string
@@ -331,13 +389,13 @@ This is a required setup step. (Breaking change - October 2024)
         auto fnImageDisplayOptions_Gui = [&params, &image]()
         {
             ImGui::Checkbox("Show school paper background", &params->ShowSchoolPaperBackground);
-            if (image.type() == CV_8UC4)
+            if (image.depth == ImageDepth::uint8 && image.channels == 4)
                 ImGui::Checkbox("Show alpha channel checkerboard", &params->ShowAlphaChannelCheckerboard);
-            if (image.channels() > 1)
+            if (image.channels > 1)
             {
                 ImGui::Text("Channels: ");
                 ImGui::RadioButton("All", &params->SelectedChannel, -1); ImGui::SameLine();
-                for (int channel_id = 0; channel_id < image.channels(); ++channel_id)
+                for (int channel_id = 0; channel_id < image.channels; ++channel_id)
                 {
                     ImGui::RadioButton(std::to_string(channel_id).c_str(), &params->SelectedChannel, channel_id);
                     ImGui::SameLine();
@@ -377,7 +435,7 @@ This is a required setup step. (Breaking change - October 2024)
 
         auto fnOptionsInnerGui = [&params, &image, &fnWatchedPixels_Gui, &wasWatchedPixelAdded,
                                   &fnColormap_Gui, &fnSaveImage_Gui, &fnImageDisplayOptions_Gui, &fnMiscOptions_Gui]
-                                      (CachedParams & cacheParams, const cv::Mat& imageWithColormap)
+                                      (CachedParams & cacheParams, const ImageBuffer& imageWithColormap)
         {
             float optionsWidth = 260.f * FontSizeRatio();
 
@@ -417,7 +475,7 @@ This is a required setup step. (Breaking change - October 2024)
                 params->ShowOptionsPanel = !params->ShowOptionsPanel;
         };
 
-        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams, const cv::Mat& imageWithColormap)
+        auto fnOptionGui = [&params, &fnOptionsInnerGui](CachedParams & cacheParams, const ImageBuffer& imageWithColormap)
         {
             if (params->ShowOptionsInTooltip)
             {
@@ -445,7 +503,7 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (cacheParams.IsResizing)
                 return;
-            ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
+            Matrix33d zoomMatrix = params->ZoomPanMatrix;
 
             int mouseDragButton = 0;
             bool isMouseDraggingInside = ImGui::IsMouseDragging(mouseDragButton) && ImGui::IsItemHovered();
@@ -461,16 +519,17 @@ This is a required setup step. (Breaking change - October 2024)
                 ImVec2 dragDelta = ImGui::GetMouseDragDelta(mouseDragButton);
                 ImVec2 dragDeltaDelta(dragDelta.x - cacheParams.LastDragDelta.x, dragDelta.y - cacheParams.LastDragDelta.y);
                 zoomMatrix = zoomMatrix * ZoomPanTransform::ComputePanMatrix(
-                    cv::Point2d((double)dragDeltaDelta.x, (double)dragDeltaDelta.y),
+                    Point2d((double)dragDeltaDelta.x, (double)dragDeltaDelta.y),
                     zoomMatrix(0, 0));
                 cacheParams.LastDragDelta = dragDelta;
             }
+            params->ZoomPanMatrix = zoomMatrix;
         };
-        auto fnHandleMouseWheel = [&params](const cv::Point2d& mouseLocation)
+        auto fnHandleMouseWheel = [&params](const Point2d& mouseLocation)
         {
             if (!params->ZoomWithMouseWheel)
                 return;
-            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY); // i.e. old ImGui::SetItemUsingMouseWheel();
+            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
 
             if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
@@ -496,19 +555,19 @@ This is a required setup step. (Breaking change - October 2024)
         {
             if (params->ShowZoomButtons)
             {
-                ZoomPanTransform::MatrixType& zoomMatrix = params->ZoomPanMatrix;
+                Matrix33d zoomMatrix = params->ZoomPanMatrix;
 
-                cv::Point2d viewportCenter_originalImage = ZoomPanTransform::Apply(
+                Point2d viewportCenter_originalImage = ZoomPanTransform::Apply(
                     zoomMatrix.inv(),
-                    cv::Point2d (
+                    Point2d(
                         (double)params->ImageDisplaySize.width / 2.,
                         (double)params->ImageDisplaySize.height / 2.)
                 );
 
                 {
-                    cv::Point2d zoomCenter = params->WatchedPixels.empty() ?
+                    Point2d zoomCenter = params->WatchedPixels.empty() ?
                                 viewportCenter_originalImage
-                            :   cv::Point2d(params->WatchedPixels.back());
+                            :   Point2d(params->WatchedPixels.back());
                     ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
                     if (Icons::IconButton(Icons::IconType::ZoomPlus))
                         zoomMatrix = zoomMatrix * ZoomPanTransform::ComputeZoomMatrix(zoomCenter, 1.1);
@@ -539,6 +598,7 @@ This is a required setup step. (Breaking change - October 2024)
                         )
                         zoomMatrix = fullViewZoomInfo;
                 }
+                params->ZoomPanMatrix = zoomMatrix;
             }
 
         };
@@ -548,7 +608,7 @@ This is a required setup step. (Breaking change - October 2024)
         auto fnShowImage = [&params](const GlTexture& glTexture) ->  MouseInformation
         {
             bool disableDragWindow = params->PanWithMouse;
-            cv::Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
+            Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse(
                     glTexture,
                     ImVec2((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height), disableDragWindow);
 
@@ -557,7 +617,7 @@ This is a required setup step. (Breaking change - October 2024)
             {
                 mouseInfo.IsMouseHovering = true;
                 mouseInfo.MousePosition = ZoomPanTransform::Apply(params->ZoomPanMatrix.inv(), mouseLocation);
-                mouseInfo.MousePosition_Displayed = mouseLocation;
+                mouseInfo.MousePosition_Displayed = Point((int)mouseLocation.x, (int)mouseLocation.y);
             }
             return mouseInfo;
         };
@@ -579,9 +639,6 @@ This is a required setup step. (Breaking change - October 2024)
 
             ImRect zone(tl, br);
 
-            // A hack for imgui bundle / imgui_fig:
-            // An invisible button will stop the node from being dragged when resizing
-            // (do not activate otherwise, this breaks the pan and thus can only be used when pan is disabled)
             if (!params->PanWithMouse)
             {
                 auto cursorPos = ImGui::GetCursorScreenPos();
@@ -620,7 +677,7 @@ This is a required setup step. (Breaking change - October 2024)
                         if (params->ResizeKeepAspectRatio)
                         {
                             float imageDisplayRatio = (float)params->ImageDisplaySize.width / (float)params->ImageDisplaySize.height;
-                            float imageRatio = (float)image.cols / (float)image.rows;
+                            float imageRatio = (float)image.width / (float)image.height;
                             if (imageDisplayRatio > imageRatio)
                                 params->ImageDisplaySize.width = (int)((float)params->ImageDisplaySize.height * imageRatio);
                             else
@@ -640,12 +697,12 @@ This is a required setup step. (Breaking change - October 2024)
         //
         // Lambda / Show pixel info
         //
-        auto fnShowPixelInfo = [&image, &params](const cv::Point2d& mouseLocation)
+        auto fnShowPixelInfo = [&image, &params](const Point2d& mouseLocation)
         {
-            cv::Point mouseLoc =
+            Point mouseLoc =
                 mouseLocation.x >= 0. ?
-                        cv::Point((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5))
-                    :   cv::Point(-1, -1)
+                        Point((int)(mouseLocation.x + 0.5), (int)(mouseLocation.y + 0.5))
+                    :   Point(-1, -1)
                     ;
             if (mouseLoc.x >= 0)
             {
@@ -740,7 +797,7 @@ This is a required setup step. (Breaking change - October 2024)
             params->MouseInfo = fnShowFullGui_WithBorder(cacheParams, cacheImages);
 
             // Handle Colormap
-            cv::Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
+            Rect roi = ZoomPanTransform::VisibleRoi(params->ZoomPanMatrix, params->ImageDisplaySize, image.size());
             if (isNewImage || params->RefreshImage)
                 Colormap::InitStatsOnNewImage(image, roi, &params->ColormapSettings);
             if (! ZoomPanTransform::IsEqual(cacheParams.PreviousParams.ZoomPanMatrix, params->ZoomPanMatrix))
@@ -758,10 +815,10 @@ This is a required setup step. (Breaking change - October 2024)
     }
 
 
-    cv::Point2d ImageDisplay(
+    Point2d ImageDisplay(
         const std::string& label_id,
-        const cv::Mat& mat,
-        const cv::Size& imageDisplaySize,
+        const ImageBuffer& image,
+        const Size& imageDisplaySize,
         bool refreshImage,
         bool showOptionsButton
         )
@@ -780,20 +837,20 @@ This is a required setup step. (Breaking change - October 2024)
             params.ImageDisplaySize = imageDisplaySize;
             params.RefreshImage = refreshImage;
 
-            cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
-            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
+            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, image.size());
+            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), displayedSize);
         }
 
-        Image(label_id, mat, &params);
+        Image(label_id, image, &params);
         return params.MouseInfo.MousePosition;
     }
 
 
     static std::map<ImGuiID, ImVec2> s_ImageDisplayResizable_Sizes;
 
-    IMMVISION_API cv::Point2d ImageDisplayResizable(
+    IMMVISION_API Point2d ImageDisplayResizable(
         const std::string& label_id,
-        const cv::Mat& mat,
+        const ImageBuffer& image,
         ImVec2* size,
         bool refreshImage,
         bool resizable,
@@ -816,7 +873,7 @@ This is a required setup step. (Breaking change - October 2024)
             s_Params[id] = params;
         }
 
-        cv::Size imageDisplaySize = cv::Size((int)size->x, (int)size->y);
+        Size imageDisplaySize = Size((int)size->x, (int)size->y);
         ImageParams& params = s_Params.at(id);
         {
             params.ShowOptionsButton = showOptionsButton;
@@ -824,11 +881,11 @@ This is a required setup step. (Breaking change - October 2024)
             params.CanResize = resizable;
             params.RefreshImage = refreshImage;
 
-            cv::Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, mat.size());
-            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(mat.size(), displayedSize);
+            Size displayedSize = ImGuiImm::ComputeDisplayImageSize(imageDisplaySize, image.size());
+            params.ZoomPanMatrix = ZoomPanTransform::MakeFullView(image.size(), displayedSize);
         }
         std::string hiddenLabel = std::string("##") + label_id;
-        Image(hiddenLabel, mat, &params);
+        Image(hiddenLabel, image, &params);
 
         *size = ImVec2((float)params.ImageDisplaySize.width, (float)params.ImageDisplaySize.height);
         return params.MouseInfo.MousePosition;
@@ -870,11 +927,10 @@ This is a required setup step. (Breaking change - October 2024)
     }
 
 
-    cv::Mat GetCachedRgbaImage(const std::string& label)
+    ImageBuffer GetCachedRgbaImage(const std::string& label)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
-        cv::Mat r = ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
-        return r;
+        return ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
     }
 
     ImageParams::~ImageParams()
@@ -882,4 +938,29 @@ This is a required setup step. (Breaking change - October 2024)
         if (ImageCache::gImageTextureCacheAlive)
             ImageCache::gImageTextureCache.OnDeleteImageParams(this);
     }
+
+    ImageBuffer ImRead(const std::string& filename)
+    {
+        int w, h, channels;
+        // Try HDR first
+        if (stbi_is_hdr(filename.c_str()))
+        {
+            float* data = stbi_loadf(filename.c_str(), &w, &h, &channels, 0);
+            if (!data)
+                return ImageBuffer();
+            ImageBuffer buf = ImageBuffer::Zeros(w, h, channels, ImageDepth::float32);
+            std::memcpy(buf.data, data, (size_t)w * h * channels * sizeof(float));
+            stbi_image_free(data);
+            return buf;
+        }
+        // Standard uint8 image
+        unsigned char* data = stbi_load(filename.c_str(), &w, &h, &channels, 0);
+        if (!data)
+            return ImageBuffer();
+        ImageBuffer buf = ImageBuffer::Zeros(w, h, channels, ImageDepth::uint8);
+        std::memcpy(buf.data, data, (size_t)w * h * channels);
+        stbi_image_free(data);
+        return buf;
+    }
+
 } // namespace ImmVision

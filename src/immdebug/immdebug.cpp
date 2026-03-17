@@ -3,10 +3,10 @@
 
 namespace ImmVision
 {
-    void ImmDebug(
-        const cv::Mat & image,
+    static void ImmDebugImpl(
+        const ImageBuffer & image,
         const std::string & legend,
-        const cv::Point2d & zoomCenter,
+        const Point2d & zoomCenter,
         double zoomRatio,
         const std::string& zoomKey,
         const std::string& colorAdjustmentsKey,
@@ -14,7 +14,7 @@ namespace ImmVision
     )
     {
         ImmDebug_Internal::ImagePayload imagePayload {
-            image,
+            image.clone(),
             legend,
             zoomCenter,
             zoomRatio,
@@ -23,6 +23,30 @@ namespace ImmVision
             isColorOrderBGR
         };
         ImmDebug_Internal::SaveImagePayload(imagePayload);
+    }
+
+    void ImmDebug(
+        const ImageBuffer & image,
+        const std::string & legend,
+        const Point2d & zoomCenter,
+        double zoomRatio,
+        const std::string& zoomKey,
+        const std::string& colorAdjustmentsKey
+    )
+    {
+        ImmDebugImpl(image, legend, zoomCenter, zoomRatio, zoomKey, colorAdjustmentsKey, false);
+    }
+
+    void ImmDebugBgr(
+        const ImageBuffer & image,
+        const std::string & legend,
+        const Point2d & zoomCenter,
+        double zoomRatio,
+        const std::string& zoomKey,
+        const std::string& colorAdjustmentsKey
+    )
+    {
+        ImmDebugImpl(image, legend, zoomCenter, zoomRatio, zoomKey, colorAdjustmentsKey, true);
     }
 
 }

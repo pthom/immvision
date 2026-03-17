@@ -11,6 +11,6 @@ The viewer can be launched with:
     python -m immdebug.viewer
 """
 
-from immdebug.client import immdebug
+from immdebug.client import immdebug, immdebug_bgr
 
-__all__ = ["immdebug"]
+__all__ = ["immdebug", "immdebug_bgr"]

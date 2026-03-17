@@ -23,21 +23,21 @@ namespace ImmVision
                 bool   IsMouseDragging = false;
                 bool   WasZoomJustUpdatedByLink = false;
                 bool   IsResizing = false;
-                cv::Size PreviousImageSize;
+                Size PreviousImageSize;
                 struct ImageParams  PreviousParams;
             };
             struct CachedImageAndTexture
             {
                 // These caches are heavy and will be destroyed
                 // if not used (after about 5 seconds)
-                cv::Mat     mImageRgbaCache;             // Image with applied colormap, alpha grid & paper background
+                ImageBuffer     mImageRgbaCache;             // Image with applied colormap, alpha grid & paper background
                 std::unique_ptr<GlTexture> mGlTexture;
             };
 
             // returns true if new entry
             KeyType GetID(const std::string& id_label, bool use_id_stack);
 
-            bool UpdateCache(KeyType id, const cv::Mat& image, ImageParams* params, bool userRefresh);
+            bool UpdateCache(KeyType id, const ImageBuffer& image, ImageParams* params, bool userRefresh);
             CachedParams& GetCacheParams(KeyType id);
             CachedImageAndTexture& GetCacheImageAndTexture(KeyType id);
 

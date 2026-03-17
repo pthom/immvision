@@ -1,11 +1,11 @@
 #include "immdebug/immdebug.h"
+#include "immvision/image.h"
 
 #include <vector>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/core.hpp>
-
+#include <cstdint>
+#include <cstring>
 #include <filesystem>
+
 std::string ResourcesDir()
 {
     std::filesystem::path this_file(__FILE__);
@@ -15,30 +15,32 @@ std::string ResourcesDir()
 
 void ExampleImageProcessingWithDebug()
 {
-    cv::Mat image = cv::imread(ResourcesDir() + "/house.jpg");
+    // Load image using ImmVision::ImRead (returns RGB)
+    ImmVision::ImageBuffer image = ImmVision::ImRead(ResourcesDir() + "/house.jpg");
     ImmVision::ImmDebug(image, "original");
+    ImmVision::ImmDebugBgr(image, "original as BGR");
 
-    cv::Mat roi = image(cv::Rect(800, 600, 400, 400));
+    // Extract a sub-region
+    ImmVision::ImageBuffer roi = image.subImage({400, 300, 200, 200});
     ImmVision::ImmDebug(roi, "roi");
 
-    cv::Mat black;
-    cv::cvtColor(roi, black, cv::COLOR_RGB2GRAY);
-    ImmVision::ImmDebug(black, "black");
-
-    cv::Mat blur;
-    cv::blur(black, blur, cv::Size(5, 5));
-    ImmVision::ImmDebug(blur, "blur");
-
-    cv::Mat floatImage;
-    blur.convertTo(floatImage, CV_64FC1);
-    floatImage = floatImage / 255.;
-    ImmVision::ImmDebug(floatImage, "floatImage");
-
-    cv::Mat sobel;
-    cv::Sobel(floatImage, sobel, CV_64F, 1, 1);
-    ImmVision::ImmDebug(sobel, "sobel");
+    // Manual grayscale conversion (luminance formula)
+    ImmVision::ImageBuffer gray = ImmVision::ImageBuffer::Zeros(
+        roi.width, roi.height, 1, ImmVision::ImageDepth::uint8);
+    for (int y = 0; y < roi.height; y++)
+    {
+        const uint8_t* src = roi.ptr<uint8_t>(y);
+        uint8_t* dst = gray.ptr<uint8_t>(y);
+        for (int x = 0; x < roi.width; x++)
+        {
+            int r = src[x * 3 + 0];
+            int g = src[x * 3 + 1];
+            int b = src[x * 3 + 2];
+            dst[x] = (uint8_t)((r * 77 + g * 150 + b * 29) >> 8);
+        }
+    }
+    ImmVision::ImmDebug(gray, "grayscale");
 }
-
 
 
 int main()

@@ -3,13 +3,16 @@
 
 #include "immvision/internal/misc/tinycolormap.hpp"
 #include "immvision/internal/misc/magic_enum.hpp"
+#include "immvision/internal/misc/parallel_for.h"
 #include "immvision/internal/misc/math_utils.h"
 #include "immvision/gl_texture.h"
 #include "immvision/imgui_imm.h"
 #include "imgui.h"
+#include <cassert>
+#include <cmath>    // std::sqrt
+#include <limits>   // std::numeric_limits
 #include "imgui_internal.h"
 
-#include <opencv2/core.hpp>
 #include <array>
 #include <optional>
 #include <math.h>
@@ -80,13 +83,13 @@ namespace ImmVision
         }
 
 
-        bool CanColormap(const cv::Mat &image)
+        bool CanColormap(const ImageBuffer &image)
         {
-            return ((image.type() == CV_32FC1) || (image.type() == CV_64FC1));
+            return (image.channels == 1);
         }
 
 
-        ColormapSettingsData ComputeInitialColormapSettings(const cv::Mat& m)
+        ColormapSettingsData ComputeInitialColormapSettings(const ImageBuffer& m)
         {
             (void)m;
             ColormapSettingsData r;
@@ -114,25 +117,30 @@ namespace ImmVision
         }
 
 
-        cv::Mat MakeColormapImage(tinycolormap::ColormapType colorType)
+        ImageBuffer MakeColormapImage(tinycolormap::ColormapType colorType)
         {
             int w = 256, h = 15;
-            cv::Mat_<cv::Vec3b> m(cv::Size(w, h));
+            ImageBuffer m = ImageBuffer::Zeros(w, h, 3, ImageDepth::uint8);
             for (int x = 0; x < w; ++x)
             {
                 double k = MathUtils::UnLerp(0., (double)w, (double)x);
                 auto col = tinycolormap::GetColor(k, colorType);
                 for (int y = 0; y < h; ++y)
-                    m(y, x) = cv::Vec3b( col.bi(), col.gi(), col.ri() );
+                {
+                    uint8_t* p = m.ptr<uint8_t>(y) + x * 3;
+                    p[0] = col.bi();
+                    p[1] = col.gi();
+                    p[2] = col.ri();
+                }
             }
 
-            return std::move(m);
+            return m;
         }
 
 
-        const insertion_order_map<std::string, cv::Mat>& _ColormapsImages()
+        const insertion_order_map<std::string, ImageBuffer>& _ColormapsImages()
         {
-            static insertion_order_map<std::string, cv::Mat> cache;
+            static insertion_order_map<std::string, ImageBuffer> cache;
             if (cache.empty())
             {
                 magic_enum::enum_for_each<ColormapType>([] (auto val) {
@@ -155,7 +163,7 @@ namespace ImmVision
                 auto images = _ColormapsImages();
                 for (const auto& k: images.insertion_order_keys())
                 {
-                    cv::Mat& m = images.get(k);
+                    ImageBuffer& m = images.get(k);
                     auto texture = std::make_unique<GlTexture>(m, true);
                     sColormapsTexturesCache.insert(k, std::move(texture));
                 }
@@ -188,9 +196,13 @@ namespace ImmVision
         // Apply Colormap
         //
 
+        struct Color4u8
+        {
+            uint8_t r, g, b, a;
+        };
 
         template<typename _Tp>
-        cv::Mat_<cv::Vec4b> _ApplyColormap(const cv::Mat &m, const ColormapSettingsData& settings)
+        ImageBuffer _ApplyColormap(const ImageBuffer &m, const ColormapSettingsData& settings)
         {
             assert(CanColormap(m));
 
@@ -204,7 +216,7 @@ namespace ImmVision
             }
             auto colormapType = _colormapType.value();
 
-            std::array<cv::Vec4b, 256> colorLut;
+            std::array<Color4u8, 256> colorLut;
             for (size_t i = 0; i < 256; ++i)
             {
                 double x = (double) i / 255.;
@@ -214,7 +226,7 @@ namespace ImmVision
 
             double minValue = settings.ColormapScaleMin;
             double maxValue = settings.ColormapScaleMax;
-            auto fnGetColor = [&](_Tp value) -> cv::Vec4b
+            auto fnGetColor = [&](_Tp value) -> Color4u8
             {
                 double k = (value - minValue) / (maxValue - minValue);
                 k = std::clamp(k, 0., 1.);
@@ -222,46 +234,42 @@ namespace ImmVision
                 return colorLut[idx];
             };
 
-            cv::Mat_<cv::Vec4b> rgba(m.size());
-            for (int y = 0; y < m.rows; ++y)
+            ImageBuffer rgba = ImageBuffer::Zeros(m.width, m.height, 4, ImageDepth::uint8);
+            parallel_for(0, m.height, [&](int y)
             {
-                cv::Vec4b *dst = &rgba(y, 0);
-                const _Tp* src = &m.at<_Tp>(y, 0);
-                for (int x = 0; x < m.cols; ++x)
+                uint8_t *dst = rgba.ptr<uint8_t>(y);
+                const _Tp* src = m.ptr<_Tp>(y);
+                for (int x = 0; x < m.width; ++x)
                 {
-                    *dst = fnGetColor(*src);
-                    ++dst;
+                    Color4u8 c = fnGetColor(*src);
+                    dst[0] = c.r;
+                    dst[1] = c.g;
+                    dst[2] = c.b;
+                    dst[3] = c.a;
+                    dst += 4;
                     ++src;
                 }
-            }
+            });
             return rgba;
         }
 
 
-        cv::Mat_<cv::Vec4b> ApplyColormap(const cv::Mat &m, const ColormapSettingsData& settings)
+        ImageBuffer ApplyColormap(const ImageBuffer &m, const ColormapSettingsData& settings)
         {
-            if (m.depth() == CV_8U)
-                return _ApplyColormap<uchar>(m, settings);
-            else if (m.depth() == CV_8S)
-                return _ApplyColormap<char>(m, settings);
-            else if (m.depth() == CV_16U)
-                return _ApplyColormap<uint16_t>(m, settings);
-            else if (m.depth() == CV_16S)
-                return _ApplyColormap<int16_t>(m, settings);
-            else if (m.depth() == CV_32S)
-                return _ApplyColormap<int32_t>(m, settings);
-            if (m.depth() == CV_32F)
-                return _ApplyColormap<float>(m, settings);
-            else if (m.depth() == CV_64F)
-                return _ApplyColormap<double>(m, settings);
-// #ifdef CV_16F
-//             else if (m.depth() == CV_16F)
-//                 return _ApplyColormap<cv::float16_t>(m, settings);
-// #endif
-            else
+            switch (m.depth)
             {
-                assert(false);
-                throw std::runtime_error("ApplyColormap: bad depth");
+                case ImageDepth::uint8:   return _ApplyColormap<uint8_t>(m, settings);
+                case ImageDepth::int8:    return _ApplyColormap<int8_t>(m, settings);
+                case ImageDepth::uint16:  return _ApplyColormap<uint16_t>(m, settings);
+                case ImageDepth::int16:   return _ApplyColormap<int16_t>(m, settings);
+                case ImageDepth::int32:   return _ApplyColormap<int32_t>(m, settings);
+                case ImageDepth::float32: return _ApplyColormap<float>(m, settings);
+                case ImageDepth::float64: return _ApplyColormap<double>(m, settings);
+                default:
+                {
+                    assert(false);
+                    throw std::runtime_error("ApplyColormap: bad depth");
+                }
             }
         }
 
@@ -275,30 +283,66 @@ namespace ImmVision
             double min, max;
         };
 
-        ImageStats FillImageStats(const cv::Mat& m)
+        template<typename T>
+        ImageStats FillImageStatsTyped(const ImageBuffer& m)
         {
-            assert(m.channels() == 1);
+            double minVal = std::numeric_limits<double>::max();
+            double maxVal = std::numeric_limits<double>::lowest();
+            double sum = 0.0;
+            double sumSq = 0.0;
+            size_t count = (size_t)m.height * m.width;
+
+            for (int y = 0; y < m.height; y++)
+            {
+                const T* row = m.ptr<T>(y);
+                for (int x = 0; x < m.width; x++)
+                {
+                    double v = (double)row[x];
+                    if (v < minVal) minVal = v;
+                    if (v > maxVal) maxVal = v;
+                    sum += v;
+                    sumSq += v * v;
+                }
+            }
+
+            ImageStats r;
+            r.min = minVal;
+            r.max = maxVal;
+            r.mean = sum / (double)count;
+            double variance = sumSq / (double)count - r.mean * r.mean;
+            r.stdev = (variance > 0.0) ? std::sqrt(variance) : 0.0;
+            return r;
+        }
+
+        ImageStats FillImageStats(const ImageBuffer& m)
+        {
+            assert(m.channels == 1);
             if (m.empty())
                 return {0.0, 0.0, 0.0, 0.0};
-            ImageStats r;
-            cv::minMaxLoc(m, &r.min, &r.max);
-            cv::Scalar mean, deviation;
-            cv::meanStdDev(m, mean, deviation);
-            r.mean = mean[0];
-            r.stdev = deviation[0];
-            return r;
+
+            switch (m.depth)
+            {
+                case ImageDepth::uint8:   return FillImageStatsTyped<uint8_t>(m);
+                case ImageDepth::int8:    return FillImageStatsTyped<int8_t>(m);
+                case ImageDepth::uint16:  return FillImageStatsTyped<uint16_t>(m);
+                case ImageDepth::int16:   return FillImageStatsTyped<int16_t>(m);
+                case ImageDepth::int32:   return FillImageStatsTyped<int32_t>(m);
+                case ImageDepth::float32: return FillImageStatsTyped<float>(m);
+                case ImageDepth::float64: return FillImageStatsTyped<double>(m);
+                default:                  return {0.0, 0.0, 0.0, 0.0};
+            }
         }
 
 
 
 
-        void ApplyColormapStatsToMinMax(const cv::Mat& m, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings)
+        void ApplyColormapStatsToMinMax(const ImageBuffer& m, std::optional<Rect> roi, ColormapSettingsData* inout_settings)
         {
             bool isRoi = roi.has_value();
 
             ImageStats imageStats;
             if (isRoi)
-                imageStats = FillImageStats(m(roi.value()));
+                imageStats = FillImageStats(m.subImage(roi.value()));
             else
                 imageStats = FillImageStats(m);
 
@@ -317,11 +361,11 @@ namespace ImmVision
 
 
         void UpdateRoiStatsInteractively(
-            const cv::Mat &image,
-            const cv::Rect& roi,
+            const ImageBuffer &image,
+            const Rect& roi,
             ColormapSettingsData* inout_settings)
         {
-            if (image.channels() != 1)
+            if (image.channels != 1)
                 return;
 
             if(roi.empty())
@@ -333,11 +377,11 @@ namespace ImmVision
 
 
         void InitStatsOnNewImage(
-            const cv::Mat &image,
-            const cv::Rect& roi,
+            const ImageBuffer &image,
+            const Rect& roi,
             ColormapSettingsData* inout_settings)
         {
-            if (image.channels() != 1)
+            if (image.channels != 1)
                 return;
 
             if (roi.empty())
@@ -443,7 +487,7 @@ namespace ImmVision
         }
 
 
-        void GuiImageStats(const cv::Mat& m, std::optional<cv::Rect> roi, ColormapSettingsData* inout_settings, float availableGuiWidth)
+        void GuiImageStats(const ImageBuffer& m, std::optional<Rect> roi, ColormapSettingsData* inout_settings, float availableGuiWidth)
         {
             float em = ImGui::GetFontSize();
 
@@ -451,7 +495,7 @@ namespace ImmVision
             bool isRoi = roi.has_value();
             if (isRoi)
             {
-                imageStats = FillImageStats(m(roi.value()));
+                imageStats = FillImageStats(m.subImage(roi.value()));
                 ImGui::PushID("ROI");
             }
             else
@@ -513,8 +557,8 @@ namespace ImmVision
 
 
         void GuiShowColormapSettingsData(
-            const cv::Mat &image,
-            const cv::Rect& roi,
+            const ImageBuffer &image,
+            const Rect& roi,
             float availableGuiWidth,
             ColormapSettingsData* inout_settings
             )
@@ -546,7 +590,7 @@ namespace ImmVision
                     ImGui::SetTooltip("%s", helpRoi.c_str());
             }
 
-            std::optional<cv::Rect> optionalRoi;
+            std::optional<Rect> optionalRoi;
             if (inout_settings->ColormapScaleFromStats.ColorMapStatsType == ColorMapStatsTypeId::FromVisibleROI)
                 optionalRoi = roi;
             GuiImageStats(image, optionalRoi, inout_settings, availableGuiWidth);

@@ -1,44 +1,19 @@
 #include "immvision/internal/cv/matrix_info_utils.h"
-
+#include <stdexcept>
 #include <map>
-
-#ifndef CV_16F // for old versions of OpenCV
-#define CV_16F 7
-#endif
 
 namespace ImmVision
 {
     namespace MatrixInfoUtils
     {
-        std::string _MatTypeName(const cv::Mat& m)
+        std::string _MatTypeName(const ImageBuffer& m)
         {
-            int depth = m.depth();
-            if (depth == CV_8U)
-                return "uint8";
-            else if (depth == CV_8S)
-                return "int8";
-            else if (depth == CV_16U)
-                return "uint16";
-            else if (depth == CV_16S)
-                return "int16";
-            else if (depth == CV_32S)
-                return "int32";
-            else if (depth == CV_32F)
-                return "float32";
-            else if (depth == CV_64F)
-                return "float64";
-            else if (depth == CV_16F)
-                return "float16";
-            else
-            {
-                printf("Unhandled depth: %d\n", depth);
-                return "???";
-            }
+            return ImageDepthName(m.depth);
         }
 
-        std::string _MatInfo(const cv::Mat &m)
+        std::string _MatInfo(const ImageBuffer &m)
         {
-            return _MatTypeName(m) + " " + std::to_string(m.cols) + "x" + std::to_string(m.rows);
+            return ImageDepthName(m.depth) + " " + std::to_string(m.width) + "x" + std::to_string(m.height);
         }
 
         std::string JoinStrings(const std::vector<std::string>&v, char separator)
@@ -54,7 +29,7 @@ namespace ImmVision
         }
 
         template<typename _Tp>
-        std::vector<double> GrabValuesFromBuffer(const uchar * buffer, int nb)
+        std::vector<double> GrabValuesFromBuffer(const uint8_t * buffer, int nb)
         {
             std::vector<double> r;
             auto buffer_typed =  reinterpret_cast<const _Tp *>(buffer);
@@ -66,48 +41,40 @@ namespace ImmVision
             return r;
         }
 
-        std::vector<double> MatValuesAt(const cv::Mat& m, int x, int y)
+        std::vector<double> MatValuesAt(const ImageBuffer& m, int x, int y)
         {
-            int depth = m.depth();
-            int nb_channels = m.channels();
-            const uchar * ptr = m.ptr(y, x);
-            if (depth == CV_8U)
-                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
-            else if (depth == CV_8S)
-                return GrabValuesFromBuffer<uchar>(ptr, nb_channels);
-            else if (depth == CV_16U)
-                return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
-            else if (depth == CV_16S)
-                return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
-// #if CV_MAJOR_VERSION >= 4
-//                 else if (depth == CV_16F)
-//                 return GrabValuesFromBuffer<cv::float16_t>(ptr, nb_channels);
-// #endif
-            else if (depth == CV_32S)
-                return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
-            else if (depth == CV_32F)
-                return GrabValuesFromBuffer<float>(ptr, nb_channels);
-            else if (depth == CV_64F)
-                return GrabValuesFromBuffer<double>(ptr, nb_channels);
-            else
-                throw std::runtime_error("MatValuesAt: unhandled depth");
+            int nb_channels = m.channels;
+            const uint8_t * ptr = m.ptr<uint8_t>(y) + x * m.elemSizeTotal();
+            switch (m.depth)
+            {
+                case ImageDepth::uint8:
+                    return GrabValuesFromBuffer<uint8_t>(ptr, nb_channels);
+                case ImageDepth::int8:
+                    return GrabValuesFromBuffer<int8_t>(ptr, nb_channels);
+                case ImageDepth::uint16:
+                    return GrabValuesFromBuffer<uint16_t>(ptr, nb_channels);
+                case ImageDepth::int16:
+                    return GrabValuesFromBuffer<int16_t>(ptr, nb_channels);
+                case ImageDepth::int32:
+                    return GrabValuesFromBuffer<int32_t>(ptr, nb_channels);
+                case ImageDepth::float32:
+                    return GrabValuesFromBuffer<float>(ptr, nb_channels);
+                case ImageDepth::float64:
+                    return GrabValuesFromBuffer<double>(ptr, nb_channels);
+                default:
+                    throw std::runtime_error("MatValuesAt: unhandled depth");
+            }
         }
 
-        std::string MatPixelColorInfo(const cv::Mat & m, int x, int y, char separator, bool add_paren)
+        std::string MatPixelColorInfo(const ImageBuffer & m, int x, int y, char separator, bool add_paren)
         {
-            if (!cv::Rect(cv::Point(0, 0), m.size()).contains(cv::Point(x, y)))
+            if (!Rect(Point(0, 0), m.size()).contains(Point(x, y)))
                 return "";
             std::vector<double> values = MatValuesAt(m, x, y);
 
-            auto formatValue = [](double v, int depth) -> std::string
+            auto formatValue = [](double v, ImageDepth depth) -> std::string
             {
-                bool isFloat = false;
-                if ((depth == CV_32F) || (depth == CV_64F))
-                    isFloat = true;
-#if CV_MAJOR_VERSION >= 4
-                if (depth == CV_16F)
-                    isFloat = true;
-#endif
+                bool isFloat = ImageDepthIsFloat(depth);
                 if (isFloat)
                 {
                     char buffer_color[300];
@@ -123,9 +90,8 @@ namespace ImmVision
             };
 
             std::vector<std::string> strs;
-            int depth = m.depth();
             for (double v: values)
-                strs.push_back(formatValue(v, depth));
+                strs.push_back(formatValue(v, m.depth));
 
             std::string r = JoinStrings(strs, separator);
             if (add_paren)

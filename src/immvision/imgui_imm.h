@@ -1,7 +1,7 @@
 #pragma once
 
 #include "imgui.h"
-#include <opencv2/core.hpp>
+#include "immvision/immvision_types.h"
 
 // Some extensions to ImGui, specific to ImmVision
 namespace ImGuiImm
@@ -30,7 +30,7 @@ namespace ImGuiImm
 
 
     ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);
-    cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize);
+    ImmVision::Size ComputeDisplayImageSize(ImmVision::Size askedImageSize, ImmVision::Size realImageSize);
 
     void PushDisabled();
     void PopDisabled();

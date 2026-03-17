@@ -1,22 +1,24 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/misc/math_utils.h"
+#include "immvision/internal/misc/parallel_for.h"
 
-#include <opencv2/imgproc.hpp>
+#include <cassert>
+#include <cmath>
 
 namespace ImmVision
 {
     namespace ZoomPanTransform
     {
-        using MatrixType = cv::Matx33d;
+        using MatrixType = Matrix33d;
 
         MatrixType Identity()
         {
-            return cv::Matx33d::eye();
+            return Matrix33d::eye();
         }
 
-        MatrixType ComputeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio)
+        MatrixType ComputeZoomMatrix(const Point2d & zoomCenter, double zoomRatio)
         {
-            auto mat = cv::Matx33d::eye();
+            auto mat = Matrix33d::eye();
             mat(0, 0) = zoomRatio;
             mat(1, 1) = zoomRatio;
             mat(0, 2) = zoomCenter.x * (1. - zoomRatio);
@@ -24,15 +26,15 @@ namespace ImmVision
             return mat;
         }
 
-        MatrixType ComputePanMatrix(const cv::Point2d& dragDelta, double currentZoom)
+        MatrixType ComputePanMatrix(const Point2d& dragDelta, double currentZoom)
         {
-            auto mat = cv::Matx33d::eye();
+            auto mat = Matrix33d::eye();
             mat(0, 2) = (double)dragDelta.x / currentZoom;
             mat(1, 2) = (double)dragDelta.y / currentZoom;
             return mat;
         }
 
-        MatrixType MakeScaleOne(cv::Size imageSize, cv::Size viewportSize)
+        MatrixType MakeScaleOne(Size imageSize, Size viewportSize)
         {
             MatrixType r = Identity();
             r(0, 2) = (viewportSize.width / 2 - imageSize.width / 2);
@@ -40,16 +42,7 @@ namespace ImmVision
             return r;
         }
 
-        cv::Matx23d ZoomMatrixToM23(const cv::Matx33d &m)
-        {
-            cv::Matx23d r;
-            for (int y = 0; y < 2; y++)
-                for (int x = 0; x < 3; x++)
-                    r(y, x) = m(y, x);
-            return r;
-        }
-
-        MatrixType MakeFullView(cv::Size imageSize, cv::Size viewportSize)
+        MatrixType MakeFullView(Size imageSize, Size viewportSize)
         {
             assert(imageSize.area() > 0);
             assert(viewportSize.area() >0);
@@ -81,25 +74,22 @@ namespace ImmVision
             return true;
         }
 
-        cv::Point2d Apply(const MatrixType& zoomMatrix, const cv::Point2d &p)
+        Point2d Apply(const MatrixType& zoomMatrix, const Point2d &p)
         {
-            cv::Matx31d pMat(p.x, p.y, 1.);
-            cv::Matx31d rMat = zoomMatrix * pMat;
-            cv::Point2d r(rMat(0, 0), rMat(1, 0));
-            return r;
+            return zoomMatrix.apply(p);
         }
 
         MatrixType UpdateZoomMatrix_DisplaySizeChanged(
             const MatrixType& oldZoomMatrix,
-            const cv::Size& oldDisplaySize, const cv::Size& newDisplaySize)
+            const Size& oldDisplaySize, const Size& newDisplaySize)
         {
             if (oldDisplaySize.area() == 0 || newDisplaySize.area() == 0)
                 return oldZoomMatrix;
 
             MatrixType zoomMatrix;
 
-            auto fnImageCenter = [](const cv::Size s) {
-                return cv::Point2d((double)s.width / 2., (double)s.height / 2.);
+            auto fnImageCenter = [](const Size s) {
+                return Point2d((double)s.width / 2., (double)s.height / 2.);
             };
 
             double newZoomFactor;
@@ -114,13 +104,13 @@ namespace ImmVision
             zoomMatrix = MatrixType::eye();
             zoomMatrix(0, 0) = zoomMatrix(1, 1) = newZoomFactor;
 
-            cv::Point2d translation;
+            Point2d translation;
             {
-                cv::Point2d oldDisplayCenter_Zoomed = fnImageCenter(oldDisplaySize);
-                cv::Point2d oldDisplayCenter_Image = ZoomPanTransform::Apply(oldZoomMatrix.inv(), oldDisplayCenter_Zoomed);
+                Point2d oldDisplayCenter_Zoomed = fnImageCenter(oldDisplaySize);
+                Point2d oldDisplayCenter_Image = ZoomPanTransform::Apply(oldZoomMatrix.inv(), oldDisplayCenter_Zoomed);
 
-                cv::Point2d newDisplayCenter_Zoomed_Wanted = fnImageCenter(newDisplaySize);
-                cv::Point2d newDisplayCenter_Zoomed_Now = ZoomPanTransform::Apply(zoomMatrix, oldDisplayCenter_Image);
+                Point2d newDisplayCenter_Zoomed_Wanted = fnImageCenter(newDisplaySize);
+                Point2d newDisplayCenter_Zoomed_Now = ZoomPanTransform::Apply(zoomMatrix, oldDisplayCenter_Image);
                 translation = newDisplayCenter_Zoomed_Wanted - newDisplayCenter_Zoomed_Now;
             }
 
@@ -130,9 +120,9 @@ namespace ImmVision
             return zoomMatrix;
         }
 
-        cv::Matx33d MakeZoomMatrix(const cv::Point2d & zoomCenter, double zoomRatio,const cv::Size displayedImageSize)
+        Matrix33d MakeZoomMatrix(const Point2d & zoomCenter, double zoomRatio, const Size displayedImageSize)
         {
-            auto mat = cv::Matx33d::eye();
+            auto mat = Matrix33d::eye();
             mat(0, 0) = zoomRatio;
             mat(1, 1) = zoomRatio;
             double dx = (double)displayedImageSize.width / 2. - zoomRatio * zoomCenter.x;
@@ -142,78 +132,175 @@ namespace ImmVision
             return mat;
         }
 
-        cv::Rect VisibleRoi(const MatrixType & zoomMatrix, cv::Size imageDisplaySize, cv::Size originalImageSize)
+        Rect VisibleRoi(const MatrixType & zoomMatrix, Size imageDisplaySize, Size originalImageSize)
         {
-            cv::Rect roi;
+            Rect roi;
             {
-                cv::Point2d tl = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(0., 0.));
-                cv::Point tli(MathUtils::RoundInt(tl.x), MathUtils::RoundInt(tl.y));
+                Point2d tl = ZoomPanTransform::Apply(zoomMatrix.inv(), Point2d(0., 0.));
+                Point tli(MathUtils::RoundInt(tl.x), MathUtils::RoundInt(tl.y));
                 tli.x = std::clamp(tli.x, 0, originalImageSize.width - 1);
                 tli.y = std::clamp(tli.y, 0, originalImageSize.height - 1);
 
-                cv::Point2d br = ZoomPanTransform::Apply(zoomMatrix.inv(), cv::Point2d(
+                Point2d br = ZoomPanTransform::Apply(zoomMatrix.inv(), Point2d(
                     (double)imageDisplaySize.width, (double)imageDisplaySize.height));
-                cv::Point bri(MathUtils::RoundInt(br.x), MathUtils::RoundInt(br.y));
+                Point bri(MathUtils::RoundInt(br.x), MathUtils::RoundInt(br.y));
                 bri.x = std::clamp(bri.x, 0, originalImageSize.width);
                 bri.y = std::clamp(bri.y, 0, originalImageSize.height);
 
                 //                bri.x += 1;
 //                bri.y += 1;
-                roi = cv::Rect(tli, bri);
+                roi = Rect(tli, bri);
             }
             return roi;
         }
 
-        // Custom version of cv::warpAffine for small sizes, since cv::warpAffine happily ignores cv::INTER_AREA
-        // cf https://github.com/pthom/immvision/issues/6 and
-        // cf https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/imgwarp.cpp#L2826-L2827
-        void _WarpAffineInterAreaForSmallSizes(const cv::Mat& src, cv::Mat& dst, const cv::Matx33d& m)
+        // =====================================================================
+        // Custom warp: scale + translate only (no rotation/shear)
+        // Replaces cv::warpAffine and cv::resize for immvision's zoom/pan
+        // =====================================================================
+
+        // Sample a single pixel from src with bilinear interpolation
+        inline void _SampleBilinear(const ImageBuffer& src, double sx, double sy, uint8_t* out, int ch)
         {
-            // Since in our case, we are only dealing with transformations that do not modify
-            // the orientation of the vertical arrow and horizontal axes, we take the easy route:
-            // first resize the image and then place it at the correct location in the final image.
+            int x0 = (int)std::floor(sx), y0 = (int)std::floor(sy);
+            int x1 = x0 + 1, y1 = y0 + 1;
+            double fx = sx - x0, fy = sy - y0;
 
-            // first, compute the resized image size by using the transformation matrix.
-            cv::Point2d tl = ZoomPanTransform::Apply(m, cv::Point2d(0., 0.));
-            cv::Point2d br = ZoomPanTransform::Apply(m, cv::Point2d((double)src.cols, (double)src.rows));
-            cv::Size resizedSize(MathUtils::RoundInt(br.x - tl.x), MathUtils::RoundInt(br.y - tl.y));
+            // Clamp to image bounds
+            x0 = std::clamp(x0, 0, src.width - 1);
+            x1 = std::clamp(x1, 0, src.width - 1);
+            y0 = std::clamp(y0, 0, src.height - 1);
+            y1 = std::clamp(y1, 0, src.height - 1);
 
-            // then, resize the image
-            cv::Mat resized;
-            if (resizedSize.area() == 0)
+            const uint8_t* p00 = src.ptr<uint8_t>(y0) + x0 * ch;
+            const uint8_t* p10 = src.ptr<uint8_t>(y0) + x1 * ch;
+            const uint8_t* p01 = src.ptr<uint8_t>(y1) + x0 * ch;
+            const uint8_t* p11 = src.ptr<uint8_t>(y1) + x1 * ch;
+
+            double w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy);
+            double w01 = (1 - fx) * fy, w11 = fx * fy;
+
+            for (int c = 0; c < ch; c++)
+                out[c] = (uint8_t)std::clamp(p00[c] * w00 + p10[c] * w10 + p01[c] * w01 + p11[c] * w11, 0.0, 255.0);
+        }
+
+        // Area downscale with proper fractional pixel weighting.
+        // Each destination pixel covers a (scaleInv x scaleInv) region in the source.
+        // Pixels at the edges contribute proportionally to their overlap.
+        inline void _SampleArea(const ImageBuffer& src, double sx, double sy, double scaleInv, uint8_t* out, int ch)
+        {
+            double sx0 = sx, sy0 = sy;
+            double sx1 = sx + scaleInv, sy1 = sy + scaleInv;
+
+            // Clamp to source bounds
+            sx0 = std::max(sx0, 0.0);
+            sy0 = std::max(sy0, 0.0);
+            sx1 = std::min(sx1, (double)src.width);
+            sy1 = std::min(sy1, (double)src.height);
+
+            int ix0 = (int)std::floor(sx0);
+            int iy0 = (int)std::floor(sy0);
+            int ix1 = std::min((int)std::floor(sx1), src.width - 1);
+            int iy1 = std::min((int)std::floor(sy1), src.height - 1);
+
+            double sums[4] = {0, 0, 0, 0};
+            double totalWeight = 0;
+            for (int y = iy0; y <= iy1; y++)
             {
-                resized = cv::Mat::zeros(1, 1, src.type());
+                // Vertical weight: fractional overlap of this row with [sy0, sy1]
+                double wy = std::min((double)(y + 1), sy1) - std::max((double)y, sy0);
+                if (wy <= 0) continue;
+
+                const uint8_t* row = src.ptr<uint8_t>(y);
+                for (int x = ix0; x <= ix1; x++)
+                {
+                    // Horizontal weight: fractional overlap of this column with [sx0, sx1]
+                    double wx = std::min((double)(x + 1), sx1) - std::max((double)x, sx0);
+                    if (wx <= 0) continue;
+
+                    double w = wx * wy;
+                    for (int c = 0; c < ch; c++)
+                        sums[c] += row[x * ch + c] * w;
+                    totalWeight += w;
+                }
             }
+            if (totalWeight > 0)
+                for (int c = 0; c < ch; c++)
+                    out[c] = (uint8_t)std::clamp(sums[c] / totalWeight, 0.0, 255.0);
             else
-                cv::resize(src, resized, resizedSize, 0, 0, cv::INTER_AREA);
+                for (int c = 0; c < ch; c++)
+                    out[c] = 0;
+        }
 
-            // then, place the resized image at the correct location in the final image.
-            cv::Matx23d translation = cv::Matx23d::eye();
-            translation(0, 2) = tl.x;
-            translation(1, 2) = tl.y;
+        // Custom warp affine for scale+translate transforms on uint8 images.
+        // m is a 3x3 homogeneous matrix (forward: src->dst).
+        // dst must be pre-allocated. Pixels outside src bounds are left unchanged (transparent border).
+        void WarpAffineScaleTranslate(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m, WarpInterp interp)
+        {
+            assert(src.depth == ImageDepth::uint8);
+            int ch = src.channels;
+            Matrix33d mInv = m.inv();
 
-            // copy resized
-            cv::warpAffine(resized, dst, translation, dst.size(), cv::INTER_NEAREST, cv::BORDER_TRANSPARENT);
+            double scale = m(0, 0); // uniform scale factor
+            double scaleInv = 1.0 / std::max(scale, 1e-10);
+
+            parallel_for(0, dst.height, [&](int dy)
+            {
+                uint8_t* dstRow = dst.ptr<uint8_t>(dy);
+                for (int dx = 0; dx < dst.width; dx++)
+                {
+                    // Map destination pixel to source coordinates
+                    double sx = mInv(0, 0) * dx + mInv(0, 1) * dy + mInv(0, 2);
+                    double sy = mInv(1, 0) * dx + mInv(1, 1) * dy + mInv(1, 2);
+
+                    // Bounds check
+                    if (sx < -0.5 || sx >= src.width || sy < -0.5 || sy >= src.height)
+                        continue; // leave dst pixel unchanged (transparent border)
+
+                    uint8_t* out = dstRow + dx * ch;
+                    if (interp == WarpInterp::Nearest)
+                    {
+                        int ix = std::clamp((int)std::round(sx), 0, src.width - 1);
+                        int iy = std::clamp((int)std::round(sy), 0, src.height - 1);
+                        const uint8_t* p = src.ptr<uint8_t>(iy) + ix * ch;
+                        for (int c = 0; c < ch; c++)
+                            out[c] = p[c];
+                    }
+                    else if (interp == WarpInterp::Bilinear)
+                    {
+                        _SampleBilinear(src, sx, sy, out, ch);
+                    }
+                    else // Area
+                    {
+                        _SampleArea(src, sx, sy, scaleInv, out, ch);
+                    }
+                }
+            });
+        }
+
+        void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m)
+        {
+            WarpAffineScaleTranslate(src, dst, m, WarpInterp::Area);
         }
 
 
     } // namespace ZoomPanTransform
 
-    cv::Matx33d MakeZoomPanMatrix(const cv::Point2d & zoomCenter, double zoomRatio, const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix(const Point2d & zoomCenter, double zoomRatio, const Size displayedImageSize)
     {
         return ZoomPanTransform::MakeZoomMatrix(zoomCenter, zoomRatio, displayedImageSize);
     }
 
-    cv::Matx33d MakeZoomPanMatrix_ScaleOne(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix_ScaleOne(
+        Size imageSize,
+        const Size displayedImageSize)
     {
         return ZoomPanTransform::MakeScaleOne(imageSize, displayedImageSize);
     }
 
-    cv::Matx33d MakeZoomPanMatrix_FullView(
-        cv::Size imageSize,
-        const cv::Size displayedImageSize)
+    Matrix33d MakeZoomPanMatrix_FullView(
+        Size imageSize,
+        const Size displayedImageSize)
     {
         return ZoomPanTransform::MakeFullView(imageSize, displayedImageSize);
     }

@@ -1,5 +1,5 @@
 #include "immvision/gl_texture.h"
-#include "immvision/internal/cv/cv_drawing_utils.h"
+#include "immvision/internal/cv/drawing_utils.h"
 #include "immvision/internal/gl/gl_provider.h"
 
 
@@ -16,24 +16,24 @@ namespace ImmVision
         ImmVision_GlProvider::DeleteTexture(TextureId);
     }
 
-    GlTexture::GlTexture(const cv::Mat& image, bool isColorOrderBGR) : GlTexture()
+    GlTexture::GlTexture(const ImageBuffer& image, bool isColorOrderBGR) : GlTexture()
     {
         UpdateFromImage(image, isColorOrderBGR);
     }
 
-    void GlTexture::UpdateFromImage(const cv::Mat& image, bool isColorOrderBGR)
+    void GlTexture::UpdateFromImage(const ImageBuffer& image, bool isColorOrderBGR)
     {
         if (image.empty())
             return;
-        cv::Mat mat_rgba = CvDrawingUtils::converted_to_rgba_image(image, isColorOrderBGR);
+        ImageBuffer mat_rgba = DrawingUtils::converted_to_rgba_image(image, isColorOrderBGR);
 
-        ImmVision_GlProvider::Blit_RGBA_Buffer(mat_rgba.data, mat_rgba.cols, mat_rgba.rows, TextureId);
-        this->Size = mat_rgba.size();
+        ImmVision_GlProvider::Blit_RGBA_Buffer(static_cast<unsigned char*>(mat_rgba.data), mat_rgba.width, mat_rgba.height, TextureId);
+        this->ImageSize = Size(mat_rgba.width, mat_rgba.height);
     }
 
     ImVec2 GlTexture::SizeImVec2() const
     {
-        return {(float)Size.width, (float)Size.height};
+        return {(float)ImageSize.width, (float)ImageSize.height};
     }
 
 } // namespace ImmVision

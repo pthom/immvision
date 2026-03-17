@@ -7,6 +7,8 @@ ImmVision (a.k.a Immediate Vision) provides two tools for working with images:
 - **ImmDebug** — a standalone image debugger for any C++ or Python process
 - **ImmVision viewer** — an image viewer/analyzer widget for [ImGui](https://github.com/ocornut/imgui) applications
 
+> **v1.92.601**: OpenCV is now fully optional. ImmVision works standalone with its own `ImageBuffer` type. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 
 ## ImmDebug — Visual Image Debugger
 
@@ -44,16 +46,13 @@ immdebug(image, "random noise")
 
 ```python
 import cv2
-from immdebug import immdebug
+from immdebug import immdebug, immdebug_bgr
 
 image = cv2.imread("photo.jpg")
-immdebug(image, "original")
+immdebug_bgr(image, "original")  # BGR image from OpenCV
 
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 immdebug(gray, "grayscale")
-
-edges = cv2.Canny(gray, 100, 200)
-immdebug(edges, "edges")
 ```
 
 See the [immdebug Python package](immdebug_python/) for the full API documentation.
@@ -76,23 +75,18 @@ Then, launch the viewer, so that it receives and displays images sent from your 
 
 #### Step 2: add immdebug to your project
 
-Simply drop the content of [src/immdebug](src/immdebug) into your project. Only OpenCV is required — no need to link to immvision.
+Simply drop the content of [src/immdebug](src/immdebug) into your project.
 
 ```cpp
 #include "immdebug/immdebug.h"
+#include "immvision/image.h"  // for ImRead
 
 void ProcessImage()
 {
-    cv::Mat image = cv::imread("photo.jpg");
+    auto image = ImmVision::ImRead("photo.jpg");  // returns RGB
     ImmVision::ImmDebug(image, "original");
 
-    cv::Mat gray;
-    cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
-    ImmVision::ImmDebug(gray, "grayscale");
-
-    cv::Mat edges;
-    cv::Canny(gray, edges, 100, 200);
-    ImmVision::ImmDebug(edges, "edges");
+    // ImmDebugBgr is available for images in BGR order (e.g. from OpenCV)
 }
 ```
 
@@ -102,14 +96,24 @@ void ProcessImage()
 ```cpp
 namespace ImmVision
 {
+    // Send an RGB image to the viewer
     void ImmDebug(
-        const cv::Mat & image,
+        const ImageBuffer & image,
         const std::string & legend = "",
-        const cv::Point2d & zoomCenter = cv::Point2d(),
+        const Point2d & zoomCenter = Point2d(),
         double zoomRatio = -1.,
         const std::string& zoomKey = "",
-        const std::string& colorAdjustmentsKey = "",
-        bool isColorOrderBGR = true
+        const std::string& colorAdjustmentsKey = ""
+    );
+
+    // Send a BGR image to the viewer (OpenCV users)
+    void ImmDebugBgr(
+        const ImageBuffer & image,
+        const std::string & legend = "",
+        const Point2d & zoomCenter = Point2d(),
+        double zoomRatio = -1.,
+        const std::string& zoomKey = "",
+        const std::string& colorAdjustmentsKey = ""
     );
 }
 ```
@@ -139,23 +143,71 @@ See [online demo!](https://traineq.org/ImGuiBundle/emscripten/bin/demo_immvision
 ### C++ API
 
 ```cpp
-IMMVISION_API void Image(const std::string& label, const cv::Mat& mat, ImageParams* params);
-IMMVISION_API void ImageDisplay(const std::string& label, const cv::Mat& mat, const ImageParams& params);
+IMMVISION_API void Image(const std::string& label, const ImageBuffer& image, ImageParams* params);
+IMMVISION_API void ImageDisplay(const std::string& label, const ImageBuffer& image, const ImageParams& params);
 
-IMMVISION_API void Inspector_AddImage(const cv::Mat& image, const std::string& legend, ...);
+IMMVISION_API void Inspector_AddImage(const ImageBuffer& image, const std::string& legend, ...);
 IMMVISION_API void Inspector_Show();
 ```
 
 See [Full API](src/immvision/image.h)
+
+### Creating an ImageBuffer
+
+`ImageBuffer` is ImmVision's lightweight image container. No OpenCV required.
+
+**From a raw pointer** (non-owning view — works with any image source):
+
+```cpp
+// stb_image
+int w, h, ch;
+unsigned char* pixels = stbi_load("photo.jpg", &w, &h, &ch, 0);
+ImmVision::Image("photo", ImmVision::ImageBuffer(pixels, w, h, ch), &params);
+stbi_image_free(pixels);
+
+// SDL_Surface
+ImmVision::ImageBuffer(surface->pixels, surface->w, surface->h, 4,
+                        ImmVision::ImageDepth::uint8, surface->pitch);
+
+// Any buffer with known dimensions
+ImmVision::ImageBuffer(my_data, width, height, channels);
+```
+
+**From ImmVision's built-in reader** (uses stb_image, returns RGB):
+
+```cpp
+ImmVision::ImageBuffer image = ImmVision::ImRead("photo.jpg");
+```
+
+**From OpenCV** (zero-copy, requires `IMMVISION_HAS_OPENCV`):
+
+```cpp
+cv::Mat mat = cv::imread("photo.jpg");
+ImmVision::Image("photo", mat, &params);  // implicit conversion
+```
+
+**Owning allocation:**
+
+```cpp
+ImmVision::ImageBuffer image = ImmVision::ImageBuffer::Zeros(640, 480, 3, ImmVision::ImageDepth::uint8);
+```
 
 ### Python (via Dear ImGui Bundle)
 
 ```python
 from imgui_bundle import immvision
 
-immvision.image("My Image", my_mat, params)
-immvision.inspector_add_image(my_mat, "label")
+# Pass numpy arrays directly
+immvision.image("My Image", my_array, params)
+immvision.inspector_add_image(my_array, "label")
 immvision.inspector_show()
 ```
 
 See [Dear ImGui Bundle documentation](https://pthom.github.io/imgui_bundle/) for setup and usage.
+
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full history.

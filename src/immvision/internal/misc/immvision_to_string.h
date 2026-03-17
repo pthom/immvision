@@ -2,7 +2,6 @@
 #include "immvision/image.h"
 
 #include <string>
-#include <opencv2/core.hpp>
 
 namespace ImmVision
 {

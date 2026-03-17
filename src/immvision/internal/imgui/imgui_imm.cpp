@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include <cassert>
 #include <sstream>
 #include <vector>
 #include <unordered_map>
@@ -77,10 +78,10 @@ namespace ImGuiImm
         else
             return askedImageSize;
     }
-    cv::Size ComputeDisplayImageSize(cv::Size askedImageSize, cv::Size realImageSize)
+    ImmVision::Size ComputeDisplayImageSize(ImmVision::Size askedImageSize, ImmVision::Size realImageSize)
     {
-        auto toSize = [](ImVec2 v) { return cv::Size((int)((double)v.x + 0.5), (int)((double)v.y + 0.5)); };
-        auto toImVec2 = [](cv::Size v) { return ImVec2((float)v.width, (float)v.height); };
+        auto toSize = [](ImVec2 v) { return ImmVision::Size((int)((double)v.x + 0.5), (int)((double)v.y + 0.5)); };
+        auto toImVec2 = [](ImmVision::Size v) { return ImVec2((float)v.width, (float)v.height); };
         return toSize( ComputeDisplayImageSize(toImVec2(askedImageSize), toImVec2(realImageSize)) );
     }
 

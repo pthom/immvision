@@ -4,8 +4,24 @@
 #include "immvision/inspector.h"
 
 #include "GLFW/glfw3.h"
+#include <algorithm>
+#include <cstdint>
 #include <iostream>
 
+
+// Swap R and B channels, returning a new image. Only handles uint8 3/4-channel images.
+static ImmVision::ImageBuffer SwapRB(const ImmVision::ImageBuffer& src)
+{
+    ImmVision::ImageBuffer dst = src.clone();
+    int ch = dst.channels;
+    for (int y = 0; y < dst.height; y++)
+    {
+        uint8_t* row = dst.ptr<uint8_t>(y);
+        for (int x = 0; x < dst.width; x++)
+            std::swap(row[x * ch], row[x * ch + 2]);
+    }
+    return dst;
+}
 
 void AddIncomingImages()
 {
@@ -17,10 +33,14 @@ void AddIncomingImages()
         if (imagePayload)
         {
             HelloImGui::Log(HelloImGui::LogLevel::Info, "Received image payload");
-            if (imagePayload->isColorOrderBGR)
-                ImmVision::UseBgrColorOrder();
-            else
-                ImmVision::UseRgbColorOrder();
+            // Convert BGR images to RGB so the viewer always works in RGB mode
+            if (imagePayload->isColorOrderBGR
+                && imagePayload->Image.depth == ImmVision::ImageDepth::uint8
+                && (imagePayload->Image.channels == 3 || imagePayload->Image.channels == 4))
+            {
+                imagePayload->Image = SwapRB(imagePayload->Image);
+            }
+            ImmVision::UseRgbColorOrder();
             ImmVision::Inspector_AddImage(
                 imagePayload->Image,
                 imagePayload->Legend,
