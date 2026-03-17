@@ -29,11 +29,6 @@ namespace ImmVision
                             Size originalImageSize
                             );
 
-        // Custom warp for scale+translate transforms (replaces cv::warpAffine)
-        enum class WarpInterp { Nearest, Bilinear, Area };
-        void WarpAffineScaleTranslate(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m, WarpInterp interp);
-        void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m);
-
         // Compute UV coordinates and widget placement for GPU-based rendering.
         // Given the zoom/pan matrix, image size, and display size, computes:
         //   - uv0, uv1: texture coordinates (clamped to [0,1])

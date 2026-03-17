@@ -1,6 +1,5 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/misc/math_utils.h"
-#include "immvision/internal/misc/parallel_for.h"
 
 #include <cassert>
 #include <cmath>
@@ -147,142 +146,10 @@ namespace ImmVision
                 bri.x = std::clamp(bri.x, 0, originalImageSize.width);
                 bri.y = std::clamp(bri.y, 0, originalImageSize.height);
 
-                //                bri.x += 1;
-//                bri.y += 1;
                 roi = Rect(tli, bri);
             }
             return roi;
         }
-
-        // =====================================================================
-        // Custom warp: scale + translate only (no rotation/shear)
-        // Replaces cv::warpAffine and cv::resize for immvision's zoom/pan
-        // =====================================================================
-
-        // Sample a single pixel from src with bilinear interpolation
-        inline void _SampleBilinear(const ImageBuffer& src, double sx, double sy, uint8_t* out, int ch)
-        {
-            int x0 = (int)std::floor(sx), y0 = (int)std::floor(sy);
-            int x1 = x0 + 1, y1 = y0 + 1;
-            double fx = sx - x0, fy = sy - y0;
-
-            // Clamp to image bounds
-            x0 = std::clamp(x0, 0, src.width - 1);
-            x1 = std::clamp(x1, 0, src.width - 1);
-            y0 = std::clamp(y0, 0, src.height - 1);
-            y1 = std::clamp(y1, 0, src.height - 1);
-
-            const uint8_t* p00 = src.ptr<uint8_t>(y0) + x0 * ch;
-            const uint8_t* p10 = src.ptr<uint8_t>(y0) + x1 * ch;
-            const uint8_t* p01 = src.ptr<uint8_t>(y1) + x0 * ch;
-            const uint8_t* p11 = src.ptr<uint8_t>(y1) + x1 * ch;
-
-            double w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy);
-            double w01 = (1 - fx) * fy, w11 = fx * fy;
-
-            for (int c = 0; c < ch; c++)
-                out[c] = (uint8_t)std::clamp(p00[c] * w00 + p10[c] * w10 + p01[c] * w01 + p11[c] * w11, 0.0, 255.0);
-        }
-
-        // Area downscale with proper fractional pixel weighting.
-        // Each destination pixel covers a (scaleInv x scaleInv) region in the source.
-        // Pixels at the edges contribute proportionally to their overlap.
-        inline void _SampleArea(const ImageBuffer& src, double sx, double sy, double scaleInv, uint8_t* out, int ch)
-        {
-            double sx0 = sx, sy0 = sy;
-            double sx1 = sx + scaleInv, sy1 = sy + scaleInv;
-
-            // Clamp to source bounds
-            sx0 = std::max(sx0, 0.0);
-            sy0 = std::max(sy0, 0.0);
-            sx1 = std::min(sx1, (double)src.width);
-            sy1 = std::min(sy1, (double)src.height);
-
-            int ix0 = (int)std::floor(sx0);
-            int iy0 = (int)std::floor(sy0);
-            int ix1 = std::min((int)std::floor(sx1), src.width - 1);
-            int iy1 = std::min((int)std::floor(sy1), src.height - 1);
-
-            double sums[4] = {0, 0, 0, 0};
-            double totalWeight = 0;
-            for (int y = iy0; y <= iy1; y++)
-            {
-                // Vertical weight: fractional overlap of this row with [sy0, sy1]
-                double wy = std::min((double)(y + 1), sy1) - std::max((double)y, sy0);
-                if (wy <= 0) continue;
-
-                const uint8_t* row = src.ptr<uint8_t>(y);
-                for (int x = ix0; x <= ix1; x++)
-                {
-                    // Horizontal weight: fractional overlap of this column with [sx0, sx1]
-                    double wx = std::min((double)(x + 1), sx1) - std::max((double)x, sx0);
-                    if (wx <= 0) continue;
-
-                    double w = wx * wy;
-                    for (int c = 0; c < ch; c++)
-                        sums[c] += row[x * ch + c] * w;
-                    totalWeight += w;
-                }
-            }
-            if (totalWeight > 0)
-                for (int c = 0; c < ch; c++)
-                    out[c] = (uint8_t)std::clamp(sums[c] / totalWeight, 0.0, 255.0);
-            else
-                for (int c = 0; c < ch; c++)
-                    out[c] = 0;
-        }
-
-        // Custom warp affine for scale+translate transforms on uint8 images.
-        // m is a 3x3 homogeneous matrix (forward: src->dst).
-        // dst must be pre-allocated. Pixels outside src bounds are left unchanged (transparent border).
-        void WarpAffineScaleTranslate(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m, WarpInterp interp)
-        {
-            assert(src.depth == ImageDepth::uint8);
-            int ch = src.channels;
-            Matrix33d mInv = m.inv();
-
-            double scale = m(0, 0); // uniform scale factor
-            double scaleInv = 1.0 / std::max(scale, 1e-10);
-
-            parallel_for(0, dst.height, [&](int dy)
-            {
-                uint8_t* dstRow = dst.ptr<uint8_t>(dy);
-                for (int dx = 0; dx < dst.width; dx++)
-                {
-                    // Map destination pixel to source coordinates
-                    double sx = mInv(0, 0) * dx + mInv(0, 1) * dy + mInv(0, 2);
-                    double sy = mInv(1, 0) * dx + mInv(1, 1) * dy + mInv(1, 2);
-
-                    // Bounds check
-                    if (sx < -0.5 || sx >= src.width || sy < -0.5 || sy >= src.height)
-                        continue; // leave dst pixel unchanged (transparent border)
-
-                    uint8_t* out = dstRow + dx * ch;
-                    if (interp == WarpInterp::Nearest)
-                    {
-                        int ix = std::clamp((int)std::round(sx), 0, src.width - 1);
-                        int iy = std::clamp((int)std::round(sy), 0, src.height - 1);
-                        const uint8_t* p = src.ptr<uint8_t>(iy) + ix * ch;
-                        for (int c = 0; c < ch; c++)
-                            out[c] = p[c];
-                    }
-                    else if (interp == WarpInterp::Bilinear)
-                    {
-                        _SampleBilinear(src, sx, sy, out, ch);
-                    }
-                    else // Area
-                    {
-                        _SampleArea(src, sx, sy, scaleInv, out, ch);
-                    }
-                }
-            });
-        }
-
-        void _WarpAffineInterAreaForSmallSizes(const ImageBuffer& src, ImageBuffer& dst, const Matrix33d& m)
-        {
-            WarpAffineScaleTranslate(src, dst, m, WarpInterp::Area);
-        }
-
 
         UvFromZoomPanResult UvFromZoomPan(
             const MatrixType& zoomPanMatrix,
