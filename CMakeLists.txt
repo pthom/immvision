@@ -55,12 +55,6 @@ endif()
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# IMMVISION_BUILD_ALL_IN_ONE
-# if ON, an all in one library will be built from amalgamated sources at src_all_in_one/
-option(IMMVISION_BUILD_ALL_IN_ONE OFF)
-#------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------
 # IMMVISION_ACTIVATE_ALL_WARNINGS
 # if ON, all warnings are considered as errors
 option(IMMVISION_ACTIVATE_ALL_WARNINGS "Activate all warnings (as error!)" OFF)
@@ -100,7 +94,3 @@ add_compile_definitions(IMMVISION_VERSION="${PROJECT_VERSION}")
 include(cmake/fetch_hello_imgui.cmake)
 
 add_subdirectory(src)
-
-if (IMMVISION_BUILD_ALL_IN_ONE)
-    add_subdirectory(src_all_in_one)
-endif()
