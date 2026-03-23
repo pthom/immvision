@@ -254,7 +254,7 @@ def main() -> None:
         hello_imgui.FullScreenMode.full_monitor_work_area
     )
     params.app_window_params.restore_previous_geometry = True
-    params.app_window_params.window_title = "ImmVision - immdebug viewer"
+    params.app_window_params.window_title = "ImmVision - ImmDebug Viewer"
     params.callbacks.show_gui = gui
     params.ini_folder_type = hello_imgui.IniFolderType.app_user_config_folder
     params.ini_filename = "immdebug_viewer.ini"
