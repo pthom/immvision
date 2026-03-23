@@ -77,12 +77,7 @@ namespace ImmVision
         float largeScrollbarH = ImGui::GetFontSize() * 1.25f;
         float contentH = thumbH + labelFontSize + ImGui::GetStyle().ItemSpacing.y * 2.f;
         float stripH = contentH + largeScrollbarH;
-        // Vertical slider for thumbnail size, to the left of the strip (fixed height)
-        float sliderH = ImGui::GetFontSize() * 5.f;
-        float em = ImGui::GetFontSize();
-        ImGui::VSliderFloat("##thumbsize", ImVec2(em * 2.0f, sliderH), &s_Inspector_ThumbnailHeight, em * 3.f, em * 14.f, "");
-        ImGui::SetItemTooltip("Thumbnail size: %.0f px", s_Inspector_ThumbnailHeight);
-        ImGui::SameLine();
+
         // Larger scrollbar for the filmstrip
         ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, largeScrollbarH);
 
@@ -237,9 +232,51 @@ namespace ImmVision
         }
     };
 
+    void priv_DrawTopTitlePanel()
+    {
+        // Top panel with title and thumbnail size slider
+        {
+            auto pos = ImGui::GetCursorScreenPos();
+
+            // Background fill
+            ImVec2 tl(pos.x, pos.y - ImGui::GetStyle().ItemSpacing.y);
+            ImVec2 br(pos.x + ImGui::GetContentRegionAvail().x, pos.y + ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.y * 2.f);
+            ImGui::GetBackgroundDrawList()->AddLine(ImVec2(tl.x, tl.y), ImVec2(br.x, tl.y), ImGui::GetColorU32(ImGuiCol_Text));
+            ImGui::GetBackgroundDrawList()->AddRectFilled(tl, br, ImGui::GetColorU32(ImGuiCol_Header));
+
+            // Title with a slightly bigger font
+            float em = ImGui::GetFontSize();
+            ImGui::PushFont(nullptr, em *  1.1f);
+            ImGui::Text("ImmVision Inspector");
+            ImGui::PopFont();
+
+            // Controls at the right
+            float width_right_items = em * 18.f;
+            ImVec2 pos_right(pos.x + ImGui::GetContentRegionAvail().x - width_right_items, pos.y);
+            ImGui::SetCursorScreenPos(pos_right);
+            ImGui::Text("Thumbnail size:");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(em * 5.4f);
+            ImGui::SliderFloat("##thumbsize",  &s_Inspector_ThumbnailHeight, em * 1.5f, em * 28.f, "");
+            ImGui::SameLine();
+            if (ImGui::Button("Clear images"))
+            {
+                s_Inspector_ImagesAndParams.clear();
+            }
+            ImGui::SameLine();
+
+            // Return cursor to correct position
+            ImGui::SetCursorScreenPos(pos);
+            ImGui::NewLine();
+        }
+
+    }
+
     void Inspector_Show()
     {
         ImageWidgets::s_CollapsingHeader_CacheState_Sync = true;
+
+        priv_DrawTopTitlePanel();
 
         //
         // Filmstrip at the top
