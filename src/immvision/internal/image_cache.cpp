@@ -86,7 +86,8 @@ namespace ImmVision
                 {
                     InitializeMissingParams(params, image);
 
-                    // If this new entry shares a ZoomKey with an existing entry, inherit its zoom.
+                    // If this new entry shares a ZoomKey with an existing entry,
+                    // propagate that entry's zoom to all linked images (including this new one).
                     if (!params->ZoomKey.empty())
                     {
                         for (auto& otherKey : mCacheParams.Keys())
@@ -96,7 +97,7 @@ namespace ImmVision
                             CachedParams& otherCache = mCacheParams.Get(otherKey);
                             if (otherCache.ParamsPtr && otherCache.ParamsPtr->ZoomKey == params->ZoomKey)
                             {
-                                params->ZoomPanMatrix = otherCache.ParamsPtr->ZoomPanMatrix;
+                                UpdateLinkedZooms(otherKey);
                                 break;
                             }
                         }
@@ -142,11 +143,12 @@ namespace ImmVision
                 ImmVision_GlProvider::SetTextureFiltering(cachedImage.mGlTexture->TextureId, minF, magF);
             }
 
-            if (cachedParams.WasZoomJustUpdatedByLink)
-                cachedParams.WasZoomJustUpdatedByLink = false;
-
-            if (!cachedParams.WasZoomJustUpdatedByLink && !ZoomPanTransform::IsEqual(oldParams.ZoomPanMatrix, params->ZoomPanMatrix))
+            // Only propagate zoom when the user directly interacted (drag, wheel, buttons).
+            if (cachedParams.UserInteractedWithZoom)
+            {
                 UpdateLinkedZooms(id);
+                cachedParams.UserInteractedWithZoom = false;
+            }
             if (! Colormap::IsEqual(oldParams.ColormapSettings, params->ColormapSettings))
                 UpdateLinkedColormapSettings(id);
 
@@ -239,7 +241,6 @@ namespace ImmVision
                         visibleImageCenter_ImageCoords, zoomRatioOtherImage, otherDisplayedImageSize);
                     otherCache.ParamsPtr->ZoomPanMatrix = zoomMatrixOtherImage;
                     otherCache.PreviousParams.ZoomPanMatrix = zoomMatrixOtherImage;
-                    otherCache.WasZoomJustUpdatedByLink = true;
                 }
             }
         }

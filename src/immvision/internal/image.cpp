@@ -526,10 +526,11 @@ This is a required setup step. (Breaking change - October 2024)
                     Point2d((double)dragDeltaDelta.x, (double)dragDeltaDelta.y),
                     zoomMatrix(0, 0));
                 cacheParams.LastDragDelta = dragDelta;
+                cacheParams.UserInteractedWithZoom = true;
             }
             params->ZoomPanMatrix = zoomMatrix;
         };
-        auto fnHandleMouseWheel = [&params](const Point2d& mouseLocation)
+        auto fnHandleMouseWheel = [&params](const Point2d& mouseLocation, CachedParams & cacheParams)
         {
             if (!params->ZoomWithMouseWheel)
                 return;
@@ -553,9 +554,10 @@ This is a required setup step. (Breaking change - October 2024)
                 if (refuseZoom)
                     return;
                 params->ZoomPanMatrix = params->ZoomPanMatrix * ZoomPanTransform::ComputeZoomMatrix(mouseLocation, exp(zoomRatio));
+                cacheParams.UserInteractedWithZoom = true;
             }
         };
-        auto fnShowZoomButtons = [&params, &image]()
+        auto fnShowZoomButtons = [&params, &image](CachedParams & cacheParams)
         {
             if (params->ShowZoomButtons)
             {
@@ -602,6 +604,8 @@ This is a required setup step. (Breaking change - October 2024)
                         )
                         zoomMatrix = fullViewZoomInfo;
                 }
+                if (!ZoomPanTransform::IsEqual(params->ZoomPanMatrix, zoomMatrix))
+                    cacheParams.UserInteractedWithZoom = true;
                 params->ZoomPanMatrix = zoomMatrix;
             }
 
@@ -761,10 +765,10 @@ This is a required setup step. (Breaking change - October 2024)
 
             // Handle Mouse
             fnHandleMouseDragging(cacheParams);
-            fnHandleMouseWheel(mouseInfo.MousePosition);
+            fnHandleMouseWheel(mouseInfo.MousePosition, cacheParams);
 
             // Zoom+ / Zoom- buttons
-            fnShowZoomButtons();
+            fnShowZoomButtons(cacheParams);
             // adjust button
             if (params->ShowOptionsButton)
             {

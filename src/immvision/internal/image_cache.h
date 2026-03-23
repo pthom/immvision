@@ -21,7 +21,7 @@ namespace ImmVision
                 ImVec2 LastDragDelta;
                 std::vector<char> FilenameEditBuffer = std::vector<char>(1000, '\0');
                 bool   IsMouseDragging = false;
-                bool   WasZoomJustUpdatedByLink = false;
+                bool   UserInteractedWithZoom = false;
                 bool   IsResizing = false;
                 Size PreviousImageSize;
                 struct ImageParams  PreviousParams;
