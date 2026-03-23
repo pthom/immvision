@@ -83,7 +83,25 @@ namespace ImmVision
                 params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size());
 
                 if (isNewEntry)
+                {
                     InitializeMissingParams(params, image);
+
+                    // If this new entry shares a ZoomKey with an existing entry, inherit its zoom.
+                    if (!params->ZoomKey.empty())
+                    {
+                        for (auto& otherKey : mCacheParams.Keys())
+                        {
+                            if (otherKey == id)
+                                continue;
+                            CachedParams& otherCache = mCacheParams.Get(otherKey);
+                            if (otherCache.ParamsPtr && otherCache.ParamsPtr->ZoomKey == params->ZoomKey)
+                            {
+                                params->ZoomPanMatrix = otherCache.ParamsPtr->ZoomPanMatrix;
+                                break;
+                            }
+                        }
+                    }
+                }
 
                 bool wasDisplaySizeChanged = oldParams.ImageDisplaySize != params->ImageDisplaySize;
                 bool wasImageSizeChanged = ( (cachedParams.PreviousImageSize.area() != 0)
