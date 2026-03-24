@@ -1,4 +1,4 @@
-#include "immvision/internal/drawing/image_drawing.h"
+#include "immvision/internal/drawing/draw_list_annotate.h"
 #include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
@@ -12,57 +12,9 @@
 
 namespace ImmVision
 {
-    namespace ImageDrawing
+
+    namespace DrawListAnnotate
     {
-        void UpdateImageTexture(
-            const ImageParams& params,
-            const ImageBuffer& image,
-            ImageBuffer& in_out_rgba_image_cache,
-            bool shall_refresh_rgba,
-            GlTexture* outTexture
-        )
-        {
-            if (image.empty())
-                return;
-
-            if (shall_refresh_rgba)
-            {
-                ImageBuffer finalImage = image.clone();
-
-                if (HasColormapParam(params) && Colormap::CanColormap(image))
-                {
-                    finalImage = Colormap::ApplyColormap(finalImage, params.ColormapSettings);
-                    // ApplyColormap returns RGBA; upload directly
-                    in_out_rgba_image_cache = finalImage;
-                    outTexture->UpdateFromImage(finalImage, false);
-                }
-                else
-                {
-                    // Extract a single channel from a multi-channel image
-                    if (finalImage.channels > 1 && (params.SelectedChannel >= 0) && (params.SelectedChannel < finalImage.channels))
-                    {
-                        int ch = params.SelectedChannel;
-                        int nch = finalImage.channels;
-                        ImageBuffer singleChannel = ImageBuffer::Zeros(finalImage.width, finalImage.height, 1, finalImage.depth);
-                        for (int y = 0; y < finalImage.height; y++)
-                        {
-                            const uint8_t* src = finalImage.ptr<uint8_t>(y);
-                            uint8_t* dst = singleChannel.ptr<uint8_t>(y);
-                            int elemSize = (int)finalImage.elemSize();
-                            for (int x = 0; x < finalImage.width; x++)
-                                std::memcpy(dst + x * elemSize, src + (x * nch + ch) * elemSize, elemSize);
-                        }
-                        finalImage = singleChannel;
-                    }
-
-                    // Let UpdateFromImage handle RGBA conversion (including BGR swap)
-                    bool is_color_order_bgr = IsUsingBgrColorOrder();
-                    outTexture->UpdateFromImage(finalImage, is_color_order_bgr);
-                    in_out_rgba_image_cache = finalImage;
-                }
-                assert(!in_out_rgba_image_cache.empty());
-            }
-        }
 
         // Convert image pixel coordinates to screen position using the zoom/pan matrix
         static ImVec2 ImageToScreen(double imgX, double imgY, const Matrix33d& zoomPan, ImVec2 widgetTopLeft)
@@ -313,10 +265,6 @@ namespace ImmVision
             ImGui::GetWindowDrawList()->PopClipRect();
         }
 
-        bool HasColormapParam(const ImageParams &params)
-        {
-            return (!params.ColormapSettings.Colormap.empty() || !params.ColormapSettings.internal_ColormapHovered.empty());
-        }
 
     } // namespace ImageDrawing
 

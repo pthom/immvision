@@ -10,7 +10,7 @@
 #include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/image_cache.h"
-#include "immvision/internal/drawing/image_drawing.h"
+#include "immvision/internal/drawing/draw_list_annotate.h"
 #include "immvision/internal/misc/panic.h"
 #include "immvision/inspector.h"
 #include "imgui.h"
@@ -384,7 +384,7 @@ This is a required setup step. (Breaking change - October 2024)
             if (ImGuiImm::ButtonWithTooltip("Save image", tooltipSaveRawImage))
                 fnSaveImage(fnAskForFilename(), fnGetImageToSave());
             // Give the possibility to save the image with the colormap applied
-            bool hasColormap = ImageDrawing::HasColormapParam(*params);
+            bool hasColormap = !params->ColormapKey.empty();
             if (hasColormap && ImGuiImm::ButtonWithTooltip("Export colormap image", tooltipExportColormap))
                 fnSaveImage(fnAskForFilename(), fnGetImageWithColorMapToSave());
 
@@ -635,9 +635,9 @@ This is a required setup step. (Breaking change - October 2024)
             // Checkerboard only makes sense for images with an alpha channel (4 channels)
             bool hasAlpha = (image.channels == 4);
             if (hasAlpha && params->ShowAlphaChannelCheckerboard)
-                ImageDrawing::DrawAlphaCheckerboardBackground(*params, widgetTopLeft);
+                DrawListAnnotate::DrawAlphaCheckerboardBackground(*params, widgetTopLeft);
             else if (params->ShowSchoolPaperBackground)
-                ImageDrawing::DrawSchoolPaperBackground(*params, widgetTopLeft);
+                DrawListAnnotate::DrawSchoolPaperBackground(*params, widgetTopLeft);
 
             Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse_Uv(
                     glTexture, displaySize,
@@ -645,7 +645,7 @@ This is a required setup step. (Breaking change - October 2024)
                     disableDragWindow);
 
             // Draw annotations (grid, pixel values, watched pixels) via DrawList
-            ImageDrawing::DrawAnnotationsOverlay(*params, image, widgetTopLeft);
+            DrawListAnnotate::DrawAnnotationsOverlay(*params, image, widgetTopLeft);
 
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())

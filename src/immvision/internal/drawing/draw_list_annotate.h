@@ -4,20 +4,9 @@
 
 namespace ImmVision
 {
-    namespace ImageDrawing
+    // Draw images annotations via ImGui DrawLists
+    namespace DrawListAnnotate
     {
-        // RGBA conversion + texture upload only (no warp, no annotations).
-        // Annotations are drawn via DrawList by the caller.
-        void UpdateImageTexture(
-            const ImageParams& params,
-            const ImageBuffer& image,
-            ImageBuffer& in_out_rgba_image_cache,
-            bool shall_refresh_rgba,
-            GlTexture* outTexture
-        );
-
-        bool HasColormapParam(const ImageParams& params);
-
         // Draw backgrounds via DrawList (call before rendering the image)
         void DrawSchoolPaperBackground(const ImageParams& params, ImVec2 widgetTopLeft);
         void DrawAlphaCheckerboardBackground(const ImageParams& params, ImVec2 widgetTopLeft);
@@ -31,6 +20,6 @@ namespace ImmVision
             const ImageBuffer& image,
             ImVec2 widgetTopLeft);
 
-    } // namespace ImageDrawing
+    } // namespace DrawListAnnotate
 
 } // namespace ImmVision
