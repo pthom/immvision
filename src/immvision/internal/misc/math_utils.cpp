@@ -9,12 +9,12 @@ namespace ImmVision
     {
         double MaximumValue(const std::vector<double> &v)
         {
-            return *std::min_element(v.begin(), v.end());
+            return *std::max_element(v.begin(), v.end());
         }
 
         double MinimumValue(const std::vector<double> &v)
         {
-            return *std::max_element(v.begin(), v.end());
+            return *std::min_element(v.begin(), v.end());
         }
 
         int RoundInt(double v)

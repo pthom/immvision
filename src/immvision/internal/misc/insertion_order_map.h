@@ -51,7 +51,7 @@ namespace ImmVision
         {
             assert(contains(k));
             _map.erase(_map.find(k));
-            _keys.erase(std::remove(_keys.begin(), _keys.end(), 5), _keys.end());
+            _keys.erase(std::remove(_keys.begin(), _keys.end(), k), _keys.end());
         }
 
         const std::vector<Key>& insertion_order_keys() const

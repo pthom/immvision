@@ -62,9 +62,8 @@ namespace ImmVision
 
         static KeyType hash_str(const std::string& str)
         {
-            std::string str2 = str + "mlkyqsdadsfklqqsmax!(((!' "; // I let my cat walk on the keyboard
             const std::hash<std::string> hasher;
-            size_t hashResult = hasher(str2);
+            size_t hashResult = hasher(str);
             return hashResult;
         }
 
