@@ -613,7 +613,7 @@ This is a required setup step. (Breaking change - October 2024)
         //
         // Lambda / Show image
         //
-        auto fnShowImage = [&params, &image](const GlTexture& glTexture) ->  MouseInformation
+        auto fnShowImage = [&params, &image](const GlTexture& glTexture, const ImageBuffer& imageRgbaCache) ->  MouseInformation
         {
             bool disableDragWindow = params->PanWithMouse;
             ImVec2 displaySize((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height);
@@ -645,7 +645,7 @@ This is a required setup step. (Breaking change - October 2024)
                     disableDragWindow);
 
             // Draw annotations (grid, pixel values, watched pixels) via DrawList
-            DrawListAnnotate::DrawAnnotationsOverlay(*params, image, widgetTopLeft);
+            DrawListAnnotate::DrawAnnotationsOverlay(*params, image, imageRgbaCache, widgetTopLeft);
 
             MouseInformation mouseInfo;
             if (ImGui::IsItemHovered())
@@ -755,7 +755,7 @@ This is a required setup step. (Breaking change - October 2024)
 
             ImGui::BeginGroup();
             // Show image
-            auto mouseInfo = fnShowImage(*cacheImages.mGlTexture);
+            auto mouseInfo = fnShowImage(*cacheImages.mGlTexture, cacheImages.mImageRgbaCache);
             fnShowResizeWidget(cacheParams);
             // Add Watched Pixel on double click
             if (   params->AddWatchedPixelOnDoubleClick

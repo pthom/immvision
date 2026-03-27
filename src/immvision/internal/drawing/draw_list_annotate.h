@@ -15,9 +15,11 @@ namespace ImmVision
         // in screen space, overlaying the image widget.
         // widgetTopLeft: screen position of the display area top-left.
         // image: the original image (for reading pixel values).
+        // imageRgbaCache: the displayed RGBA image (for text contrast computation).
         void DrawAnnotationsOverlay(
             const ImageParams& params,
             const ImageBuffer& image,
+            const ImageBuffer& imageRgbaCache,
             ImVec2 widgetTopLeft);
 
     } // namespace DrawListAnnotate

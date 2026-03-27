@@ -56,7 +56,7 @@ namespace ImmVision
             }
         }
 
-        static void DrawPixelValuesOverlay(const ImageParams& params, const ImageBuffer& image, ImVec2 widgetTopLeft)
+        static void DrawPixelValuesOverlay(const ImageParams& params, const ImageBuffer& image, const ImageBuffer& imageRgbaCache, ImVec2 widgetTopLeft)
         {
             ImDrawList* dl = ImGui::GetWindowDrawList();
             double zoomFactor = params.ZoomPanMatrix(0, 0);
@@ -90,18 +90,17 @@ namespace ImmVision
                     // Position: center of the pixel cell in screen space
                     ImVec2 cellCenter = ImageToScreen((double)x + 0.5, (double)y + 0.5, params.ZoomPanMatrix, widgetTopLeft);
 
-                    // Smart text color: black on light backgrounds, white on dark
+                    // Smart text color: black on light backgrounds, white on dark.
+                    // Read from the RGBA cache (the actual displayed image) for accuracy.
                     ImU32 textColor;
                     {
-                        // Approximate luminance from source pixel
                         double luminance = 128.;
-                        if (image.depth == ImageDepth::uint8 && image.channels >= 1)
+                        if (imageRgbaCache.depth == ImageDepth::uint8
+                            && imageRgbaCache.channels >= 3
+                            && x < imageRgbaCache.width && y < imageRgbaCache.height)
                         {
-                            const uint8_t* p = image.ptr<uint8_t>(y) + x * image.channels;
-                            if (image.channels >= 3)
-                                luminance = p[0] * 0.2126 + p[1] * 0.7152 + p[2] * 0.0722;
-                            else
-                                luminance = p[0];
+                            const uint8_t* p = imageRgbaCache.ptr<uint8_t>(y) + x * imageRgbaCache.channels;
+                            luminance = p[0] * 0.2126 + p[1] * 0.7152 + p[2] * 0.0722;
                         }
                         textColor = (luminance > 170.) ? IM_COL32(0, 0, 0, 255) : IM_COL32(255, 255, 255, 255);
                     }
@@ -238,6 +237,7 @@ namespace ImmVision
         void DrawAnnotationsOverlay(
             const ImageParams& params,
             const ImageBuffer& image,
+            const ImageBuffer& imageRgbaCache,
             ImVec2 widgetTopLeft)
         {
             double zoomFactor = params.ZoomPanMatrix(0, 0);
@@ -256,7 +256,7 @@ namespace ImmVision
             // Draw pixel values
             double drawPixelValuesMinZoomFactor = (image.depth == ImageDepth::uint8) ? 36. : 48.;
             if (params.DrawValuesOnZoomedPixels && zoomFactor > drawPixelValuesMinZoomFactor)
-                DrawPixelValuesOverlay(params, image, widgetTopLeft);
+                DrawPixelValuesOverlay(params, image, imageRgbaCache, widgetTopLeft);
 
             // Draw watched pixel markers
             if (params.HighlightWatchedPixels && !params.WatchedPixels.empty())
