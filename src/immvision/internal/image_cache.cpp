@@ -25,7 +25,7 @@ namespace ImmVision
             {
                 ImageBuffer finalImage = image.clone();
 
-                if (!params.ColormapKey.empty() && Colormap::CanColormap(image))
+                if (Colormap::CanColormap(image))
                 {
                     finalImage = Colormap::ApplyColormap(finalImage, params.ColormapSettings);
                     // ApplyColormap returns RGBA; upload directly

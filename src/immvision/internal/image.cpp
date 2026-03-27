@@ -384,7 +384,7 @@ This is a required setup step. (Breaking change - October 2024)
             if (ImGuiImm::ButtonWithTooltip("Save image", tooltipSaveRawImage))
                 fnSaveImage(fnAskForFilename(), fnGetImageToSave());
             // Give the possibility to save the image with the colormap applied
-            bool hasColormap = !params->ColormapKey.empty();
+            bool hasColormap = Colormap::CanColormap(image);
             if (hasColormap && ImGuiImm::ButtonWithTooltip("Export colormap image", tooltipExportColormap))
                 fnSaveImage(fnAskForFilename(), fnGetImageWithColorMapToSave());
 
