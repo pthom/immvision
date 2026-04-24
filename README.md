@@ -203,7 +203,7 @@ immvision.inspector_add_image(my_array, "label")
 immvision.inspector_show()
 ```
 
-See [Dear ImGui Bundle documentation](https://pthom.github.io/imgui_bundle/) for setup and usage.
+See [Dear ImGui Bundle documentation](https://imgui-bundle.pages.dev/) for setup and usage.
 
 
 ---
