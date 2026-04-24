@@ -36,10 +36,6 @@ cmake -S ../opencv -B . `
 cmake --build . --config Release --parallel 6
 cmake --build . --target install --config Release
 cd ..
-
-7z a -t7z opencv_install_windows_pip.7z opencv_install_windows_pip
-scp  opencv_install_windows_pip.7z pascal@traineq.org:HTML/ImmvisionGithubFiles/
-
 ```
 
 

@@ -136,7 +136,7 @@ ImmVision provides an image viewer widget for applications built with [ImGui](ht
 
 This widget is included in [Dear ImGui Bundle](https://github.com/pthom/imgui_bundle), where it can be used from both C++ and Python.
 
-See [online demo!](https://traineq.org/imgui_bundle_explorer/demo_immvision_launcher.html)
+See [online demo!](https://imgui-bundle.pages.dev/explorer/demo_immvision_launcher.html)
 
 ![online_demo](doc/online_demo.jpg)
 

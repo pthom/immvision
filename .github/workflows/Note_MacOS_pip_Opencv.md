@@ -37,9 +37,6 @@ make -j
 make install
 cd ..
 
-tar cvfz opencv_install_macos_pip.tgz opencv_install_macos_pip
-scp  opencv_install_macos_pip.tgz pascal@traineq.org:HTML/ImmvisionGithubFiles/
-
 ```
 
 
