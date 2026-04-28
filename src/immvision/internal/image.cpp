@@ -704,10 +704,16 @@ This is a required setup step. (Breaking change - October 2024)
                         params->ImageDisplaySize.width += (int)ImGui::GetIO().MouseDelta.x;
                         params->ImageDisplaySize.height += (int)ImGui::GetIO().MouseDelta.y;
 
-                        if (params->ImageDisplaySize.width < 5)
-                            params->ImageDisplaySize.width = 5;
-                        if (params->ImageDisplaySize.height < 5)
-                            params->ImageDisplaySize.height = 5;
+                        // Stop from making the widget too small:
+                        // the minimum size is 12 if only displaying the image, and 135 if using the full widget
+                        // (room needed for the buttons, infos, etc)
+                        int minWidgetSize = 12;
+                        if (params->ShowZoomButtons || params->ShowPixelInfo || params->ShowImageInfo)
+                            minWidgetSize = 135;
+                        if (params->ImageDisplaySize.width < minWidgetSize)
+                            params->ImageDisplaySize.width = minWidgetSize;
+                        if (params->ImageDisplaySize.height < minWidgetSize)
+                            params->ImageDisplaySize.height = minWidgetSize;
 
                         if (params->ResizeKeepAspectRatio)
                         {
