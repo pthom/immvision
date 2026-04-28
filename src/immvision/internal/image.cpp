@@ -668,7 +668,7 @@ This is a required setup step. (Breaking change - October 2024)
                 return;
             ImVec2 imageBottomRight = ImGui::GetItemRectMax();
             float em = ImGui::GetFontSize();
-            float size = em * 1.0f;
+            float size = em * 1.25f;
             ImVec2 br(imageBottomRight.x, imageBottomRight.y);
             ImVec2 bl(br.x - size, br.y);
             ImVec2 tr(br.x, br.y - size);
@@ -686,8 +686,33 @@ This is a required setup step. (Breaking change - October 2024)
             }
 
             bool isMouseHoveringWidget = ImGui::IsMouseHoveringRect(zone.Min, zone.Max);
-            ImU32 color = isMouseHoveringWidget ? ImGui::GetColorU32(ImGuiCol_ButtonHovered) : ImGui::GetColorU32(ImGuiCol_Button);
-            ImGui::GetWindowDrawList()->AddTriangleFilled(br, bl, tr, color);
+
+            // Draw resize widget: triangle + 3 lines
+            {
+                auto fnContrastingBlackOrWhite=  [](ImU32 col)
+                {
+                    const float r = (float)((col >> IM_COL32_R_SHIFT) & 0xFF);
+                    const float g = (float)((col >> IM_COL32_G_SHIFT) & 0xFF);
+                    const float b = (float)((col >> IM_COL32_B_SHIFT) & 0xFF);
+                    const float luminance = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+                    return (luminance > 140.0f) ? IM_COL32(0, 0, 0, 255) : IM_COL32(255, 255, 255, 255);
+                };
+
+                ImU32 bgCol = isMouseHoveringWidget ? ImGui::GetColorU32(ImGuiCol_ButtonHovered) : ImGui::GetColorU32(ImGuiCol_Button);
+                ImU32 frontCol = fnContrastingBlackOrWhite(bgCol);
+
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+
+                dl->AddTriangleFilled(bl, br, tr, bgCol);
+                float thickInner = 1.0f;
+                for (int i = 0; i < 3; ++i)
+                {
+                    float t = ((float)i + 1.5f) / 4.0f;
+                    ImVec2 a(br.x - size * t, br.y);
+                    ImVec2 b(br.x,            br.y - size * t);
+                    dl->AddLine(a, b, frontCol, thickInner);
+                }
+            }
 
             if (!cacheParams.IsResizing)
             {
@@ -724,9 +749,9 @@ This is a required setup step. (Breaking change - October 2024)
                         // Stop from making the widget too small:
                         // the minimum size is 12 if only displaying the image, and 135 if using the full widget
                         // (room needed for the buttons, infos, etc)
-                        int minWidgetSize = 12;
+                        int minWidgetSize = (int)(em * 1.5f);
                         if (params->ShowZoomButtons || params->ShowPixelInfo || params->ShowImageInfo)
-                            minWidgetSize = 135;
+                            minWidgetSize = (int)(em * 9.f);
                         if (params->ImageDisplaySize.width < minWidgetSize)
                             params->ImageDisplaySize.width = minWidgetSize;
                         if (params->ImageDisplaySize.height < minWidgetSize)
