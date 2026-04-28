@@ -23,6 +23,8 @@ namespace ImmVision
                 bool   IsMouseDragging = false;
                 bool   UserInteractedWithZoom = false;
                 bool   IsResizing = false;
+                ImVec2 ResizeStartMousePos;
+                Size   ResizeStartSize;
                 Size PreviousImageSize;
                 struct ImageParams  PreviousParams;
             };

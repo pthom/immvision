@@ -1,6 +1,8 @@
 #include "immvision/internal/stb/stb_image_write.h"
 #include "immvision/internal/stb/stb_image.h"
 
+#include <cmath>
+
 #include "immvision/image.h"
 #include "immvision/internal/drawing/internal_icons.h"
 #include "immvision/internal/cv/colormap.h"
@@ -693,16 +695,31 @@ This is a required setup step. (Breaking change - October 2024)
                 {
                     ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
                     cacheParams.IsResizing = true;
+                    cacheParams.ResizeStartMousePos = ImGui::GetMousePos();
+                    cacheParams.ResizeStartSize = params->ImageDisplaySize;
                 }
             }
             if (cacheParams.IsResizing)
             {
                 if (ImGui::IsMouseDown(0))
                 {
-                    if (ImGui::GetIO().MouseDelta.x != 0. || ImGui::GetIO().MouseDelta.y != 0.)
+                    // Compute the target size from the *absolute* mouse displacement
+                    // since the resize started, not by accumulating per-frame deltas.
+                    // - Round once at the end → no per-frame rounding drift.
+                    // - Use GetMousePos() (not io.MouseDelta) so this works in a
+                    //   transformed coordinate system, e.g. inside an imgui-node-editor
+                    //   canvas at any zoom (where io.MouseDelta is stale screen-px).
+                    ImVec2 cur = ImGui::GetMousePos();
+                    float targetW = (float)cacheParams.ResizeStartSize.width
+                                    + (cur.x - cacheParams.ResizeStartMousePos.x);
+                    float targetH = (float)cacheParams.ResizeStartSize.height
+                                    + (cur.y - cacheParams.ResizeStartMousePos.y);
+                    int newW = (int)std::lroundf(targetW);
+                    int newH = (int)std::lroundf(targetH);
+                    if (newW != params->ImageDisplaySize.width || newH != params->ImageDisplaySize.height)
                     {
-                        params->ImageDisplaySize.width += (int)ImGui::GetIO().MouseDelta.x;
-                        params->ImageDisplaySize.height += (int)ImGui::GetIO().MouseDelta.y;
+                        params->ImageDisplaySize.width  = newW;
+                        params->ImageDisplaySize.height = newH;
 
                         // Stop from making the widget too small:
                         // the minimum size is 12 if only displaying the image, and 135 if using the full widget
