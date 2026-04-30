@@ -1,6 +1,7 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/misc/math_utils.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 
@@ -176,17 +177,24 @@ namespace ImmVision
             double uvRangeX = uv1x - uv0x;
             double uvRangeY = uv1y - uv0y;
 
-            // Clamp UVs to [0,1] and compute widget offset/size
-            double offsetX = 0., offsetY = 0.;
-            double widgetW = dispW, widgetH = dispH;
+            // Clamp UVs to [0,1] symmetrically and compute widget offset/size.
+            // When the image is panned fully out of view (e.g. dragged so far that the
+            // entire image lies outside the display area), uv0 may exceed 1 or uv1 may
+            // fall below 0. Both extremes must clamp to the same boundary so widgetW/H
+            // becomes 0 (widget invisible). Otherwise we end up with negative widgetW
+            // and the first/last sampled column gets stretched outside the widget.
+            double effUv0x = std::max(0., std::min(1., uv0x));
+            double effUv0y = std::max(0., std::min(1., uv0y));
+            double effUv1x = std::max(effUv0x, std::min(1., std::max(0., uv1x)));
+            double effUv1y = std::max(effUv0y, std::min(1., std::max(0., uv1y)));
 
-            if (uv0x < 0.) { offsetX = (-uv0x / uvRangeX) * dispW; uv0x = 0.; }
-            if (uv0y < 0.) { offsetY = (-uv0y / uvRangeY) * dispH; uv0y = 0.; }
-            if (uv1x > 1.) { uv1x = 1.; }
-            if (uv1y > 1.) { uv1y = 1.; }
+            double offsetX = (effUv0x - uv0x) / uvRangeX * dispW;
+            double offsetY = (effUv0y - uv0y) / uvRangeY * dispH;
+            double widgetW = (effUv1x - effUv0x) / uvRangeX * dispW;
+            double widgetH = (effUv1y - effUv0y) / uvRangeY * dispH;
 
-            widgetW = (uv1x - uv0x) / uvRangeX * dispW;
-            widgetH = (uv1y - uv0y) / uvRangeY * dispH;
+            uv0x = effUv0x; uv0y = effUv0y;
+            uv1x = effUv1x; uv1y = effUv1y;
 
             UvFromZoomPanResult result;
             result.uv0 = Point2d(uv0x, uv0y);
