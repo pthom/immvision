@@ -137,7 +137,13 @@ namespace ImmVision
 
                 // Selected border
                 if (is_selected)
+                {
+#if IMGUI_VERSION_NUM < 19276
                     ImGui::GetWindowDrawList()->AddRect(imgTl, imgBr, IM_COL32(100, 150, 255, 255), 0.f, 0, 2.f);
+#else
+                    ImGui::GetWindowDrawList()->AddRect(imgTl, imgBr, IM_COL32(100, 150, 255, 255), 0.f, 2.f);
+#endif
+                }
 
                 // Delete button on hover (drawn via DrawList, subtle circle + "x")
                 if (ImGui::IsItemHovered())
