@@ -11,6 +11,7 @@
 #include <cassert>
 #include <cmath>    // std::sqrt
 #include <limits>   // std::numeric_limits
+#include <stdexcept>
 #include "imgui_internal.h"
 
 #include <array>
