@@ -103,6 +103,7 @@ namespace nlohmann
                 {"ImageDisplaySize", params.ImageDisplaySize},
                 {"ZoomPanMatrix", params.ZoomPanMatrix},
                 {"ZoomKey", params.ZoomKey},
+                {"InterpolationMode", params.InterpolationMode},
                 {"ColormapSettings", params.ColormapSettings},
                 {"ColormapKey", params.ColormapKey},
                 {"PanWithMouse", params.PanWithMouse},
@@ -130,6 +131,8 @@ namespace nlohmann
             j.at("ImageDisplaySize").get_to(params.ImageDisplaySize);
             j.at("ZoomPanMatrix").get_to(params.ZoomPanMatrix);
             j.at("ZoomKey").get_to(params.ZoomKey);
+            params.InterpolationMode = j.value(
+                "InterpolationMode", ImmVision::ImageInterpolationMode::Adaptive);
             j.at("ColormapSettings").get_to(params.ColormapSettings);
             j.at("ColormapKey").get_to(params.ColormapKey);
             j.at("PanWithMouse").get_to(params.PanWithMouse);

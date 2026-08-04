@@ -180,12 +180,22 @@ namespace ImmVision
                     *params, image, cachedImage.mImageRgbaCache, true, cachedImage.mGlTexture.get());
             }
 
-            // Set texture filtering based on zoom level
+            // Set texture filtering based on the selected interpolation mode
             {
                 double zoom = params->ZoomPanMatrix(0, 0);
                 using TF = ImmVision_GlProvider::TextureFilter;
                 TF minF, magF;
-                if (zoom >= 12.0)      { minF = TF::Nearest; magF = TF::Nearest; }
+                if (params->InterpolationMode == ImageInterpolationMode::Nearest)
+                {
+                    minF = TF::Nearest;
+                    magF = TF::Nearest;
+                }
+                else if (params->InterpolationMode == ImageInterpolationMode::Linear)
+                {
+                    minF = TF::Linear;
+                    magF = TF::Linear;
+                }
+                else if (zoom >= 12.0) { minF = TF::Nearest; magF = TF::Nearest; }
                 else if (zoom >= 1.0)  { minF = TF::Linear;  magF = TF::Linear;  }
                 else                   { minF = TF::LinearMipmapLinear; magF = TF::Linear; }
                 ImmVision_GlProvider::SetTextureFiltering(cachedImage.mGlTexture->TextureId, minF, magF);
