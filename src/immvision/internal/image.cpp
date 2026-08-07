@@ -414,6 +414,15 @@ This is a required setup step. (Breaking change - October 2024)
                 ImGui::Checkbox("Draw values on pixels", &params->DrawValuesOnZoomedPixels);
                 ImGuiImm::EndGroupPanel();
             }
+            {
+                ImGuiImm::BeginGroupPanel("Interpolation");
+                int mode = static_cast<int>(params->InterpolationMode);
+                ImGui::RadioButton("Adaptive", &mode, static_cast<int>(ImageInterpolationMode::Adaptive)); ImGui::SameLine();
+                ImGui::RadioButton("Nearest", &mode, static_cast<int>(ImageInterpolationMode::Nearest)); ImGui::SameLine();
+                ImGui::RadioButton("Linear", &mode, static_cast<int>(ImageInterpolationMode::Linear));
+                params->InterpolationMode = static_cast<ImageInterpolationMode>(mode);
+                ImGuiImm::EndGroupPanel();
+            }
 
         };
 
