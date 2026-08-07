@@ -650,10 +650,15 @@ This is a required setup step. (Breaking change - October 2024)
             else if (params->ShowSchoolPaperBackground)
                 DrawListAnnotate::DrawSchoolPaperBackground(*params, widgetTopLeft);
 
+            bool useNearestSampler = ImageWidgets::ShallUseNearestSampler(*params);
+            if (useNearestSampler)
+                ImageWidgets::PushNearestTextureSampler();
             Point2d mouseLocation = ImageWidgets::DisplayTexture_TrackMouse_Uv(
                     glTexture, displaySize,
                     uv0, uv1, widgetOffset, widgetSize,
                     disableDragWindow);
+            if (useNearestSampler)
+                ImageWidgets::PopNearestTextureSampler();
 
             // Draw annotations (grid, pixel values, watched pixels) via DrawList
             DrawListAnnotate::DrawAnnotationsOverlay(*params, image, imageRgbaCache, widgetTopLeft);
