@@ -42,6 +42,17 @@ namespace ImmVision
         FromVisibleROI
     };
 
+    // Texture interpolation used when displaying an image
+    enum class ImageInterpolationMode
+    {
+        // Preserve ImmVision's zoom-dependent filtering
+        Adaptive,
+        // Use nearest-neighbor sampling at every zoom level
+        Nearest,
+        // Use linear sampling at every zoom level
+        Linear
+    };
+
     // Scale the Colormap according to the Image  stats
     struct ColormapScaleFromStatsData                                                            // IMMVISION_API_STRUCT
     {
@@ -138,6 +149,8 @@ namespace ImmVision
         Matrix33d ZoomPanMatrix = Matrix33d::eye();
         // If displaying several images, those with the same ZoomKey will zoom and pan together
         std::string ZoomKey = "";
+        // Controls how the image texture is sampled when scaled.
+        ImageInterpolationMode InterpolationMode = ImageInterpolationMode::Adaptive;
 
         //
         // Colormap Settings (useful for matrices with one channel, in order to see colors mapping float values)

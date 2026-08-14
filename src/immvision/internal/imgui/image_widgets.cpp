@@ -1,5 +1,6 @@
 #include "immvision/internal/imgui/image_widgets.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
+#include "immvision/internal/image_cache.h"  // for IMMVISION_SETSAMPLER_VIA_IMGUI
 
 #include <map>
 #include <sstream>
@@ -71,6 +72,35 @@ namespace ImmVision
                 return Point2d((double)(mouse.x - areaTopLeft.x), (double)(mouse.y - areaTopLeft.y));
             else
                 return Point2d(-1., -1.);
+        }
+
+        bool ShallUseNearestSampler(const ImageParams& params)
+        {
+            if (params.InterpolationMode == ImageInterpolationMode::Nearest)
+                return true;
+            if (params.InterpolationMode == ImageInterpolationMode::Linear)
+                return false;
+            // Adaptive: use nearest at high zoom, so that individual pixels are clearly visible
+            double zoom = params.ZoomPanMatrix(0, 0);
+            return zoom >= 12.0;
+        }
+
+        void PushNearestTextureSampler()
+        {
+#ifdef IMMVISION_SETSAMPLER_VIA_IMGUI
+            ImDrawCallback callback = ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest;
+            if (callback != nullptr)
+                ImGui::GetWindowDrawList()->AddCallback(callback);
+#endif
+        }
+
+        void PopNearestTextureSampler()
+        {
+#ifdef IMMVISION_SETSAMPLER_VIA_IMGUI
+            ImDrawCallback callback = ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear;
+            if (callback != nullptr)
+                ImGui::GetWindowDrawList()->AddCallback(callback);
+#endif
         }
 
         void ShowImageInfo(const ImageBuffer &image, double zoomFactor)

@@ -21,6 +21,17 @@ namespace ImmVision
         void ShowImageInfo(const ImageBuffer &image, double zoomFactor);
         void ShowPixelColorWidget(const ImageBuffer &image, Point pt, const ImageParams& params);
 
+        // True if the image texture should be sampled with nearest-neighbor filtering,
+        // given the interpolation mode and the current zoom factor
+        bool ShallUseNearestSampler(const ImageParams& params);
+
+        // Request nearest-neighbor sampling for the next AddImage calls in the current draw list.
+        // Needed since imgui 1.92.8: the renderer backends' samplers override
+        // glTexParameteri settings set on the texture (no-op on older imgui versions).
+        void PushNearestTextureSampler();
+        // Restore the default (linear) sampler
+        void PopNearestTextureSampler();
+
         // If true, the collapsing headers will be synced across instances
         extern bool s_CollapsingHeader_CacheState_Sync;
         bool CollapsingHeader_OptionalCacheState(const char *name, bool forceOpen = false);

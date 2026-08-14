@@ -4,6 +4,7 @@
 #include "immvision/internal/gl/gl_provider.h"
 #include "immvision/imgui_imm.h"
 #include "immvision/internal/drawing/draw_list_annotate.h"
+#include "immvision/internal/imgui/image_widgets.h"
 
 
 namespace ImmVision
@@ -180,14 +181,31 @@ namespace ImmVision
                     *params, image, cachedImage.mImageRgbaCache, true, cachedImage.mGlTexture.get());
             }
 
-            // Set texture filtering based on zoom level
+            // Set texture filtering based on the selected interpolation mode.
+            // Since imgui 1.92.8 the backend samplers override these settings, and the
+            // sampler is selected at draw time via ImageWidgets::PushNearestTextureSampler
+            // (see fnShowImage in image.cpp). Fallback for imgui < 1.92.8, and for
+            // backends that do not provide the sampler draw callbacks.
+            bool imguiControlsSampler = false;
+#ifdef IMMVISION_SETSAMPLER_VIA_IMGUI
+            imguiControlsSampler = (ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest != nullptr);
+#endif
+            if (!imguiControlsSampler)
             {
                 double zoom = params->ZoomPanMatrix(0, 0);
                 using TF = ImmVision_GlProvider::TextureFilter;
                 TF minF, magF;
-                if (zoom >= 12.0)      { minF = TF::Nearest; magF = TF::Nearest; }
-                else if (zoom >= 1.0)  { minF = TF::Linear;  magF = TF::Linear;  }
-                else                   { minF = TF::LinearMipmapLinear; magF = TF::Linear; }
+                if (ImageWidgets::ShallUseNearestSampler(*params))
+                {
+                    minF = TF::Nearest;
+                    magF = TF::Nearest;
+                }
+                else if (params->InterpolationMode == ImageInterpolationMode::Linear || zoom >= 1.0)
+                {
+                    minF = TF::Linear;
+                    magF = TF::Linear;
+                }
+                else { minF = TF::LinearMipmapLinear; magF = TF::Linear; }
                 ImmVision_GlProvider::SetTextureFiltering(cachedImage.mGlTexture->TextureId, minF, magF);
             }
 

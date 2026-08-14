@@ -2,7 +2,12 @@
 #include "immvision/image.h"
 #include "immvision/gl_texture.h"
 #include "immvision/internal/gl/short_lived_cache.h"
+#include "imgui.h"  // ensure IMGUI_VERSION_NUM is defined for the check below
 
+// since imgui 1.92.8: the renderer backends control the sampling behavior
+#if IMGUI_VERSION_NUM >= 19280
+#define IMMVISION_SETSAMPLER_VIA_IMGUI
+#endif
 
 namespace ImmVision
 {
