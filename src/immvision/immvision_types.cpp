@@ -45,39 +45,6 @@ namespace ImmVision
         return depth == ImageDepth::float32 || depth == ImageDepth::float64;
     }
 
-#ifdef IMMVISION_HAS_OPENCV
-    static ImageDepth cv_depth_to_image_depth(int cv_depth)
-    {
-        switch (cv_depth)
-        {
-            case CV_8U:  return ImageDepth::uint8;
-            case CV_8S:  return ImageDepth::int8;
-            case CV_16U: return ImageDepth::uint16;
-            case CV_16S: return ImageDepth::int16;
-            case CV_32S: return ImageDepth::int32;
-            case CV_32F: return ImageDepth::float32;
-            case CV_64F: return ImageDepth::float64;
-            default:
-                throw std::runtime_error("cv_depth_to_image_depth: unsupported cv depth");
-        }
-    }
-
-    static int image_depth_to_cv_depth(ImageDepth depth)
-    {
-        switch (depth)
-        {
-            case ImageDepth::uint8:   return CV_8U;
-            case ImageDepth::int8:    return CV_8S;
-            case ImageDepth::uint16:  return CV_16U;
-            case ImageDepth::int16:   return CV_16S;
-            case ImageDepth::int32:   return CV_32S;
-            case ImageDepth::float32: return CV_32F;
-            case ImageDepth::float64: return CV_64F;
-        }
-        throw std::runtime_error("image_depth_to_cv_depth: unknown depth");
-    }
-#endif
-
     // =========================================================================
     // Matrix33d
     // =========================================================================
@@ -141,24 +108,6 @@ namespace ImmVision
                     return false;
         return true;
     }
-
-#ifdef IMMVISION_HAS_OPENCV
-    Matrix33d::Matrix33d(const cv::Matx33d& mat)
-    {
-        for (int r = 0; r < 3; r++)
-            for (int c = 0; c < 3; c++)
-                m[r][c] = mat(r, c);
-    }
-
-    Matrix33d::operator cv::Matx33d() const
-    {
-        cv::Matx33d r;
-        for (int r_ = 0; r_ < 3; r_++)
-            for (int c = 0; c < 3; c++)
-                r(r_, c) = m[r_][c];
-        return r;
-    }
-#endif
 
     // =========================================================================
     // ImageBuffer
@@ -240,35 +189,5 @@ namespace ImmVision
             }
         }
     }
-
-#ifdef IMMVISION_HAS_OPENCV
-    ImageBuffer::ImageBuffer(const cv::Mat& mat)
-    {
-        // Ensure contiguous memory: clone if needed (e.g. ROI sub-matrices)
-        cv::Mat continuous = mat.isContinuous() ? mat : mat.clone();
-        data = continuous.data;
-        width = continuous.cols;
-        height = continuous.rows;
-        channels = continuous.channels();
-        depth = cv_depth_to_image_depth(continuous.depth());
-        step = continuous.step[0];
-        // Keep the cv::Mat header alive — its refcount keeps the pixel data alive
-        auto mat_copy = std::make_shared<cv::Mat>(continuous);
-        _ref_keeper = mat_copy;
-    }
-
-    cv::Mat ImageBuffer::to_cv_mat() const
-    {
-        if (empty())
-            return cv::Mat();
-        int cv_type = CV_MAKETYPE(image_depth_to_cv_depth(depth), channels);
-        return cv::Mat(height, width, cv_type, data, step);
-    }
-
-    cv::Mat ImageBuffer::to_cv_mat_clone() const
-    {
-        return to_cv_mat().clone();
-    }
-#endif
 
 } // namespace ImmVision

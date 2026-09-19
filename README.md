@@ -179,11 +179,21 @@ ImmVision::ImageBuffer(my_data, width, height, channels);
 ImmVision::ImageBuffer image = ImmVision::ImRead("photo.jpg");
 ```
 
-**From OpenCV** (zero-copy, requires `IMMVISION_HAS_OPENCV`):
+**From OpenCV** (zero-copy, header-only conversion):
 
 ```cpp
+// IMMVISION_HAS_OPENCV must be defined before including immvision
 cv::Mat mat = cv::imread("photo.jpg");
 ImmVision::Image("photo", mat, &params);  // implicit conversion
+```
+
+ImmVision itself never links OpenCV: this is a choice of your application, which defines
+`IMMVISION_HAS_OPENCV` and links OpenCV by itself:
+
+```cmake
+find_package(OpenCV REQUIRED)
+target_compile_definitions(my_app PRIVATE IMMVISION_HAS_OPENCV)
+target_link_libraries(my_app PRIVATE opencv_core)
 ```
 
 **Owning allocation:**

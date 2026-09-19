@@ -1,5 +1,17 @@
 # ImmVision Changelog
 
+## Unreleased
+
+**Breaking changes:**
+- **ImmVision never links OpenCV anymore**, and does not look for it at configure time. The `cv::` conversions are now header-only, and opting in is a choice of the application: define `IMMVISION_HAS_OPENCV` and link OpenCV in your own target:
+  ```cmake
+  find_package(OpenCV REQUIRED)
+  target_compile_definitions(my_app PRIVATE IMMVISION_HAS_OPENCV)
+  target_link_libraries(my_app PRIVATE opencv_core)
+  ```
+- `IMMVISION_FETCH_OPENCV` is now only a convenience that provides a minimal OpenCV to `find_package(OpenCV)`: it does not enable `cv::Mat` interop by itself.
+- New option `IMMVISION_BUILD_OPENCV_DEMOS` (OFF): builds the demos and the test that require OpenCV.
+
 ## v1.92.601 (2026-03-17) — OpenCV is now optional / GPU rendering + DrawList annotations
 
 **Breaking changes:**

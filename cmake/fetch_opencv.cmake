@@ -9,23 +9,15 @@
 set(_find_opencv_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 ###############################################################################
-# Note about pip and wheel builds:
-#
-# - opencv-python (or its companions opencv-contrib-python, opencv-python-headless
-#   and opencv-contrib-python-headless) is the pip package providing opencv:
-#   when installed it comes with a dll, or an .so file (cv2.abi3.so)
-#
-# - when building wheels for macos and linux, and when fetching OpenCV from source,
-#  a static minimal version of opencv will be linked into _imgui_bundle.so.
-#  Thus there is no risk of doubly defined functions:
-#     imgui_bundle will search into the linked functions inside _imgui_bundle.so,
-#     and opencv-python and co will search inside cv2.abi3.so.
+# Note: the immvision library never links OpenCV (and neither do Python wheels).
+# This file only helps in providing a ready to use OpenCV to C++ applications
+# and demos, which shall link it themselves.
 ###############################################################################
 
 
 macro(immvision_download_opencv_official_package_win)
     # Download a precompiled OpenCV 4.10.0 x64 package (opencv_world.dll).
-    # Used as a fallback for local Windows x64 `pip install` when no system OpenCV is found.
+    # Used as a fallback on Windows x64 when no system OpenCV is found.
     # On ARM64, this is skipped (see immvision_find_opencv).
     message("FIND OPENCV use immvision_download_opencv_official_package_win")
 
@@ -66,14 +58,7 @@ macro(immvision_download_emscripten_precompiled_opencv_4_9_0)
     include(FetchContent)
     Set(FETCHCONTENT_QUIET FALSE)
     option(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD "" OFF)
-    if (IMGUI_BUNDLE_BUILD_PYODIDE)
-        FetchContent_Declare(
-            opencv_package_emscripten
-            DOWNLOAD_EXTRACT_TIMESTAMP ON
-            URL https://github.com/pthom/imgui_bundle/releases/download/v1.6.2/opencv_4.11_wasmexcept_pthread_fpic_emscripten_minimalist_install.tgz
-            URL_MD5 c3ff4526ec6638a786f21438f5e1b1cb
-        )
-    elseif(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD)
+    if(IMMVISION_OPENCV_EMSCRIPTEN_WITH_PTHREAD)
         FetchContent_Declare(
             opencv_package_emscripten
             DOWNLOAD_EXTRACT_TIMESTAMP ON
@@ -259,31 +244,14 @@ macro(immvision_fetch_opencv)
         message("found OpenCV OpenCV_DIR=${OpenCV_DIR} ")
     endif()
 
-    # Under windows install dll opencv_worldxxx.dll to package
+    # Under windows, publish the path to opencv_worldxxx.dll (C++ apps need it next to their exe)
     if (WIN32 AND OpenCV_FOUND)
         set(immvision_OpenCV_DLL_PATH "${OpenCV_LIB_PATH}/../bin")
         message("immvision_OpenCV_DLL_PATH=${immvision_OpenCV_DLL_PATH}")
 
         file(GLOB immvision_opencv_world_dll ${immvision_OpenCV_DLL_PATH}/opencv_world*.dll)
 
-        if (SKBUILD)
-            # Remove OpenCV debug dlls (their name end with d.dll):
-            #   When building the pip package, we do not want to deploy the debug dlls
-            #   (they are not needed by the python code, and they are huge)
-            message(STATUS "immvision_find_opencv: removing OpenCV debug dlls")
-            list(FILTER immvision_opencv_world_dll EXCLUDE REGEX ".*d.dll")
-        endif()
-
         if (immvision_opencv_world_dll)
-            if (IMGUI_BUNDLE_BUILD_PYTHON)
-                if (SKBUILD)
-                    # specific for imgui_bundle pip package
-                    install(FILES ${immvision_opencv_world_dll} DESTINATION imgui_bundle)
-                else()
-                    # Not sure we should install in other cases
-                    install(FILES ${immvision_opencv_world_dll} DESTINATION .)
-                endif()
-            endif()
             set(IMMVISION_OPENCV_WORLD_DLL ${immvision_opencv_world_dll} CACHE STRING "opencv_word dll needed by cpp programs" FORCE)
         endif()
     endif()

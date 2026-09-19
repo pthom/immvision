@@ -9,6 +9,7 @@
 
 #ifdef IMMVISION_HAS_OPENCV
 #include <opencv2/core.hpp>
+#include <stdexcept>
 #endif
 
 // IMMVISION_API is a marker for public API functions.
@@ -27,8 +28,13 @@ namespace ImmVision
     // These types do not depend on OpenCV.
     //
     // C++ users:
-    //     If OpenCV is available (IMMVISION_HAS_OPENCV is defined), all types provide
-    //     implicit conversions to/from their OpenCV equivalents:
+    //     If your application uses OpenCV, define IMMVISION_HAS_OPENCV before including ImmVision
+    //     (preferably for the whole target), and link OpenCV in your application, e.g. with CMake:
+    //         find_package(OpenCV REQUIRED)
+    //         target_compile_definitions(my_app PRIVATE IMMVISION_HAS_OPENCV)
+    //         target_link_libraries(my_app PRIVATE opencv_core)
+    //     All types then provide implicit conversions to/from their OpenCV equivalents
+    //     (these conversions are header-only):
     //         ImageBuffer <-> cv::Mat        (zero-copy via ImageBuffer(cv::Mat) and to_cv_mat())
     //         Point       <-> cv::Point      (implicit both ways)
     //         Point2d     <-> cv::Point2d    (implicit both ways)
@@ -157,8 +163,8 @@ namespace ImmVision
         }
 
         #ifdef IMMVISION_HAS_OPENCV
-        IMMVISION_API Matrix33d(const cv::Matx33d& mat);
-        IMMVISION_API operator cv::Matx33d() const;
+        Matrix33d(const cv::Matx33d& mat);
+        operator cv::Matx33d() const;
         #endif
     };
 
@@ -204,7 +210,7 @@ namespace ImmVision
     // channels, depth, stride). Does not depend on OpenCV.
     //
     // C++ users:
-    //     If OpenCV is available, you can pass cv::Mat directly to any ImmVision function
+    //     If IMMVISION_HAS_OPENCV is defined, you can pass cv::Mat directly to any ImmVision function
     //     that accepts an ImageBuffer — the implicit constructor ImageBuffer(const cv::Mat&)
     //     wraps the data with zero copy. Use to_cv_mat() to get a zero-copy cv::Mat view back,
     //     or to_cv_mat_clone() for a deep copy that outlives the ImageBuffer.
@@ -314,12 +320,95 @@ namespace ImmVision
 
         #ifdef IMMVISION_HAS_OPENCV
         // Zero-copy wrap: keeps cv::Mat refcount alive via _ref_keeper
-        IMMVISION_API ImageBuffer(const cv::Mat& mat);
+        ImageBuffer(const cv::Mat& mat);
         // Zero-copy view: valid while this ImageBuffer lives
-        IMMVISION_API cv::Mat to_cv_mat() const;
+        cv::Mat to_cv_mat() const;
         // Deep copy: safe even after ImageBuffer is destroyed
-        IMMVISION_API cv::Mat to_cv_mat_clone() const;
+        cv::Mat to_cv_mat_clone() const;
         #endif
     };
+
+
+#ifdef IMMVISION_HAS_OPENCV
+    //
+    // OpenCV conversions (header-only, compiled in the application, not in ImmVision)
+    //
+    namespace Internal
+    {
+        inline ImageDepth CvDepthToImageDepth(int cv_depth)
+        {
+            switch (cv_depth)
+            {
+                case CV_8U:  return ImageDepth::uint8;
+                case CV_8S:  return ImageDepth::int8;
+                case CV_16U: return ImageDepth::uint16;
+                case CV_16S: return ImageDepth::int16;
+                case CV_32S: return ImageDepth::int32;
+                case CV_32F: return ImageDepth::float32;
+                case CV_64F: return ImageDepth::float64;
+                default:
+                    throw std::runtime_error("CvDepthToImageDepth: unsupported cv depth");
+            }
+        }
+
+        inline int ImageDepthToCvDepth(ImageDepth depth)
+        {
+            switch (depth)
+            {
+                case ImageDepth::uint8:   return CV_8U;
+                case ImageDepth::int8:    return CV_8S;
+                case ImageDepth::uint16:  return CV_16U;
+                case ImageDepth::int16:   return CV_16S;
+                case ImageDepth::int32:   return CV_32S;
+                case ImageDepth::float32: return CV_32F;
+                case ImageDepth::float64: return CV_64F;
+            }
+            throw std::runtime_error("ImageDepthToCvDepth: unknown depth");
+        }
+    } // namespace Internal
+
+    inline Matrix33d::Matrix33d(const cv::Matx33d& mat)
+    {
+        for (int r = 0; r < 3; r++)
+            for (int c = 0; c < 3; c++)
+                m[r][c] = mat(r, c);
+    }
+
+    inline Matrix33d::operator cv::Matx33d() const
+    {
+        cv::Matx33d r;
+        for (int r_ = 0; r_ < 3; r_++)
+            for (int c = 0; c < 3; c++)
+                r(r_, c) = m[r_][c];
+        return r;
+    }
+
+    inline ImageBuffer::ImageBuffer(const cv::Mat& mat)
+    {
+        // Ensure contiguous memory: clone if needed (e.g. ROI sub-matrices)
+        cv::Mat continuous = mat.isContinuous() ? mat : mat.clone();
+        data = continuous.data;
+        width = continuous.cols;
+        height = continuous.rows;
+        channels = continuous.channels();
+        depth = Internal::CvDepthToImageDepth(continuous.depth());
+        step = continuous.step[0];
+        // Keep the cv::Mat header alive: its refcount keeps the pixel data alive
+        _ref_keeper = std::make_shared<cv::Mat>(continuous);
+    }
+
+    inline cv::Mat ImageBuffer::to_cv_mat() const
+    {
+        if (empty())
+            return cv::Mat();
+        int cv_type = CV_MAKETYPE(Internal::ImageDepthToCvDepth(depth), channels);
+        return cv::Mat(height, width, cv_type, data, step);
+    }
+
+    inline cv::Mat ImageBuffer::to_cv_mat_clone() const
+    {
+        return to_cv_mat().clone();
+    }
+#endif // IMMVISION_HAS_OPENCV
 
 } // namespace ImmVision

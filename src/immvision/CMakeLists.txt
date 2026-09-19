@@ -7,12 +7,6 @@ if (IMMVISION_SERIALIZE_JSON)
 endif()
 target_include_directories(${target_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>)
 
-# OpenCV is optional: when found, enable cv::Mat interop via IMMVISION_HAS_OPENCV
-if (IMMVISION_HAS_OPENCV)
-    target_compile_definitions(${target_name} PUBLIC IMMVISION_HAS_OPENCV)
-    target_link_libraries(${target_name} PUBLIC opencv_core)
-endif()
-
 # stb_image and stb_image_write: when hello_imgui is available it already provides
 # the implementations; in standalone mode, immvision compiles its own.
 if(NOT TARGET hello_imgui)
