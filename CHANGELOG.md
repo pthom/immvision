@@ -11,6 +11,7 @@
   ```
 - `IMMVISION_FETCH_OPENCV` is now only a convenience that provides a minimal OpenCV to `find_package(OpenCV)`: it does not enable `cv::Mat` interop by itself.
 - New option `IMMVISION_BUILD_OPENCV_DEMOS` (OFF): builds the demos and the test that require OpenCV.
+- `IMMVISION_FETCH_OPENCV` on Windows: always builds a minimal static OpenCV from source (needs `bash`, provided by Git for Windows). The precompiled OpenCV 4.10 pack (`opencv_world.dll`) is not used anymore: it is not compatible with Visual Studio 2026. `IMMVISION_OPENCV_WORLD_DLL` is removed.
 
 ## v1.92.601 (2026-03-17) — OpenCV is now optional / GPU rendering + DrawList annotations
 

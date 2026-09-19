@@ -17,10 +17,5 @@ if (IMMVISION_BUILD_OPENCV_DEMOS)
     if(TARGET hello_imgui)
         target_link_libraries(test_immvision_opencv_interop PRIVATE hello_imgui)
     endif()
-    if (WIN32 AND IMMVISION_OPENCV_WORLD_DLL)
-        # precompiled OpenCV on Windows: the test needs opencv_world.dll next to its exe
-        add_custom_command(TARGET test_immvision_opencv_interop POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${IMMVISION_OPENCV_WORLD_DLL} $<TARGET_FILE_DIR:test_immvision_opencv_interop>)
-    endif()
     add_test(NAME test_immvision_opencv_interop COMMAND test_immvision_opencv_interop)
 endif()
