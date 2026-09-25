@@ -15,25 +15,24 @@
 
 namespace ImmVision
 {
-    // Set the color order for displayed images.
-    // You **must** call once at the start of your program:
-    //     ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
-    //     immvision.use_rgb_color_order() or immvision.use_bgr_color_order() (Python)
-    // (Breaking change - October 2024)
-    void UseRgbColorOrder();
-    void UseBgrColorOrder();
+    // The color order of displayed images: RGB by default.
+    // For images in BGR order (OpenCV), call once at the start of your program:
+    //     ImmVision::UseBgrColorOrder() (C++)
+    //     immvision.use_bgr_color_order() (Python)
+    IMMVISION_API void UseRgbColorOrder();
+    IMMVISION_API void UseBgrColorOrder();
 
     // Returns true if we are using RGB color order
-    bool IsUsingRgbColorOrder();
+    IMMVISION_API bool IsUsingRgbColorOrder();
     // Returns true if we are using BGR color order
-    bool IsUsingBgrColorOrder();
-    // Returns true if the color order is undefined (i.e. UseRgbColorOrder or UseBgrColorOrder was not called)
-    bool IsColorOrderUndefined();
+    IMMVISION_API bool IsUsingBgrColorOrder();
+    // Returns true if the color order was never set (UseRgbColorOrder or UseBgrColorOrder was not called): RGB is used
+    IMMVISION_API bool IsColorOrderUndefined();
 
     // Temporary change of color order (useful for displaying a single image with a different color order)
-    void PushColorOrderRgb();
-    void PushColorOrderBgr();
-    void PopColorOrder();
+    IMMVISION_API void PushColorOrderRgb();
+    IMMVISION_API void PushColorOrderBgr();
+    IMMVISION_API void PopColorOrder();
 
     // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
     enum class ColorMapStatsTypeId

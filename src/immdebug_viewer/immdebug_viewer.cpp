@@ -40,7 +40,6 @@ void AddIncomingImages()
             {
                 imagePayload->Image = SwapRB(imagePayload->Image);
             }
-            ImmVision::UseRgbColorOrder();
             ImmVision::Inspector_AddImage(
                 imagePayload->Image,
                 imagePayload->Legend,

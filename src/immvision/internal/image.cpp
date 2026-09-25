@@ -71,24 +71,10 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
     void UseRgbColorOrder() { PushColorOrderRgb(); }
     void UseBgrColorOrder() { PushColorOrderBgr(); }
 
+    // RGB, unless UseBgrColorOrder() or PushColorOrderBgr() says otherwise
     static bool Priv_IsColorOrderBgr()
     {
-        const char* errorMessage = R"(
-Error in ImmVision
-==================
-You must set the image color order before displaying images. At the start of your program, call:
-    ImmVision::UseRgbColorOrder() or ImmVision::UseBgrColorOrder() (C++)
-or
-    immvision.use_rgb_color_order() or immvision.use_bgr_color_order() (Python)
-
-This is a required setup step. (Breaking change - October 2024)
-)";
-        if (sColorOrderStack.empty())
-        {
-            fprintf(stderr, "%s", errorMessage);
-            throw std::runtime_error(errorMessage);
-        }
-        return sColorOrderStack.top() == PrivColorOrder::BGR;
+        return !sColorOrderStack.empty() && sColorOrderStack.top() == PrivColorOrder::BGR;
     }
     bool IsUsingRgbColorOrder()
     {

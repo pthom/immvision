@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+**Changes:**
+- **RGB is the default color order:** calling `UseRgbColorOrder()` at startup is not required anymore. Images in BGR order (OpenCV) still need `UseBgrColorOrder()` (Python: `immvision.use_bgr_color_order()`).
+
 **Breaking changes:**
 - **ImmVision never links OpenCV anymore**, and does not look for it at configure time. The `cv::` conversions are now header-only, and opting in is a choice of the application: define `IMMVISION_HAS_OPENCV` and link OpenCV in your own target:
   ```cmake

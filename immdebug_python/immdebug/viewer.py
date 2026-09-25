@@ -222,7 +222,6 @@ def main() -> None:
                 img = payload.image.copy()
                 img[..., 0], img[..., 2] = payload.image[..., 2], payload.image[..., 0]
                 payload.image = img
-            immvision.use_rgb_color_order()
             immvision.inspector_add_image(
                 payload.image,
                 payload.legend,
