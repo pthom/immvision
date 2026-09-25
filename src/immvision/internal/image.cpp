@@ -641,6 +641,7 @@ This is a required setup step. (Breaking change - October 2024)
             ImVec2 widgetSize((float)uvResult.widgetSize.width, (float)uvResult.widgetSize.height);
 
             ImVec2 widgetTopLeft = ImGui::GetCursorScreenPos();
+            params->ImageScreenTopLeft = widgetTopLeft;
 
             // Draw background behind the image (before AddImage, so alpha blending works)
             // Checkerboard only makes sense for images with an alpha channel (4 channels)
@@ -1028,6 +1029,12 @@ This is a required setup step. (Breaking change - October 2024)
     {
         auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
         return ImageCache::gImageTextureCache.GetCacheImageAndTexture(id).mImageRgbaCache;
+    }
+
+    ImVec2 ImageParams::ImageToScreen(ImVec2 imagePoint) const
+    {
+        Point2d displayed = ZoomPanTransform::Apply(ZoomPanMatrix, Point2d((double)imagePoint.x, (double)imagePoint.y));
+        return ImVec2(ImageScreenTopLeft.x + (float)displayed.x, ImageScreenTopLeft.y + (float)displayed.y);
     }
 
     ImageParams::~ImageParams()

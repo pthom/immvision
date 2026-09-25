@@ -108,6 +108,7 @@ namespace ImmVision
         inner = inner + "AddWatchedPixelOnDoubleClick: " + ToString(v.AddWatchedPixelOnDoubleClick) + "\n";
         inner = inner + "HighlightWatchedPixels: " + ToString(v.HighlightWatchedPixels) + "\n";
         inner = inner + "MouseInfo: " + ToString(v.MouseInfo) + "\n";
+        inner = inner + "ImageScreenTopLeft: (" + std::to_string(v.ImageScreenTopLeft.x) + ", " + std::to_string(v.ImageScreenTopLeft.y) + ")\n";
 
         r = r + IndentLines(inner, 4);
         r += "}";

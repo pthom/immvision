@@ -213,6 +213,13 @@ namespace ImmVision
 
         // Mouse position information. These values are filled after displaying an image
         MouseInformation MouseInfo = MouseInformation();
+        // Screen position (ImGui screen coordinates) of the top left corner of the image display area,
+        // filled after displaying an image (see ImageToScreen)
+        ImVec2 ImageScreenTopLeft = ImVec2(0.f, 0.f);
+
+        // The screen position of a point of the image (in image coordinates), with the current zoom and pan:
+        // to draw over the image, e.g. with ImGui::GetWindowDrawList(). Valid once the image was displayed.
+        IMMVISION_API ImVec2 ImageToScreen(ImVec2 imagePoint) const;
 
         ~ImageParams();
     };
