@@ -163,7 +163,10 @@ namespace ImmVision
                     dl->AddLine(e[0], e[1], fillColor, 1.5f);
                 }
 
-                // Label with background, spaced away from the cross
+                // Label with background, spaced away from the cross: the index, which tells several watched pixels
+                // apart (a single one has none)
+                if (params.WatchedPixels.size() < 2)
+                    continue;
                 std::string label = std::to_string(i);
                 ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
                 float labelGap = crossSize + em * 0.4f;
