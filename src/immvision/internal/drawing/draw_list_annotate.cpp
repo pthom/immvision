@@ -224,6 +224,9 @@ namespace ImmVision
             ImVec2 tl = widgetTopLeft;
             ImVec2 br(tl.x + w, tl.y + h);
 
+            // Clipped to the display area: AddLine draws half a pixel off, and would overflow at the right and bottom
+            dl->PushClipRect(tl, br, true);
+
             // Paper background
             ImU32 paperColor = IM_COL32(205, 215, 220, 255);
             ImU32 lineColor  = IM_COL32(199, 196, 184, 255);
@@ -235,6 +238,8 @@ namespace ImmVision
                 dl->AddLine(ImVec2(tl.x, y), ImVec2(br.x, y), lineColor);
             for (float x = tl.x; x < br.x; x += quadSize)
                 dl->AddLine(ImVec2(x, tl.y), ImVec2(x, br.y), lineColor);
+
+            dl->PopClipRect();
         }
 
         void DrawAnnotationsOverlay(

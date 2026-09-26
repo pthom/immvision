@@ -704,6 +704,8 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
 
                 ImDrawList* dl = ImGui::GetWindowDrawList();
 
+                // Clipped to the image: AddLine draws half a pixel off, and would overflow at the right and bottom
+                dl->PushClipRect(tl, br, true);
                 dl->AddTriangleFilled(bl, br, tr, bgCol);
                 float thickInner = 1.0f;
                 for (int i = 0; i < 3; ++i)
@@ -713,6 +715,7 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
                     ImVec2 b(br.x,            br.y - size * t);
                     dl->AddLine(a, b, frontCol, thickInner);
                 }
+                dl->PopClipRect();
             }
 
             if (!cacheParams.IsResizing)
