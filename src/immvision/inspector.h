@@ -3,7 +3,7 @@
 #include <string>
 #include "immvision/image.h"
 
-// IMMVISION_API is a marker for public API functions. IMMVISION_STRUCT_API is a marker for public API structs (in comment lines)
+// IMMVISION_API is a marker for public API functions
 // Usage of ImmVision as a shared library is not recommended. No guaranty of ABI stability is provided
 #ifndef IMMVISION_API
 #define IMMVISION_API
