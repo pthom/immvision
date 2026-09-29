@@ -15,6 +15,8 @@
 
 namespace ImmVision
 {
+    // Color order
+
     // The color order of displayed images: RGB by default.
     // For images in BGR order (OpenCV), call once at the start of your program:
     //     ImmVision::UseBgrColorOrder() (C++)
@@ -33,6 +35,8 @@ namespace ImmVision
     IMMVISION_API void PushColorOrderRgb();
     IMMVISION_API void PushColorOrderBgr();
     IMMVISION_API void PopColorOrder();
+
+    // Display parameters
 
     // Are we using the stats on the full image, on the Visible ROI, or are we using Min/Max values
     enum class ColorMapStatsTypeId
@@ -251,6 +255,8 @@ namespace ImmVision
     );
 
 
+    // Display an image
+
     // Display an image, with full user control: zoom, pan, watch pixels, etc.
     //
     // :param label
@@ -359,6 +365,8 @@ namespace ImmVision
         bool showOptionsButton = false
     );
 
+
+    // Utilities
 
     // Return the list of the available color maps
     // Taken from https://github.com/yuki-koyama/tinycolormap, thanks to Yuki Koyama
