@@ -66,9 +66,16 @@ namespace ImGuiImm
 
     ImVec2 ComputeDisplayImageSize(
         ImVec2 askedImageSize,
-        ImVec2 realImageSize
+        ImVec2 realImageSize,
+        float chromeWidth
     )
     {
+        // ImGui's convention for a negative width: the remaining space minus the value (-1: all of it but a pixel)
+        ImVec2 avail = ImGui::GetContentRegionAvail();
+        if (askedImageSize.x < 0.f)
+            askedImageSize.x = ImMax(1.f, avail.x + askedImageSize.x - chromeWidth);
+        if (askedImageSize.y < 0.f)
+            askedImageSize.y = ImMax(1.f, avail.y + askedImageSize.y);
         if ((askedImageSize.x == 0.f) && (askedImageSize.y == 0.f))
             return realImageSize;
         else if ((askedImageSize.x == 0.f) && (realImageSize.y >= 1.f))
@@ -78,11 +85,11 @@ namespace ImGuiImm
         else
             return askedImageSize;
     }
-    ImmVision::Size ComputeDisplayImageSize(ImmVision::Size askedImageSize, ImmVision::Size realImageSize)
+    ImmVision::Size ComputeDisplayImageSize(ImmVision::Size askedImageSize, ImmVision::Size realImageSize, float chromeWidth)
     {
         auto toSize = [](ImVec2 v) { return ImmVision::Size((int)((double)v.x + 0.5), (int)((double)v.y + 0.5)); };
         auto toImVec2 = [](ImmVision::Size v) { return ImVec2((float)v.width, (float)v.height); };
-        return toSize( ComputeDisplayImageSize(toImVec2(askedImageSize), toImVec2(realImageSize)) );
+        return toSize( ComputeDisplayImageSize(toImVec2(askedImageSize), toImVec2(realImageSize), chromeWidth) );
     }
 
     void PushDisabled()

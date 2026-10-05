@@ -29,8 +29,11 @@ namespace ImGuiImm
         int nb_decimals = 6);
 
 
-    ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize);
-    ImmVision::Size ComputeDisplayImageSize(ImmVision::Size askedImageSize, ImmVision::Size realImageSize);
+    // The size at which an image is displayed, from the asked one: 0 is taken from the image (both: its size; one:
+    // the other keeps the aspect ratio); a negative value is the remaining width (or height) of the window minus
+    // its absolute value, as ImGui's item widths, minus `chromeWidth` (what the widget draws around the image).
+    ImVec2 ComputeDisplayImageSize(ImVec2 askedImageSize, ImVec2 realImageSize, float chromeWidth = 0.f);
+    ImmVision::Size ComputeDisplayImageSize(ImmVision::Size askedImageSize, ImmVision::Size realImageSize, float chromeWidth = 0.f);
 
     void PushDisabled();
     void PopDisabled();

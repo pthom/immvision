@@ -877,6 +877,10 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
         ImGui::PushID(label.c_str());
         try
         {
+            // A negative size asks for the remaining width of the window: resolved here, before the widget draws,
+            // less the panel around the image when the legend shows (half a frame height on each side)
+            float chromeWidth = fnIsLabelVisible() ? ImGui::GetFrameHeight() : 0.f;
+            params->ImageDisplaySize = ImGuiImm::ComputeDisplayImageSize(params->ImageDisplaySize, image.size(), chromeWidth);
             auto id = ImageCache::gImageTextureCache.GetID(label, sDoUseIdStack);
             bool isNewImage = ImageCache::gImageTextureCache.UpdateCache(id, image, params, params->RefreshImage);
             auto &cacheParams = ImageCache::gImageTextureCache.GetCacheParams(id);
