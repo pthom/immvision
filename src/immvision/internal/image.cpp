@@ -531,9 +531,11 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
         {
             if (!params->ZoomWithMouseWheel)
                 return;
-            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
+            // The wheel zooms only when the image holds it: not while Dear ImGui keeps scrolling the window under it
+            // (its wheel lock), so that a page scrolled with the wheel does not stop on an image under the mouse
+            bool holdsWheel = ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
 
-            if ((fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
+            if (holdsWheel && (fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
                 double zoomRatio = (double)ImGui::GetIO().MouseWheel / 4.;
                 ImGui::GetIO().MouseWheel = 0.f;

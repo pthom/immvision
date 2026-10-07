@@ -3,6 +3,7 @@
 ## Unreleased
 
 **Changes:**
+- **The mouse wheel in a page that scrolls:** the image zooms only when it holds the wheel, not while Dear ImGui keeps scrolling the window under it. A page scrolled with the wheel no longer stops on an image that passes under the mouse.
 - **RGB is the default color order:** calling `UseRgbColorOrder()` at startup is not required anymore. Images in BGR order (OpenCV) still need `UseBgrColorOrder()` (Python: `immvision.use_bgr_color_order()`).
 
 **Breaking changes:**
