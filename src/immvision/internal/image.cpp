@@ -17,6 +17,9 @@
 #include "immvision/inspector.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#ifdef IMMVISION_WITH_HELLO_IMGUI
+#include "hello_imgui/hello_imgui.h"  // SetItemTakesTouchDrags
+#endif
 
 #include <map>
 #include <stack>
@@ -502,6 +505,12 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
         // Mouse dragging
         auto fnHandleMouseDragging = [&params](CachedParams & cacheParams)
         {
+#ifdef IMMVISION_WITH_HELLO_IMGUI
+            // On a touch screen, a finger's drag pans the image at once (not after a hold), and does not scroll the page.
+            // The image is still the last item here.
+            if (params->PanWithMouse)
+                HelloImGui::SetItemTakesTouchDrags();
+#endif
             if (cacheParams.IsResizing)
                 return;
             Matrix33d zoomMatrix = params->ZoomPanMatrix;
