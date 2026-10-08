@@ -835,16 +835,31 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
             // adjust button
             if (params->ShowOptionsButton)
             {
+                // At the right of the image, on the line of the zoom buttons; under them when they leave no room
+                // (a narrow image, on a phone)
+                float buttonSize = ImGui::GetFontSize() * 1.5f; // As Icons::IconButton
+                float imageWidth = (float)params->ImageDisplaySize.width;
+                bool fitsBesideZoomButtons = !params->ShowZoomButtons
+                    || ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x
+                        <= ImGui::GetCursorScreenPos().x + imageWidth - buttonSize;
                 if (!params->ShowZoomButtons)
                     ImGui::NewLine();
-                ImGuiImm::SameLineAlignRight(20.f, (float)params->ImageDisplaySize.width);
+                if (fitsBesideZoomButtons)
+                    ImGuiImm::SameLineAlignRight(buttonSize, imageWidth);
+                else
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + imageWidth - buttonSize);
                 if (Icons::IconButton(Icons::IconType::AdjustLevels))
                     fnToggleShowOptions();
             }
 
             // Show infos
             if (params->ShowImageInfo)
+            {
+                // Wrapped at the image's width: a narrow image (on a phone) would clip it
+                ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + (float)params->ImageDisplaySize.width);
                 ImageWidgets::ShowImageInfo(image, params->ZoomPanMatrix(0, 0));
+                ImGui::PopTextWrapPos();
+            }
             if (params->ShowPixelInfo)
                 fnShowPixelInfo(mouseInfo.MousePosition);
             ImGui::EndGroup();
