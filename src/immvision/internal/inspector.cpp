@@ -9,6 +9,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include <cmath>
+#include <optional>
 
 namespace ImmVision
 {
@@ -29,6 +30,8 @@ namespace ImmVision
     static std::vector<Inspector_ImageAndParams> s_Inspector_ImagesAndParams;
     ImageCache::ImageTextureCache sInspectorImageTextureCache(3600. * 24. * 365. * 10.); // 10 years TTL!
     static size_t s_Inspector_CurrentIndex = 0;
+    // The inspector was narrow at the last frame (a phone): the images' options open in a window of their own
+    static std::optional<bool> s_Inspector_WasNarrow;
 
     // In the inspector, we cannot rely on the ID stack, since calls to AddImages will have a different stack
     // than when will later display the image
@@ -49,6 +52,7 @@ namespace ImmVision
         params.ZoomKey = zoomKey;
         params.ColormapKey = colormapKey;
         params.ShowOptionsPanel = true;
+        params.ShowOptionsInTooltip = s_Inspector_WasNarrow.value_or(false);
 
         if (gInspectorImageSize.x > 0.f)
             params.ImageDisplaySize = Size((int)gInspectorImageSize.x, (int)gInspectorImageSize.y);
@@ -243,22 +247,29 @@ namespace ImmVision
         // Top panel with title and thumbnail size slider
         {
             auto pos = ImGui::GetCursorScreenPos();
+            float em = ImGui::GetFontSize();
+            float width_right_items = em * 18.f;
+            // On a narrow screen (a phone), the controls go on a line of their own, under the title
+            float title_width = ImGui::CalcTextSize("ImmVision Inspector").x * 1.1f;
+            bool two_lines = title_width + em + width_right_items > ImGui::GetContentRegionAvail().x;
 
             // Background fill
             ImVec2 tl(pos.x, pos.y - ImGui::GetStyle().ItemSpacing.y);
             ImVec2 br(pos.x + ImGui::GetContentRegionAvail().x, pos.y + ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.y * 2.f);
+            if (two_lines)
+                br.y += ImGui::GetFrameHeightWithSpacing();
             ImGui::GetBackgroundDrawList()->AddLine(ImVec2(tl.x, tl.y), ImVec2(br.x, tl.y), ImGui::GetColorU32(ImGuiCol_Text));
             ImGui::GetBackgroundDrawList()->AddRectFilled(tl, br, ImGui::GetColorU32(ImGuiCol_Header));
 
             // Title with a slightly bigger font
-            float em = ImGui::GetFontSize();
             ImGui::PushFont(nullptr, em *  1.1f);
             ImGui::Text("ImmVision Inspector");
             ImGui::PopFont();
 
-            // Controls at the right
-            float width_right_items = em * 18.f;
+            // Controls at the right (or under the title)
             ImVec2 pos_right(pos.x + ImGui::GetContentRegionAvail().x - width_right_items, pos.y);
+            if (two_lines)
+                pos_right = ImVec2(pos.x, pos.y + ImGui::GetTextLineHeightWithSpacing() * 1.1f);
             ImGui::SetCursorScreenPos(pos_right);
             ImGui::Text("Thumbnail size:");
             ImGui::SameLine();
@@ -272,8 +283,16 @@ namespace ImmVision
             ImGui::SameLine();
 
             // Return cursor to correct position
-            ImGui::SetCursorScreenPos(pos);
-            ImGui::NewLine();
+            if (two_lines)
+            {
+                ImGui::SetCursorScreenPos(ImVec2(pos.x, pos_right.y + ImGui::GetFrameHeightWithSpacing()));
+                ImGui::Dummy(ImVec2(0, 0));
+            }
+            else
+            {
+                ImGui::SetCursorScreenPos(pos);
+                ImGui::NewLine();
+            }
         }
 
     }
@@ -308,6 +327,16 @@ namespace ImmVision
 
                 // Compute image display size from available space
                 float emSize = ImGui::GetFontSize();
+                // On a narrow screen (a phone), the options open in a window of their own, from the image's options
+                // button: a column beside the image would leave the image a sliver. Set when the width crosses the
+                // threshold, so that the user may still choose otherwise.
+                bool narrow = ImGui::GetContentRegionAvail().x < emSize * 40.f;
+                if (s_Inspector_WasNarrow != narrow)
+                {
+                    for (auto& v : s_Inspector_ImagesAndParams)
+                        v.Params.ShowOptionsInTooltip = narrow;
+                    s_Inspector_WasNarrow = narrow;
+                }
                 bool showOptionsColumn = imageAndParams.Params.ShowOptionsPanel && !imageAndParams.Params.ShowOptionsInTooltip;
                 float optionsWidth = showOptionsColumn ? emSize * 19.f : 0.f;
                 // Reserve space for zoom buttons, pixel info, color widget, etc.
