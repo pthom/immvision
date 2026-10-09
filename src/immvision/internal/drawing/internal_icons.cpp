@@ -15,6 +15,18 @@ namespace ImmVision
             return ImVec2(o.x + cosf(angleRadian) * distance, o.y + sinf(angleRadian) * distance);
         }
 
+        // The icons take the color of the text: white in a dark theme, dark in a light one, faded when disabled
+        static ImU32 IconColor()
+        {
+            return ImGui::GetColorU32(ImGuiCol_Text);
+        }
+
+        static bool IsIconColorLight()
+        {
+            ImVec4 c = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+            return 0.299f * c.x + 0.587f * c.y + 0.114f * c.z > 0.5f;
+        }
+
         static void DrawMagnifier(ImDrawList* dl, ImVec2 tl, float size, IconType iconType)
         {
             // The glass is centered in the upper-right area, with the handle pointing to the lower-left
@@ -22,7 +34,7 @@ namespace ImmVision
             // Offset the glass center so the whole icon (glass + handle) is visually centered
             ImVec2 btnCenter(tl.x + size * 0.5f, tl.y + size * 0.5f);
             ImVec2 glassCenter(btnCenter.x + size * 0.06f, btnCenter.y - size * 0.06f);
-            ImU32 color = IM_COL32(255, 255, 255, 255);
+            ImU32 color = IconColor();
             ImU32 shadow = IM_COL32(100, 100, 100, 180);
             float thick = size * 0.06f;
             float handleThick = size * 0.1f;
@@ -32,10 +44,13 @@ namespace ImmVision
             ImVec2 handleOuter = PointFromOther(glassCenter, 225.f, radius * 1.85f);
             ImVec2 shadowOff(size * 0.02f, size * 0.02f);
 
-            // Shadow
-            dl->AddCircle(ImVec2(glassCenter.x + shadowOff.x, glassCenter.y + shadowOff.y), radius, shadow, 0, thick);
-            dl->AddLine(ImVec2(handleInner.x + shadowOff.x, handleInner.y + shadowOff.y),
-                        ImVec2(handleOuter.x + shadowOff.x, handleOuter.y + shadowOff.y), shadow, handleThick);
+            // Shadow, behind a light icon only
+            if (IsIconColorLight())
+            {
+                dl->AddCircle(ImVec2(glassCenter.x + shadowOff.x, glassCenter.y + shadowOff.y), radius, shadow, 0, thick);
+                dl->AddLine(ImVec2(handleInner.x + shadowOff.x, handleInner.y + shadowOff.y),
+                            ImVec2(handleOuter.x + shadowOff.x, handleOuter.y + shadowOff.y), shadow, handleThick);
+            }
 
             // Magnifier glass
             dl->AddCircle(glassCenter, radius, color, 0, thick);
@@ -79,7 +94,7 @@ namespace ImmVision
         {
             size *= 0.95;
 
-            ImU32 color = IM_COL32(255, 255, 255, 255);
+            ImU32 color = IconColor();
             float margin = size * 0.15f;
             float armLen = size * 0.25f;
             float thick = size * 0.07f;
@@ -102,7 +117,7 @@ namespace ImmVision
 
         static void DrawAdjustLevels(ImDrawList* dl, ImVec2 tl, float size)
         {
-            ImU32 color = IM_COL32(255, 255, 255, 255);
+            ImU32 color = IconColor();
             float thick = size * 0.08f;
             float sliderThick = size * 0.15f;
 
