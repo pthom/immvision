@@ -47,6 +47,8 @@ namespace ImmVision
         double zoomRatio
     )
     {
+        if (image_buf.empty())  // nothing to inspect (and an empty image has no full view to zoom to)
+            return;
         ImageBuffer image = image_buf.clone();
         ImageParams params;
         params.ZoomKey = zoomKey;

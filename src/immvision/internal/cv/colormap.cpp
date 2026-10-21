@@ -233,6 +233,8 @@ namespace ImmVision
                 if (range == 0. || std::isnan(range) || std::isnan(minValue))
                     return colorLut[0];
                 double k = (value - minValue) / range;
+                if (std::isnan(k))  // a NaN pixel: the color of the minimum (as an index, a NaN reads out of bounds)
+                    return colorLut[0];
                 k = std::clamp(k, 0., 1.);
                 size_t idx = (size_t)(k * 255.);
                 return colorLut[idx];

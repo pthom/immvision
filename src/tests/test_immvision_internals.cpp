@@ -508,6 +508,29 @@ void test_apply_colormap()
     PASS();
 }
 
+// NaN pixels (a depth map's holes, masked data) show as the scale's minimum (black): a NaN converted to an integer
+// is undefined behavior, and as the colormap's index it read out of bounds on x86
+void test_nan_pixels()
+{
+    TEST("NaN pixels: converted_to_rgba and ApplyColormap");
+    ImageBuffer img = ImageBuffer::Zeros(2, 1, 1, ImageDepth::float32);
+    img.ptr<float>(0)[0] = 0.0f;
+    img.ptr<float>(0)[1] = std::nanf("");
+
+    ImageBuffer rgba = converted_to_rgba_image(img, false);
+    const uint8_t* out = rgba.ptr<uint8_t>(0);
+    CHECK(out[4] == 0 && out[5] == 0 && out[6] == 0 && out[7] == 255);
+
+    ColormapSettingsData settings;
+    settings.Colormap = "Viridis";
+    settings.ColormapScaleMin = 0.0;
+    settings.ColormapScaleMax = 1.0;
+    ImageBuffer colored = Colormap::ApplyColormap(img, settings);
+    const uint8_t* p = colored.ptr<uint8_t>(0);
+    CHECK(std::memcmp(p, p + 4, 4) == 0);  // the NaN pixel has the color of the minimum
+    PASS();
+}
+
 
 // =========================================================================
 // MatrixInfoUtils tests
@@ -607,6 +630,20 @@ void test_image_params_json_missing_matrix_key()
     CHECK(threw);
     PASS();
 }
+
+void test_image_params_json_int_out_of_range()
+{
+    TEST("ImageParamsFromJson: an int field out of the int range throws");
+    std::string json = ImageParamsToJson(ImageParams());
+    auto pos = json.find("\"SelectedChannel\": -1");
+    CHECK(pos != std::string::npos);
+    json.replace(pos, 21, "\"SelectedChannel\": 1e21");
+    bool threw = false;
+    try { ImageParamsFromJson(json); }
+    catch (const std::exception&) { threw = true; }
+    CHECK(threw);
+    PASS();
+}
 #endif
 
 // =========================================================================
@@ -643,6 +680,7 @@ int main()
     printf("\n[Colormap]\n");
     test_can_colormap();
     test_apply_colormap();
+    test_nan_pixels();
 
     printf("\n[MatrixInfoUtils]\n");
     test_mat_pixel_color_info();
@@ -655,6 +693,7 @@ int main()
 #ifdef IMMVISION_SERIALIZE_JSON
     printf("\n[ImageParams JSON]\n");
     test_image_params_json_missing_matrix_key();
+    test_image_params_json_int_out_of_range();
 #endif
 
     printf("\n=== %d / %d tests passed ===\n", sPassCount, sTestCount);

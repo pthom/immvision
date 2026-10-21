@@ -3,6 +3,21 @@
 #include "immvision/image.h"
 #include "nlohmann/json.hpp"
 
+#include <limits>
+#include <stdexcept>
+#include <string>
+
+// An int field (or an enum). A number out of the int range (1e21, in a hand-edited file) throws, as a missing key
+// does: json's own conversion would be undefined behavior.
+static int JsonInt(const nlohmann::json& j, const char* key)
+{
+    const nlohmann::json& v = j.at(key);
+    double d = v.get<double>();  // also throws for a value that is not a number
+    if (!(d >= (double)std::numeric_limits<int>::min() && d <= (double)std::numeric_limits<int>::max()))
+        throw std::out_of_range(std::string("ImageParams json: ") + key + " is out of the int range");
+    return v.get<int>();
+}
+
 namespace nlohmann
 {
     template <>
@@ -13,8 +28,8 @@ namespace nlohmann
         }
 
         static void from_json(const json& j, ImmVision::Size& size) {
-            j.at("width").get_to(size.width);
-            j.at("height").get_to(size.height);
+            size.width = JsonInt(j, "width");
+            size.height = JsonInt(j, "height");
         }
     };
 
@@ -26,8 +41,8 @@ namespace nlohmann
         }
 
         static void from_json(const json& j, ImmVision::Point& point) {
-            j.at("x").get_to(point.x);
-            j.at("y").get_to(point.y);
+            point.x = JsonInt(j, "x");
+            point.y = JsonInt(j, "y");
         }
     };
 
@@ -64,7 +79,7 @@ namespace nlohmann
         }
 
         static void from_json(const json& j, ImmVision::ColormapScaleFromStatsData& data) {
-            j.at("ColorMapStatsType").get_to(data.ColorMapStatsType);
+            data.ColorMapStatsType = static_cast<ImmVision::ColorMapStatsTypeId>(JsonInt(j, "ColorMapStatsType"));
             j.at("NbSigmas").get_to(data.NbSigmas);
             j.at("UseStatsMin").get_to(data.UseStatsMin);
             j.at("UseStatsMax").get_to(data.UseStatsMax);
@@ -131,13 +146,14 @@ namespace nlohmann
             j.at("ImageDisplaySize").get_to(params.ImageDisplaySize);
             j.at("ZoomPanMatrix").get_to(params.ZoomPanMatrix);
             j.at("ZoomKey").get_to(params.ZoomKey);
-            params.InterpolationMode = j.value(
-                "InterpolationMode", ImmVision::ImageInterpolationMode::Adaptive);
+            params.InterpolationMode = j.contains("InterpolationMode")
+                ? static_cast<ImmVision::ImageInterpolationMode>(JsonInt(j, "InterpolationMode"))
+                : ImmVision::ImageInterpolationMode::Adaptive;
             j.at("ColormapSettings").get_to(params.ColormapSettings);
             j.at("ColormapKey").get_to(params.ColormapKey);
             j.at("PanWithMouse").get_to(params.PanWithMouse);
             j.at("ZoomWithMouseWheel").get_to(params.ZoomWithMouseWheel);
-            j.at("SelectedChannel").get_to(params.SelectedChannel);
+            params.SelectedChannel = JsonInt(j, "SelectedChannel");
             j.at("ShowSchoolPaperBackground").get_to(params.ShowSchoolPaperBackground);
             j.at("ShowAlphaChannelCheckerboard").get_to(params.ShowAlphaChannelCheckerboard);
             j.at("ShowGrid").get_to(params.ShowGrid);

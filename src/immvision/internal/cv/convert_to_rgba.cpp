@@ -2,6 +2,7 @@
 #include "immvision/internal/misc/parallel_for.h"
 
 #include <algorithm>  // std::clamp
+#include <cmath>      // std::isnan
 #include <limits>
 #include <type_traits>
 #include <stdexcept>
@@ -31,6 +32,8 @@ namespace ImmVision
             else if constexpr (std::is_floating_point_v<T>)
             {
                 double v = (double)value * 255.0;
+                if (std::isnan(v))  // a hole in the data (a depth map, a mask): black. The cast of a NaN is undefined
+                    return 0;
                 return (uint8_t)std::clamp(v, 0.0, 255.0);
             }
             else
