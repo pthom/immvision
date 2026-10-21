@@ -593,6 +593,7 @@ void test_make_full_view()
 // ImageParams JSON
 // =========================================================================
 
+#ifdef IMMVISION_SERIALIZE_JSON  // the JSON functions exist only with this option (on in the bundle)
 void test_image_params_json_missing_matrix_key()
 {
     TEST("ImageParamsFromJson: a zoom matrix without one of its keys throws");
@@ -606,7 +607,7 @@ void test_image_params_json_missing_matrix_key()
     CHECK(threw);
     PASS();
 }
-
+#endif
 
 // =========================================================================
 // Main
@@ -651,8 +652,10 @@ int main()
     test_zoom_pan_visible_roi();
     test_make_full_view();
 
+#ifdef IMMVISION_SERIALIZE_JSON
     printf("\n[ImageParams JSON]\n");
     test_image_params_json_missing_matrix_key();
+#endif
 
     printf("\n=== %d / %d tests passed ===\n", sPassCount, sTestCount);
     return (sPassCount == sTestCount) ? 0 : 1;
