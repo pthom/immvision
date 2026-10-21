@@ -9,11 +9,13 @@
 #include "immvision/internal/cv/zoom_pan_transform.h"
 #include "immvision/internal/cv/colormap.h"
 #include "immvision/internal/cv/matrix_info_utils.h"
+#include "immvision/image.h"
 
 #include <cassert>
 #include <cmath>
 #include <cstring>
 #include <cstdio>
+#include <string>
 #include <vector>
 
 using namespace ImmVision;
@@ -588,6 +590,25 @@ void test_make_full_view()
 
 
 // =========================================================================
+// ImageParams JSON
+// =========================================================================
+
+void test_image_params_json_missing_matrix_key()
+{
+    TEST("ImageParamsFromJson: a zoom matrix without one of its keys throws");
+    std::string json = ImageParamsToJson(ImageParams());
+    auto pos = json.find("\"22\"");
+    CHECK(pos != std::string::npos);
+    json.replace(pos, 4, "\"2x\"");  // a hand-edited or truncated file
+    bool threw = false;
+    try { ImageParamsFromJson(json); }
+    catch (const std::exception&) { threw = true; }
+    CHECK(threw);
+    PASS();
+}
+
+
+// =========================================================================
 // Main
 // =========================================================================
 
@@ -629,6 +650,9 @@ int main()
     printf("\n[ZoomPanTransform]\n");
     test_zoom_pan_visible_roi();
     test_make_full_view();
+
+    printf("\n[ImageParams JSON]\n");
+    test_image_params_json_missing_matrix_key();
 
     printf("\n=== %d / %d tests passed ===\n", sPassCount, sTestCount);
     return (sPassCount == sTestCount) ? 0 : 1;

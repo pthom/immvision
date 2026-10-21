@@ -45,7 +45,7 @@ namespace nlohmann
         static void from_json(const json& j, ImmVision::Matrix33d& mat) {
             for (int row = 0; row < 3; ++row) {
                 for (int col = 0; col < 3; ++col) {
-                    mat.m[row][col] = j[std::to_string(row) + std::to_string(col)];
+                    mat.m[row][col] = j.at(std::to_string(row) + std::to_string(col));
                 }
             }
         }
