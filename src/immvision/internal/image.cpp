@@ -543,6 +543,9 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
             // The wheel zooms only when the image holds it: not while Dear ImGui keeps scrolling the window under it
             // (its wheel lock), so that a page scrolled with the wheel does not stop on an image under the mouse
             bool holdsWheel = ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
+            // The wheel's sideways part too (a trackpad's gesture has some): a window that can scroll sideways
+            // would take it, lock the wheel on itself and keep the zoom's part from the image
+            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelX);
 
             if (holdsWheel && (fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
