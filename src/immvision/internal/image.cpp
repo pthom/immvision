@@ -19,6 +19,7 @@
 #include "imgui_internal.h"
 #ifdef IMMVISION_WITH_HELLO_IMGUI
 #include "hello_imgui/hello_imgui.h"  // SetItemTakesTouchDrags
+#include "imgui_kit/imgui_kit.h"  // ImGuiTouch::SetItemTakesPinch
 #endif
 
 #include <map>
@@ -510,6 +511,10 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
             // The image is still the last item here.
             if (params->PanWithMouse)
                 HelloImGui::SetItemTakesTouchDrags();
+            // A pinch zooms the image, as the wheel does (each notch scales it by exp(1/4)): with the wheel's exact
+            // value at each frame, which the zoom uses. Two fingers moved together pan it.
+            if (params->ZoomWithMouseWheel)
+                ImGuiTouch::SetItemTakesPinch(0.284f, ImGuiMouseButton_Left, ImGuiTouchPinchDelivery_WheelContinuous);
 #endif
             if (cacheParams.IsResizing)
                 return;

@@ -20,7 +20,8 @@ target_link_libraries(${target_name} PUBLIC
     immvision_gl_loader
     )
 
-# With hello_imgui, an image takes a finger's drags at once on a touch screen (HelloImGui::SetItemTakesTouchDrags)
+# With hello_imgui, on a touch screen, an image takes a finger's drags at once (HelloImGui::SetItemTakesTouchDrags),
+# and a pinch zooms it (imgui_kit's ImGuiTouch::SetItemTakesPinch, which hello_imgui brings)
 if(TARGET hello_imgui)
     target_link_libraries(${target_name} PUBLIC hello_imgui)
     target_compile_definitions(${target_name} PRIVATE IMMVISION_WITH_HELLO_IMGUI)
