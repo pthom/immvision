@@ -21,7 +21,7 @@ target_link_libraries(${target_name} PUBLIC
     )
 
 # With hello_imgui, on a touch screen, an image takes a finger's drags at once (HelloImGui::SetItemTakesTouchDrags),
-# and a pinch zooms it (imgui_kit's ImGuiTouch::SetItemTakesPinch, which hello_imgui brings)
+# and a pinch zooms it (imgui_kit's ImGuiTouch::SetItemPinchAsWheel, which hello_imgui brings)
 if(TARGET hello_imgui)
     target_link_libraries(${target_name} PUBLIC hello_imgui)
     target_compile_definitions(${target_name} PRIVATE IMMVISION_WITH_HELLO_IMGUI)

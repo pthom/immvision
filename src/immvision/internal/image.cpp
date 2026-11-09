@@ -511,10 +511,13 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
             // The image is still the last item here.
             if (params->PanWithMouse)
                 HelloImGui::SetItemTakesTouchDrags();
-            // A pinch zooms the image, as the wheel does (each notch scales it by exp(1/4)): with the wheel's exact
-            // value at each frame, which the zoom uses. Two fingers moved together pan it.
+            // A pinch zooms the image, as the wheel does (each wheel unit scales it by exp(1/4)): with the wheel's
+            // exact value at each frame, which the zoom uses. Two fingers moved together pan it.
             if (params->ZoomWithMouseWheel)
-                ImGuiTouch::SetItemTakesPinch(0.284f, ImGuiMouseButton_Left, ImGuiTouchPinchDelivery_WheelContinuous);
+            {
+                ImGuiTouch::SetItemPinchAsWheel(1.284f, ImGuiTouchPinchDelivery_WheelContinuous);
+                ImGuiTouch::SetItemTwoFingerPanAsMouseDrag(ImGuiMouseButton_Left);
+            }
 #endif
             if (cacheParams.IsResizing)
                 return;
