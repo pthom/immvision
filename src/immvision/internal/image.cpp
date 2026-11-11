@@ -725,11 +725,12 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
 
             if (!params->PanWithMouse)
             {
-                auto cursorPos = ImGui::GetCursorScreenPos();
-                ImGui::SetCursorScreenPos(tl);
-                ImGui::InvisibleButton("##resize", zone.GetSize());
-                ImGui::SetCursorScreenPos(cursorPos);
-                ImGui::Dummy(ImVec2(0.f, 0.f));
+                // The corner takes the press (the image under it lets it through): an item at its place, with no layout,
+                // so that what follows the image does not move when pan is turned on or off
+                ImGuiID resizeId = ImGui::GetID("##resize");
+                ImGui::ItemAdd(zone, resizeId);
+                bool hovered, held;
+                ImGui::ButtonBehavior(zone, resizeId, &hovered, &held);
             }
 
             bool isMouseHoveringWidget = ImGui::IsMouseHoveringRect(zone.Min, zone.Max);
