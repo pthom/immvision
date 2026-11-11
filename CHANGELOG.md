@@ -5,6 +5,7 @@
 **Changes:**
 - **A finger's drag on a touch screen:** with Hello ImGui (when its `hello_imgui` target exists before ImmVision's), an image that pans takes a finger's drag at once, instead of after a hold, and a swipe that starts on it pans the image instead of scrolling the page (`HelloImGui::SetItemTakesTouchDrags()`). Without Hello ImGui, nothing changes.
 - **The mouse wheel in a page that scrolls:** the image zooms only when it holds the wheel, not while Dear ImGui keeps scrolling the window under it. A page scrolled with the wheel no longer stops on an image that passes under the mouse.
+- **An image whose pan is off** (`PanWithMouse = false`) zooms with the wheel again, and a double click on it adds a watched pixel again. An interactive image (pan or wheel zoom on) is now an item with an ID, so a drag on it no longer moves the window; a display-only image (`ImageDisplay()`) is unchanged.
 - **RGB is the default color order:** calling `UseRgbColorOrder()` at startup is not required anymore. Images in BGR order (OpenCV) still need `UseBgrColorOrder()` (Python: `immvision.use_bgr_color_order()`).
 
 **Breaking changes:**

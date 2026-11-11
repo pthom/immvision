@@ -503,12 +503,11 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
         //
         // Lambdas / Handle Zoom
         //
-        // Mouse dragging
-        auto fnHandleMouseDragging = [&params](CachedParams & cacheParams)
+        // Touch gestures, registered on the image (the last item)
+        auto fnRegisterTouchGestures = [&params]()
         {
 #ifdef IMMVISION_WITH_HELLO_IMGUI
             // On a touch screen, a finger's drag pans the image at once (not after a hold), and does not scroll the page.
-            // The image is still the last item here.
             if (params->PanWithMouse)
                 HelloImGui::SetItemTakesTouchDrags();
             // A pinch zooms the image, as the wheel does (each wheel unit scales it by exp(1/4)): with the wheel's
@@ -518,7 +517,13 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
                 ImGuiTouch::SetItemPinchAsWheel(1.284f, ImGuiTouchPinchDelivery_WheelContinuous);
                 ImGuiTouch::SetItemTwoFingerPanAsMouseDrag(ImGuiMouseButton_Left);
             }
+#else
+            (void)params;
 #endif
+        };
+        // Mouse dragging
+        auto fnHandleMouseDragging = [&params](CachedParams & cacheParams)
+        {
             if (cacheParams.IsResizing)
                 return;
             Matrix33d zoomMatrix = params->ZoomPanMatrix;
@@ -634,7 +639,9 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
         //
         auto fnShowImage = [&params, &image](const GlTexture& glTexture, const ImageBuffer& imageRgbaCache) ->  MouseInformation
         {
-            bool disableDragWindow = params->PanWithMouse;
+            // An interactive image is an item with an ID: it can claim the wheel (SetItemKeyOwner), and a drag on it
+            // does not move the window. A display-only image lets a drag move the window.
+            bool disableDragWindow = params->PanWithMouse || params->ZoomWithMouseWheel;
             ImVec2 displaySize((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height);
 
             // Compute UV coordinates and widget placement from the zoom/pan matrix
@@ -830,16 +837,16 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
             ImGui::BeginGroup();
             // Show image
             auto mouseInfo = fnShowImage(*cacheImages.mGlTexture, cacheImages.mImageRgbaCache);
-            fnShowResizeWidget(cacheParams);
+            // The image is the last item: what asks Dear ImGui about it runs before the resize widget adds its own items
+            fnRegisterTouchGestures();
             // Add Watched Pixel on double click
             if (   params->AddWatchedPixelOnDoubleClick
                 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)
                 && ImGui::IsItemHovered())
                 fnWatchedPixels_Add(mouseInfo.MousePosition);
-
-            // Handle Mouse
-            fnHandleMouseDragging(cacheParams);
             fnHandleMouseWheel(mouseInfo.MousePosition, cacheParams);
+            fnShowResizeWidget(cacheParams);
+            fnHandleMouseDragging(cacheParams);
 
             // Zoom+ / Zoom- buttons
             fnShowZoomButtons(cacheParams);
