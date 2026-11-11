@@ -131,8 +131,10 @@ namespace ImmVision
         // Refresh Images Textures
         //
 
-        // Refresh Image: images textures are cached. Set to true if your image matrix/buffer has changed
-        // (for example, for live video images)
+        // Refresh Image: the image's texture is cached. Set to true when your image's pixels changed (live video...):
+        // it stays true until you set it back, and while true the texture is uploaded again at each frame.
+        // Simplest: set it at each frame, e.g. `params.RefreshImage = imageChanged;`
+        // (Python: `params.refresh_image = image_changed`)
         bool RefreshImage = false;
 
         //
@@ -287,7 +289,8 @@ namespace ImmVision
     //   width or the height given (e.g. `(300, 0)`), the other dimension follows the image's aspect ratio.
     //   A negative value is the remaining width (or height) of the window minus its absolute value, as ImGui's
     //   item widths: `(-1, 0)` fills the width of the window.
-    // - `refreshImage`: the textures are cached: set it to true when the image changed (e.g. live video).
+    // - `refreshImage`: the textures are cached: pass true when the image changed (e.g. live video).
+    //   It applies to this call only.
     // - `showOptionsButton`: shows a button that opens the options panel; zoom, pan and watched pixels
     //   (double-click) then become possible.
     //
@@ -312,7 +315,8 @@ namespace ImmVision
     // - `size`: the displayed size, in and out: the size chosen by the user is stored in it, when given.
     //   A negative value is the remaining width (or height) of the window (`(-1, 0)`: the width of the window),
     //   resolved once: the concrete size is stored back.
-    // - `refreshImage`: the textures are cached: set it to true when the image changed (e.g. live video).
+    // - `refreshImage`: the textures are cached: pass true when the image changed (e.g. live video).
+    //   It applies to this call only.
     // - `resizable`: whether the user can resize the widget.
     // - `showOptionsButton`: shows a button that opens the options panel.
     //
