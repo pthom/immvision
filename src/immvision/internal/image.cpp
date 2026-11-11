@@ -555,10 +555,27 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
                 return;
             // The wheel zooms only when the image holds it: not while Dear ImGui keeps scrolling the window under it
             // (its wheel lock), so that a page scrolled with the wheel does not stop on an image under the mouse
-            bool holdsWheel = ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
-            // The wheel's sideways part too (a trackpad's gesture has some): a window that can scroll sideways
-            // would take it, lock the wheel on itself and keep the zoom's part from the image
-            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelX);
+            // The wheel's sideways part is claimed too (a trackpad's gesture has some): a window that can scroll sideways
+            // would take it, lock the wheel on itself and keep the zoom's part from the image.
+            bool holdsWheel;
+            if (ImGui::GetItemID() != 0)
+            {
+                // An image that pans is a button: it claims the wheel as an item
+                holdsWheel = ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
+                ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelX);
+            }
+            else
+            {
+                // An image that does not pan is an item without an ID (the press goes through): it claims the wheel
+                // under an ID of its own, while hovered
+                ImGuiID wheelOwner = ImGui::GetID("##wheel");
+                holdsWheel = ImGui::IsItemHovered() && ImGui::TestKeyOwner(ImGuiKey_MouseWheelY, wheelOwner);
+                if (holdsWheel)
+                {
+                    ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, wheelOwner);
+                    ImGui::SetKeyOwner(ImGuiKey_MouseWheelX, wheelOwner);
+                }
+            }
 
             if (holdsWheel && (fabs(ImGui::GetIO().MouseWheel) > 0.f) && (ImGui::IsItemHovered()))
             {
@@ -639,9 +656,9 @@ Ensure that each PushColorOrderRgb()/PushColorOrderBgr() call is paired with a P
         //
         auto fnShowImage = [&params, &image](const GlTexture& glTexture, const ImageBuffer& imageRgbaCache) ->  MouseInformation
         {
-            // An interactive image is an item with an ID: it can claim the wheel (SetItemKeyOwner), and a drag on it
-            // does not move the window. A display-only image lets a drag move the window.
-            bool disableDragWindow = params->PanWithMouse || params->ZoomWithMouseWheel;
+            // An image that pans is a button: it takes the press. One that does not pan lets the press through, to what
+            // is under it (a node of a node editor that moves or gets selected, a window).
+            bool disableDragWindow = params->PanWithMouse;
             ImVec2 displaySize((float)params->ImageDisplaySize.width, (float)params->ImageDisplaySize.height);
 
             // Compute UV coordinates and widget placement from the zoom/pan matrix
