@@ -341,7 +341,7 @@ namespace ImmVision
     // Clears the internal texture cache of immvision (this is done automatically at exit time)
     //
     // Note: this function requires that both imgui and OpenGL were initialized.
-    //       (for example, use `imgui_runner.run`for Python,  or `HelloImGui::Run` for C++)
+    //       (for example, `immapp.run` in Python, or `HelloImGui::Run` in C++)
     IMMVISION_API void ClearTextureCache();
 
     // Returns the RGBA image currently displayed by ImmVision::Image or ImmVision::ImageDisplay
