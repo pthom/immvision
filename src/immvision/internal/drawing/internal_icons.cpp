@@ -61,7 +61,7 @@ namespace ImmVision
             float symbolLen = radius * 0.5f;
             float symbolThick = size * 0.05f;
             ImVec2 symbolCenter = glassCenter;
-#if IMGUI_VERSION_NUM >= 19299 || defined(IM_DRAWLIST_TEX_LINES_SAMPLE_COUNT)
+#if !(IMGUI_VERSION_NUM >= 19299 || defined(IM_DRAWLIST_TEX_LINES_SAMPLE_COUNT))
             // Compensate the (+0.5,+0.5) offset that AddLine() applied to its coordinates before imgui 1.93
             symbolCenter.x -= size * 0.02f;
             symbolCenter.y -= size * 0.02f;
@@ -121,7 +121,7 @@ namespace ImmVision
             float thick = size * 0.08f;
             float sliderThick = size * 0.15f;
 
-#if IMGUI_VERSION_NUM >= 19299 || defined(IM_DRAWLIST_TEX_LINES_SAMPLE_COUNT)
+#if !(IMGUI_VERSION_NUM >= 19299 || defined(IM_DRAWLIST_TEX_LINES_SAMPLE_COUNT))
             // Compensate the (+0.5,+0.5) offset that AddLine() applied to its coordinates before imgui 1.93
             tl.x -= size * 0.02f;
 #endif
